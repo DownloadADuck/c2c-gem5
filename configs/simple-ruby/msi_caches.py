@@ -42,6 +42,8 @@ from m5.util import fatal, panic
 
 from m5.objects import *
 
+from ruby import Ruby
+
 
 class MyCacheSystem(RubySystem):
     def __init__(self):
@@ -50,6 +52,8 @@ class MyCacheSystem(RubySystem):
 
         super(MyCacheSystem, self).__init__()
 
+
+#   def create(self, options, system, piobus, dma_devices):
     def setup(self, system, cpus, mem_ctrls):
         """Set up the Ruby cache subsystem. Note: This can't be done in the
         constructor because many of these items require a pointer to the
@@ -58,6 +62,9 @@ class MyCacheSystem(RubySystem):
         """
         # Ruby's global network.
         self.network = MyNetwork(self)
+
+        # Disjoint Network Topology
+#        self.network = DisjointSimple(self)
 
         # MSI uses 3 virtual networks. One for requests (lowest priority), one
         # for responses (highest priority), and one for "forwards" or
@@ -107,6 +114,7 @@ class MyCacheSystem(RubySystem):
         # Connect the cpu's cache, interrupt, and TLB ports to Ruby
         for i, cpu in enumerate(cpus):
             self.sequencers[i].connectCpuPorts(cpu)
+
 
 
 class L1Cache(L1Cache_Controller):

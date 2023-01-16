@@ -44,7 +44,7 @@ import m5
 from m5.objects import *
 
 # Needed for running C++ threads
-m5.util.addToPath("../../")
+m5.util.addToPath("../")
 from common.FileSystemConfig import config_filesystem
 
 # You can import ruby_caches_MI_example to use the MI_example protocol instead
@@ -84,7 +84,7 @@ system.caches.setup(system, system.cpu, [system.mem_ctrl])
 thispath = os.path.dirname(os.path.realpath(__file__))
 binary = os.path.join(
     thispath,
-    "../../../",
+    "../../",
     "tests/test-progs/threads/bin/x86/linux/threads",
 )
 
