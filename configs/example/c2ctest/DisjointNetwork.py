@@ -58,8 +58,8 @@ class DisjointSimple(SimpleNetwork):
     def connectGPU(self, opts, controllers):
 
         # Setup parameters for makeTopology call for GPU network
-        topo_module = import_module("topologies.%s" % opts.gpu_topology)
-        topo_class = getattr(topo_module, opts.gpu_topology)
+        topo_module = import_module("topologies.%s" % opts.cpu_topology)
+        topo_class = getattr(topo_module, opts.cpu_topology)
         _topo = topo_class(controllers)
         _topo.makeTopology(opts, self, SimpleIntLink, SimpleExtLink, Switch)
 
