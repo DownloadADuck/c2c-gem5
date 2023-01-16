@@ -58,17 +58,12 @@ class Disjoint_VIPER(RubySystem):
             self.network_gpu = DisjointGarnet(self)
         else:
             self.network_cpu = DisjointSimple(self)
-            self.network_cpu0 = DisjointSimple(self)
             self.network_gpu = DisjointSimple(self)
 
         # Construct CPU controllers
         cpu_dir_nodes = construct_dirs(options, system, self, self.network_cpu)
         (cp_sequencers, cp_cntrl_nodes) = construct_corepairs(
             options, system, self, self.network_cpu
-        )
-        cpu0_dir_nodes = construct_dirs(options, system, self, self.network_cpu0)
-        (cp_sequencers, cp_cntrl_nodes) = construct_corepairs(
-            options, system, self, self.network_cpu0
         )
 
         # Construct GPU controllers
@@ -87,7 +82,6 @@ class Disjoint_VIPER(RubySystem):
 
         # Construct CPU memories
         Ruby.setup_memory_controllers(system, self, cpu_dir_nodes, options)
-#        Ruby.setup_memory_controllers(system, self, cpu0_dir_nodes, options)
 
         # Construct GPU memories
         (gpu_dir_nodes, gpu_mem_ctrls) = construct_gpudirs(
@@ -176,12 +170,10 @@ class Disjoint_VIPER(RubySystem):
         # Setup number of vnets
         self.number_of_virtual_networks = 11
         self.network_cpu.number_of_virtual_networks = 11
-        self.network_cpu0.number_of_virtual_networks = 11
         self.network_gpu.number_of_virtual_networks = 11
 
         # Set up the disjoint topology
         self.network_cpu.connectCPU(options, cpu_cntrls)
-        self.network_cpu0.connectCPU(options, cpu_cntrls)
         self.network_gpu.connectGPU(options, gpu_cntrls)
 
         # Create port proxy for connecting system port. System port is used
