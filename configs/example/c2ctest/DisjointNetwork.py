@@ -33,6 +33,7 @@ from m5.util import fatal
 from importlib import *
 
 from network import Network
+from topologies.BaseTopology import SimpleTopology
 
 
 class DisjointSimple(SimpleNetwork):
@@ -47,28 +48,30 @@ class DisjointSimple(SimpleNetwork):
 
     def connectCPU(self, opts, controllers):
 
-        # Setup parameters for makeTopology call for CPU network
-        topo_module = import_module("topologies.%s" % opts.cpu_topology)
-        topo_class = getattr(topo_module, opts.cpu_topology)
-        _topo = topo_class(controllers)
+#        # Setup parameters for makeTopology call for CPU network
+#        topo_module = import_module("topologies.%s" % opts.cpu_topology)
+#        topo_class = getattr(topo_module, opts.cpu_topology)
+#        _topo = topo_class(controllers)
+        
+        _topo = Crossbar(controllers)
         _topo.makeTopology(opts, self, SimpleIntLink, SimpleExtLink, Switch)
 
         self.initSimple(opts, self.int_links, self.ext_links)
 
     def connectGPU(self, opts, controllers):
 
-        # Setup parameters for makeTopology call for GPU network
+#        # Setup parameters for makeTopology call for GPU network
+#
+#        # Using importlib to import the topologies module
+#        topo_module = import_module("topologies.%s" % opts.cpu_topology)
+#  
+#        # Getting the topology class from te topo modules with getattr
+#        topo_class = getattr(topo_module, opts.cpu_topology)
+#
+#        # Getting the topology from the controllers
+#        _topo = topo_class(controllers)
 
-        # Using importlib to import the topologies module
-        topo_module = import_module("topologies.%s" % opts.cpu_topology)
-  
-        # Getting the topology class from te topo modules with getattr
-        topo_class = getattr(topo_module, opts.cpu_topology)
-
-        # Getting the topology from the controllers
-        _topo = topo_class(controllers)
-
-        # Make the topology
+        _topo = Crossbar(controllers)
         _topo.makeTopology(opts, self, SimpleIntLink, SimpleExtLink, Switch)
 
         self.initSimple(opts, self.int_links, self.ext_links)
@@ -112,3 +115,54 @@ class DisjointGarnet(GarnetNetwork):
         )
 
         Network.init_network(opts, self, GarnetNetworkInterface)
+
+
+class Crossbar(SimpleTopology):
+    decription = "Crossbar"
+
+    def makeTopology(self, options, network, IntLink, ExtLink, Router):
+        
+        link_latency = options.link_latency
+        router_latency = options.router_latency
+
+        routers = [Router(router_id=i) for i in range(len(self.nodes) + 1)]
+        xbar = routers[len(self.nodes)]
+        
+        network.routers = routers
+
+        ext_links = [
+            ExtLink(
+                link_id=i,
+                ext_node=n,
+                int_node=routers[i],
+                latency=link_latency,
+            )
+            for (i, n) in enumerate(self.nodes)
+        ]
+        network.ext_links = ext_links
+
+        link_count = len(self.nodes)
+
+        int_links = []
+        for i in range(len(self.nodes)):
+            int_links.append(
+                IntLink(
+                    link_id=(link_count + i),
+                    src_node=routers[i],
+                    dst_node=xbar,
+                    latency=link_latency,
+                )
+            )
+
+        link_count += len(self.nodes)
+
+        for i in range(len(self.nodes)):
+            int_links.append(
+                IntLink(
+                    link_id=(link_count + i),
+                    src_node=xbar,
+                    dst_node=routers[i],
+                    latency=link_latency,
+                )
+            )
+        network.int_links = int_links
