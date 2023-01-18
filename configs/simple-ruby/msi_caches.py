@@ -62,13 +62,13 @@ class MyCacheSystem(RubySystem):
         if we do this in the __init__.
         """
         # Ruby's global network.
-        self.network = MyNetwork(self)
+        self.network0 = MyNetwork(self)
 
         # MSI uses 3 virtual networks. One for requests (lowest priority), one
         # for responses (highest priority), and one for "forwards" or
         # cache-to-cache requests. See *.sm files for details.
         self.number_of_virtual_networks = 3
-        self.network.number_of_virtual_networks = 3
+        self.network0.number_of_virtual_networks = 3
 
         # There is a single global list of all of the controllers to make it
         # easier to connect everything to the global network. This can be
@@ -101,8 +101,8 @@ class MyCacheSystem(RubySystem):
 
         # Create the network and connect the controllers.
         # NOTE: This is quite different if using Garnet!
-        self.network.connectControllers(self.controllers)
-        self.network.setup_buffers()
+        self.network0.connectControllers(self.controllers)
+        self.network0.setup_buffers()
 
         # Set up a proxy port for the system_port. Used for load binaries and
         # other functional-only things.
@@ -170,13 +170,13 @@ class L1Cache(L1Cache_Controller):
         # is a "to" buffer (i.e., out) then you use the "out_port",
         # otherwise, the in_port.
         self.requestToDir = MessageBuffer(ordered=True)
-        self.requestToDir.out_port = ruby_system.network.in_port
+        self.requestToDir.out_port = ruby_system.network0.in_port
         self.responseToDirOrSibling = MessageBuffer(ordered=True)
-        self.responseToDirOrSibling.out_port = ruby_system.network.in_port
+        self.responseToDirOrSibling.out_port = ruby_system.network0.in_port
         self.forwardFromDir = MessageBuffer(ordered=True)
-        self.forwardFromDir.in_port = ruby_system.network.out_port
+        self.forwardFromDir.in_port = ruby_system.network0.out_port
         self.responseFromDirOrSibling = MessageBuffer(ordered=True)
-        self.responseFromDirOrSibling.in_port = ruby_system.network.out_port
+        self.responseFromDirOrSibling.in_port = ruby_system.network0.out_port
 
 
 class DirController(Directory_Controller):
@@ -203,14 +203,14 @@ class DirController(Directory_Controller):
 
     def connectQueues(self, ruby_system):
         self.requestFromCache = MessageBuffer(ordered=True)
-        self.requestFromCache.in_port = ruby_system.network.out_port
+        self.requestFromCache.in_port = ruby_system.network0.out_port
         self.responseFromCache = MessageBuffer(ordered=True)
-        self.responseFromCache.in_port = ruby_system.network.out_port
+        self.responseFromCache.in_port = ruby_system.network0.out_port
 
         self.responseToCache = MessageBuffer(ordered=True)
-        self.responseToCache.out_port = ruby_system.network.in_port
+        self.responseToCache.out_port = ruby_system.network0.in_port
         self.forwardToCache = MessageBuffer(ordered=True)
-        self.forwardToCache.out_port = ruby_system.network.in_port
+        self.forwardToCache.out_port = ruby_system.network0.in_port
 
         # These are other special message buffers. They are used to send
         # requests to memory and responses from memory back to the controller.
