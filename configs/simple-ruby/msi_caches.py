@@ -42,8 +42,8 @@ from m5.util import fatal, panic
 
 from m5.objects import *
 
+from topologies.BaseTopology import SimpleTopology
 from example.c2ctest.DisjointNetwork import *
-#from ruby.GPU_VIPER import *
 from ruby import Ruby
 
 
@@ -326,6 +326,7 @@ class MyNetwork(SimpleNetwork):
     def __init__(self, ruby_system):
         super(MyNetwork, self).__init__()
         self.netifs = []
+        
         self.ruby_system = ruby_system
 
     def connectControllers(self, controllers):
@@ -355,3 +356,54 @@ class MyNetwork(SimpleNetwork):
                     SimpleIntLink(link_id=link_count, src_node=ri, dst_node=rj)
                 )
         self.int_links = int_links
+
+
+class Crossbar(SimpleTopology):
+    decription = "Crossbar"
+
+    def makeTopology(self, options, network, IntLink, ExtLink, Router):
+        
+        link_latency = options.link_latency
+        router_latency = options.router_latency
+
+        routers = [Router(router_id=i) for i in range(len(self.nodes) + 1)]
+        xbar = routers[len(self.nodes)]
+        
+        network.routers = routers
+
+        ext_links = [
+            ExtLink(
+                link_id=i,
+                ext_node=n,
+                int_node=routers[i],
+                latency=link_latency,
+            )
+            for (i, n) in enumerate(self.nodes)
+        ]
+        network.ext_links = ext_links
+
+        link_count = len(self.nodes)
+
+        int_links = []
+        for i in range(len(self.nodes)):
+            int_links.append(
+                IntLink(
+                    link_id=(link_count + i),
+                    src_node=routers[i],
+                    dst_node=xbar,
+                    latency=link_latency,
+                )
+            )
+
+        link_count += len(self.nodes)
+
+        for i in range(len(self.nodes)):
+            int_links.append(
+                IntLink(
+                    link_id=(link_count + i),
+                    src_node=xbar,
+                    dst_node=routers[i],
+                    latency=link_latency,
+                )
+            )
+        network.int_links = int_links
