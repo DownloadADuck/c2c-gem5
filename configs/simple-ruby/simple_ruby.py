@@ -64,20 +64,28 @@ system.mem_mode = "timing"  # Use timing accesses
 system.mem_ranges = [AddrRange("512MB")]  # Create an address range
 
 # Create a pair of simple CPUs
-system.cpu = [X86TimingSimpleCPU() for i in range(2)]
+system.cpu0 = [X86TimingSimpleCPU() for i in range(2)]
+system.cpu1 = [X86TimingSimpleCPU() for i in range(2)]
 
 # Create a DDR3 memory controller and connect it to the membus
-system.mem_ctrl = MemCtrl()
-system.mem_ctrl.dram = DDR3_1600_8x8()
-system.mem_ctrl.dram.range = system.mem_ranges[0]
+system.mem_ctrl0 = MemCtrl()
+system.mem_ctrl0.dram = DDR3_1600_8x8()
+system.mem_ctrl0.dram.range = system.mem_ranges[0]
+
+system.mem_ctrl1 = MemCtrl()
+system.mem_ctrl1.dram = DDR3_1600_8x8()
+system.mem_ctrl1.dram.range = system.mem_ranges[0]
 
 # create the interrupt controller for the CPU and connect to the membus
-for cpu in system.cpu:
+for cpu in system.cpu0:
+    cpu.createInterruptController()
+for cpu in system.cpu1:
     cpu.createInterruptController()
 
 # Create the Ruby System
 system.caches = MyCacheSystem()
-system.caches.setup(system, system.cpu, [system.mem_ctrl])
+system.caches.setup(system, system.cpu0, system.cpu1, [system.mem_ctrl0],
+        [system.mem_ctrl1])
 
 # Run application and use the compiled ISA to find the binary
 # grab the specific path to the binary
@@ -94,7 +102,11 @@ process = Process()
 # cmd is a list which begins with the executable (like argv)
 process.cmd = [binary]
 # Set the cpu to use the process as its workload and create thread contexts
-for cpu in system.cpu:
+for cpu in system.cpu0:
+    cpu.workload = process
+    cpu.createThreads()
+
+for cpu in system.cpu1:
     cpu.workload = process
     cpu.createThreads()
 
