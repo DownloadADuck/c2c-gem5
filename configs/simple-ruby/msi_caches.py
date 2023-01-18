@@ -55,7 +55,6 @@ class MyCacheSystem(RubySystem):
         super(MyCacheSystem, self).__init__()
 
 
-#   def create(self, options, system, piobus, dma_devices):
     def setup(self, system, cpus, mem_ctrls):
         """Set up the Ruby cache subsystem. Note: This can't be done in the
         constructor because many of these items require a pointer to the
@@ -64,7 +63,6 @@ class MyCacheSystem(RubySystem):
         """
         # Ruby's global network.
         self.network = MyNetwork(self)
-#        self.network_cpu = DisjointGarnet(self)
 
         # MSI uses 3 virtual networks. One for requests (lowest priority), one
         # for responses (highest priority), and one for "forwards" or
@@ -72,104 +70,6 @@ class MyCacheSystem(RubySystem):
         self.number_of_virtual_networks = 3
         self.network.number_of_virtual_networks = 3
 
-###############################################################################
-#        # Construct CPU controllers
-#        cpu_dir_nodes = construct_dirs(options, system, self, self.network_cpu)
-#        (cp_sequencers, cp_cntrl_nodes) = construct_corepairs(
-#            options, system, self, self.network_cpu
-#        )
-#
-#        # Construct CPU memories for cpu_network
-#        Ruby.setup_memory_controllers(system, self, cpu_dir_nodes, options)
-#
-#        # Configure the directories based on which network they are in
-#        for cpu_dir_node in cpu_dir_nodes:
-#          cpu_dir_node.CPUonly = True
-#          cpu_dir_node.GPUonly = False
-#
-#        # Assign the memory controller to the system
-#        cpu_abstract_mems = []
-#        for mem_ctrl in system.mem_ctrls:
-#          cpu_abstract_mems.append(mem_ctrl.dram)
-#        system.memories = cpu_abstract_mems
-#
-#        cpu_dma_ctrls = []
-#
-#        for i, dma_device in enumerate(dma_devices):
-#            dma_seq = DMASequencer(version=i, ruby_system=self)
-#            dma_cntrl = DMA_Controller(
-#                version=i, dma_sequencer=dma_seq, ruby_system=self
-#            )
-#
-#            # Handle inconsistently named ports on various DMA devices:
-#            if not hasattr(dma_device, "type"):
-#                # IDE doesn't have a .type but seems like everything else does.
-#                dma_seq.in_ports = dma_device
-#            elif dma_device.type in gpu_dma_types:
-#                dma_seq.in_ports = dma_device.port
-#            else:
-#                dma_seq.in_ports = dma_device.dma
-#
-#            if (
-#                hasattr(dma_device, "type")
-#                and dma_device.type in gpu_dma_types
-#            ):
-#                dma_cntrl.requestToDir = MessageBuffer(buffer_size=0)
-#                dma_cntrl.requestToDir.out_port = self.network_gpu.in_port
-#                dma_cntrl.responseFromDir = MessageBuffer(buffer_size=0)
-#                dma_cntrl.responseFromDir.in_port = self.network_gpu.out_port
-#                dma_cntrl.mandatoryQueue = MessageBuffer(buffer_size=0)
-#
-#                gpu_dma_ctrls.append(dma_cntrl)
-#            else:
-#                dma_cntrl.requestToDir = MessageBuffer(buffer_size=0)
-#                dma_cntrl.requestToDir.out_port = self.network_cpu.in_port
-#                dma_cntrl.responseFromDir = MessageBuffer(buffer_size=0)
-#                dma_cntrl.responseFromDir.in_port = self.network_cpu.out_port
-#                dma_cntrl.mandatoryQueue = MessageBuffer(buffer_size=0)
-#
-#                cpu_dma_ctrls.append(dma_cntrl)
-#
-#            dma_cntrls.append(dma_cntrl)
-#
-#        system.dma_cntrls = dma_cntrls
-#
-#        # Collect CPU and GPU controllers into seperate lists
-#        cpu_cntrls = cpu_dir_nodes + cp_cntrl_nodes + cpu_dma_ctrls
-#
-#        self.network_cpu.number_of_virtual_networks = 11
-#        
-#        # Connect the controllers and builds the topology
-#        self.network_cpu.connectCPU(options, cpu_cntrls)
-#
-#        # Proxy for connecting system port. System port is used for loading
-#        # from outside guest, e.g., binaries like vmlinux.
-#        system.sys_port_proxy = RubyPortProxy(ruby_system=self)
-#        system.sys_port_proxy.pio_request_port = piobus.cpu_side_ports
-#        system.system_port = system.sys_port_proxy.in_ports
-#
-#        # Only CPU sequencers connect to PIO bus. This acts as the "default"
-#        # destination for unknown address ranges. PCIe requests fall under this
-#        # category.
-#
-#        for i in range(len(cp_sequencers)):
-#            cp_sequencers[i].pio_request_port = piobus.cpu_side_ports
-#            cp_sequencers[i].mem_request_port = piobus.cpu_side_ports
-#
-#            # The CorePairs in MOESI_AMD_Base round up when constructing
-#            # sequencers, but if the CPU does not exit there would be no
-#            # sequencer to send a range change, leading to assert.
-#            if i < options.num_cpus:
-#                cp_sequencers[i].pio_response_port = piobus.mem_side_ports
-#
-#        # Setup ruby port. Both CPU and GPU are actually connected here.
-#        all_sequencers = (
-#            cp_sequencers + tcp_sequencers + sqc_sequencers + scalar_sequencers
-#        )
-#        self._cpu_ports = all_sequencers
-#        self.num_of_sequencers = len(all_sequencers)
-#
-###############################################################################
         # There is a single global list of all of the controllers to make it
         # easier to connect everything to the global network. This can be
         # customized depending on the topology/network requirements.
@@ -336,38 +236,54 @@ class MyNetwork(SimpleNetwork):
         """Connect all of the controllers to routers and connec the routers
         together in a point-to-point network.
         """
-        # Create one router/switch per controller in the system
-        self.routers = [Switch(router_id=i) for i in range(len(controllers))]
+#        # Create one router/switch per controller in the system
+#        self.routers = [Switch(router_id=i) for i in range(len(controllers))]
+#
+#        # Make a link from each controller to the router. The link goes
+#        # externally to the network.
+#        self.ext_links = [
+#            SimpleExtLink(link_id=i, ext_node=c, int_node=self.routers[i])
+#            for i, c in enumerate(controllers)
+#        ]
+#
+#        # Make an "internal" link (internal to the network) between every pair
+#        # of routers.
+#        link_count = 0
+#        int_links = []
+#        for ri in self.routers:
+#            for rj in self.routers:
+#                if ri == rj:
+#                    continue  # Don't connect a router to itself!
+#                link_count += 1
+#                int_links.append(
+#                    SimpleIntLink(link_id=link_count, src_node=ri, dst_node=rj)
+#                )
+#        self.int_links = int_links
+        topo = Crossbar(controllers)
+        topo.makeTopology(self, SimpleIntLink, SimpleExtLink, Switch)
 
-        # Make a link from each controller to the router. The link goes
-        # externally to the network.
-        self.ext_links = [
-            SimpleExtLink(link_id=i, ext_node=c, int_node=self.routers[i])
-            for i, c in enumerate(controllers)
-        ]
-
-        # Make an "internal" link (internal to the network) between every pair
-        # of routers.
-        link_count = 0
-        int_links = []
-        for ri in self.routers:
-            for rj in self.routers:
-                if ri == rj:
-                    continue  # Don't connect a router to itself!
-                link_count += 1
-                int_links.append(
-                    SimpleIntLink(link_id=link_count, src_node=ri, dst_node=rj)
-                )
+        self.initSimple(self.int_links, self.ext_links)
+    
+    def initSimple(self, int_links, ext_links):
+        # Attach links to network
         self.int_links = int_links
+        self.ext_links = ext_links
+
+        # Commented because fatal: User should not manually set links
+#        self.setup_buffers()
+        
+
 
 
 class Crossbar(SimpleTopology):
     decription = "Crossbar"
 
-    def makeTopology(self, options, network, IntLink, ExtLink, Router):
+    def makeTopology(self, network, IntLink, ExtLink, Router):
         
-        link_latency = options.link_latency
-        router_latency = options.router_latency
+#        link_latency = options.link_latency
+#        router_latency = options.router_latency
+        link_latency = 1
+        router_latency = 1
 
         routers = [Router(router_id=i) for i in range(len(self.nodes) + 1)]
         xbar = routers[len(self.nodes)]
