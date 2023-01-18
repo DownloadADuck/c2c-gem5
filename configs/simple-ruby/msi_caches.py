@@ -325,8 +325,11 @@ class MyNetwork(SimpleNetwork):
 
     def __init__(self, ruby_system):
         super(MyNetwork, self).__init__()
+
         self.netifs = []
-        
+        self.routers = []
+        self.int_links = []
+        self.ext_links = []
         self.ruby_system = ruby_system
 
     def connectControllers(self, controllers):
