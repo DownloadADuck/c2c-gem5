@@ -39,6 +39,7 @@ IMPORTANT: If you modify this file, it's likely that the Learning gem5 book
 
 # import the m5 (gem5) library created when gem5 is built
 import m5
+from m5.util import *
 
 # import all of the SimObjects
 from m5.objects import *
@@ -61,7 +62,9 @@ system.clk_domain.voltage_domain = VoltageDomain()
 
 # Set up the system
 system.mem_mode = "timing"  # Use timing accesses
-system.mem_ranges = [AddrRange("512MB")]  # Create an address range
+arv = convert.toMemorySize('256MB')
+addr_ranges_vaults = [AddrRange(i*arv, ((i+1)*arv-1)) for i in range(2)]
+system.mem_ranges = addr_ranges_vaults # Create an address range
 
 # Create a pair of simple CPUs
 system.cpu0 = [X86TimingSimpleCPU() for i in range(2)]
@@ -74,7 +77,7 @@ system.mem_ctrl0.dram.range = system.mem_ranges[0]
 
 system.mem_ctrl1 = MemCtrl()
 system.mem_ctrl1.dram = DDR3_1600_8x8()
-system.mem_ctrl1.dram.range = system.mem_ranges[0]
+system.mem_ctrl1.dram.range = system.mem_ranges[1]
 
 # create the interrupt controller for the CPU and connect to the membus
 for cpu in system.cpu0:
