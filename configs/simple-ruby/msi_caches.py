@@ -78,10 +78,12 @@ class MyCacheSystem(RubySystem):
         # Create one controller for each L1 cache (and the cache mem obj.)
         # Create a single directory controller (Really the memory cntrl)
         self.controllers0 = [L1Cache(system, self, self.network0, cpu) for cpu 
-                in cpus0] + [DirController(self, self.network0, system.mem_ranges, mem_ctrls0)]
+                in cpus0] + [DirController(self, self.network0,
+                    system.mem_ranges[0], mem_ctrls0)]
 
         self.controllers1 = [L1Cache(system, self, self.network1, cpu) for cpu 
-                in cpus1] + [DirController(self, self.network1, system.mem_ranges, mem_ctrls1)]
+                in cpus1] + [DirController(self, self.network1,
+                    system.mem_ranges[1], mem_ctrls1)]
 
         # Create one sequencer per CPU. In many systems this is more
         # complicated since you have to create sequencers for DMA controllers
@@ -109,8 +111,11 @@ class MyCacheSystem(RubySystem):
         # N of them are the L1 caches which need a sequencer pointer
         for i, c in enumerate(self.controllers0[0 : len(self.sequencers0)]):
             c.sequencer0 = self.sequencers0[i]
+            
+        for i, c in enumerate(self.controllers1[0 : len(self.sequencers1)]):
+            c.sequencer1 = self.sequencers1[i]
 
-        self.num_of_sequencers = len(self.sequencers0)
+        self.num_of_sequencers = len(self.sequencers0) + len(self.sequencers1)
 
         # Create the network and connect the controllers.
         # NOTE: This is quite different if using Garnet!
@@ -126,8 +131,10 @@ class MyCacheSystem(RubySystem):
 
         # Connect the cpu's cache, interrupt, and TLB ports to Ruby
         for i, cpu in enumerate(cpus0):
+            print("Connecting ", cpu, " to the sequencer ", self.sequencers0[i])
             self.sequencers0[i].connectCpuPorts(cpu)
         for i, cpu in enumerate(cpus1):
+            print("Connecting ", cpu, " to the sequencer ", self.sequencers1[i])
             self.sequencers1[i].connectCpuPorts(cpu)
 
 
