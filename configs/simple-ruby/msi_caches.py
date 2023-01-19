@@ -54,12 +54,11 @@ class MyCacheSystem(RubySystem):
 
         super(MyCacheSystem, self).__init__()
 
-
     def setup(self, system, cpus0, cpus1, mem_ctrls0, mem_ctrls1):
         """Set up the Ruby cache subsystem. Note: This can't be done in the
-        constructor because many of these items require a pointer to the
-        ruby system (self). This causes infinite recursion in initialize()
-        if we do this in the __init__.
+           constructor because many of these items require a pointer to the
+           ruby system (self). This causes infinite recursion in initialize()
+           if we do this in the __init__.
         """
         # Ruby's global network.
         self.network0 = MyNetwork(self)
