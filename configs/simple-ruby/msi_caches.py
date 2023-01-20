@@ -130,10 +130,8 @@ class MyCacheSystem(RubySystem):
 
         # Connect the cpu's cache, interrupt, and TLB ports to Ruby
         for i, cpu in enumerate(cpus0):
-            print("Connecting ", cpu, " to the sequencer ", self.sequencers0[i])
             self.sequencers0[i].connectCpuPorts(cpu)
         for i, cpu in enumerate(cpus1):
-            print("Connecting ", cpu, " to the sequencer ", self.sequencers1[i])
             self.sequencers1[i].connectCpuPorts(cpu)
 
 
