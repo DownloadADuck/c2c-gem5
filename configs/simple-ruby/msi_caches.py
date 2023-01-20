@@ -259,29 +259,6 @@ class MyNetwork(SimpleNetwork):
         """Connect all of the controllers to routers and connec the routers
         together in a point-to-point network.
         """
-#        # Create one router/switch per controller in the system
-#        self.routers = [Switch(router_id=i) for i in range(len(controllers))]
-#
-#        # Make a link from each controller to the router. The link goes
-#        # externally to the network.
-#        self.ext_links = [
-#            SimpleExtLink(link_id=i, ext_node=c, int_node=self.routers[i])
-#            for i, c in enumerate(controllers)
-#        ]
-#
-#        # Make an "internal" link (internal to the network) between every pair
-#        # of routers.
-#        link_count = 0
-#        int_links = []
-#        for ri in self.routers:
-#            for rj in self.routers:
-#                if ri == rj:
-#                    continue  # Don't connect a router to itself!
-#                link_count += 1
-#                int_links.append(
-#                    SimpleIntLink(link_id=link_count, src_node=ri, dst_node=rj)
-#                )
-#        self.int_links = int_links
         topo = Crossbar(controllers)
         topo.makeTopology(self, SimpleIntLink, SimpleExtLink, Switch)
 
@@ -302,7 +279,8 @@ class Crossbar(SimpleTopology):
     decription = "Crossbar"
 
     def makeTopology(self, network, IntLink, ExtLink, Router):
-        
+
+        # We don't have any arg parser. We manually set the latencies 
 #        link_latency = options.link_latency
 #        router_latency = options.router_latency
         link_latency = 1
