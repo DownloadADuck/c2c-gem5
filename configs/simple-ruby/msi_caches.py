@@ -109,10 +109,10 @@ class MyCacheSystem(RubySystem):
         # We know that we put the controllers in an order such that the first
         # N of them are the L1 caches which need a sequencer pointer
         for i, c in enumerate(self.controllers0[0 : len(self.sequencers0)]):
-            c.sequencer0 = self.sequencers0[i]
+            c.sequencer = self.sequencers0[i]
             
         for i, c in enumerate(self.controllers1[0 : len(self.sequencers1)]):
-            c.sequencer1 = self.sequencers1[i]
+            c.sequencer = self.sequencers1[i]
 
         self.num_of_sequencers = len(self.sequencers0) + len(self.sequencers1)
 
