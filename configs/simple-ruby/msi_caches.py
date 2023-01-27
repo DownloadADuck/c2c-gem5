@@ -113,8 +113,11 @@ class MyCacheSystem(RubySystem):
             
         for i, c in enumerate(self.controllers1[0 : len(self.sequencers1)]):
             c.sequencer = self.sequencers1[i]
-
+        
+        # In our case, the number of sequencers does not have a direct impact.
+        # We still set it to the right amount.
         self.num_of_sequencers = len(self.sequencers0) + len(self.sequencers1)
+        # self.num_of_sequencers = len(self.sequencers0)
 
         # Create the network and connect the controllers.
         # NOTE: This is quite different if using Garnet!
@@ -143,6 +146,7 @@ class L1Cache(L1Cache_Controller):
     @classmethod
     def versionCount(cls):
         cls._version += 1  # Use count for this particular type
+        print("L1Cache: ", cls._version - 1)
         return cls._version - 1
 
     def __init__(self, system, ruby_system, network, cpu):
@@ -207,6 +211,7 @@ class DirController(Directory_Controller):
     @classmethod
     def versionCount(cls):
         cls._version += 1  # Use count for this particular type
+        print("Dircontroller: ", cls._version - 1)
         return cls._version - 1
 
     def __init__(self, ruby_system, network, ranges, mem_ctrls):
@@ -219,7 +224,7 @@ class DirController(Directory_Controller):
         self.ruby_system = ruby_system
         self.directory = RubyDirectoryMemory()
         # Connect this directory to the memory side.
-        self.memory = mem_ctrls[0].port
+        self.memory = mem_ctrls.port
         self.connectQueues(ruby_system, network)
 
     def connectQueues(self, ruby_system, network):
