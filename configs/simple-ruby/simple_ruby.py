@@ -87,10 +87,9 @@ for cpu in system.cpu1:
 
 # Create the Ruby System
 system.caches = MyCacheSystem()
-system.caches.setup(system, system.cpu0, system.cpu1, [system.mem_ctrl0],
-        [system.mem_ctrl1])
+system.caches.setup(system, system.cpu0, system.cpu1, system.mem_ctrl0,
+        system.mem_ctrl1)
 
-print("Printing from simple_ruby -> system.caches ", system.caches)
 # Run application and use the compiled ISA to find the binary
 # grab the specific path to the binary
 thispath = os.path.dirname(os.path.realpath(__file__))
