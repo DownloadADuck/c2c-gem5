@@ -146,7 +146,6 @@ class L1Cache(L1Cache_Controller):
     @classmethod
     def versionCount(cls):
         cls._version += 1  # Use count for this particular type
-        print("L1Cache: ", cls._version - 1)
         return cls._version - 1
 
     def __init__(self, system, ruby_system, network, cpu):
@@ -211,7 +210,6 @@ class DirController(Directory_Controller):
     @classmethod
     def versionCount(cls):
         cls._version += 1  # Use count for this particular type
-        print("Dircontroller: ", cls._version - 1)
         return cls._version - 1
 
     def __init__(self, ruby_system, network, ranges, mem_ctrls):
