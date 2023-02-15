@@ -45,6 +45,11 @@ NetDest::NetDest()
 void
 NetDest::add(MachineID newElement)
 {
+    std::cout << "bitIndex: " << bitIndex(newElement.num) << std::endl;
+    std::cout << "newElement: " << newElement << std::endl;
+    std::cout << "vecIndex: " << vecIndex(newElement) << std::endl;
+    std::cout << "m_bits[vecIndex(newElement)]: " << m_bits[vecIndex(newElement)] << std::endl; 
+
     assert(bitIndex(newElement.num) < m_bits[vecIndex(newElement)].getSize());
     m_bits[vecIndex(newElement)].add(bitIndex(newElement.num));
 }
