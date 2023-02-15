@@ -67,17 +67,17 @@ addr_ranges_vaults = [AddrRange(i*arv, ((i+1)*arv-1)) for i in range(2)]
 system.mem_ranges = addr_ranges_vaults # Create an address range
 
 # Create a pair of simple CPUs
-system.cpu0 = [X86TimingSimpleCPU() for i in range(2)]
-system.cpu1 = [X86TimingSimpleCPU() for i in range(2)]
+system.cpu0 = X86TimingSimpleCPU()
+system.cpu1 = X86TimingSimpleCPU()
 
 # Create a DDR3 memory controller and connect it to the membus
 system.mem_ctrl0 = MemCtrl()
 system.mem_ctrl0.dram = DDR3_1600_8x8()
 system.mem_ctrl0.dram.range = system.mem_ranges[0]
 
-system.mem_ctrl1 = MemCtrl()
-system.mem_ctrl1.dram = DDR3_1600_8x8()
-system.mem_ctrl1.dram.range = system.mem_ranges[1]
+#system.mem_ctrl1 = MemCtrl()
+#system.mem_ctrl1.dram = DDR3_1600_8x8()
+#system.mem_ctrl1.dram.range = system.mem_ranges[1]
 
 # create the interrupt controller for the CPU and connect to the membus
 for cpu in system.cpu0:
@@ -87,35 +87,43 @@ for cpu in system.cpu1:
 
 # Create the Ruby System
 system.caches = MyCacheSystem()
-system.caches.setup(system, system.cpu0, system.cpu1, system.mem_ctrl0,
-        system.mem_ctrl1)
+system.caches.setup(system, system.cpu0, system.cpu1, system.mem_ctrl0)
+#,
+#        system.mem_ctrl1)
 
 # Run application and use the compiled ISA to find the binary
 # grab the specific path to the binary
 thispath = os.path.dirname(os.path.realpath(__file__))
-binary = os.path.join(
+binary0 = os.path.join(
     thispath,
     "../../",
-    "tests/test-progs/threads/bin/x86/linux/threads",
+    "tests/test-progs/micro-bench/vector_add",
+)
+binary1 = os.path.join(
+    thispath,
+    "../../",
+    "tests/test-progs/micro-bench/vector_add_2",
 )
 
 # Create a process for a simple "multi-threaded" application
 #process0 = Process()
-process = Process()
+process1 = Process()
+process0 = Process()
 # Set the command
 # cmd is a list which begins with the executable (like argv)
-process.cmd = [binary]
+process0.cmd = [binary1]
+process1.cmd = [binary0]
 #process1.cmd = [binary]
 # Set the cpu to use the process as its workload and create thread contexts
 for cpu in system.cpu0:
-    cpu.workload = process
+    cpu.workload = process0
     cpu.createThreads()
 
 for cpu in system.cpu1:
-    cpu.workload = process
+    cpu.workload = process1
     cpu.createThreads()
 
-system.workload = SEWorkload.init_compatible(binary)
+system.workload = SEWorkload.init_compatible(binary0)
 #system.workload1 = SEWorkload.init_compatible(binary)
 
 # Set up the pseudo file system for the threads function above
