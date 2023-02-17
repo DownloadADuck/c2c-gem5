@@ -106,13 +106,14 @@ binary1 = os.path.join(
 )
 
 # Create a process for a simple "multi-threaded" application
-#process0 = Process()
-process1 = Process()
 process0 = Process()
+process1 = Process()
+
 # Set the command
 # cmd is a list which begins with the executable (like argv)
 process0.cmd = [binary1]
-process1.cmd = [binary0]
+process1.cmd = [binary1]
+#process1.cmd = [binary0]
 #process1.cmd = [binary]
 # Set the cpu to use the process as its workload and create thread contexts
 for cpu in system.cpu0:
@@ -120,7 +121,7 @@ for cpu in system.cpu0:
     cpu.createThreads()
 
 for cpu in system.cpu1:
-    cpu.workload = process1
+    cpu.workload = process0
     cpu.createThreads()
 
 system.workload = SEWorkload.init_compatible(binary0)

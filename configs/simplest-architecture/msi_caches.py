@@ -61,7 +61,7 @@ class MyCacheSystem(RubySystem):
            if we do this in the __init__.
         """
         # Ruby's global network.
-        self.network0 = MyNetwork(self)
+        self.network = MyNetwork(self)
 
         # MSI uses 3 virtual networks. One for requests (lowest priority), one
         # for responses (highest priority), and one for "forwards" or
