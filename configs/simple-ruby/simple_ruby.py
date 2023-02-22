@@ -93,30 +93,34 @@ system.caches.setup(system, system.cpu0, system.cpu1, system.mem_ctrl0,
 # Run application and use the compiled ISA to find the binary
 # grab the specific path to the binary
 thispath = os.path.dirname(os.path.realpath(__file__))
-binary = os.path.join(
+binary0 = os.path.join(
     thispath,
     "../../",
-    "tests/test-progs/threads/bin/x86/linux/threads",
+    "tests/test-progs/micro-bench/vector_add_default_region_1",
 )
 
+binary1 = os.path.join(
+    thispath,
+    "../../",
+    "tests/test-progs/micro-bench/vector_add_default_region_2",
+)
 # Create a process for a simple "multi-threaded" application
-#process0 = Process()
-process = Process()
+process0 = Process()
+process1 = Process()
 # Set the command
 # cmd is a list which begins with the executable (like argv)
-process.cmd = [binary]
-#process1.cmd = [binary]
+process0.cmd = [binary0]
+process1.cmd = [binary1]
 # Set the cpu to use the process as its workload and create thread contexts
 for cpu in system.cpu0:
-    cpu.workload = process
+    cpu.workload = process0
     cpu.createThreads()
 
 for cpu in system.cpu1:
-    cpu.workload = process
+    cpu.workload = process1
     cpu.createThreads()
 
-system.workload = SEWorkload.init_compatible(binary)
-#system.workload1 = SEWorkload.init_compatible(binary)
+system.workload = SEWorkload.init_compatible(binary0)
 
 # Set up the pseudo file system for the threads function above
 config_filesystem(system)
