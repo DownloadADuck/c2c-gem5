@@ -105,8 +105,9 @@ binary1 = os.path.join(
     "tests/test-progs/micro-bench/vector_add_default_region_2",
 )
 # Create a process for a simple "multi-threaded" application
-process0 = Process()
-process1 = Process()
+process0 = Process(pid=101)
+process1 = Process(pid=102)
+
 # Set the command
 # cmd is a list which begins with the executable (like argv)
 process0.cmd = [binary0]
