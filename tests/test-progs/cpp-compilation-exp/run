@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -eux
+
+# Builds the entry object from entry.S
+as -ggdb3 --32 -o entry.o entry.S
+# Compiles the main application into an object
+gcc -c -ggdb3 -m16 -ffreestanding -fno-PIE -nostartfiles -nostdlib -o main.o -std=c99 main.c
+# Links the entry and main into an elf file using the custom linked.ld file
+ld -m elf_i386 -o main.elf -T linker.ld entry.o main.o
+# Strips the elf file to build the hello binary
+objcopy -O binary main.elf hello
+#qemu-system-x86_64 -drive file=main.img,format=raw
