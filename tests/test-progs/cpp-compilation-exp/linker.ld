@@ -1,9 +1,8 @@
 ENTRY(mystart)
 SECTIONS
 {
-  . = 0x7c00;
+  . = startaddr;
   .text : {
-    entry.o(.text)
     *(.text)
     *(.data)
     *(.rodata)

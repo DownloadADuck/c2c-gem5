@@ -96,13 +96,13 @@ thispath = os.path.dirname(os.path.realpath(__file__))
 binary0 = os.path.join(
     thispath,
     "../../",
-    "tests/test-progs/micro-bench/vector_add_default_region_1",
+    "tests/test-progs/cpp-compilation-exp/build1/hello1.elf",
 )
 
 binary1 = os.path.join(
     thispath,
     "../../",
-    "tests/test-progs/micro-bench/vector_add_default_region_2",
+    "tests/test-progs/cpp-compilation-exp/build2/hello2.elf",
 )
 # Create a process for a simple "multi-threaded" application
 process0 = Process(pid=101)
