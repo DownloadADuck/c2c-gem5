@@ -1,0 +1,44 @@
+
+./build2/hello2.elf:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000010400680 <main>:
+    10400680:	55                   	push   %rbp
+    10400681:	48 89 e5             	mov    %rsp,%rbp
+    10400684:	c6 45 f6 01          	movb   $0x1,-0xa(%rbp)
+    10400688:	c6 45 f7 02          	movb   $0x2,-0x9(%rbp)
+    1040068c:	c6 45 f8 03          	movb   $0x3,-0x8(%rbp)
+    10400690:	c6 45 f9 04          	movb   $0x4,-0x7(%rbp)
+    10400694:	c6 45 fa 05          	movb   $0x5,-0x6(%rbp)
+    10400698:	c6 45 fb 06          	movb   $0x6,-0x5(%rbp)
+    1040069c:	8b 45 f6             	mov    -0xa(%rbp),%eax
+    1040069f:	89 45 f0             	mov    %eax,-0x10(%rbp)
+    104006a2:	0f b7 45 fa          	movzwl -0x6(%rbp),%eax
+    104006a6:	66 89 45 f4          	mov    %ax,-0xc(%rbp)
+    104006aa:	c7 45 fc 00 00 00 00 	movl   $0x0,-0x4(%rbp)
+    104006b1:	eb 1c                	jmp    104006cf <main+0x4f>
+    104006b3:	8b 45 fc             	mov    -0x4(%rbp),%eax
+    104006b6:	48 98                	cltq   
+    104006b8:	0f b6 44 05 f0       	movzbl -0x10(%rbp,%rax,1),%eax
+    104006bd:	83 c0 01             	add    $0x1,%eax
+    104006c0:	89 c2                	mov    %eax,%edx
+    104006c2:	8b 45 fc             	mov    -0x4(%rbp),%eax
+    104006c5:	48 98                	cltq   
+    104006c7:	88 54 05 f0          	mov    %dl,-0x10(%rbp,%rax,1)
+    104006cb:	83 45 fc 01          	addl   $0x1,-0x4(%rbp)
+    104006cf:	8b 45 fc             	mov    -0x4(%rbp),%eax
+    104006d2:	83 f8 05             	cmp    $0x5,%eax
+    104006d5:	76 dc                	jbe    104006b3 <main+0x33>
+    104006d7:	b8 00 00 00 00       	mov    $0x0,%eax
+    104006dc:	5d                   	pop    %rbp
+    104006dd:	c3                   	retq   
+
+00000000104006de <mystart>:
+    104006de:	bc ed 16 40 10       	mov    $0x104016ed,%esp
+    104006e3:	fc                   	cld    
+    104006e4:	e8 97 ff ff ff       	callq  10400680 <main>
+
+00000000104006e9 <trap>:
+    104006e9:	eb fe                	jmp    104006e9 <trap>

@@ -1,12 +1,12 @@
-void main(void) {
+
+int main(void) {
     int i;
-    char s[] = {'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'};
+    // char s[] = {'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'};
+
+    volatile char s[] = {1, 2, 3, 4, 5, 6};
+
     for (i = 0; i < sizeof(s); ++i) {
-        __asm__ (
-            "int $0x10" : : "a" ((0x0e << 8) | s[i])
-        );
+       s[i]++; 
     }
-    while (1) {
-        __asm__ ("hlt");
-    };
+    return 0;
 }
