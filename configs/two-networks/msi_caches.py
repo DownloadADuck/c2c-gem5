@@ -61,29 +61,28 @@ class MyCacheSystem(RubySystem):
            if we do this in the __init__.
         """
         # Ruby's global network.
-        self.network = MyNetwork(self)
+        self.network0 = MyNetwork(self)
+        self.network1 = MyNetwork(self)
 
         # MSI uses 3 virtual networks. One for requests (lowest priority), one
         # for responses (highest priority), and one for "forwards" or
         # cache-to-cache requests. See *.sm files for details.
         self.number_of_virtual_networks = 3
-        self.network.number_of_virtual_networks = 3
-        #self.network1.number_of_virtual_networks = 3
+        self.network0.number_of_virtual_networks = 3
+        self.network1.number_of_virtual_networks = 3
 
         # There is a single global list of all of the controllers to make it
         # easier to connect everything to the global network. This can be
         # customized depending on the topology/network requirements.
         # Create one controller for each L1 cache (and the cache mem obj.)
         # Create a single directory controller (Really the memory cntrl)
-        self.controllers0 = [L1Cache(system, self, self.network, cpu) for cpu 
-                in cpus0] + [L1Cache(system, self, self.network, cpu) for cpu 
-                in cpus1] + [DirController(self, self.network, 
-                system.mem_ranges[1], mem_ctrls0)] + [DirController(self, 
-                self.network, system.mem_ranges[1], mem_ctrls1)]
-        
-        #self.controllers1 = [L1Cache(system, self, self.network1, cpu) for cpu 
-        #        in cpus1] + [DirController(self, self.network1,
-        #            system.mem_ranges[1], mem_ctrls1)]
+        self.controllers0 = [L1Cache(system, self, self.network0, cpu) for cpu 
+                in cpus0] + [DirController(self, self.network0,
+                    system.mem_ranges[0], mem_ctrls0)]
+
+        self.controllers1 = [L1Cache(system, self, self.network1, cpu) for cpu 
+                in cpus1] + [DirController(self, self.network1,
+                    system.mem_ranges[1], mem_ctrls1)]
 
         # Create one sequencer per CPU. In many systems this is more
         # complicated since you have to create sequencers for DMA controllers
@@ -95,38 +94,37 @@ class MyCacheSystem(RubySystem):
                 dcache=self.controllers0[i].cacheMemory,
                 clk_domain=self.controllers0[i].clk_domain,
             )
-            for i in range(len(cpus0) + len(cpus1))
+            for i in range(len(cpus0))
         ]
-
-        #self.sequencers1 = [
-        #    RubySequencer(
-        #        version=i,
-        #        # I/D cache is combined and grab from ctrl
-        #        dcache=self.controllers1[i].cacheMemory,
-        #        clk_domain=self.controllers1[i].clk_domain,
-        #    )
-        #    for i in range(len(cpus1))
-        #]
+        self.sequencers1 = [
+            RubySequencer(
+                version=i,
+                # I/D cache is combined and grab from ctrl
+                dcache=self.controllers1[i].cacheMemory,
+                clk_domain=self.controllers1[i].clk_domain,
+            )
+            for i in range(len(cpus1))
+        ]
 
         # We know that we put the controllers in an order such that the first
         # N of them are the L1 caches which need a sequencer pointer
         for i, c in enumerate(self.controllers0[0 : len(self.sequencers0)]):
             c.sequencer = self.sequencers0[i]
-
-        #for i, c in enumerate(self.controllers1[0 : len(self.sequencers1)]):
-        #    c.sequencer = self.sequencers1[i]
+            
+        for i, c in enumerate(self.controllers1[0 : len(self.sequencers1)]):
+            c.sequencer = self.sequencers1[i]
         
         # In our case, the number of sequencers does not have a direct impact.
         # We still set it to the right amount.
-        #self.num_of_sequencers = len(self.sequencers0) + len(self.sequencers1)
-        self.num_of_sequencers = len(self.sequencers0)
+        self.num_of_sequencers = len(self.sequencers0) + len(self.sequencers1)
+        # self.num_of_sequencers = len(self.sequencers0)
 
         # Create the network and connect the controllers.
         # NOTE: This is quite different if using Garnet!
-        self.network.connectControllers(self.controllers0)
-        self.network.setup_buffers()
-        #self.network1.connectControllers(self.controllers1)
-        #self.network1.setup_buffers()
+        self.network0.connectControllers(self.controllers0)
+        self.network0.setup_buffers()
+        self.network1.connectControllers(self.controllers1)
+        self.network1.setup_buffers()
 
         # Set up a proxy port for the system_port. Used for load binaries and
         # other functional-only things.
@@ -136,11 +134,8 @@ class MyCacheSystem(RubySystem):
         # Connect the cpu's cache, interrupt, and TLB ports to Ruby
         for i, cpu in enumerate(cpus0):
             self.sequencers0[i].connectCpuPorts(cpu)
-        for i , cpu in enumerate(cpus1):
-            self.sequencers0[i + len(cpus0)].connectCpuPorts(cpu)
-
-        #for i, cpu in enumerate(cpus1):
-        #    self.sequencers1[i].connectCpuPorts(cpu)
+        for i, cpu in enumerate(cpus1):
+            self.sequencers1[i].connectCpuPorts(cpu)
 
 
 
@@ -206,6 +201,7 @@ class L1Cache(L1Cache_Controller):
         self.forwardFromDir.in_port = network.out_port
         self.responseFromDirOrSibling = MessageBuffer(ordered=True)
         self.responseFromDirOrSibling.in_port = network.out_port
+
 
 
 class DirController(Directory_Controller):

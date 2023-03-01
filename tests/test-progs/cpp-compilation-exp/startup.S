@@ -3,6 +3,6 @@
 mystart:
     mov $__stack_top, %esp
     cld
-    call main
+    jmp main
 trap:
     jmp trap
