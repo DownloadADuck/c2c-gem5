@@ -38,7 +38,7 @@ Disassembly of section .text:
 00000000104006de <mystart>:
     104006de:	bc ed 16 40 10       	mov    $0x104016ed,%esp
     104006e3:	fc                   	cld    
-    104006e4:	e8 97 ff ff ff       	callq  10400680 <main>
+    104006e4:	e9 97 ff ff ff       	jmpq   10400680 <main>
 
 00000000104006e9 <trap>:
     104006e9:	eb fe                	jmp    104006e9 <trap>
