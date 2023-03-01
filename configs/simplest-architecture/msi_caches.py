@@ -54,7 +54,7 @@ class MyCacheSystem(RubySystem):
 
         super(MyCacheSystem, self).__init__()
 
-    def setup(self, system, cpus0, cpus1, mem_ctrls0, mem_ctrls1):
+    def setup(self, system, cpus0, cpus1, mem_ctrl0, mem_ctrl1):
         """Set up the Ruby cache subsystem. Note: This can't be done in the
            constructor because many of these items require a pointer to the
            ruby system (self). This causes infinite recursion in initialize()
@@ -75,11 +75,11 @@ class MyCacheSystem(RubySystem):
         # customized depending on the topology/network requirements.
         # Create one controller for each L1 cache (and the cache mem obj.)
         # Create a single directory controller (Really the memory cntrl)
-        self.controllers0 = [L1Cache(system, self, self.network, cpu) for cpu 
-                in cpus0] + [L1Cache(system, self, self.network, cpu) for cpu 
-                in cpus1] + [DirController(self, self.network, 
-                system.mem_ranges[1], mem_ctrls0)] + [DirController(self, 
-                self.network, system.mem_ranges[1], mem_ctrls1)]
+        self.controllers0 = \
+                [L1Cache(system, self, self.network, cpu) for cpu in cpus0] + \
+                [L1Cache(system, self, self.network, cpu) for cpu in cpus1] + \
+                [DirController(self, self.network, system.mem_ranges[0], mem_ctrl0), \
+                 DirController(self, self.network, system.mem_ranges[1], mem_ctrl1)]
         
         #self.controllers1 = [L1Cache(system, self, self.network1, cpu) for cpu 
         #        in cpus1] + [DirController(self, self.network1,
@@ -217,17 +217,15 @@ class DirController(Directory_Controller):
         cls._version += 1  # Use count for this particular type
         return cls._version - 1
 
-    def __init__(self, ruby_system, network, ranges, mem_ctrls):
+    def __init__(self, ruby_system, network, ranges, mem_ctrl):
         """ranges are the memory ranges assigned to this controller."""
-        if len(mem_ctrls) > 1:
-            panic("This cache system can only be connected to one mem ctrl")
         super(DirController, self).__init__()
         self.version = self.versionCount()
         self.addr_ranges = ranges
         self.ruby_system = ruby_system
         self.directory = RubyDirectoryMemory()
         # Connect this directory to the memory side.
-        self.memory = mem_ctrls.port
+        self.memory = mem_ctrl.port
         self.connectQueues(ruby_system, network)
 
     def connectQueues(self, ruby_system, network):
