@@ -43,7 +43,7 @@ from m5.util import fatal, panic
 from m5.objects import *
 
 from topologies.BaseTopology import SimpleTopology
-from example.c2ctest.DisjointNetwork import *
+#from example.c2ctest.DisjointNetwork import *
 from ruby import Ruby
 
 
