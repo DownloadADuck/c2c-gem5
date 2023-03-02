@@ -1,0 +1,44 @@
+
+./build1/hello1.elf:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000000400680 <main>:
+  400680:	55                   	push   %rbp
+  400681:	48 89 e5             	mov    %rsp,%rbp
+  400684:	c6 45 f6 01          	movb   $0x1,-0xa(%rbp)
+  400688:	c6 45 f7 02          	movb   $0x2,-0x9(%rbp)
+  40068c:	c6 45 f8 03          	movb   $0x3,-0x8(%rbp)
+  400690:	c6 45 f9 04          	movb   $0x4,-0x7(%rbp)
+  400694:	c6 45 fa 05          	movb   $0x5,-0x6(%rbp)
+  400698:	c6 45 fb 06          	movb   $0x6,-0x5(%rbp)
+  40069c:	8b 45 f6             	mov    -0xa(%rbp),%eax
+  40069f:	89 45 f0             	mov    %eax,-0x10(%rbp)
+  4006a2:	0f b7 45 fa          	movzwl -0x6(%rbp),%eax
+  4006a6:	66 89 45 f4          	mov    %ax,-0xc(%rbp)
+  4006aa:	c7 45 fc 00 00 00 00 	movl   $0x0,-0x4(%rbp)
+  4006b1:	eb 1c                	jmp    4006cf <main+0x4f>
+  4006b3:	8b 45 fc             	mov    -0x4(%rbp),%eax
+  4006b6:	48 98                	cltq   
+  4006b8:	0f b6 44 05 f0       	movzbl -0x10(%rbp,%rax,1),%eax
+  4006bd:	83 c0 01             	add    $0x1,%eax
+  4006c0:	89 c2                	mov    %eax,%edx
+  4006c2:	8b 45 fc             	mov    -0x4(%rbp),%eax
+  4006c5:	48 98                	cltq   
+  4006c7:	88 54 05 f0          	mov    %dl,-0x10(%rbp,%rax,1)
+  4006cb:	83 45 fc 01          	addl   $0x1,-0x4(%rbp)
+  4006cf:	8b 45 fc             	mov    -0x4(%rbp),%eax
+  4006d2:	83 f8 05             	cmp    $0x5,%eax
+  4006d5:	76 dc                	jbe    4006b3 <main+0x33>
+  4006d7:	b8 00 00 00 00       	mov    $0x0,%eax
+  4006dc:	5d                   	pop    %rbp
+  4006dd:	c3                   	retq   
+
+00000000004006de <mystart>:
+  4006de:	bc ed 16 40 00       	mov    $0x4016ed,%esp
+  4006e3:	fc                   	cld    
+  4006e4:	e9 97 ff ff ff       	jmpq   400680 <main>
+
+00000000004006e9 <trap>:
+  4006e9:	eb fe                	jmp    4006e9 <trap>
