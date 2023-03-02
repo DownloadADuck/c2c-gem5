@@ -1,0 +1,35 @@
+// Include the original protocol definition
+include "MESI.slicc"
+
+// Declare the new finite state machine
+machine(TwoNetworkController, "Controller for Two Networks") {
+
+    // Declare the states
+    state(Idle, "Idle state")
+    state(Sending, "Sending message state")
+
+    // Declare the message types
+    message(Net1Msg, "Message sent from Network 1")
+    message(Net2Msg, "Message sent from Network 2")
+
+    // Declare the methods to send messages to the two networks
+    method void sendToNet1(Net1Msg msg);
+    method void sendToNet2(Net2Msg msg);
+
+    // Declare the actions to take in each state and transition
+    transition(Idle, Net1Msg, Sending) {
+        // Send the message to Network 1
+        sendToNet1(msg);
+    }
+
+    transition(Idle, Net2Msg, Sending) {
+        // Send the message to Network 2
+        sendToNet2(msg);
+    }
+
+    transition(Sending, Response, Idle) {
+        // Send the response back to the requesting node
+        sendResponse(msg);
+    }
+
+}

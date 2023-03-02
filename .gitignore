@@ -1,0 +1,7 @@
+# Gem5 gitignore
+# Currently only tracking /configs and /tests
+**/__pycache__/
+/logs
+/build
+/.vscode
+/m5out
