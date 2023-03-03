@@ -228,6 +228,8 @@ class MyNetwork(SimpleNetwork):
         """
         # Create one router/switch per controller in the system
         self.routers = [Switch(router_id=i) for i in range(len(controllers))]
+        print("######################################")
+        print("routers", self.routers)
 
         # Make a link from each controller to the router. The link goes
         # externally to the network.
@@ -235,6 +237,7 @@ class MyNetwork(SimpleNetwork):
             SimpleExtLink(link_id=i, ext_node=c, int_node=self.routers[i])
             for i, c in enumerate(controllers)
         ]
+        print("Ext Links", self.ext_links)
 
         # Make an "internal" link (internal to the network) between every pair
         # of routers.
@@ -249,3 +252,4 @@ class MyNetwork(SimpleNetwork):
                     SimpleIntLink(link_id=link_count, src_node=ri, dst_node=rj)
                 )
         self.int_links = int_links
+        print("Int Links", self.int_links)
