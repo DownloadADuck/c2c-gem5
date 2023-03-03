@@ -67,8 +67,8 @@ addr_ranges_vaults = [AddrRange(i*arv, ((i+1)*arv-1)) for i in range(2)]
 system.mem_ranges = addr_ranges_vaults # Create an address range
 
 # Create a pair of simple CPUs
-system.cpu0 = [X86TimingSimpleCPU() for i in range(2)]
-system.cpu1 = [X86TimingSimpleCPU() for i in range(2)]
+system.cpu0 = [X86TimingSimpleCPU() for i in range(1)]
+system.cpu1 = [X86TimingSimpleCPU() for i in range(1)]
 
 # Create a DDR3 memory controller and connect it to the membus
 system.mem_ctrl0 = MemCtrl()
