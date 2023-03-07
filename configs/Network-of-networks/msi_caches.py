@@ -43,7 +43,6 @@ from m5.util import fatal, panic
 from m5.objects import *
 
 from topologies.BaseTopology import SimpleTopology
-#from example.c2ctest.DisjointNetwork import *
 from ruby import Ruby
 
 
@@ -63,12 +62,15 @@ class MyCacheSystem(RubySystem):
         # Ruby's global network.
         self.network0 = MyNetwork(self)
         self.network1 = MyNetwork(self)
+        self.MyC2C = MyC2C(self) 
         # MSI uses 3 virtual networks. One for requests (lowest priority), one
         # for responses (highest priority), and one for "forwards" or
         # cache-to-cache requests. See *.sm files for details.
         self.number_of_virtual_networks = 3
         self.network0.number_of_virtual_networks = 3
         self.network1.number_of_virtual_networks = 3
+
+        self.MyC2C.number_of_virtual_networks = 3
 
         # There is a single global list of all of the controllers to make it
         # easier to connect everything to the global network. This can be
@@ -83,6 +85,8 @@ class MyCacheSystem(RubySystem):
                 in cpus1] + [DirController(self, self.network1,
                     system.mem_ranges[1], mem_ctrls1)]
 
+        print("controllers0", self.controllers0)
+        print("controllers1", self.controllers1)
         # Create one sequencer per CPU. In many systems this is more
         # complicated since you have to create sequencers for DMA controllers
         # and other controllers, too.
@@ -124,6 +128,13 @@ class MyCacheSystem(RubySystem):
         self.network0.setup_buffers()
         self.network1.connectControllers(self.controllers1)
         self.network1.setup_buffers()
+
+        print("network0", self.network0)
+        print("network1", self.network1)
+
+        Networks = [self.network0, self.network1]
+        
+        self.MyC2C.connectNetworks(Networks)
 
         # Set up a proxy port for the system_port. Used for load binaries and
         # other functional-only things.
@@ -260,7 +271,6 @@ class MyNetwork(SimpleNetwork):
         together in a point-to-point network.
         """
         topo = Crossbar(controllers)
-        print("controllers: ", controllers)
         topo.makeTopology(self, SimpleIntLink, SimpleExtLink, Switch)
 
         self.initSimple(self.int_links, self.ext_links)
@@ -270,10 +280,39 @@ class MyNetwork(SimpleNetwork):
         self.int_links = int_links
         self.ext_links = ext_links
 
-        # Commented because fatal: User should not manually set links
-#        self.setup_buffers()
-        
+    def __str__(self) -> str:
+        return f"routers: {self.routers}"
 
+        
+class MyC2C(SimpleNetwork):
+    # A Network connecting two networks and forwarding requests from one
+    # to the other when needed.
+     
+
+    def __init__(self, ruby_system):
+        super(MyC2C, self).__init__()
+
+        self.netifs = []
+        self.routers = []
+        self.int_links = []
+        self.ext_links = []
+        self.ruby_system = ruby_system
+    
+    def connectNetworks(self, Networks):
+        # Connects the networks together.
+        topo = Crossbar(Networks)
+        print("Networks: ", Networks)
+
+        topo.makeTopology(self, SimpleIntLink, SimpleExtLink, Switch)
+        self.initC2C(self.int_links, self.ext_links)
+        
+        
+    def initC2C(self, int_links, ext_links):
+        # Attach links to C2C Network
+        self.int_links = int_links
+        print("self.int_links", self.int_links)
+        self.ext_links = ext_links
+        print("self.ext_links", self.ext_links)
 
 
 class Crossbar(SimpleTopology):
@@ -289,9 +328,10 @@ class Crossbar(SimpleTopology):
 
         routers = [Router(router_id=i) for i in range(len(self.nodes) + 1)]
         xbar = routers[len(self.nodes)]
-        
         network.routers = routers
 
+        print("salut")
+        print("self.node", self.nodes)
         ext_links = [
             ExtLink(
                 link_id=i,
@@ -301,8 +341,8 @@ class Crossbar(SimpleTopology):
             )
             for (i, n) in enumerate(self.nodes)
         ]
-        network.ext_links = ext_links
 
+        network.ext_links = ext_links
         link_count = len(self.nodes)
 
         int_links = []
