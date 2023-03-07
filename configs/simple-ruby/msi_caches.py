@@ -63,7 +63,6 @@ class MyCacheSystem(RubySystem):
         # Ruby's global network.
         self.network0 = MyNetwork(self)
         self.network1 = MyNetwork(self)
-
         # MSI uses 3 virtual networks. One for requests (lowest priority), one
         # for responses (highest priority), and one for "forwards" or
         # cache-to-cache requests. See *.sm files for details.
@@ -261,6 +260,7 @@ class MyNetwork(SimpleNetwork):
         together in a point-to-point network.
         """
         topo = Crossbar(controllers)
+        print("controllers: ", controllers)
         topo.makeTopology(self, SimpleIntLink, SimpleExtLink, Switch)
 
         self.initSimple(self.int_links, self.ext_links)
