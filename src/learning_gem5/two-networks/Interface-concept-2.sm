@@ -1,12 +1,60 @@
-#include "mem/protocol/MSICache/MSICacheModule.h"
-
 // Define a new state machine
-machine(MachineType:TwoNetworkControllerMSI, "Two Network Controller with MSI Cache") {
-    // Define the states
-    state(IDLE) {
-        transition(Load, REQ_FWD);
-        transition(Store, REQ_FWD);
-    }
+machine(MachineType:TwoNetworkControllerMSI, "Two Network Controller with MSI Cache")
+    :
+
+      InterfaceMemory * interface;
+      Cycles toMemLatency := 1;
+
+    // Forwarding messages from Network 1 to Network 0 
+    MessageBuffer *toNetwork0, network="From", virtual_network="1",
+        vnet_type="forward";
+    
+    MessageBuffer *fromNetwork0, network="To", virtual_network="1",
+        vnet_type="forward";
+
+    // Forwarding messages from Network 0 to Network 1
+    MessageBuffer *toNetwork1, network="From", virtual_network="1",
+        vnet_type="forward";
+    
+    MessageBuffer *fromNetwork1, network="To", virtual_network="1",
+        vnet_type="forward";
+    
+    {
+        // For the states below, we have to use the controller 
+        // name and the name we use for states
+        state_declaration(State, desc="Interface states", 
+                          default="Interface_State_IDLE") {
+            // Stable states
+            IDLE,       AccessPermission:Read_Write, desc="Waiting for a request";
+            REQ_FWD,    AccessPermission:Read_Write, desc="Forwarding a request";
+            RESP_FWD,   AccessPermission:Read_Write, desc="Forwarding a response";
+        }
+
+        enumeration(Event, desc="Interface events") {
+            // Message from Network 0 to Network 1
+            from0to1, desc="Message comming from Network 0 to Network 1";
+            // Message from Network 1 to Network 0
+            from1to0, desc="Message comming from Network 0 to Network 1";
+        }
+
+        Tick clockEdge();
+    /*************************************************************************/
+    // Network ports
+    // Out ports
+    out_port(forward_out, RequestMsg, fromNetwork0);
+    out_port(forward_out, RequestMsg, fromNetwork1);
+
+    // In ports
+    in_port(response_in, ResponseMsg, toNetwork0);
+    in_port(response_in, ResponseMsg, toNetwork1);
+
+    /*************************************************************************/
+    // Actions
+
+
+
+
+
 
     state(REQ_FWD) {
         transition(PutM, WB);
