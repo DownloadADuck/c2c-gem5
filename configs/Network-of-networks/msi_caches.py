@@ -43,7 +43,7 @@ from m5.util import fatal, panic
 from m5.objects import *
 
 from topologies.BaseTopology import SimpleTopology
-from example.c2ctest.DisjointNetwork import *
+#from example.c2ctest.DisjointNetwork import *
 from ruby import Ruby
 
 
@@ -63,7 +63,6 @@ class MyCacheSystem(RubySystem):
         # Ruby's global network.
         self.network0 = MyNetwork(self)
         self.network1 = MyNetwork(self)
-
         # MSI uses 3 virtual networks. One for requests (lowest priority), one
         # for responses (highest priority), and one for "forwards" or
         # cache-to-cache requests. See *.sm files for details.
@@ -203,7 +202,6 @@ class L1Cache(L1Cache_Controller):
         self.responseFromDirOrSibling.in_port = network.out_port
 
 
-
 class DirController(Directory_Controller):
 
     _version = 0
@@ -262,6 +260,7 @@ class MyNetwork(SimpleNetwork):
         together in a point-to-point network.
         """
         topo = Crossbar(controllers)
+        print("controllers: ", controllers)
         topo.makeTopology(self, SimpleIntLink, SimpleExtLink, Switch)
 
         self.initSimple(self.int_links, self.ext_links)

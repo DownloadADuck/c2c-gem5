@@ -67,8 +67,8 @@ addr_ranges_vaults = [AddrRange(i*arv, ((i+1)*arv-1)) for i in range(2)]
 system.mem_ranges = addr_ranges_vaults # Create an address range
 
 # Create a pair of simple CPUs
-system.cpu0 = [X86TimingSimpleCPU() for i in range(2)]
-system.cpu1 = [X86TimingSimpleCPU() for i in range(2)]
+system.cpu0 = [X86TimingSimpleCPU() for i in range(1)]
+system.cpu1 = [X86TimingSimpleCPU() for i in range(1)]
 
 # Create a DDR3 memory controller and connect it to the membus
 system.mem_ctrl0 = MemCtrl()
@@ -93,17 +93,24 @@ system.caches.setup(system, system.cpu0, system.cpu1, system.mem_ctrl0,
 # Run application and use the compiled ISA to find the binary
 # grab the specific path to the binary
 thispath = os.path.dirname(os.path.realpath(__file__))
+#binary0 = os.path.join(
+#    thispath,
+#    "../../",
+#    "tests/test-progs/cpp-compilation-exp/build1/hello1.elf",
+#)
+
 binary0 = os.path.join(
     thispath,
     "../../",
-    "tests/test-progs/cpp-compilation-exp/build1/hello1.elf",
+    "tests/test-progs/micro-bench/vector_add_default_region_1",
 )
 
 binary1 = os.path.join(
     thispath,
     "../../",
-    "tests/test-progs/cpp-compilation-exp/build2/hello2.elf",
+    "tests/test-progs/micro-bench/vector_add_default_region_2",
 )
+
 # Create a process for a simple "multi-threaded" application
 process0 = Process(pid=101)
 process1 = Process(pid=102)
