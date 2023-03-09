@@ -73,8 +73,8 @@ class MyCacheSystem(RubySystem):
         self.network.connectControllers(self.controllers0)
         self.network.setup_buffers()
 
-        self.sys_port_proxy = RubyPortProxy()
-        system.system_port = self.sys_port_proxy.in_ports
+        #self.sys_port_proxy = RubyPortProxy()
+        #system.system_port = self.sys_port_proxy.in_ports
 
         for i, cpu in enumerate(cpus):
             self.sequencers0[i].connectCpuPorts(cpu)
