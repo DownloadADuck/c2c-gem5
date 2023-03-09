@@ -1,11 +1,10 @@
-
-machine(MachineType:Interface, "Interface protocol")
+machine(MachineType:Directory, "Directory protocol")
     :
       // This "DirectoryMemory" is a little weird. It is initially allocated
       // so that it *can* cover all of memory (i.e., there are pointers for
       // every 64-byte block in memory). However, the entries are lazily
       // created in getDirEntry()
-      Directory * directory;
+      DirectoryMemory * directory;
       // You can put any parameters you want here. They will be exported as
       // normal SimObject parameters (like in the SimObject description file)
       // and you can set these parameters at runtime via the python config
@@ -15,35 +14,22 @@ machine(MachineType:Interface, "Interface protocol")
       Cycles toMemLatency := 1;
 
     // Forwarding requests from the directory *to* the caches.
-    MessageBuffer *ToChiplet0, network="To", virtual_network="0",
-          vnet_type="request";
+    MessageBuffer *forwardToCache, network="To", virtual_network="1",
+          vnet_type="forward";
     // Response from the directory *to* the cache.
-    MessageBuffer *FromChiplet0, network="To", virtual_network="2",
+    MessageBuffer *responseToCache, network="To", virtual_network="2",
           vnet_type="response";
 
     // Requests *from* the cache to the directory
-    MessageBuffer *ToChiplet1, network="From", virtual_network="0",
+    MessageBuffer *requestFromCache, network="From", virtual_network="0",
           vnet_type="request";
 
     // Responses *from* the cache to the directory
-    MessageBuffer *FromChiplet1, network="From", virtual_network="2",
+    MessageBuffer *responseFromCache, network="From", virtual_network="2",
           vnet_type="response";
-
-    // Special buffer for memory requests. Kind of like the mandatory queue
-    //MessageBuffer *requestToMemory;
-
-    // Special buffer for memory responses. Kind of like the mandatory queue
-    //MessageBuffer *responseFromMemory;
-
 {
-    // For many things in SLICC you can specify a default. However, this
-    // default must use the C++ name (mangled SLICC name). For the state below
-    // you have to use the controller name and the name we use for states.
     state_declaration(State, desc="Directory states",
                       default="Directory_State_I") {
-        // Stable states.
-        // NOTE: Thise are "cache-centric" states like in Sorin et al.
-        // However, The access permissions are memory-centric.
         I, AccessPermission:Read_Write,  desc="Invalid in the caches.";
         S, AccessPermission:Read_Only,   desc="At least one cache has the blk";
         M, AccessPermission:Invalid,     desc="A cache has the block in M";
