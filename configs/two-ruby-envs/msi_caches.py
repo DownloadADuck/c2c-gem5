@@ -25,15 +25,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-""" This file creates a set of Ruby caches, the Ruby network, and a simple
-point-to-point topology.
-See Part 3 in the Learning gem5 book:
-http://gem5.org/documentation/learning_gem5/part3/MSIintro
-
-IMPORTANT: If you modify this file, it's likely that the Learning gem5 book
-           also needs to be updated. For now, email Jason <jason@lowepower.com>
-
-"""
 
 import math
 
@@ -53,43 +44,17 @@ class MyCacheSystem(RubySystem):
 
         super(MyCacheSystem, self).__init__()
 
-    def setup(self, system, cpus0, cpus1, mem_ctrls0, mem_ctrls1):
-        """Set up the Ruby cache subsystem. Note: This can't be done in the
-           constructor because many of these items require a pointer to the
-           ruby system (self). This causes infinite recursion in initialize()
-           if we do this in the __init__.
-        """
-        # Ruby's global network.
-        self.network0 = MyNetwork(self)
-        self.network1 = MyNetwork(self)
-        self.MyC2C = MyC2C(self) 
-        # MSI uses 3 virtual networks. One for requests (lowest priority), one
-        # for responses (highest priority), and one for "forwards" or
-        # cache-to-cache requests. See *.sm files for details.
+    def setup(self, system, cpus, mem_ctrl):
+
+        self.network = MyNetwork(self)
+
         self.number_of_virtual_networks = 3
-        self.network0.number_of_virtual_networks = 3
-        self.network1.number_of_virtual_networks = 3
+        self.network.number_of_virtual_networks = 3
 
-        self.MyC2C.number_of_virtual_networks = 3
-
-        # There is a single global list of all of the controllers to make it
-        # easier to connect everything to the global network. This can be
-        # customized depending on the topology/network requirements.
-        # Create one controller for each L1 cache (and the cache mem obj.)
-        # Create a single directory controller (Really the memory cntrl)
-        self.controllers0 = [L1Cache(system, self, self.network0, cpu) for cpu 
-                in cpus0] + [DirController(self, self.network0,
-                    system.mem_ranges[0], mem_ctrls0)]
-
-        self.controllers1 = [L1Cache(system, self, self.network1, cpu) for cpu 
-                in cpus1] + [DirController(self, self.network1,
-                    system.mem_ranges[1], mem_ctrls1)]
-
-        print("controllers0", self.controllers0)
-        print("controllers1", self.controllers1)
-        # Create one sequencer per CPU. In many systems this is more
-        # complicated since you have to create sequencers for DMA controllers
-        # and other controllers, too.
+        self.controllers0 = \
+                [L1Cache(system, self, self.network, cpu) for cpu in cpus] + \
+                [DirController(self, self.network, system.mem_ranges[0], mem_ctrl)]
+        
         self.sequencers0 = [
             RubySequencer(
                 version=i,
@@ -97,55 +62,22 @@ class MyCacheSystem(RubySystem):
                 dcache=self.controllers0[i].cacheMemory,
                 clk_domain=self.controllers0[i].clk_domain,
             )
-            for i in range(len(cpus0))
-        ]
-        self.sequencers1 = [
-            RubySequencer(
-                version=i,
-                # I/D cache is combined and grab from ctrl
-                dcache=self.controllers1[i].cacheMemory,
-                clk_domain=self.controllers1[i].clk_domain,
-            )
-            for i in range(len(cpus1))
+            for i in range(len(cpus))
         ]
 
-        # We know that we put the controllers in an order such that the first
-        # N of them are the L1 caches which need a sequencer pointer
         for i, c in enumerate(self.controllers0[0 : len(self.sequencers0)]):
             c.sequencer = self.sequencers0[i]
-            
-        for i, c in enumerate(self.controllers1[0 : len(self.sequencers1)]):
-            c.sequencer = self.sequencers1[i]
-        
-        # In our case, the number of sequencers does not have a direct impact.
-        # We still set it to the right amount.
-        self.num_of_sequencers = len(self.sequencers0) + len(self.sequencers1)
-        # self.num_of_sequencers = len(self.sequencers0)
 
-        # Create the network and connect the controllers.
-        # NOTE: This is quite different if using Garnet!
-        self.network0.connectControllers(self.controllers0)
-        self.network0.setup_buffers()
-        self.network1.connectControllers(self.controllers1)
-        self.network1.setup_buffers()
+        self.num_of_sequencers = len(self.sequencers0)
 
-        print("network0", self.network0)
-        print("network1", self.network1)
+        self.network.connectControllers(self.controllers0)
+        self.network.setup_buffers()
 
-        Networks = [self.network0, self.network1]
-        
-        self.MyC2C.connectNetworks(Networks)
-
-        # Set up a proxy port for the system_port. Used for load binaries and
-        # other functional-only things.
         self.sys_port_proxy = RubyPortProxy()
         system.system_port = self.sys_port_proxy.in_ports
 
-        # Connect the cpu's cache, interrupt, and TLB ports to Ruby
-        for i, cpu in enumerate(cpus0):
+        for i, cpu in enumerate(cpus):
             self.sequencers0[i].connectCpuPorts(cpu)
-        for i, cpu in enumerate(cpus1):
-            self.sequencers1[i].connectCpuPorts(cpu)
 
 
 
@@ -181,28 +113,12 @@ class L1Cache(L1Cache_Controller):
         return bits
 
     def sendEvicts(self, cpu):
-        """True if the CPU model or ISA requires sending evictions from caches
-        to the CPU. Two scenarios warrant forwarding evictions to the CPU:
-        1. The O3 model must keep the LSQ coherent with the caches
-        2. The x86 mwait instruction is built on top of coherence
-        3. The local exclusive monitor in ARM systems
-
-        As this is an X86 simulation we return True.
-        """
         return True
 
     def connectQueues(self, ruby_system, network):
-        """Connect all of the queues for this controller."""
-        # mandatoryQueue is a special variable. It is used by the sequencer to
-        # send RubyRequests from the CPU (or other processor). It isn't
-        # explicitly connected to anything.
+
         self.mandatoryQueue = MessageBuffer()
 
-        # All message buffers must be created and connected to the
-        # general Ruby network. In this case, "in_port/out_port" don't
-        # mean the same thing as normal gem5 ports. If a MessageBuffer
-        # is a "to" buffer (i.e., out) then you use the "out_port",
-        # otherwise, the in_port.
         self.requestToDir = MessageBuffer(ordered=True)
         self.requestToDir.out_port = network.in_port
         self.responseToDirOrSibling = MessageBuffer(ordered=True)
@@ -222,17 +138,15 @@ class DirController(Directory_Controller):
         cls._version += 1  # Use count for this particular type
         return cls._version - 1
 
-    def __init__(self, ruby_system, network, ranges, mem_ctrls):
+    def __init__(self, ruby_system, network, ranges, mem_ctrl):
         """ranges are the memory ranges assigned to this controller."""
-        if len(mem_ctrls) > 1:
-            panic("This cache system can only be connected to one mem ctrl")
         super(DirController, self).__init__()
         self.version = self.versionCount()
         self.addr_ranges = ranges
         self.ruby_system = ruby_system
         self.directory = RubyDirectoryMemory()
         # Connect this directory to the memory side.
-        self.memory = mem_ctrls.port
+        self.memory = mem_ctrl.port
         self.connectQueues(ruby_system, network)
 
     def connectQueues(self, ruby_system, network):
@@ -246,10 +160,6 @@ class DirController(Directory_Controller):
         self.forwardToCache = MessageBuffer(ordered=True)
         self.forwardToCache.out_port = network.in_port
 
-        # These are other special message buffers. They are used to send
-        # requests to memory and responses from memory back to the controller.
-        # Any messages sent or received on the memory port (see self.memory
-        # above) will be directed through these message buffers.
         self.requestToMemory = MessageBuffer()
         self.responseFromMemory = MessageBuffer()
 
@@ -267,9 +177,7 @@ class MyNetwork(SimpleNetwork):
         self.ruby_system = ruby_system
 
     def connectControllers(self, controllers):
-        """Connect all of the controllers to routers and connec the routers
-        together in a point-to-point network.
-        """
+
         topo = Crossbar(controllers)
         topo.makeTopology(self, SimpleIntLink, SimpleExtLink, Switch)
 
@@ -279,40 +187,7 @@ class MyNetwork(SimpleNetwork):
         # Attach links to network
         self.int_links = int_links
         self.ext_links = ext_links
-
-    def __str__(self) -> str:
-        return f"routers: {self.routers}"
-
         
-class MyC2C(SimpleNetwork):
-    # A Network connecting two networks and forwarding requests from one
-    # to the other when needed.
-     
-
-    def __init__(self, ruby_system):
-        super(MyC2C, self).__init__()
-
-        self.netifs = []
-        self.routers = []
-        self.int_links = []
-        self.ext_links = []
-        self.ruby_system = ruby_system
-    
-    def connectNetworks(self, Networks):
-        # Connects the networks together.
-        topo = Crossbar(Networks)
-        print("Networks: ", Networks)
-
-        topo.makeTopology(self, SimpleIntLink, SimpleExtLink, Switch)
-        self.initC2C(self.int_links, self.ext_links)
-        
-        
-    def initC2C(self, int_links, ext_links):
-        # Attach links to C2C Network
-        self.int_links = int_links
-        print("self.int_links", self.int_links)
-        self.ext_links = ext_links
-        print("self.ext_links", self.ext_links)
 
 
 class Crossbar(SimpleTopology):
@@ -320,18 +195,14 @@ class Crossbar(SimpleTopology):
 
     def makeTopology(self, network, IntLink, ExtLink, Router):
 
-        # We don't have any arg parser. We manually set the latencies 
-#        link_latency = options.link_latency
-#        router_latency = options.router_latency
         link_latency = 1
         router_latency = 1
 
         routers = [Router(router_id=i) for i in range(len(self.nodes) + 1)]
         xbar = routers[len(self.nodes)]
+        
         network.routers = routers
 
-        print("salut")
-        print("self.node", self.nodes)
         ext_links = [
             ExtLink(
                 link_id=i,
@@ -341,8 +212,8 @@ class Crossbar(SimpleTopology):
             )
             for (i, n) in enumerate(self.nodes)
         ]
-
         network.ext_links = ext_links
+
         link_count = len(self.nodes)
 
         int_links = []
