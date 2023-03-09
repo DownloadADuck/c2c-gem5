@@ -88,9 +88,16 @@ for cpu in system.cpu1:
 # Create the Ruby System
 system.caches0 = MyCacheSystem()
 system.caches0.setup(system, system.cpu0, system.mem_ctrl0)
+# Getting the proxy config out of MyCacheSystem
+system.caches0.sys_port_proxy0 = RubyPortProxy()
+system.system_port = system.caches0.sys_port_proxy0.in_ports
 
 system.caches1 = MyCacheSystem()
 system.caches1.setup(system, system.cpu1, system.mem_ctrl1)
+
+#system.caches1.sys_port_proxy1 = RubyPortProxy()
+#system.system_port = system.caches1.sys_port_proxy1.in_ports
+
 # Run application and use the compiled ISA to find the binary
 # grab the specific path to the binary
 thispath = os.path.dirname(os.path.realpath(__file__))
