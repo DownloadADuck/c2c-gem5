@@ -1,49 +1,53 @@
 machine(MachineType:Directory, "Directory protocol")
     :
-      // This "DirectoryMemory" is a little weird. It is initially allocated
-      // so that it *can* cover all of memory (i.e., there are pointers for
-      // every 64-byte block in memory). However, the entries are lazily
-      // created in getDirEntry()
-      DirectoryMemory * directory;
-      // You can put any parameters you want here. They will be exported as
-      // normal SimObject parameters (like in the SimObject description file)
-      // and you can set these parameters at runtime via the python config
-      // file. If there is no default here (like directory), it is mandatory
-      // to set the parameter in the python config. Otherwise, it uses the
-      // default value set here.
       Cycles toMemLatency := 1;
 
-    // Forwarding requests from the directory *to* the caches.
-    MessageBuffer *forwardToCache, network="To", virtual_network="1",
+    // WEST
+    MessageBuffer *outResponseWEST, network="To", virtual_network="2",
           vnet_type="forward";
-    // Response from the directory *to* the cache.
-    MessageBuffer *responseToCache, network="To", virtual_network="2",
+
+    MessageBuffer *outForwardWEST, network="To", virtual_network="1",
           vnet_type="response";
 
-    // Requests *from* the cache to the directory
-    MessageBuffer *requestFromCache, network="From", virtual_network="0",
+    MessageBuffer *inResponseWEST, network="From", virtual_network="0",
           vnet_type="request";
 
-    // Responses *from* the cache to the directory
-    MessageBuffer *responseFromCache, network="From", virtual_network="2",
+    MessageBuffer *inRequestWEST, network="From", virtual_network="2",
+          vnet_type="response";
+
+    // EAST
+    MessageBuffer *outResponseEAST, network="To", virtual_network="2",
+          vnet_type="forward";
+          
+    MessageBuffer *outForwardEAST, network="To", virtual_network="1",
+          vnet_type="response";
+
+    MessageBuffer *inResponseEAST, network="From", virtual_network="0",
+          vnet_type="request";
+
+    MessageBuffer *inRequestEAST, network="From", virtual_network="2",
           vnet_type="response";
 {
     state_declaration(State, desc="Directory states",
                       default="Directory_State_I") {
-        I, AccessPermission:Read_Write,  desc="Invalid in the caches.";
-        S, AccessPermission:Read_Only,   desc="At least one cache has the blk";
-        M, AccessPermission:Invalid,     desc="A cache has the block in M";
+        // New states
+        IDLE,   AccessPermission:Invalid,       desc="Idle, waiting a for requests";
+        FWD,    AccessPermission:Busy,          desc="Transfering packet";       
+
+        I,      AccessPermission:Read_Write,    desc="Invalid in the caches.";
+        S,      AccessPermission:Read_Only,     desc="At least one cache has the blk";
+        M,      AccessPermission:Invalid,       desc="A cache has the block in M";
 
         // Transient states
-        S_D, AccessPermission:Busy,      desc="Moving to S, but need data";
+        S_D,    AccessPermission:Busy,          desc="Moving to S, but need data";
 
         // Waiting for data from memory
-        S_m, AccessPermission:Read_Write, desc="In S waiting for mem";
-        M_m, AccessPermission:Read_Write, desc="Moving to M waiting for mem";
+        S_m,    AccessPermission:Read_Write,    desc="In S waiting for mem";
+        M_m,    AccessPermission:Read_Write,    desc="Moving to M waiting for mem";
 
         // Waiting for write-ack from memory
-        MI_m, AccessPermission:Busy,       desc="Moving to I waiting for ack";
-        SS_m, AccessPermission:Busy,       desc="Moving to S waiting for ack";
+        MI_m,   AccessPermission:Busy,          desc="Moving to I waiting for ack";
+        SS_m,   AccessPermission:Busy,          desc="Moving to S waiting for ack";
     }
 
     enumeration(Event, desc="Directory events") {
@@ -65,8 +69,6 @@ machine(MachineType:Directory, "Directory protocol")
         MemAck,       desc="Ack from memory that write is complete";
     }
 
-    // NOTE: We use a netdest for the sharers and the owner so we can simply
-    // copy the structure into the message we send as a response.
     structure(Entry, desc="...", interface="AbstractCacheEntry", main="false") {
         State DirState,         desc="Directory state";
         NetDest Sharers,        desc="Sharers for this block";
