@@ -1,6 +1,21 @@
 machine(MachineType:Directory, "Directory protocol")
     :
       Cycles toMemLatency := 1;
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//  _____ _   _       ______  _    _ _______ 
+// |_   _| \ | |     / / __ \| |  | |__   __|
+//   | | |  \| |    / / |  | | |  | |  | |   
+//   | | | . ` |   / /| |  | | |  | |  | |   
+//  _| |_| |\  |  / / | |__| | |__| |  | |   
+// |_____|_| \_| /_/   \____/ \____/   |_|   
+                                           
 
     // WEST
     MessageBuffer *outResponseWEST, network="To", virtual_network="2",
@@ -28,6 +43,21 @@ machine(MachineType:Directory, "Directory protocol")
     MessageBuffer *inRequestEAST, network="From", virtual_network="2",
           vnet_type="response";
 {
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//   _____ _______    _______ ______  _____ 
+//  / ____|__   __|/\|__   __|  ____|/ ____|
+// | (___    | |  /  \  | |  | |__  | (___  
+//  \___ \   | | / /\ \ | |  |  __|  \___ \ 
+//  ____) |  | |/ ____ \| |  | |____ ____) |
+// |_____/   |_/_/    \_\_|  |______|_____/ 
+
     state_declaration(State, desc="Directory states",
                       default="Directory_State_I") {
         // New states
@@ -50,6 +80,20 @@ machine(MachineType:Directory, "Directory protocol")
         SS_m,   AccessPermission:Busy,          desc="Moving to S waiting for ack";
     }
 
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+ // ________      ________ _   _ _______ _____ 
+ //|  ____\ \    / /  ____| \ | |__   __/ ____|
+ //| |__   \ \  / /| |__  |  \| |  | | | (___  
+ //|  __|   \ \/ / |  __| | . ` |  | |  \___ \ 
+ //| |____   \  /  | |____| |\  |  | |  ____) |
+ //|______|   \/   |______|_| \_|  |_| |_____/ 
     enumeration(Event, desc="Directory events") {
         // Data requests from the cache
         GetS,         desc="Request for read-only data from cache";
@@ -149,29 +193,28 @@ machine(MachineType:Directory, "Directory protocol")
         }
     }
 
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//  _____   ____  _____ _______ _____ 
+// |  __ \ / __ \|  __ \__   __/ ____|
+// | |__) | |  | | |__) | | | | (___  
+// |  ___/| |  | |  _  /  | |  \___ \ 
+// | |    | |__| | | \ \  | |  ____) |
+// |_|     \____/|_|  \_\ |_| |_____/ 
 
     /*************************************************************************/
     // Network ports
 
-    out_port(forward_out, RequestMsg, forwardToCache);
-    out_port(response_out, ResponseMsg, responseToCache);
-    out_port(memQueue_out, MemoryMsg, requestToMemory);
+    out_port(outResponseWEST, ResponseMsg, responseToCache);
+    out_port(outForwardWEST, RequestMsg, forwardToCache);
 
-    in_port(memQueue_in, MemoryMsg, responseFromMemory) {
-        if (memQueue_in.isReady(clockEdge())) {
-            peek(memQueue_in, MemoryMsg) {
-                if (in_msg.Type == MemoryRequestType:MEMORY_READ) {
-                    trigger(Event:MemData, in_msg.addr);
-                } else if (in_msg.Type == MemoryRequestType:MEMORY_WB) {
-                    trigger(Event:MemAck, in_msg.addr);
-                } else {
-                    error("Invalid message");
-                }
-            }
-        }
-    }
-
-    in_port(response_in, ResponseMsg, responseFromCache) {
+    in_port(inResponseWEST, ResponseMsg, responseFromCache) {
         if (response_in.isReady(clockEdge())) {
             peek(response_in, ResponseMsg) {
                 if (in_msg.Type == CoherenceResponseType:Data) {
@@ -183,7 +226,7 @@ machine(MachineType:Directory, "Directory protocol")
         }
     }
 
-    in_port(request_in, RequestMsg, requestFromCache) {
+    in_port(inRequestWEST, RequestMsg, requestFromCache) {
         if (request_in.isReady(clockEdge())) {
             peek(request_in, RequestMsg) {
                 Entry entry := getDirectoryEntry(in_msg.addr);
@@ -218,6 +261,69 @@ machine(MachineType:Directory, "Directory protocol")
     }
 
 
+    out_port(outResponseEAST, ResponseMsg, responseToCache);
+    out_port(outForwardEAST, RequestMsg, forwardToCache);
+
+    in_port(inResponseEAST, ResponseMsg, responseFromCache) {
+        if (response_in.isReady(clockEdge())) {
+            peek(response_in, ResponseMsg) {
+                if (in_msg.Type == CoherenceResponseType:Data) {
+                    trigger(Event:Data, in_msg.addr);
+                } else {
+                    error("Unexpected message type.");
+                }
+            }
+        }
+    }
+
+    in_port(inRequestEAST, RequestMsg, requestFromCache) {
+        if (request_in.isReady(clockEdge())) {
+            peek(request_in, RequestMsg) {
+                Entry entry := getDirectoryEntry(in_msg.addr);
+                if (in_msg.Type == CoherenceRequestType:GetS) {
+                    // NOTE: Since we don't have a TBE in this machine, there
+                    // is no need to pass a TBE into trigger. Also, for the
+                    // directory there is no cache entry.
+                    trigger(Event:GetS, in_msg.addr);
+                } else if (in_msg.Type == CoherenceRequestType:GetM) {
+                    trigger(Event:GetM, in_msg.addr);
+                } else if (in_msg.Type == CoherenceRequestType:PutS) {
+                    assert(is_valid(entry));
+                    // If there is only a single sharer (i.e., the requestor)
+                    if (entry.Sharers.count() == 1) {
+                        assert(entry.Sharers.isElement(in_msg.Requestor));
+                        trigger(Event:PutSLast, in_msg.addr);
+                    } else {
+                        trigger(Event:PutSNotLast, in_msg.addr);
+                    }
+                } else if (in_msg.Type == CoherenceRequestType:PutM) {
+                    assert(is_valid(entry));
+                    if (entry.Owner.isElement(in_msg.Requestor)) {
+                        trigger(Event:PutMOwner, in_msg.addr);
+                    } else {
+                        trigger(Event:PutMNonOwner, in_msg.addr);
+                    }
+                } else {
+                    error("Unexpected message type.");
+                }
+            }
+        }
+    }
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+ //          _____ _______ _____ ____  _   _  _____ 
+ //    /\   / ____|__   __|_   _/ __ \| \ | |/ ____|
+ //   /  \ | |       | |    | || |  | |  \| | (___  
+ //  / /\ \| |       | |    | || |  | | . ` |\___ \ 
+ // / ____ \ |____   | |   _| || |__| | |\  |____) |
+ ///_/    \_\_____|  |_|  |_____\____/|_| \_|_____/ 
 
     /*************************************************************************/
     // Actions
@@ -399,6 +505,21 @@ machine(MachineType:Directory, "Directory protocol")
         // Do nothing.
     }
 
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//  _______                  _ _   _                 
+// |__   __|                (_) | (_)                
+//    | |_ __ __ _ _ __  ___ _| |_ _  ___  _ __  ___ 
+//    | | '__/ _` | '_ \/ __| | __| |/ _ \| '_ \/ __|
+//    | | | | (_| | | | \__ \ | |_| | (_) | | | \__ \
+//    |_|_|  \__,_|_| |_|___/_|\__|_|\___/|_| |_|___/
 
     /*************************************************************************/
     // transitions
