@@ -4,12 +4,6 @@ machine(MachineType:C2CInterface, "Chip-to-Chip interface.")
       DirectoryMemory * directory;
       Cycles toMemLatency := 1;
 
-//  _____ _   _       ______  _    _ _______ 
-// |_   _| \ | |     / / __ \| |  | |__   __|
-//   | | |  \| |    / / |  | | |  | |  | |   
-//   | | | . ` |   / /| |  | | |  | |  | |   
-//  _| |_| |\  |  / / | |__| | |__| |  | |   
-// |_____|_| \_| /_/   \____/ \____/   |_|   
                                            
     // IN
     MessageBuffer *outResponse, network="To", virtual_network="2",
@@ -36,7 +30,9 @@ machine(MachineType:C2CInterface, "Chip-to-Chip interface.")
     state_declaration(State, desc="Interface states",
                       default="C2CInterface_State_IDLE") {
         // Waiting for a new message to forward
-        IDLE,   AccessPermission:Invalid,       desc="Idle, waiting a for requests";
+        IDLE,       AccessPermission:Read_Write,       desc="Idle, waiting a for requests";
+        //FwdResp,    AccessPermission:Invalid,       desc="Just forwarded a response";
+        //FwdReq,     AccessPermission:Invalid,       desc="Just forwarded a request";
     }
 
  // ________      ________ _   _ _______ _____ 
@@ -47,6 +43,7 @@ machine(MachineType:C2CInterface, "Chip-to-Chip interface.")
  //|______|   \/   |______|_| \_|  |_| |_____/ 
 
     enumeration(Event, desc="Interface events") {
+
         responseMsgIn,    desc="Response message on the input port";
         requestMsgIn,     desc="Request message on the input port";
     }
@@ -106,7 +103,7 @@ machine(MachineType:C2CInterface, "Chip-to-Chip interface.")
  ///_/    \_\_____|  |_|  |_____\____/|_| \_|_____/ 
 
 
-    action(fwdResponse, "r", desc="Forwards the response message") {
+    action(fwdResponse, "fwdResp", desc="Forwards the response message") {
         peek(response_in, ResponseMsg) {
             enqueue(response_out, ResponseMsg, 1) {
                 out_msg.addr := address;
@@ -119,7 +116,7 @@ machine(MachineType:C2CInterface, "Chip-to-Chip interface.")
         }
     }
 
-    action(fwdRequest, "r", desc="Forwards the request message") {
+    action(fwdRequest, "fwdReq", desc="Forwards the request message") {
         peek(request_in, RequestMsg) {
             enqueue(forward_out, RequestMsg, 1) {
                 out_msg.addr := address;
@@ -140,12 +137,18 @@ machine(MachineType:C2CInterface, "Chip-to-Chip interface.")
 //    |_|_|  \__,_|_| |_|___/_|\__|_|\___/|_| |_|___/
 
 
-    transition(IDLE, responseMsgIn, IDLE) {
+    transition(IDLE, responseMsgIn) {
         fwdResponse;
     }
 
-    transition(IDLE, requestMsgIn, IDLE) {
+    transition(IDLE, requestMsgIn) {
         fwdRequest;
     }
+
+    //transition(fwdResp, IDLE){
+    //}
+
+    //transition(fwdReq, IDLE){
+    //}
 
 }
