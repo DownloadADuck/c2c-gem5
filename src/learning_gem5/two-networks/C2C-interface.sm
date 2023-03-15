@@ -1,6 +1,9 @@
-machine(MachineType:Directory, "Directory protocol")
-    :
+machine(MachineType:C2CInterface, "Chip-to-Chip interface.")
+    : 
+    
+      DirectoryMemory * directory;
       Cycles toMemLatency := 1;
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -59,7 +62,7 @@ machine(MachineType:Directory, "Directory protocol")
 // |_____/   |_/_/    \_\_|  |______|_____/ 
 
     state_declaration(State, desc="Directory states",
-                      default="Directory_State_I") {
+                      default="C2CInterface_State_I") {
         // New states
         IDLE,   AccessPermission:Invalid,       desc="Idle, waiting a for requests";
         FWD,    AccessPermission:Busy,          desc="Transfering packet";       

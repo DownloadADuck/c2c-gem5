@@ -3,4 +3,4 @@ include "RubySlicc_interfaces.slicc";
 include "C2C-msg.sm";
 include "C2C-cache.sm";
 include "C2C-dir.sm";
-include "C2C-interface.sm"
+include "C2C-interface.sm";
