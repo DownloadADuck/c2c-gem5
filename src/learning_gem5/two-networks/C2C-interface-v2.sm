@@ -4,14 +4,6 @@ machine(MachineType:C2CInterface, "Chip-to-Chip interface.")
       DirectoryMemory * directory;
       Cycles toMemLatency := 1;
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
 //  _____ _   _       ______  _    _ _______ 
 // |_   _| \ | |     / / __ \| |  | |__   __|
 //   | | |  \| |    / / |  | | |  | |  | |   
@@ -33,14 +25,7 @@ machine(MachineType:C2CInterface, "Chip-to-Chip interface.")
     MessageBuffer *inRequest, network="From", virtual_network="2",
           vnet_type="request";
 {
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
+
 //   _____ _______    _______ ______  _____ 
 //  / ____|__   __|/\|__   __|  ____|/ ____|
 // | (___    | |  /  \  | |  | |__  | (___  
@@ -54,23 +39,16 @@ machine(MachineType:C2CInterface, "Chip-to-Chip interface.")
         IDLE,   AccessPermission:Invalid,       desc="Idle, waiting a for requests";
     }
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
  // ________      ________ _   _ _______ _____ 
  //|  ____\ \    / /  ____| \ | |__   __/ ____|
  //| |__   \ \  / /| |__  |  \| |  | | | (___  
  //|  __|   \ \/ / |  __| | . ` |  | |  \___ \ 
  //| |____   \  /  | |____| |\  |  | |  ____) |
  //|______|   \/   |______|_| \_|  |_| |_____/ 
+
     enumeration(Event, desc="Interface events") {
-        fwdResponse,    desc="Forwarding a response message";
-        fwdRequest,     desc="Forwarding a request message";
+        responseMsgIn,    desc="Response message on the input port";
+        requestMsgIn,     desc="Request message on the input port";
     }
 
     structure(Entry, desc="...", interface="AbstractCacheEntry", main="false") {
@@ -81,15 +59,16 @@ machine(MachineType:C2CInterface, "Chip-to-Chip interface.")
 
     Tick clockEdge();
 
+    Entry getDirectoryEntry(Addr addr), return_by_pointer = "yes" {
+        Entry dir_entry := static_cast(Entry, "pointer", directory[addr]);
+        if (is_invalid(dir_entry)) {
+            // This first time we see this address allocate an entry for it.
+            dir_entry := static_cast(Entry, "pointer",
+                                     directory.allocate(addr, new Entry));
+        }
+        return dir_entry;
+    }
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
 //  _____   ____  _____ _______ _____ 
 // |  __ \ / __ \|  __ \__   __/ ____|
 // | |__) | |  | | |__) | | | | (___  
@@ -100,13 +79,13 @@ machine(MachineType:C2CInterface, "Chip-to-Chip interface.")
     /*************************************************************************/
     // Network ports
 
-    out_port(reponse_out, ResponseMsg, outResponse);
+    out_port(response_out, ResponseMsg, outResponse);
     out_port(forward_out, RequestMsg, outForward);
 
     in_port(response_in, ResponseMsg, inResponse) {
         if (response_in.isReady(clockEdge())) {
             peek(response_in, ResponseMsg) {
-                trigger(Event:fwdResponse, in_msg.addr);
+                trigger(Event:responseMsgIn, in_msg.addr);
             }
         }
     }
@@ -114,20 +93,11 @@ machine(MachineType:C2CInterface, "Chip-to-Chip interface.")
     in_port(request_in, RequestMsg, inRequest) {
         if (request_in.isReady(clockEdge())) {
             peek(request_in, RequestMsg) {
-                trigger(Event:fwdRequest, in_msg.addr);    
+                trigger(Event:requestMsgIn, in_msg.addr);    
             }
         }
     }
 
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
  //          _____ _______ _____ ____  _   _  _____ 
  //    /\   / ____|__   __|_   _/ __ \| \ | |/ ____|
  //   /  \ | |       | |    | || |  | |  \| | (___  
@@ -135,195 +105,33 @@ machine(MachineType:C2CInterface, "Chip-to-Chip interface.")
  // / ____ \ |____   | |   _| || |__| | |\  |____) |
  ///_/    \_\_____|  |_|  |_____\____/|_| \_|_____/ 
 
-    /*************************************************************************/
-    // Actions
 
-    // Memory actions.
-
-    action(sendMemRead, "r", desc="Send a memory read request") {
-        peek(request_in, RequestMsg) {
-            // Send request through special memory request queue. At some
-            // point the response will be on the memory response queue.
-            // Like enqueue, this takes a latency for the request.
-            enqueue(memQueue_out, MemoryMsg, toMemLatency) {
-                out_msg.addr := address;
-                out_msg.Type := MemoryRequestType:MEMORY_READ;
-                out_msg.Sender := in_msg.Requestor;
-                out_msg.MessageSize := MessageSizeType:Request_Control;
-                out_msg.Len := 0;
-            }
-        }
-    }
-
-    action(sendDataToMem, "w", desc="Write data to memory") {
-        peek(request_in, RequestMsg) {
-            DPRINTF(RubySlicc, "Writing memory for %#x\n", address);
-            DPRINTF(RubySlicc, "Writing %s\n", in_msg.DataBlk);
-            enqueue(memQueue_out, MemoryMsg, toMemLatency) {
-                out_msg.addr := address;
-                out_msg.Type := MemoryRequestType:MEMORY_WB;
-                out_msg.Sender := in_msg.Requestor;
-                out_msg.MessageSize := MessageSizeType:Writeback_Data;
-                out_msg.DataBlk := in_msg.DataBlk;
-                out_msg.Len := 0;
-            }
-        }
-    }
-
-    action(sendRespDataToMem, "rw", desc="Write data to memory from resp") {
+    action(fwdResponse, "r", desc="Forwards the response message") {
         peek(response_in, ResponseMsg) {
-            DPRINTF(RubySlicc, "Writing memory for %#x\n", address);
-            DPRINTF(RubySlicc, "Writing %s\n", in_msg.DataBlk);
-            enqueue(memQueue_out, MemoryMsg, toMemLatency) {
-                out_msg.addr := address;
-                out_msg.Type := MemoryRequestType:MEMORY_WB;
-                out_msg.Sender := in_msg.Sender;
-                out_msg.MessageSize := MessageSizeType:Writeback_Data;
-                out_msg.DataBlk := in_msg.DataBlk;
-                out_msg.Len := 0;
-            }
-        }
-    }
-
-    // Sharer/owner actions
-
-    action(addReqToSharers, "aS", desc="Add requestor to sharer list") {
-        peek(request_in, RequestMsg) {
-            getDirectoryEntry(address).Sharers.add(in_msg.Requestor);
-        }
-    }
-
-    action(setOwner, "sO", desc="Set the owner") {
-        peek(request_in, RequestMsg) {
-            getDirectoryEntry(address).Owner.add(in_msg.Requestor);
-        }
-    }
-
-    action(addOwnerToSharers, "oS", desc="Add the owner to sharers") {
-        Entry e := getDirectoryEntry(address);
-        assert(e.Owner.count() == 1);
-        e.Sharers.addNetDest(e.Owner);
-    }
-
-    action(removeReqFromSharers, "rS", desc="Remove requestor from sharers") {
-        peek(request_in, RequestMsg) {
-            getDirectoryEntry(address).Sharers.remove(in_msg.Requestor);
-        }
-    }
-
-    action(clearSharers, "cS", desc="Clear the sharer list") {
-        getDirectoryEntry(address).Sharers.clear();
-    }
-
-    action(clearOwner, "cO", desc="Clear the owner") {
-        getDirectoryEntry(address).Owner.clear();
-    }
-
-    // Invalidates and forwards
-
-    action(sendInvToSharers, "i", desc="Send invalidate to all sharers") {
-        peek(request_in, RequestMsg) {
-            enqueue(forward_out, RequestMsg, 1) {
-                out_msg.addr := address;
-                out_msg.Type := CoherenceRequestType:Inv;
-                out_msg.Requestor := in_msg.Requestor;
-                out_msg.Destination := getDirectoryEntry(address).Sharers;
-                out_msg.MessageSize := MessageSizeType:Control;
-            }
-        }
-    }
-
-    action(sendFwdGetS, "fS", desc="Send forward getS to owner") {
-        assert(getDirectoryEntry(address).Owner.count() == 1);
-        peek(request_in, RequestMsg) {
-            enqueue(forward_out, RequestMsg, 1) {
-                out_msg.addr := address;
-                out_msg.Type := CoherenceRequestType:GetS;
-                out_msg.Requestor := in_msg.Requestor;
-                out_msg.Destination := getDirectoryEntry(address).Owner;
-                out_msg.MessageSize := MessageSizeType:Control;
-            }
-        }
-    }
-
-    action(sendFwdGetM, "fM", desc="Send forward getM to owner") {
-        assert(getDirectoryEntry(address).Owner.count() == 1);
-        peek(request_in, RequestMsg) {
-            enqueue(forward_out, RequestMsg, 1) {
-                out_msg.addr := address;
-                out_msg.Type := CoherenceRequestType:GetM;
-                out_msg.Requestor := in_msg.Requestor;
-                out_msg.Destination := getDirectoryEntry(address).Owner;
-                out_msg.MessageSize := MessageSizeType:Control;
-            }
-        }
-    }
-
-    // Responses to requests
-
-    // This also needs to send along the number of sharers!!!!
-    action(sendDataToReq, "d", desc="Send data from memory to requestor. ") {
-                                    //"May need to send sharer number, too") {
-        peek(memQueue_in, MemoryMsg) {
             enqueue(response_out, ResponseMsg, 1) {
                 out_msg.addr := address;
-                out_msg.Type := CoherenceResponseType:Data;
+                //out_msg.Type := MemoryRequestType:MEMORY_READ;
                 out_msg.Sender := machineID;
-                out_msg.Destination.add(in_msg.OriginalRequestorMachId);
                 out_msg.DataBlk := in_msg.DataBlk;
-                out_msg.MessageSize := MessageSizeType:Data;
-                Entry e := getDirectoryEntry(address);
-                // Only need to include acks if we are the owner.
-                if (e.Owner.isElement(in_msg.OriginalRequestorMachId)) {
-                    out_msg.Acks := e.Sharers.count();
-                } else {
-                    out_msg.Acks := 0;
-                }
-                assert(out_msg.Acks >= 0);
+                //out_msg.MessageSize := MessageSizeType:Request_Control;
+                //out_msg.Len := 0;
             }
         }
     }
 
-    action(sendPutAck, "a", desc="Send the put ack") {
+    action(fwdRequest, "r", desc="Forwards the request message") {
         peek(request_in, RequestMsg) {
             enqueue(forward_out, RequestMsg, 1) {
                 out_msg.addr := address;
-                out_msg.Type := CoherenceRequestType:PutAck;
-                out_msg.Requestor := machineID;
-                out_msg.Destination.add(in_msg.Requestor);
-                out_msg.MessageSize := MessageSizeType:Control;
+                //out_msg.Type := MemoryRequestType:MEMORY_READ;
+                out_msg.Requestor := in_msg.Requestor;
+                out_msg.Destination := getDirectoryEntry(address).Owner;
+                //out_msg.MessageSize := MessageSizeType:Request_Control;
+                //out_msg.Len := 0;
             }
         }
     }
 
-    // Queue management
-
-    action(popResponseQueue, "pR", desc="Pop the response queue") {
-        response_in.dequeue(clockEdge());
-    }
-
-    action(popRequestQueue, "pQ", desc="Pop the request queue") {
-        request_in.dequeue(clockEdge());
-    }
-
-    action(popMemQueue, "pM", desc="Pop the memory queue") {
-        memQueue_in.dequeue(clockEdge());
-    }
-
-    // Stalling actions
-    action(stall, "z", desc="Stall the incoming request") {
-        // Do nothing.
-    }
-
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
 //  _______                  _ _   _                 
 // |__   __|                (_) | (_)                
 //    | |_ __ __ _ _ __  ___ _| |_ _  ___  _ __  ___ 
@@ -331,111 +139,13 @@ machine(MachineType:C2CInterface, "Chip-to-Chip interface.")
 //    | | | | (_| | | | \__ \ | |_| | (_) | | | \__ \
 //    |_|_|  \__,_|_| |_|___/_|\__|_|\___/|_| |_|___/
 
-    /*************************************************************************/
-    // transitions
 
-    transition({I, S}, GetS, S_m) {
-        sendMemRead;
-        addReqToSharers;
-        popRequestQueue;
+    transition(IDLE, responseMsgIn, IDLE) {
+        fwdResponse;
     }
 
-    transition(I, {PutSNotLast, PutSLast, PutMNonOwner}) {
-        sendPutAck;
-        popRequestQueue;
-    }
-
-    transition(S_m, MemData, S) {
-        sendDataToReq;
-        popMemQueue;
-    }
-
-    transition(I, GetM, M_m) {
-        sendMemRead;
-        setOwner;
-        popRequestQueue;
-    }
-
-    transition(M_m, MemData, M) {
-        sendDataToReq;
-        clearSharers; // NOTE: This isn't *required* in some cases.
-        popMemQueue;
-    }
-
-    transition(S, GetM, M_m) {
-        sendMemRead;
-        removeReqFromSharers;
-        sendInvToSharers;
-        setOwner;
-        popRequestQueue;
-    }
-
-    transition({S, S_D, SS_m, S_m}, {PutSNotLast, PutMNonOwner}) {
-        removeReqFromSharers;
-        sendPutAck;
-        popRequestQueue;
-    }
-
-    transition(S, PutSLast, I) {
-        removeReqFromSharers;
-        sendPutAck;
-        popRequestQueue;
-    }
-
-    transition(M, GetS, S_D) {
-        sendFwdGetS;
-        addReqToSharers;
-        addOwnerToSharers;
-        clearOwner;
-        popRequestQueue;
-    }
-
-    transition(M, GetM) {
-        sendFwdGetM;
-        clearOwner;
-        setOwner;
-        popRequestQueue;
-    }
-
-    transition({M, M_m, MI_m}, {PutSNotLast, PutSLast, PutMNonOwner}) {
-        sendPutAck;
-        popRequestQueue;
-    }
-
-    transition(M, PutMOwner, MI_m) {
-        sendDataToMem;
-        clearOwner;
-        sendPutAck;
-        popRequestQueue;
-    }
-
-    transition(MI_m, MemAck, I) {
-        popMemQueue;
-    }
-
-    transition(S_D, {GetS, GetM}) {
-        stall;
-    }
-
-    transition(S_D, PutSLast) {
-        removeReqFromSharers;
-        sendPutAck;
-        popRequestQueue;
-    }
-
-    transition(S_D, Data, SS_m) {
-        sendRespDataToMem;
-        popResponseQueue;
-    }
-
-    transition(SS_m, MemAck, S) {
-        popMemQueue;
-    }
-
-    // If we get another request for a block that's waiting on memory,
-    // stall that request.
-    transition({MI_m, SS_m, S_m, M_m}, {GetS, GetM}) {
-        stall;
+    transition(IDLE, requestMsgIn, IDLE) {
+        fwdRequest;
     }
 
 }
