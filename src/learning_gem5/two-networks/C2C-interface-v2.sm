@@ -1,7 +1,7 @@
-machine(MachineType:C2CInterface, "Chip-to-Chip interface.")
+machine(MachineType:Interface, "Chip-to-Chip interface.")
     : 
     
-      DirectoryMemory * directory;
+      DirectoryMemory * interface;
       Cycles toMemLatency := 1;
 
                                            
@@ -27,14 +27,14 @@ machine(MachineType:C2CInterface, "Chip-to-Chip interface.")
 //  ____) |  | |/ ____ \| |  | |____ ____) |
 // |_____/   |_/_/    \_\_|  |______|_____/ 
 
-    state_declaration(State, desc="Interface states",
-                      default="C2CInterface_State_IDLE") {
-        // Waiting for a new message to forward
-        IDLE,       AccessPermission:Read_Write,       desc="Idle, waiting a for requests";
-        //FwdResp,    AccessPermission:Invalid,       desc="Just forwarded a response";
-        //FwdReq,     AccessPermission:Invalid,       desc="Just forwarded a request";
-    }
+    //state_declaration(State, desc="Interface states",
+    //                  default="C2CInterface_State_IDLE") {
+    //    IDLE,       AccessPermission:Read_Write,       desc="Idle, waiting a for requests";
+    //}
 
+    state_declaration(State, desc="Interface states") {
+        IDLE,       AccessPermission:Read_Write,       desc="Idle, waiting a for requests";
+    }
  // ________      ________ _   _ _______ _____ 
  //|  ____\ \    / /  ____| \ | |__   __/ ____|
  //| |__   \ \  / /| |__  |  \| |  | | | (___  
@@ -43,27 +43,58 @@ machine(MachineType:C2CInterface, "Chip-to-Chip interface.")
  //|______|   \/   |______|_| \_|  |_| |_____/ 
 
     enumeration(Event, desc="Interface events") {
-
         responseMsgIn,    desc="Response message on the input port";
         requestMsgIn,     desc="Request message on the input port";
     }
 
     structure(Entry, desc="...", interface="AbstractCacheEntry", main="false") {
-        State DirState,         desc="Directory state";
+        State InterfaceState,   desc="Directory state";
         NetDest Sharers,        desc="Sharers for this block";
         NetDest Owner,          desc="Owner of this block";
     }
 
     Tick clockEdge();
 
-    Entry getDirectoryEntry(Addr addr), return_by_pointer = "yes" {
-        Entry dir_entry := static_cast(Entry, "pointer", directory[addr]);
-        if (is_invalid(dir_entry)) {
+    Entry getInterfaceEntry(Addr addr), return_by_pointer = "yes" {
+        Entry interface_entry := static_cast(Entry, "pointer", interface[addr]);
+        if (is_invalid(interface_entry)) {
             // This first time we see this address allocate an entry for it.
-            dir_entry := static_cast(Entry, "pointer",
-                                     directory.allocate(addr, new Entry));
+            interface_entry := static_cast(Entry, "pointer",
+                                     interface.allocate(addr, new Entry));
         }
-        return dir_entry;
+        return interface_entry;
+    }
+
+    State getState(Addr addr) {
+        return State:IDLE;
+    }
+
+    //void setState(Addr addr, State state) {
+    //    if (interface.isPresent(addr)) {
+    //        DPRINTF(RubySlicc, "Owner %s\n", getInterfaceEntry(addr).Owner);
+    //        assert(getInterfaceEntry(addr).Owner.count() == 1);
+    //        assert(getInterfaceEntry(addr).Sharers.count() == 0);
+    //        getInterfaceEntry(addr).InterfaceState := state;
+    //    }
+    //}
+
+    void setState(Addr addr, State state) {
+        getInterfaceEntry(addr).InterfaceState := state;
+    }
+
+    AccessPermission getAccessPermission(Addr addr) {
+        if (interface.isPresent(addr)) {
+            Entry e := getInterfaceEntry(addr);
+            return Interface_State_to_permission(e.InterfaceState);
+        } else  {
+            return AccessPermission:NotPresent;
+        }
+    }
+    void setAccessPermission(Addr addr, State state) {
+        if (interface.isPresent(addr)) {
+            Entry e := getInterfaceEntry(addr);
+            e.changePermission(Interface_State_to_permission(state));
+        }
     }
 
 //  _____   ____  _____ _______ _____ 
@@ -72,9 +103,6 @@ machine(MachineType:C2CInterface, "Chip-to-Chip interface.")
 // |  ___/| |  | |  _  /  | |  \___ \ 
 // | |    | |__| | | \ \  | |  ____) |
 // |_|     \____/|_|  \_\ |_| |_____/ 
-
-    /*************************************************************************/
-    // Network ports
 
     out_port(response_out, ResponseMsg, outResponse);
     out_port(forward_out, RequestMsg, outForward);
@@ -122,7 +150,7 @@ machine(MachineType:C2CInterface, "Chip-to-Chip interface.")
                 out_msg.addr := address;
                 //out_msg.Type := MemoryRequestType:MEMORY_READ;
                 out_msg.Requestor := in_msg.Requestor;
-                out_msg.Destination := getDirectoryEntry(address).Owner;
+                out_msg.Destination := getInterfaceEntry(address).Owner;
                 //out_msg.MessageSize := MessageSizeType:Request_Control;
                 //out_msg.Len := 0;
             }
@@ -144,11 +172,5 @@ machine(MachineType:C2CInterface, "Chip-to-Chip interface.")
     transition(IDLE, requestMsgIn) {
         fwdRequest;
     }
-
-    //transition(fwdResp, IDLE){
-    //}
-
-    //transition(fwdReq, IDLE){
-    //}
 
 }
