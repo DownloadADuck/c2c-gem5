@@ -259,7 +259,7 @@ enumeration(MachineType, desc="...", default="MachineType_NULL") {
     L2Cache,     desc="L2 Cache Mach";
     L3Cache,     desc="L3 Cache Mach";
     Directory,   desc="Directory Mach";
-    Interface, desc="";
+    Interface,   desc="Chip-to-Chip Interface";
     DMA,         desc="DMA Mach";
     Collector,   desc="Collector Mach";
     L1Cache_wCC, desc="L1 Cache Mach to track cache-to-cache transfer (used for miss latency profile)";

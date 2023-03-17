@@ -32,7 +32,7 @@ machine(MachineType:Interface, "Chip-to-Chip interface.")
     //    IDLE,       AccessPermission:Read_Write,       desc="Idle, waiting a for requests";
     //}
 
-    state_declaration(State, desc="Interface states") {
+    state_declaration(State, desc="Interface states", defaut="Interface_State_IDLE") {
         IDLE,       AccessPermission:Read_Write,       desc="Idle, waiting a for requests";
     }
  // ________      ________ _   _ _______ _____ 
@@ -66,9 +66,13 @@ machine(MachineType:Interface, "Chip-to-Chip interface.")
     }
 
     State getState(Addr addr) {
-        return State:IDLE;
+        if (interface.isPresent(addr)) {
+            return getInterfaceEntry(addr).InterfaceState;
+        } else {
+            return State:IDLE;
+        }
     }
-
+        //return State:IDLE;
     //void setState(Addr addr, State state) {
     //    if (interface.isPresent(addr)) {
     //        DPRINTF(RubySlicc, "Owner %s\n", getInterfaceEntry(addr).Owner);
@@ -94,6 +98,19 @@ machine(MachineType:Interface, "Chip-to-Chip interface.")
         if (interface.isPresent(addr)) {
             Entry e := getInterfaceEntry(addr);
             e.changePermission(Interface_State_to_permission(state));
+        }
+    }
+
+    void functionalRead(Addr addr, Packet *pkt) {
+        functionalMemoryRead(pkt);
+    }
+
+    // This returns the number of writes. So, if we write then return 1
+    int functionalWrite(Addr addr, Packet *pkt) {
+        if (functionalMemoryWrite(pkt)) {
+            return 1;
+        } else {
+            return 0;
         }
     }
 
