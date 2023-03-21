@@ -28,8 +28,8 @@ machine(MachineType:Interface, "Chip-to-Chip interface.")
 // |_____/   |_/_/    \_\_|  |______|_____/ 
 
 
-    state_declaration(State, desc="Interface states", defaut="Interface_State_IDLE") {
-        IDLE,       AccessPermission:Invalid,       desc="Idle, waiting a for requests";
+    state_declaration(State, desc="Interface states", default="Interface_State_IDLE") {
+        IDLE, AccessPermission:Read_Write, desc="Idle, waiting a for requests";
     }
  // ________      ________ _   _ _______ _____ 
  //|  ____\ \    / /  ____| \ | |__   __/ ____|
