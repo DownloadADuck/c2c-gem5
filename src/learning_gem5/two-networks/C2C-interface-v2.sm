@@ -27,13 +27,9 @@ machine(MachineType:Interface, "Chip-to-Chip interface.")
 //  ____) |  | |/ ____ \| |  | |____ ____) |
 // |_____/   |_/_/    \_\_|  |______|_____/ 
 
-    //state_declaration(State, desc="Interface states",
-    //                  default="C2CInterface_State_IDLE") {
-    //    IDLE,       AccessPermission:Read_Write,       desc="Idle, waiting a for requests";
-    //}
 
     state_declaration(State, desc="Interface states", defaut="Interface_State_IDLE") {
-        IDLE,       AccessPermission:Read_Write,       desc="Idle, waiting a for requests";
+        IDLE,       AccessPermission:Invalid,       desc="Idle, waiting a for requests";
     }
  // ________      ________ _   _ _______ _____ 
  //|  ____\ \    / /  ____| \ | |__   __/ ____|
@@ -72,15 +68,6 @@ machine(MachineType:Interface, "Chip-to-Chip interface.")
             return State:IDLE;
         }
     }
-        //return State:IDLE;
-    //void setState(Addr addr, State state) {
-    //    if (interface.isPresent(addr)) {
-    //        DPRINTF(RubySlicc, "Owner %s\n", getInterfaceEntry(addr).Owner);
-    //        assert(getInterfaceEntry(addr).Owner.count() == 1);
-    //        assert(getInterfaceEntry(addr).Sharers.count() == 0);
-    //        getInterfaceEntry(addr).InterfaceState := state;
-    //    }
-    //}
 
     void setState(Addr addr, State state) {
         getInterfaceEntry(addr).InterfaceState := state;
@@ -182,11 +169,11 @@ machine(MachineType:Interface, "Chip-to-Chip interface.")
 //    |_|_|  \__,_|_| |_|___/_|\__|_|\___/|_| |_|___/
 
 
-    transition(IDLE, responseMsgIn) {
+    transition(IDLE, responseMsgIn, IDLE) {
         fwdResponse;
     }
 
-    transition(IDLE, requestMsgIn) {
+    transition(IDLE, requestMsgIn, IDLE) {
         fwdRequest;
     }
 

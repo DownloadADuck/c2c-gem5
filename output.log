@@ -1,0 +1,145 @@
+Global frequency set at 1000000000000 ticks per second
+      0: global: Returning shortest path
+(src-(2*max_machines)): 4294967284, (next-(2*max_machines)): 0, src: 0, next: 12, vnet:0 result: [NetDest (21)  - 1 0  -  -  - 1 0  - 1 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 4294967284, (next-(2*max_machines)): 0, src: 0, next: 12, vnet:1 result: [NetDest (21)  - 1 0  -  -  - 1 0  - 1 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 4294967284, (next-(2*max_machines)): 0, src: 0, next: 12, vnet:2 result: [NetDest (21)  - 1 0  -  -  - 1 0  - 1 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 4294967286, (next-(2*max_machines)): 1, src: 2, next: 13, vnet:0 result: [NetDest (21)  - 1 0  -  -  - 1 0  - 1 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 4294967286, (next-(2*max_machines)): 1, src: 2, next: 13, vnet:1 result: [NetDest (21)  - 1 0  -  -  - 1 0  - 1 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 4294967286, (next-(2*max_machines)): 1, src: 2, next: 13, vnet:2 result: [NetDest (21)  - 1 0  -  -  - 1 0  - 1 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 4294967288, (next-(2*max_machines)): 2, src: 4, next: 14, vnet:0 result: [NetDest (21)  - 1 0  -  -  - 1 0  - 1 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 4294967288, (next-(2*max_machines)): 2, src: 4, next: 14, vnet:1 result: [NetDest (21)  - 1 0  -  -  - 1 0  - 1 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 4294967288, (next-(2*max_machines)): 2, src: 4, next: 14, vnet:2 result: [NetDest (21)  - 1 0  -  -  - 1 0  - 1 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 0, (next-(2*max_machines)): 4294967290, src: 12, next: 6, vnet:0 result: [NetDest (21)  - 1 0  -  -  - 0 0  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 0, (next-(2*max_machines)): 4294967290, src: 12, next: 6, vnet:1 result: [NetDest (21)  - 1 0  -  -  - 0 0  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 0, (next-(2*max_machines)): 4294967290, src: 12, next: 6, vnet:2 result: [NetDest (21)  - 1 0  -  -  - 0 0  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 0, (next-(2*max_machines)): 3, src: 12, next: 15, vnet:0 result: [NetDest (21)  - 0 0  -  -  - 1 0  - 1 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 0, (next-(2*max_machines)): 3, src: 12, next: 15, vnet:1 result: [NetDest (21)  - 0 0  -  -  - 1 0  - 1 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 0, (next-(2*max_machines)): 3, src: 12, next: 15, vnet:2 result: [NetDest (21)  - 0 0  -  -  - 1 0  - 1 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 1, (next-(2*max_machines)): 4294967292, src: 13, next: 8, vnet:0 result: [NetDest (21)  - 0 0  -  -  - 1 0  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 1, (next-(2*max_machines)): 4294967292, src: 13, next: 8, vnet:1 result: [NetDest (21)  - 0 0  -  -  - 1 0  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 1, (next-(2*max_machines)): 4294967292, src: 13, next: 8, vnet:2 result: [NetDest (21)  - 0 0  -  -  - 1 0  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 1, (next-(2*max_machines)): 3, src: 13, next: 15, vnet:0 result: [NetDest (21)  - 1 0  -  -  - 0 0  - 1 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 1, (next-(2*max_machines)): 3, src: 13, next: 15, vnet:1 result: [NetDest (21)  - 1 0  -  -  - 0 0  - 1 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 1, (next-(2*max_machines)): 3, src: 13, next: 15, vnet:2 result: [NetDest (21)  - 1 0  -  -  - 0 0  - 1 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 2, (next-(2*max_machines)): 4294967294, src: 14, next: 10, vnet:0 result: [NetDest (21)  - 0 0  -  -  - 0 0  - 1 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 2, (next-(2*max_machines)): 4294967294, src: 14, next: 10, vnet:1 result: [NetDest (21)  - 0 0  -  -  - 0 0  - 1 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 2, (next-(2*max_machines)): 4294967294, src: 14, next: 10, vnet:2 result: [NetDest (21)  - 0 0  -  -  - 0 0  - 1 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 2, (next-(2*max_machines)): 3, src: 14, next: 15, vnet:0 result: [NetDest (21)  - 1 0  -  -  - 1 0  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 2, (next-(2*max_machines)): 3, src: 14, next: 15, vnet:1 result: [NetDest (21)  - 1 0  -  -  - 1 0  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 2, (next-(2*max_machines)): 3, src: 14, next: 15, vnet:2 result: [NetDest (21)  - 1 0  -  -  - 1 0  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 3, (next-(2*max_machines)): 0, src: 15, next: 12, vnet:0 result: [NetDest (21)  - 1 0  -  -  - 0 0  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 3, (next-(2*max_machines)): 0, src: 15, next: 12, vnet:1 result: [NetDest (21)  - 1 0  -  -  - 0 0  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 3, (next-(2*max_machines)): 0, src: 15, next: 12, vnet:2 result: [NetDest (21)  - 1 0  -  -  - 0 0  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 3, (next-(2*max_machines)): 1, src: 15, next: 13, vnet:0 result: [NetDest (21)  - 0 0  -  -  - 1 0  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 3, (next-(2*max_machines)): 1, src: 15, next: 13, vnet:1 result: [NetDest (21)  - 0 0  -  -  - 1 0  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 3, (next-(2*max_machines)): 1, src: 15, next: 13, vnet:2 result: [NetDest (21)  - 0 0  -  -  - 1 0  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 3, (next-(2*max_machines)): 2, src: 15, next: 14, vnet:0 result: [NetDest (21)  - 0 0  -  -  - 0 0  - 1 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 3, (next-(2*max_machines)): 2, src: 15, next: 14, vnet:1 result: [NetDest (21)  - 0 0  -  -  - 0 0  - 1 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 3, (next-(2*max_machines)): 2, src: 15, next: 14, vnet:2 result: [NetDest (21)  - 0 0  -  -  - 0 0  - 1 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 4294967285, (next-(2*max_machines)): 0, src: 1, next: 12, vnet:0 result: [NetDest (21)  - 0 1  -  -  - 0 1  - 0 1  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 4294967285, (next-(2*max_machines)): 0, src: 1, next: 12, vnet:1 result: [NetDest (21)  - 0 1  -  -  - 0 1  - 0 1  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 4294967285, (next-(2*max_machines)): 0, src: 1, next: 12, vnet:2 result: [NetDest (21)  - 0 1  -  -  - 0 1  - 0 1  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 4294967287, (next-(2*max_machines)): 1, src: 3, next: 13, vnet:0 result: [NetDest (21)  - 0 1  -  -  - 0 1  - 0 1  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 4294967287, (next-(2*max_machines)): 1, src: 3, next: 13, vnet:1 result: [NetDest (21)  - 0 1  -  -  - 0 1  - 0 1  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 4294967287, (next-(2*max_machines)): 1, src: 3, next: 13, vnet:2 result: [NetDest (21)  - 0 1  -  -  - 0 1  - 0 1  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 4294967289, (next-(2*max_machines)): 2, src: 5, next: 14, vnet:0 result: [NetDest (21)  - 0 1  -  -  - 0 1  - 0 1  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 4294967289, (next-(2*max_machines)): 2, src: 5, next: 14, vnet:1 result: [NetDest (21)  - 0 1  -  -  - 0 1  - 0 1  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 4294967289, (next-(2*max_machines)): 2, src: 5, next: 14, vnet:2 result: [NetDest (21)  - 0 1  -  -  - 0 1  - 0 1  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 0, (next-(2*max_machines)): 4294967291, src: 12, next: 7, vnet:0 result: [NetDest (21)  - 0 1  -  -  - 0 0  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 0, (next-(2*max_machines)): 4294967291, src: 12, next: 7, vnet:1 result: [NetDest (21)  - 0 1  -  -  - 0 0  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 0, (next-(2*max_machines)): 4294967291, src: 12, next: 7, vnet:2 result: [NetDest (21)  - 0 1  -  -  - 0 0  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 0, (next-(2*max_machines)): 3, src: 12, next: 15, vnet:0 result: [NetDest (21)  - 0 0  -  -  - 0 1  - 0 1  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 0, (next-(2*max_machines)): 3, src: 12, next: 15, vnet:1 result: [NetDest (21)  - 0 0  -  -  - 0 1  - 0 1  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 0, (next-(2*max_machines)): 3, src: 12, next: 15, vnet:2 result: [NetDest (21)  - 0 0  -  -  - 0 1  - 0 1  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 1, (next-(2*max_machines)): 4294967293, src: 13, next: 9, vnet:0 result: [NetDest (21)  - 0 0  -  -  - 0 1  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 1, (next-(2*max_machines)): 4294967293, src: 13, next: 9, vnet:1 result: [NetDest (21)  - 0 0  -  -  - 0 1  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 1, (next-(2*max_machines)): 4294967293, src: 13, next: 9, vnet:2 result: [NetDest (21)  - 0 0  -  -  - 0 1  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 1, (next-(2*max_machines)): 3, src: 13, next: 15, vnet:0 result: [NetDest (21)  - 0 1  -  -  - 0 0  - 0 1  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 1, (next-(2*max_machines)): 3, src: 13, next: 15, vnet:1 result: [NetDest (21)  - 0 1  -  -  - 0 0  - 0 1  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 1, (next-(2*max_machines)): 3, src: 13, next: 15, vnet:2 result: [NetDest (21)  - 0 1  -  -  - 0 0  - 0 1  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 2, (next-(2*max_machines)): 4294967295, src: 14, next: 11, vnet:0 result: [NetDest (21)  - 0 0  -  -  - 0 0  - 0 1  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 2, (next-(2*max_machines)): 4294967295, src: 14, next: 11, vnet:1 result: [NetDest (21)  - 0 0  -  -  - 0 0  - 0 1  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 2, (next-(2*max_machines)): 4294967295, src: 14, next: 11, vnet:2 result: [NetDest (21)  - 0 0  -  -  - 0 0  - 0 1  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 2, (next-(2*max_machines)): 3, src: 14, next: 15, vnet:0 result: [NetDest (21)  - 0 1  -  -  - 0 1  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 2, (next-(2*max_machines)): 3, src: 14, next: 15, vnet:1 result: [NetDest (21)  - 0 1  -  -  - 0 1  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 2, (next-(2*max_machines)): 3, src: 14, next: 15, vnet:2 result: [NetDest (21)  - 0 1  -  -  - 0 1  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 3, (next-(2*max_machines)): 0, src: 15, next: 12, vnet:0 result: [NetDest (21)  - 0 1  -  -  - 0 0  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 3, (next-(2*max_machines)): 0, src: 15, next: 12, vnet:1 result: [NetDest (21)  - 0 1  -  -  - 0 0  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 3, (next-(2*max_machines)): 0, src: 15, next: 12, vnet:2 result: [NetDest (21)  - 0 1  -  -  - 0 0  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 3, (next-(2*max_machines)): 1, src: 15, next: 13, vnet:0 result: [NetDest (21)  - 0 0  -  -  - 0 1  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 3, (next-(2*max_machines)): 1, src: 15, next: 13, vnet:1 result: [NetDest (21)  - 0 0  -  -  - 0 1  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 3, (next-(2*max_machines)): 1, src: 15, next: 13, vnet:2 result: [NetDest (21)  - 0 0  -  -  - 0 1  - 0 0  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 3, (next-(2*max_machines)): 2, src: 15, next: 14, vnet:0 result: [NetDest (21)  - 0 0  -  -  - 0 0  - 0 1  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 3, (next-(2*max_machines)): 2, src: 15, next: 14, vnet:1 result: [NetDest (21)  - 0 0  -  -  - 0 0  - 0 1  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]
+      0: global: Returning shortest path
+(src-(2*max_machines)): 3, (next-(2*max_machines)): 2, src: 15, next: 14, vnet:2 result: [NetDest (21)  - 0 0  -  -  - 0 0  - 0 1  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - ]

@@ -66,8 +66,8 @@ class MyCacheSystem(RubySystem):
         self.network1.number_of_virtual_networks = 3
 
         # C2C Interfaces
-        self.interface0 = Interface(self, self.network0, self.network1, system.mem_ranges[1])
-        self.interface1 = Interface(self, self.network1, self.network0, system.mem_ranges[0])
+        #self.interface0 = Interface(self, self.network0, self.network1, system.mem_ranges[1])
+        #self.interface1 = Interface(self, self.network1, self.network0, system.mem_ranges[0])
 
         # There is a single global list of all of the controllers to make it
         # easier to connect everything to the global network. This can be
@@ -76,11 +76,13 @@ class MyCacheSystem(RubySystem):
         # Create a single directory controller (Really the memory cntrl)
         self.controllers0 = \
             [L1Cache(system, self, self.network0, cpu) for cpu in cpus0] + \
-            [DirController(self, self.network0, system.mem_ranges[0], mem_ctrls0)]
+            [DirController(self, self.network0, system.mem_ranges[0], mem_ctrls0)] + \
+            [Interface(self, self.network0, self.network1, system.mem_ranges[0])]
 
         self.controllers1 = \
             [L1Cache(system, self, self.network1, cpu) for cpu in cpus1] + \
-            [DirController(self, self.network1, system.mem_ranges[1], mem_ctrls1)]
+            [DirController(self, self.network1, system.mem_ranges[1], mem_ctrls1)] + \
+            [Interface(self, self.network1, self.network0, system.mem_ranges[1])]
 
         # Create one sequencer per CPU. In many systems this is more
         # complicated since you have to create sequencers for DMA controllers
@@ -351,11 +353,11 @@ class Interface(Interface_Controller):
     def connectQueues(self, network0, network1):
 
         self.inResponse = MessageBuffer(ordered=True)
-        self.inResponse.in_port = network0.out_port
         self.inRequest = MessageBuffer(ordered=True)
+        self.inResponse.in_port = network0.out_port
         self.inRequest.in_port = network0.out_port
 
         self.outResponse = MessageBuffer(ordered=True)
-        self.outResponse.out_port = network1.in_port
         self.outForward = MessageBuffer(ordered=True)
+        self.outResponse.out_port = network1.in_port
         self.outForward.out_port = network1.in_port
