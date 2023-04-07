@@ -1,0 +1,58 @@
+machine(MachineType:Interface, "Chip-to-Chip interface.")
+    :
+        DirectoryMemory * interface;
+        Cycles toMemLatency := 1;
+
+    // LEFT SIDE
+    // IN
+    // Directory
+    MessageBuffer *responseFromCacheLeft, network="From", virtual_network="2",
+        vnet_type="response";
+    MessageBuffer *requestFromCacheLeft, network="From", virtual_network="0",
+        vnet_type="request";
+    // Cache
+    MessageBuffer *responseFromDirOrSiblingLeft, network="To", 
+        virtual_network="2", vnet_type="response";
+    MessageBuffer *forwardFromDirLeft, network="From", virtual_network="1",
+        vnet_type="forward";
+
+    // OUT
+    // Directory
+    MessageBuffer *forwardToCacheLeft, network="To", virtual_network="1",
+        vnet_type="forward";
+    MessageBuffer *responseToCacheLeft, network="To", virtual_network="2",
+        vnet_type="response";
+    // Cache
+    MessageBuffer *responseToDirOrSiblingLeft, network="From",
+        virtual_network="2", vnet_type="response";
+    MessageBuffer *requestToDir, network="To", virtual_network="0",
+        vnet_type="request";
+
+    // RIGHT SIDE
+    // IN
+    // Directory
+    MessageBuffer *responseFromCacheLeft, network="From", virtual_network="2",
+        vnet_type="response";
+    MessageBuffer *requestFromCacheLeft, network="From", virtual_network="0",
+        vnet_type="request";
+    // Cache
+    MessageBuffer *responseFromDirOrSiblingLeft, network="To", 
+        virtual_network="2", vnet_type="response";
+    MessageBuffer *forwardFromDirLeft, network="From", virtual_network="1",
+        vnet_type="forward";
+
+    // OUT
+    // Directory
+    MessageBuffer *forwardToCacheLeft, network="To", virtual_network="1",
+        vnet_type="forward";
+    MessageBuffer *responseToCacheLeft, network="To", virtual_network="2",
+        vnet_type="response";
+    // Cache
+    MessageBuffer *responseToDirOrSiblingLeft, network="From",
+        virtual_network="2", vnet_type="response";
+    MessageBuffer *requestToDir, network="To", virtual_network="0",
+        vnet_type="request";
+
+{
+
+}
