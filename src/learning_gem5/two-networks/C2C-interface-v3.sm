@@ -54,5 +54,54 @@ machine(MachineType:Interface, "Chip-to-Chip interface.")
         vnet_type="request";
 
 {
+    state_declaration(State, desc="Interface states") {
+        // Directory
 
+        I, AccessPermission:Read_Write,  desc="Invalid in the caches.";
+        S, AccessPermission:Read_Only,   desc="At least one cache has the blk";
+        M, AccessPermission:Invalid,     desc="A cache has the block in M";
+
+        // Transient states
+        S_D, AccessPermission:Busy,      desc="Moving to S, but need data";
+
+        // Waiting for data from memory
+        S_m, AccessPermission:Read_Write, desc="In S waiting for mem";
+        M_m, AccessPermission:Read_Write, desc="Moving to M waiting for mem";
+
+        // Waiting for write-ack from memory
+        MI_m, AccessPermission:Busy,       desc="Moving to I waiting for ack";
+        SS_m, AccessPermission:Busy,       desc="Moving to S waiting for ack";
+
+        // Cache
+        I,      AccessPermission:Invalid,
+                    desc="Not present/Invalid";
+
+        // States moving out of I
+        IS_D,   AccessPermission:Invalid,
+                    desc="Invalid, moving to S, waiting for data";
+        IM_AD,  AccessPermission:Invalid,
+                    desc="Invalid, moving to M, waiting for acks and data";
+        IM_A,   AccessPermission:Busy,
+                    desc="Invalid, moving to M, waiting for acks";
+
+        S,      AccessPermission:Read_Only,
+                    desc="Shared. Read-only, other caches may have the block";
+
+        // States moving out of S
+        SM_AD,  AccessPermission:Read_Only,
+                    desc="Shared, moving to M, waiting for acks and 'data'";
+        SM_A,   AccessPermission:Read_Only,
+                    desc="Shared, moving to M, waiting for acks";
+
+        M,      AccessPermission:Read_Write,
+                    desc="Modified. Read & write permissions. Owner of block";
+
+        // States moving to Invalid
+        MI_A,   AccessPermission:Busy,
+                    desc="Was modified, moving to I, waiting for put ack";
+        SI_A,   AccessPermission:Busy,
+                    desc="Was shared, moving to I, waiting for put ack";
+        II_A,   AccessPermission:Invalid,
+                    desc="Sent valid data before receiving put ack. ";
+    }
 }
