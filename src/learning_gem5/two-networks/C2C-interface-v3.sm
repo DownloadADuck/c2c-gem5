@@ -5,50 +5,24 @@ machine(MachineType:Interface, "Chip-to-Chip interface.")
 
     // LEFT SIDE
     // IN
-    // Directory
-    MessageBuffer *responseFromCacheLeft, network="From", virtual_network="2",
+    MessageBuffer *responseFromCache, network="From", virtual_network="2",
         vnet_type="response";
-    MessageBuffer *requestFromCacheLeft, network="From", virtual_network="0",
+    MessageBuffer *requestFromCache, network="From", virtual_network="0",
         vnet_type="request";
-    // Cache
-    MessageBuffer *responseFromDirOrSiblingLeft, network="To", 
-        virtual_network="2", vnet_type="response";
-    MessageBuffer *forwardFromDirLeft, network="From", virtual_network="1",
-        vnet_type="forward";
-
     // OUT
-    // Directory
-    MessageBuffer *forwardToCacheLeft, network="To", virtual_network="1",
+    MessageBuffer *forwardToCache, network="To", virtual_network="1",
         vnet_type="forward";
-    MessageBuffer *responseToCacheLeft, network="To", virtual_network="2",
+    MessageBuffer *responseToCache, network="To", virtual_network="2",
         vnet_type="response";
-    // Cache
-    MessageBuffer *responseToDirOrSiblingLeft, network="From",
-        virtual_network="2", vnet_type="response";
-    MessageBuffer *requestToDir, network="To", virtual_network="0",
-        vnet_type="request";
 
     // RIGHT SIDE
     // IN
-    // Directory
-    MessageBuffer *responseFromCacheLeft, network="From", virtual_network="2",
-        vnet_type="response";
-    MessageBuffer *requestFromCacheLeft, network="From", virtual_network="0",
-        vnet_type="request";
-    // Cache
-    MessageBuffer *responseFromDirOrSiblingLeft, network="To", 
+    MessageBuffer *responseFromDirOrSibling, network="To", 
         virtual_network="2", vnet_type="response";
-    MessageBuffer *forwardFromDirLeft, network="From", virtual_network="1",
+    MessageBuffer *forwardFromDir, network="From", virtual_network="1",
         vnet_type="forward";
-
     // OUT
-    // Directory
-    MessageBuffer *forwardToCacheLeft, network="To", virtual_network="1",
-        vnet_type="forward";
-    MessageBuffer *responseToCacheLeft, network="To", virtual_network="2",
-        vnet_type="response";
-    // Cache
-    MessageBuffer *responseToDirOrSiblingLeft, network="From",
+    MessageBuffer *responseToDirOrSibling, network="From",
         virtual_network="2", vnet_type="response";
     MessageBuffer *requestToDir, network="To", virtual_network="0",
         vnet_type="request";
@@ -72,36 +46,144 @@ machine(MachineType:Interface, "Chip-to-Chip interface.")
         MI_m, AccessPermission:Busy,       desc="Moving to I waiting for ack";
         SS_m, AccessPermission:Busy,       desc="Moving to S waiting for ack";
 
-        // Cache
-        I,      AccessPermission:Invalid,
-                    desc="Not present/Invalid";
+        //// Cache
+        //I,      AccessPermission:Invalid, desc="Not present/Invalid";
 
-        // States moving out of I
-        IS_D,   AccessPermission:Invalid,
-                    desc="Invalid, moving to S, waiting for data";
-        IM_AD,  AccessPermission:Invalid,
-                    desc="Invalid, moving to M, waiting for acks and data";
-        IM_A,   AccessPermission:Busy,
-                    desc="Invalid, moving to M, waiting for acks";
+        //// States moving out of I
+        //IS_D,   AccessPermission:Invalid,
+        //            desc="Invalid, moving to S, waiting for data";
+        //IM_AD,  AccessPermission:Invalid,
+        //            desc="Invalid, moving to M, waiting for acks and data";
+        //IM_A,   AccessPermission:Busy,
+        //            desc="Invalid, moving to M, waiting for acks";
 
-        S,      AccessPermission:Read_Only,
-                    desc="Shared. Read-only, other caches may have the block";
+        //S,      AccessPermission:Read_Only,
+        //            desc="Shared. Read-only, other caches may have the block";
 
-        // States moving out of S
-        SM_AD,  AccessPermission:Read_Only,
-                    desc="Shared, moving to M, waiting for acks and 'data'";
-        SM_A,   AccessPermission:Read_Only,
-                    desc="Shared, moving to M, waiting for acks";
+        //// States moving out of S
+        //SM_AD,  AccessPermission:Read_Only,
+        //            desc="Shared, moving to M, waiting for acks and 'data'";
+        //SM_A,   AccessPermission:Read_Only,
+        //            desc="Shared, moving to M, waiting for acks";
 
-        M,      AccessPermission:Read_Write,
-                    desc="Modified. Read & write permissions. Owner of block";
+        //M,      AccessPermission:Read_Write,
+        //            desc="Modified. Read & write permissions. Owner of block";
 
-        // States moving to Invalid
-        MI_A,   AccessPermission:Busy,
-                    desc="Was modified, moving to I, waiting for put ack";
-        SI_A,   AccessPermission:Busy,
-                    desc="Was shared, moving to I, waiting for put ack";
-        II_A,   AccessPermission:Invalid,
-                    desc="Sent valid data before receiving put ack. ";
+        //// States moving to Invalid
+        //MI_A,   AccessPermission:Busy,
+        //            desc="Was modified, moving to I, waiting for put ack";
+        //SI_A,   AccessPermission:Busy,
+        //            desc="Was shared, moving to I, waiting for put ack";
+        //II_A,   AccessPermission:Invalid,
+        //            desc="Sent valid data before receiving put ack. ";
+    }
+
+    enumeration(Event, desc="Interface events") {
+        // DIRECTORY
+        // Data requests from the cache
+        GetS,         desc="Request for read-only data from cache";
+        GetM,         desc="Request for read-write data from cache";
+
+        // Writeback requests from the cache
+        PutSNotLast,  desc="PutS and the block has other sharers";
+        PutSLast,     desc="PutS and the block has no other sharers";
+        PutMOwner,    desc="Dirty data writeback from the owner";
+        PutMNonOwner, desc="Dirty data writeback from non-owner";
+
+        // Cache responses
+        Data,         desc="Response to fwd request with data";
+
+        // From Memory
+        MemData,      desc="Data from memory";
+        MemAck,       desc="Ack from memory that write is complete";
+
+        // CACHE
+        // From the processor/sequencer/mandatory queue
+        Load,           desc="Load from processor";
+        Store,          desc="Store from processor";
+
+        // Internal event (only triggered from processor requests)
+        Replacement,    desc="Triggered when block is chosen as victim";
+
+        // Forwarded reqeust from other cache via dir on the forward network
+        FwdGetS,        desc="Directory sent us a request to satisfy GetS. ";
+                             //"We must have the block in M to respond to this.";
+        FwdGetM,        desc="Directory sent us a request to satisfy GetM. ";
+                             //"We must have the block in M to respond to this.";
+        Inv,            desc="Invalidate from the directory.";
+        PutAck,         desc="Response from directory after we issue a put. ";
+                             //"This must be on the fwd network to avoid";
+                             //"deadlock.";
+
+        // Responses from directory
+        DataDirNoAcks,  desc="Data from directory (acks = 0)";
+        DataDirAcks,    desc="Data from directory (acks > 0)";
+
+        // Responses from other caches
+        DataOwner,      desc="Data from owner";
+        InvAck,         desc="Invalidation ack from other cache after Inv";
+
+        // Special internally triggered event to simplify implementation
+        LastInvAck,     desc="Triggered after the last ack is received";
+    }
+
+    // Directory Entry
+    structure(DirEntry, desc="...", interface="AbstractCacheEntry", main="false") {
+        State DirState,         desc="Directory state";
+        NetDest Sharers,        desc="Sharers for this block";
+        NetDest Owner,          desc="Owner of this block";
+    }
+    // Cache Entry
+    structure(CacheEntry, desc="Cache entry", interface="AbstractCacheEntry") {
+        State CacheState,        desc="cache state";
+        DataBlock DataBlk,       desc="Data in the block";
+    }
+    // TBE --> Transaction Buffer Entry. Strores information needed during 
+    // transient states. This is like an MSHR.
+    structure(TBE, desc="Entry for transient requests") {
+        State TBEState,         desc="State of block";
+        DataBlock DataBlk,      desc="Data for the block. Needed for MI_A";
+        int AcksOutstanding, default=0, desc="Number of acks left to receive.";
+    }
+    // Table of TBE entries. 
+    // Defined externaly in src/mem/ruby/structures/TBETable.hh
+    structure(TBETable, external="yes") {
+      TBE lookup(Addr);
+      void allocate(Addr);
+      void deallocate(Addr);
+      bool isPresent(Addr);
+    }
+    // Member functions an member variables
+
+    // The TBE table for this machine. 
+    // Slicc mangled name will be Interface_TBE in C++
+    TBETable TBEs, template="<L1Cache_TBE>", constructor="m_number_of_TBEs";
+
+    // Declares all the functions of the AbstractController that we may use 
+    // in this file
+    Tick clockEdge();
+
+    // Cache functions we must use to have correct transitions
+    void set_cache_entry(AbstractCacheEntry a);
+    void unset_cache_entry();
+    void set_tbe(TBE b);
+    void unset_tbe();
+
+    // Queries the network to check where to send a message from its address
+    // and machine type. 
+    MachineID mapAddressToMachine(Addr addr, MachineType mtype);
+
+    // Convenience function to loop up the cache entry.
+    Entry getCacheEntry(Addr address), return_by_pointer="yes" {
+        return static_cast(Entry, "pointer", cacheMemory.lookup(address));
+    }
+    // Required functions for getting the current state of the block 
+    State getState(TBE tbe, Entry cache_entry, Addr addr) {
+        // If valid, the TBE state will override the state in cache memory
+        if (is_valid(tbe)) { return tbe.TBEState ;}
+        // if cache entry is valid, it holds the state
+        else if (is_valid(cache_entry)) { return cache_entry.CacheState; }
+        // Block is not present --> I
+        else { return State:I; }
     }
 }
