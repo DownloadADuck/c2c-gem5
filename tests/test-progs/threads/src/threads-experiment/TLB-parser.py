@@ -66,15 +66,26 @@ import numpy as np
 from matplotlib import colors
 import matplotlib.pyplot as plt
 
+# Saving the images because no X server
 
-plt.subplot(211)
+fig = plt.figure()
+data = plt.subplot(211)
 plt.plot(cpu0_dtb_tick, cpu0_dtb, linestyle = 'None', marker = '.', color = 'b')
 plt.plot(cpu1_dtb_tick, cpu1_dtb, linestyle = 'None', marker = '.', color = 'g')
 plt.plot(cpu2_dtb_tick, cpu2_dtb, linestyle = 'None', marker = '.', color = 'c')
+plt.ylabel('Address')
+plt.xlabel('Ticks')
+plt.title('Data virtual addresses')
 
-
+instruction = fig.add_subplot(212, sharex=data)
 plt.subplot(212)
 plt.plot(cpu0_itb_tick, cpu0_itb, linestyle = 'None', marker = '.', color = 'b')
 plt.plot(cpu1_itb_tick, cpu1_itb, linestyle = 'None', marker = '.', color = 'g')
 plt.plot(cpu2_itb_tick, cpu2_itb, linestyle = 'None', marker = '.', color = 'c')
+plt.ylabel('Address')
+plt.xlabel('Ticks')
+plt.title('Instruction virtual addresses')
+plt.tight_layout()
 plt.show()
+plt.savefig("TLB_virtual_address_2cpus_190523.svg")
+

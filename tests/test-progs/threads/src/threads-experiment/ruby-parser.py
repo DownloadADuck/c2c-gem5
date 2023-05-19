@@ -26,7 +26,7 @@ tab = ""
 prev_addr = ""
 
 
-with open("./trace-ruby.txt", "r") as file:
+with open("trace-ruby.txt", "r") as file:
    for line in file:
        #479406000: system.cpu2.l2: [Cache_Controller 8], Time: 958812, state: BUSY_BLKD, event: SnpRespData_I_PD, addr: 0x1c4b80
        match = re.match(r'(\S+): (\S+): \[Cache_Controller .*? state: (\S+), event: (\S+), addr: (\S+)', line)
