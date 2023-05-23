@@ -65,6 +65,8 @@ with open("./trace-TLB.txt", "r") as file:
 import numpy as np
 from matplotlib import colors
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes, mark_inset
+
 
 # Saving the images because no X server
 
@@ -77,7 +79,26 @@ plt.ylabel('Address')
 plt.xlabel('Ticks')
 plt.title('Data virtual addresses')
 
-instruction = fig.add_subplot(212, sharex=data)
+#axins1 = zoomed_inset_axes(data, zoom=5, loc='upper left')
+#axins1.plot(cpu0_dtb_tick, cpu0_dtb, linestyle='None', marker='.', color='b')
+#axins1.plot(cpu1_dtb_tick, cpu1_dtb, linestyle='None', marker='.', color='g')
+#axins1.plot(cpu2_dtb_tick, cpu2_dtb, linestyle='None', marker='.', color='c')
+#axins1.set_xlim(2e8, 2.01e8)  # Adjust the y-axis limits for the zoomed window
+#axins1.set_ylim(1.4e14, 1.5e14)  # Adjust the x-axis limits for the zoomed window
+#plt.xticks(visible=False)
+#plt.yticks(visible=False)
+#mark_inset(data, axins1, loc1=2, loc2=4, fc="none", ec="0.5")
+zoom_cpu0 = plt.subplot(213, sharex=data)
+plt.plot(cpu0_dtb_tick, cpu0_dtb, linestyle='None', marker='.', color='b')
+plt.ylabel('Address')
+plt.xlabel('Ticks')
+plt.title('Zoomed Data - CPU0')
+
+#zoom_cpu0.set_xlim(min(cpu0_dtb_tick), max(cpu0_dtb_tick))
+zoom_cpu0.set_ylim(1.4e14, 1.5e14)
+zoom_cpu0.set_xlim(2e8, 2.2e8)
+
+instruction = plt.subplot(212, sharex=data)
 plt.subplot(212)
 plt.plot(cpu0_itb_tick, cpu0_itb, linestyle = 'None', marker = '.', color = 'b')
 plt.plot(cpu1_itb_tick, cpu1_itb, linestyle = 'None', marker = '.', color = 'g')
@@ -85,6 +106,7 @@ plt.plot(cpu2_itb_tick, cpu2_itb, linestyle = 'None', marker = '.', color = 'c')
 plt.ylabel('Address')
 plt.xlabel('Ticks')
 plt.title('Instruction virtual addresses')
+
 plt.tight_layout()
 plt.show()
 plt.savefig("TLB_virtual_address_2cpus_190523.svg")
