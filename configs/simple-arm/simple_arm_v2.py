@@ -11,7 +11,7 @@ from common.FileSystemConfig import config_filesystem
 
 # You can import ruby_caches_MI_example to use the MI_example protocol instead
 # of the MSI protocol
-from msi_caches import MyCacheSystem
+from chi_caches import MyCacheSystem
 
 # create the system we are going to simulate
 system = System()
@@ -28,8 +28,8 @@ addr_ranges_vaults = [AddrRange(i*arv, ((i+1)*arv-1)) for i in range(2)]
 system.mem_ranges = addr_ranges_vaults  # Create an address range
 
 # Create a pair of simple CPUs
-system.cpu0 = [ArmSimpleCPU() for i in range(1)]
-system.cpu1 = [ArmSimpleCPU() for i in range(1)]
+system.cpu0 = [TimingSimpleCPU() for i in range(1)]
+system.cpu1 = [TimingSimpleCPU() for i in range(1)]
 
 # Create a DDR3 memory controller and connect it to the membus
 system.mem_ctrl0 = MemCtrl()
@@ -54,8 +54,8 @@ system.caches.setup(system, system.cpu0, system.cpu1, system.mem_ctrl0,
 # Run application and use the compiled ISA to find the binary
 # grab the specific path to the binary
 thispath = os.path.dirname(os.path.realpath(__file__))
-binary0 = os.path.join(thispath, "../../", "tests/test-progs/micro-bench/vector_add_default_region_1")
-binary1 = os.path.join(thispath, "../../", "tests/test-progs/micro-bench/vector_add_default_region_2")
+binary0 = os.path.join(thispath, "../../", "tests/test-progs/hello/bin/arm/linux/hello")
+binary1 = os.path.join(thispath, "../../", "tests/test-progs/hello/bin/arm/linux/hello")
 
 # Create a process for a simple "multi-threaded" application
 process0 = Process(pid=101)
@@ -87,4 +87,5 @@ m5.instantiate()
 print("Beginning simulation!")
 exit_event = m5.simulate()
 print(
-    "Exiting @ tick {} because {}".format(m5.curTick(), exit_event.getC
+    "Exiting @ tick {} because {}".format(m5.curTick(), exit_event.getCause())
+)
