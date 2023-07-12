@@ -66,7 +66,7 @@ except:
     error = call(
         [
             "protoc",
-            "--python_out=configs/dram",
+            "--python_out=configs/traces",
             "--proto_path=src/proto",
             "src/proto/packet.proto",
         ]
@@ -132,17 +132,6 @@ args.elastic_trace_en = 0
 MemConfig.config_mem(args, system)
 
 # there is no point slowing things down by saving any data
-for ctrl in system.mem_ctrls:
-    import pdb; pdb.set_trace()
-    #ctrl.null = True
-
-    # the following assumes that we are using the native DRAM
-    # controller, check to be sure
-    #if isinstance(ctrl, m5.objects.MemCtrl):
-        # make the DRAM refresh interval sufficiently infinite to avoid
-        # latency spikes
-    #    ctrl.tREFI = "100s"
-
 # use the same concept as the utilisation sweep, and print the config
 # so that we can later read it in
 cfg_file_name = os.path.join(m5.options.outdir, "lat_mem_rd.cfg")
