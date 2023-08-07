@@ -60,6 +60,7 @@ from common import MemConfig
 
 
 addToPath("../../../util")
+import pdb; pdb.set_trace()
 import protolib
 
 
