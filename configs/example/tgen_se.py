@@ -279,6 +279,7 @@ if args.ruby:
 
         # Connect the cpu's cache ports to Ruby
         ruby_port.connectCpuPorts(system.cpu[i])
+
 else:
     MemClass = Simulation.setMemClass(args)
     system.membus = SystemXBar()

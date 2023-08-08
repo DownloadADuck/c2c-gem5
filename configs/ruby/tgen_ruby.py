@@ -240,14 +240,20 @@ def create_system(
     if cpus is None:
         cpus = system.cpu
 
-    protocol = buildEnv["PROTOCOL"]
+    #protocol = buildEnv["PROTOCOL"]
+    protocol = "tgen_CHI"
     exec("from . import %s" % protocol)
     try:
-        (cpu_sequencers, dir_cntrls, topology) = eval(
+        (cpu_sequencers, tgen_sequencers, dir_cntrls, topology) = eval(
             "%s.create_system(options, full_system, system, dma_ports,\
                                     bootmem, ruby, cpus)"
             % protocol
         )
+        #(tgen_sequencers, dir_cntrls, topology) = eval(
+        #    "%s.create_system(options, full_system, system, dma_ports,\
+        #                            bootmem, ruby, cpus)"
+        #    % protocol
+        #)
     except:
         print("Error: could not create sytem for ruby protocol %s" % protocol)
         raise
@@ -284,14 +290,14 @@ def create_system(
     if piobus != None:
         for cpu_seq in cpu_sequencers:
             cpu_seq.connectIOPorts(piobus)
-    
+
     # Connecting the traffic genereators
     for i in range(len(cpus)):
-        system.tgen[i].port = cpu_sequencers[i].in_ports
+        system.tgen[i].port = tgen_sequencers[i].in_ports
 
     ruby.number_of_virtual_networks = ruby.network.number_of_virtual_networks
     ruby._cpu_ports = cpu_sequencers
-    ruby.num_of_sequencers = len(cpu_sequencers)
+    ruby.num_of_sequencers = len(cpu_sequencers) + len(tgen_sequencers)
 
     # Create a backing copy of physical memory in case required
     if options.access_backing_store:
