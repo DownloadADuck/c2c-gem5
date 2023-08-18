@@ -1,0 +1,5 @@
+# ignoring the svgs, m5out and traces
+
+/m5out 
+*.svg
+*.txt

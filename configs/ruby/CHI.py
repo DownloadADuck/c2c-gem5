@@ -145,7 +145,7 @@ def create_system(
     hnf_dests = []
     all_cntrls = []
 
-    # Creates on RNF per cpu with priv l2 caches
+    # Creates one RNF per cpu with priv l2 caches
     assert len(cpus) == options.num_cpus
     ruby_system.rnf = [
         CHI_RNF(
