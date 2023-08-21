@@ -124,7 +124,7 @@ Options.addCommonOptions(parser)
 Options.addSEOptions(parser)
 
 if "--ruby" in sys.argv:
-   tgen_ruby.define_options(parser)
+    tgen_ruby.define_options(parser)
 
 args = parser.parse_args()
 
@@ -183,12 +183,12 @@ system = System(
 )
 
 # Tgens
-system.tgen = [
-    TrafficGen(
-        config_file="./m5out/lat_mem_rd.cfg",
-        progress_check="10s"
-    ) for i in range(np)
-]
+#system.tgen = [
+#    TrafficGen(
+#        config_file="./m5out/lat_mem_rd.cfg",
+#        progress_check="10s"
+#    ) for i in range(np)
+#]
 
 if numThreads > 1:
     system.multi_thread = True
@@ -264,7 +264,7 @@ for i in range(np):
 
 if args.ruby:
     tgen_ruby.create_system(args, False, system)
-    assert args.num_cpus == len(system.ruby._cpu_ports)
+    #assert args.num_cpus == len(system.ruby._cpu_ports)
 
     system.ruby.clk_domain = SrcClockDomain(
         clock=args.ruby_clock, voltage_domain=system.voltage_domain

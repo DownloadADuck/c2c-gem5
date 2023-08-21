@@ -213,6 +213,7 @@ system.caches.sequencers = [
         dcache=system.caches.controllers[i+1].cacheMemory,
         clk_domain=system.caches.controllers[i+1].clk_domain,
     )for i in range(2,4)]
+
 # We know that we put the controllers in an order such that the first
 # N of them are the L1 caches which need a sequencer pointer
 #for i, c in enumerate(system.caches.controllers[0 : len(system.cpu)]):

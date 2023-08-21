@@ -54,7 +54,6 @@ from common import FileSystemConfig
 from topologies import *
 from network import Network
 
-
 def define_options(parser):
     # By default, ruby uses the simple timing cpu
     parser.set_defaults(cpu_type="TimingSimpleCPU")
@@ -249,11 +248,6 @@ def create_system(
                                     bootmem, ruby, cpus)"
             % protocol
         )
-        #(tgen_sequencers, dir_cntrls, topology) = eval(
-        #    "%s.create_system(options, full_system, system, dma_ports,\
-        #                            bootmem, ruby, cpus)"
-        #    % protocol
-        #)
     except:
         print("Error: could not create sytem for ruby protocol %s" % protocol)
         raise
@@ -291,9 +285,22 @@ def create_system(
         for cpu_seq in cpu_sequencers:
             cpu_seq.connectIOPorts(piobus)
 
-    # Connecting the traffic genereators
-    for i in range(len(cpus)):
-        system.tgen[i].port = tgen_sequencers[i].in_ports
+    ## TrafficGen setup
+    
+    system.tgen = TrafficGen(config_file="./m5out/lat_mem_rd.cfg", progress_check="10s")
+    #ruby.tgen_sequencer = RubySequencer(
+    #    version=1,
+    #    ruby_system=ruby,
+    #)
+
+    system.tgen.port = cpu_sequencers[1].in_ports
+
+    #system.tgen.sequencer = RubySequencer(
+    #    version=1,  
+    #    ruby_system=ruby,
+    #)
+
+    #system.tgen.port = system.tgen.sequencer.in_ports
 
     ruby.number_of_virtual_networks = ruby.network.number_of_virtual_networks
     ruby._cpu_ports = cpu_sequencers
