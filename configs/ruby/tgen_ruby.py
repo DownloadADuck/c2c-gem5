@@ -286,14 +286,16 @@ def create_system(
             cpu_seq.connectIOPorts(piobus)
 
     ## TrafficGen setup
-    
     system.tgen = TrafficGen(config_file="./m5out/lat_mem_rd.cfg", progress_check="10s")
-    #ruby.tgen_sequencer = RubySequencer(
-    #    version=1,
-    #    ruby_system=ruby,
-    #)
+    ruby.tgen_sequencer = RubySequencer(
+        version=1,
+        ruby_system=ruby,
+        #dcache=,
+    )
 
-    system.tgen.port = cpu_sequencers[1].in_ports
+    system.tgen.port = ruby.tgen_sequencer.in_ports
+
+    #system.tgen.port = cpu_sequencers[1].in_ports
 
     #system.tgen.sequencer = RubySequencer(
     #    version=1,  
