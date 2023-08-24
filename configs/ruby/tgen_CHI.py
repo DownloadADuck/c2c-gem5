@@ -164,7 +164,7 @@ def create_system(
         CHI_RNF_tgen(
             [tgen],
             ruby_system,
-            L1ICache,
+            #L1ICache,
             L1DCache,
             system.cache_line_size.value,
         )

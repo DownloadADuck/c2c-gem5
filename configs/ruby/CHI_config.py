@@ -794,10 +794,9 @@ class CHI_RNF_tgen(CHI_Node):
 
     def __init__(
         self,
-    #    cpus,
         tgens,
         ruby_system,
-        l1Icache_type,
+        #l1Icache_type,
         l1Dcache_type,
         cache_line_size,
         l1Iprefetcher_type=None,
@@ -819,47 +818,49 @@ class CHI_RNF_tgen(CHI_Node):
 
         # First creates L1 caches and sequencers
         for tgen in self._tgens:
-            tgen.inst_sequencer = RubySequencer(
-                version=Versions.getSeqId(), ruby_system=ruby_system
-            )
+            #tgen.inst_sequencer = RubySequencer(
+            #    version=Versions.getSeqId(), ruby_system=ruby_system
+            #)
             tgen.data_sequencer = RubySequencer(
                 version=Versions.getSeqId(), ruby_system=ruby_system
             )
 
             self._seqs.append(
-                CPUSequencerWrapper(tgen.inst_sequencer, tgen.data_sequencer)
+                #CPUSequencerWrapper(tgen.inst_sequencer, tgen.data_sequencer)
+                tgenSequencerWrapper(tgen.data_sequencer)
             )
 
             # caches
-            l1i_cache = l1Icache_type(
-                start_index_bit=self._block_size_bits, is_icache=True
-            )
+            #l2i_cache = l1Icache_type(
+            #    start_index_bit=self._block_size_bits, is_icache=True
+            #)
 
             l1d_cache = l1Dcache_type(
                 start_index_bit=self._block_size_bits, is_icache=False
             )
 
+            # cache controllers
+            #tgen.l1i = CHI_L1Controller(
+            #    ruby_system, tgen.inst_sequencer, l1i_cache, l1i_pf
+            #)
+
             # Placeholders for future prefetcher support
             if l1Iprefetcher_type != None or l1Dprefetcher_type != None:
                 m5.fatal("Prefetching not supported yet")
-            l1i_pf = NULL
+            #l1i_pf = NULL
             l1d_pf = NULL
-
-            # cache controllers
-            tgen.l1i = CHI_L1Controller(
-                ruby_system, tgen.inst_sequencer, l1i_cache, l1i_pf
-            )
 
             tgen.l1d = CHI_L1Controller(
                 ruby_system, tgen.data_sequencer, l1d_cache, l1d_pf
             )
 
-            tgen.inst_sequencer.dcache = NULL
+            #tgen.inst_sequencer.dcache = NULL
             tgen.data_sequencer.dcache = tgen.l1d.cache
 
             tgen.l1d.sc_lock_enabled = True
 
-            tgen._ll_cntrls = [tgen.l1i, tgen.l1d]
+            #tgen._ll_cntrls = [tgen.l1i, tgen.l1d]
+            tgen._ll_cntrls = [tgen.l1d]
             for c in tgen._ll_cntrls:
                 self._cntrls.append(c)
                 self.connectController(c)
@@ -902,3 +903,30 @@ class CHI_RNF_tgen(CHI_Node):
     #        for c in cpu._ll_cntrls:
     #            c.downstream_destinations = [cpu.l2]
     #        cpu._ll_cntrls = [cpu.l2]
+
+class tgenSequencerWrapper:
+    """
+    Traffic generator specific sequencer wrapper. Assumes that 
+    there is no inst_sequencer.
+    """
+
+    def __init__(self, dseq):
+        # use this style due to __setattr__ override below
+        self.__dict__["data_seq"] = dseq
+        self.__dict__["support_data_reqs"] = True
+        self.__dict__["in_ports"] = dseq.in_ports
+
+    def connectTgenPorts(self, tgen):
+        tgen.port = self.data_seq.in_ports
+        #for p in tgen._cached_ports:
+        #    if str(p) != "icache_port":
+        #        exec("cpu.%s = self.data_seq.in_ports" % p)
+        tgen.connectUncachedPorts(
+            self.data_seq.in_ports, self.data_seq.interrupt_out_port
+        )
+
+    def connectIOPorts(self, piobus):
+        self.data_seq.connectIOPorts(piobus)
+
+    def __setattr__(self, name, value):
+        setattr(self.data_seq, name, value)
