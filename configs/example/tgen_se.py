@@ -182,14 +182,6 @@ system = System(
     cache_line_size=args.cacheline_size,
 )
 
-# Tgens
-#system.tgen = [
-#    TrafficGen(
-#        config_file="./m5out/lat_mem_rd.cfg",
-#        progress_check="10s"
-#    ) for i in range(np)
-#]
-
 if numThreads > 1:
     system.multi_thread = True
 
