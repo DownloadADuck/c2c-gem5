@@ -786,3 +786,119 @@ class CHI_RNI_IO(CHI_RNI_Base):
     def __init__(self, ruby_system, parent):
         super(CHI_RNI_IO, self).__init__(ruby_system, parent)
         ruby_system._io_port = self._sequencer
+
+class CHI_RNF_tgen(CHI_Node):
+    """
+    Defines a CHI traffic generator request node.
+    """
+
+    def __init__(
+        self,
+    #    cpus,
+        tgens,
+        ruby_system,
+        l1Icache_type,
+        l1Dcache_type,
+        cache_line_size,
+        l1Iprefetcher_type=None,
+        l1Dprefetcher_type=None,
+    ):
+        super(CHI_RNF_tgen, self).__init__(ruby_system)
+
+        self._block_size_bits = int(math.log(cache_line_size, 2))
+
+        # All sequencers and controllers
+        self._seqs = []
+        self._cntrls = []
+
+        # Last level controllers in this node, i.e., the ones that will send
+        # requests to the home nodes
+        self._ll_cntrls = []
+
+        self._tgens = tgens
+
+        # First creates L1 caches and sequencers
+        for tgen in self._tgens:
+            tgen.inst_sequencer = RubySequencer(
+                version=Versions.getSeqId(), ruby_system=ruby_system
+            )
+            tgen.data_sequencer = RubySequencer(
+                version=Versions.getSeqId(), ruby_system=ruby_system
+            )
+
+            self._seqs.append(
+                CPUSequencerWrapper(tgen.inst_sequencer, tgen.data_sequencer)
+            )
+
+            # caches
+            l1i_cache = l1Icache_type(
+                start_index_bit=self._block_size_bits, is_icache=True
+            )
+
+            l1d_cache = l1Dcache_type(
+                start_index_bit=self._block_size_bits, is_icache=False
+            )
+
+            # Placeholders for future prefetcher support
+            if l1Iprefetcher_type != None or l1Dprefetcher_type != None:
+                m5.fatal("Prefetching not supported yet")
+            l1i_pf = NULL
+            l1d_pf = NULL
+
+            # cache controllers
+            tgen.l1i = CHI_L1Controller(
+                ruby_system, tgen.inst_sequencer, l1i_cache, l1i_pf
+            )
+
+            tgen.l1d = CHI_L1Controller(
+                ruby_system, tgen.data_sequencer, l1d_cache, l1d_pf
+            )
+
+            tgen.inst_sequencer.dcache = NULL
+            tgen.data_sequencer.dcache = tgen.l1d.cache
+
+            tgen.l1d.sc_lock_enabled = True
+
+            tgen._ll_cntrls = [tgen.l1i, tgen.l1d]
+            for c in tgen._ll_cntrls:
+                self._cntrls.append(c)
+                self.connectController(c)
+                self._ll_cntrls.append(c)
+
+    def getSequencers(self):
+        return self._seqs
+
+    def getAllControllers(self):
+        return self._cntrls
+
+    def getNetworkSideControllers(self):
+        return self._cntrls
+
+    def setDownstream(self, cntrls):
+        for c in self._ll_cntrls:
+            c.downstream_destinations = cntrls
+
+    def getCpus(self):
+        return self._tgens
+
+    # Adds a private L2 for each cpu
+    #def addPrivL2Cache(self, cache_type, pf_type=None):
+    #    self._ll_cntrls = []
+    #    for tgen in self._tgens:
+    #        l2_cache = cache_type(
+    #            start_index_bit=self._block_size_bits, is_icache=False
+    #        )
+    #        if pf_type != None:
+    #            m5.fatal("Prefetching not supported yet")
+    #        l2_pf = NULL
+
+    #        cpu.l2 = CHI_L2Controller(self._ruby_system, l2_cache, l2_pf)
+
+    #        self._cntrls.append(cpu.l2)
+    #        self.connectController(cpu.l2)
+
+    #        self._ll_cntrls.append(cpu.l2)
+
+    #        for c in cpu._ll_cntrls:
+    #            c.downstream_destinations = [cpu.l2]
+    #        cpu._ll_cntrls = [cpu.l2]

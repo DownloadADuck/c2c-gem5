@@ -63,7 +63,7 @@ def read_config_file(file):
 
 
 def create_system(
-    options, full_system, system, dma_ports, bootmem, ruby_system, cpus
+    options, full_system, system, dma_ports, bootmem, ruby_system, cpus, tgens
 ):
 
     if buildEnv["PROTOCOL"] != "CHI":
@@ -95,13 +95,13 @@ def create_system(
     params = chi_defs.NoC_Params
     # Node types
     CHI_RNF = chi_defs.CHI_RNF
+    CHI_RNF_tgen = chi_defs.CHI_RNF_tgen
     CHI_HNF = chi_defs.CHI_HNF
     CHI_MN = chi_defs.CHI_MN
     CHI_SNF_MainMem = chi_defs.CHI_SNF_MainMem
     CHI_SNF_BootMem = chi_defs.CHI_SNF_BootMem
     CHI_RNI_DMA = chi_defs.CHI_RNI_DMA
     CHI_RNI_IO = chi_defs.CHI_RNI_IO
-    CHI_RNI_Base = chi_defs.CHI_RNI_Base
 
     # Declare caches and controller types used by the protocol
     # Notice tag and data accesses are not concurrent, so the a cache hit
@@ -158,43 +158,32 @@ def create_system(
             system.cache_line_size.value,
         )
         for cpu in cpus
-    ] + [
-        CHI_RNF(
-            [cpu],
+    ]
+
+    ruby_system.rnf_tgen = [
+        CHI_RNF_tgen(
+            [tgen],
             ruby_system,
             L1ICache,
             L1DCache,
             system.cache_line_size.value,
         )
-        for cpu in cpus
+        for tgen in tgens
     ]
-
-    #ruby_system.tgen_node = [
-    #    CHI_RNF(
-    #        [cpu],
-    #        ruby_system,
-    #        L1ICache,
-    #        L1DCache,
-    #        system.cache_line_size.value,
-    #    )
-    #    for cpu in cpus
-    #]
-
 
     for rnf in ruby_system.rnf:
         rnf.addPrivL2Cache(L2Cache)
         cpu_sequencers.extend(rnf.getSequencers())
-        #tgen_sequencers.extend(rnf.getSequencers())
         all_cntrls.extend(rnf.getAllControllers())
         network_nodes.append(rnf)
         network_cntrls.extend(rnf.getNetworkSideControllers())
     
-    #for tgen_node in ruby_system.tgen_node:
-    #    tgen_sequencers.extend(tgen_node.getSequencers())
-    #    all_cntrls.extend(tgen_node.getAllControllers())
-    #    network_nodes.append(tgen_node)
-    #    network_cntrls.extend(tgen_node.getNetworkSideControllers())
-
+    for rnf_tgen in ruby_system.rnf_tgen:
+        tgen_sequencers.extend(rnf_tgen.getSequencers())
+        all_cntrls.extend(rnf_tgen.getAllControllers())
+        network_nodes.append(rnf_tgen)
+        network_cntrls.extend(rnf.getNetworkSideControllers())
+    
     # Creates one Misc Node
     ruby_system.mn = [CHI_MN(ruby_system, [cpu.l1d for cpu in cpus])]
     for mn in ruby_system.mn:

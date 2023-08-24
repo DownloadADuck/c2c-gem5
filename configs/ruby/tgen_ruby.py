@@ -239,13 +239,16 @@ def create_system(
     if cpus is None:
         cpus = system.cpu
 
+    tgens = TrafficGen(config_file="./m5out/lat_mem_rd.cfg", progress_check="10s")
+
+
     #protocol = buildEnv["PROTOCOL"]
     protocol = "tgen_CHI"
     exec("from . import %s" % protocol)
     try:
         (cpu_sequencers, tgen_sequencers, dir_cntrls, topology) = eval(
             "%s.create_system(options, full_system, system, dma_ports,\
-                                    bootmem, ruby, cpus)"
+                                    bootmem, ruby, cpus, tgens)"
             % protocol
         )
     except:
@@ -286,27 +289,14 @@ def create_system(
             cpu_seq.connectIOPorts(piobus)
 
     ## TrafficGen setup
-    system.tgen = TrafficGen(config_file="./m5out/lat_mem_rd.cfg", progress_check="10s")
-    ruby.tgen_sequencer = RubySequencer(
-        version=1,
-        ruby_system=ruby,
-        #dcache=,
-    )
 
-    system.tgen.port = ruby.tgen_sequencer.in_ports
-
-    #system.tgen.port = cpu_sequencers[1].in_ports
-
-    #system.tgen.sequencer = RubySequencer(
-    #    version=1,  
-    #    ruby_system=ruby,
-    #)
-
-    #system.tgen.port = system.tgen.sequencer.in_ports
+    #system.tgen.port = ruby.tgen_sequencer.in_ports
+    tgens.port = tgen_sequencers[0].in_ports
 
     ruby.number_of_virtual_networks = ruby.network.number_of_virtual_networks
     ruby._cpu_ports = cpu_sequencers
     ruby.num_of_sequencers = len(cpu_sequencers) + len(tgen_sequencers)
+
 
     # Create a backing copy of physical memory in case required
     if options.access_backing_store:
