@@ -218,6 +218,7 @@ def create_system(
     dma_ports=[],
     bootmem=None,
     cpus=None,
+    tgens=None,
 ):
 
     system.ruby = RubySystem()
@@ -238,9 +239,9 @@ def create_system(
 
     if cpus is None:
         cpus = system.cpu
-
-    tgens = [TrafficGen(config_file="./m5out/lat_mem_rd.cfg", progress_check="10s") for i in range (1)]
-
+    
+    if tgens is None: 
+        tgens = system.tgens
 
     #protocol = buildEnv["PROTOCOL"]
     protocol = "tgen_CHI"

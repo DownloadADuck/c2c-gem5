@@ -176,6 +176,7 @@ if args.smt and args.num_cpus > 1:
 np = args.num_cpus
 mp0_path = multiprocesses[0].executable
 system = System(
+    tgens = [TrafficGen(config_file="./m5out/lat_mem_rd.cfg", progress_check="10s") for i in range(1)],
     cpu=[CPUClass(cpu_id=i) for i in range(np)],
     mem_mode=test_mem_mode,
     mem_ranges=[AddrRange(args.mem_size)],
