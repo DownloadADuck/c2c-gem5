@@ -239,7 +239,7 @@ def create_system(
     if cpus is None:
         cpus = system.cpu
 
-    tgens = TrafficGen(config_file="./m5out/lat_mem_rd.cfg", progress_check="10s")
+    tgens = [TrafficGen(config_file="./m5out/lat_mem_rd.cfg", progress_check="10s") for i in range (1)]
 
 
     #protocol = buildEnv["PROTOCOL"]
@@ -291,7 +291,8 @@ def create_system(
     ## TrafficGen setup
 
     #system.tgen.port = ruby.tgen_sequencer.in_ports
-    tgens.port = tgen_sequencers[0].in_ports
+    #tgens[0].port = tgen_sequencers[0].in_ports
+    tgens[0].port = ruby.tgen_data_sequencer[0].in_ports
 
     ruby.number_of_virtual_networks = ruby.network.number_of_virtual_networks
     ruby._cpu_ports = cpu_sequencers

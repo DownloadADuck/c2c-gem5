@@ -164,7 +164,6 @@ def create_system(
         CHI_RNF_tgen(
             [tgen],
             ruby_system,
-            #L1ICache,
             L1DCache,
             system.cache_line_size.value,
         )
@@ -179,6 +178,7 @@ def create_system(
         network_cntrls.extend(rnf.getNetworkSideControllers())
     
     for rnf_tgen in ruby_system.rnf_tgen:
+        #rnf_tgen.addPrivL2Cache(L2Cache)
         tgen_sequencers.extend(rnf_tgen.getSequencers())
         all_cntrls.extend(rnf_tgen.getAllControllers())
         network_nodes.append(rnf_tgen)
@@ -268,6 +268,8 @@ def create_system(
     # Assign downstream destinations
     for rnf in ruby_system.rnf:
         rnf.setDownstream(hnf_dests)
+    for rnf_tgen in ruby_system.rnf_tgen:
+        rnf_tgen.setDownstream(hnf_dests)
     if len(dma_ports) > 0:
         for rni in ruby_system.dma_rni:
             rni.setDownstream(hnf_dests)

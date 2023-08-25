@@ -796,7 +796,6 @@ class CHI_RNF_tgen(CHI_Node):
         self,
         tgens,
         ruby_system,
-        #l1Icache_type,
         l1Dcache_type,
         cache_line_size,
         l1Iprefetcher_type=None,
@@ -817,32 +816,26 @@ class CHI_RNF_tgen(CHI_Node):
         self._tgens = tgens
 
         # First creates L1 caches and sequencers
-        for tgen in self._tgens:
-            #tgen.inst_sequencer = RubySequencer(
+        #for tgen in self._tgens:
+        for i in range(len(self._tgens)):
+            #tgen.data_sequencer = RubySequencer(
             #    version=Versions.getSeqId(), ruby_system=ruby_system
             #)
-            tgen.data_sequencer = RubySequencer(
+
+            ruby_system.tgen_data_sequencer = RubySequencer(
                 version=Versions.getSeqId(), ruby_system=ruby_system
             )
 
-            self._seqs.append(
-                #CPUSequencerWrapper(tgen.inst_sequencer, tgen.data_sequencer)
-                tgenSequencerWrapper(tgen.data_sequencer)
-            )
-
-            # caches
-            #l2i_cache = l1Icache_type(
-            #    start_index_bit=self._block_size_bits, is_icache=True
+            #self._seqs.append(
+            #    tgenSequencerWrapper(tgen.data_sequencer)
             #)
+            self._seqs.append(
+                tgenSequencerWrapper(ruby_system.tgen_data_sequencer)
+            )
 
             l1d_cache = l1Dcache_type(
                 start_index_bit=self._block_size_bits, is_icache=False
             )
-
-            # cache controllers
-            #tgen.l1i = CHI_L1Controller(
-            #    ruby_system, tgen.inst_sequencer, l1i_cache, l1i_pf
-            #)
 
             # Placeholders for future prefetcher support
             if l1Iprefetcher_type != None or l1Dprefetcher_type != None:
@@ -850,18 +843,27 @@ class CHI_RNF_tgen(CHI_Node):
             #l1i_pf = NULL
             l1d_pf = NULL
 
-            tgen.l1d = CHI_L1Controller(
-                ruby_system, tgen.data_sequencer, l1d_cache, l1d_pf
+            #tgen.l1d = CHI_L1Controller(
+            #    ruby_system, tgen.data_sequencer, l1d_cache, l1d_pf
+            #)
+
+            ruby_system.l1d = CHI_L1Controller(
+                ruby_system, ruby_system.tgen_data_sequencer, l1d_cache, l1d_pf
             )
 
-            #tgen.inst_sequencer.dcache = NULL
-            tgen.data_sequencer.dcache = tgen.l1d.cache
+            #tgen.data_sequencer.dcache = tgen.l1d.cache
+            ruby_system.tgen_data_sequencer.dcache = ruby_system.l1d.cache
 
-            tgen.l1d.sc_lock_enabled = True
+            #tgen.l1d.sc_lock_enabled = True
+            ruby_system.l1d.sc_lock_enabled = True
 
-            #tgen._ll_cntrls = [tgen.l1i, tgen.l1d]
-            tgen._ll_cntrls = [tgen.l1d]
-            for c in tgen._ll_cntrls:
+            #tgen._ll_cntrls = [tgen.l1d]
+            ruby_system._ll_cntrls = [ruby_system.l1d]
+            #for c in tgen._ll_cntrls:
+            #    self._cntrls.append(c)
+            #    self.connectController(c)
+            #    self._ll_cntrls.append(c)
+            for c in ruby_system._ll_cntrls:
                 self._cntrls.append(c)
                 self.connectController(c)
                 self._ll_cntrls.append(c)
@@ -893,16 +895,16 @@ class CHI_RNF_tgen(CHI_Node):
     #            m5.fatal("Prefetching not supported yet")
     #        l2_pf = NULL
 
-    #        cpu.l2 = CHI_L2Controller(self._ruby_system, l2_cache, l2_pf)
+    #        tgen.l2 = CHI_L2Controller(self._ruby_system, l2_cache, l2_pf)
 
-    #        self._cntrls.append(cpu.l2)
-    #        self.connectController(cpu.l2)
+    #        self._cntrls.append(tgen.l2)
+    #        self.connectController(tgen.l2)
 
-    #        self._ll_cntrls.append(cpu.l2)
+    #        self._ll_cntrls.append(tgen.l2)
 
-    #        for c in cpu._ll_cntrls:
-    #            c.downstream_destinations = [cpu.l2]
-    #        cpu._ll_cntrls = [cpu.l2]
+    #        for c in tgen._ll_cntrls:
+    #            c.downstream_destinations = [tgen.l2]
+    #        tgen._ll_cntrls = [tgen.l2]
 
 class tgenSequencerWrapper:
     """
