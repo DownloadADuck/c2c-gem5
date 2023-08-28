@@ -2,12 +2,12 @@ import math
 
 from m5.defines import buildEnv
 from m5.util import fatal, panic
-from m5.object import *
+from m5.objects import *
 
 from topologies import *
 from network import Network
 
-from . import CHI_config as chi_defs
+#from . import CHI_config as chi_defs
 
 class MyNetwork(SimpleNetwork):
     """A simple point-to-point network. This doesn't not use garnet."""
@@ -117,7 +117,7 @@ class L1CacheTrace(RubyCache):
         self.datIn.in_port = ruby_system.network.out_port
 
 
-class DirController(Directory_Controller):
+class DirController(RubyCache):
 
     _version = 0
 

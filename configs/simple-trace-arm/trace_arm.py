@@ -1,6 +1,6 @@
 import math
 
-from m5.object import *
+#from m5.object import *
 
 import os
 
@@ -13,21 +13,21 @@ addToPath("../")
 from common import ObjectList
 from common import MemConfig
 
-addToPath("../../")
+addToPath("../../util")
 import pdb; pdb.set_trace()
 import protolib
 
 from common.FileSystemConfig import config_filesystem
 
-addToPath("../../traces")
+addToPath("../traces")
 import packet_pb2
 
 from ruby_config import MyNetwork, L1CacheTrace, DirController
 
 np = 1
 system = System(
-    tgens = [TrafficGen(config_file="./m5out/lat_mem_rd.cfg", progess_check="10s") for i in range(1)]
-    cpus = [X86TimingSimpleCPU() for i in range(np)]
+    tgens = [TrafficGen(config_file="./m5out/lat_mem_rd.cfg", progress_check="10s") for i in range(1)],
+    cpus = [X86TimingSimpleCPU() for i in range(np)],
 )
 
 system.clk_domain = SrcClockDomain()
@@ -56,9 +56,9 @@ system.ruby.network = MyNetwork(system.ruby)
 system.ruby.number_of_virtual_networks = 4
 
 system.ruby.controllers = \
-    [L1CacheTrace(system, system.caches, cpu) for cpu in system.cpu] + \
+    [L1CacheTrace(system, system.ruby, cpu) for cpu in system.cpus] + \
     [DirController(system.ruby, system.mem_ranges, [system.mem_ctrl])] + \
-    [L1CacheTrace(system, system.caches, cpu) for cpu in system.cpu] 
+    [L1CacheTrace(system, system.ruby, cpu) for cpu in system.cpus] 
 
 # When np = 1
 #   0      1      2    
