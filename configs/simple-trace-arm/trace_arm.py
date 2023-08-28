@@ -1,7 +1,10 @@
 import math
 
-#from m5.object import *
+import m5
+from m5.objects import *
 
+import gzip
+import argparse
 import os
 
 import m5
@@ -17,12 +20,15 @@ addToPath("../../util")
 import pdb; pdb.set_trace()
 import protolib
 
+m5.util.addToPath("../")
 from common.FileSystemConfig import config_filesystem
 
 addToPath("../traces")
 import packet_pb2
 
+import ruby_config
 from ruby_config import MyNetwork, L1CacheTrace, DirController
+
 
 np = 1
 system = System(

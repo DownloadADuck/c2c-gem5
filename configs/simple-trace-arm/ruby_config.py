@@ -1,13 +1,41 @@
 import math
 
 from m5.defines import buildEnv
-from m5.util import fatal, panic
+from m5.util import fatal, panic, addToPath
 from m5.objects import *
 
 from topologies import *
 from network import Network
 
-#from . import CHI_config as chi_defs
+from . import CHI_config as chi_defs
+
+
+
+class CHI_Cache_Controller(Cache_Controller):
+    """
+    Cache_Controller can also be used as a DMA requester or as
+    a pure directory if all cache allocation policies are disabled.
+    """
+    def __init__(self, ruby_system):
+        super(CHI_Cache_Controller, self).__init__(
+            version=Versions.getVersion(Cache_Controller),
+            ruby_system=ruby_system,
+            mandatoryQueue=MessageBuffer(),
+            prefetchQueue=MessageBuffer(),
+            triggerQueue=TriggerMessageBuffer(),
+            retryTriggerQueue=OrderedTriggerMessageBuffer(),
+            replTriggerQueue=OrderedTriggerMessageBuffer(),
+            reqRdy=TriggerMessageBuffer(),
+            snpRdy=TriggerMessageBuffer(),
+        )
+        # Set somewhat large number since we really a lot on internal
+        # triggers. To limit the controller performance, tweak other
+        # params such as: input port buffer size, cache banks, and output
+        # port latency
+        self.transitions_per_cycle = 1024
+        # This should be set to true in the data cache controller to enable
+        # timeouts on unique lines when a store conditional fails
+        self.sc_lock_enabled = False
 
 class MyNetwork(SimpleNetwork):
     """A simple point-to-point network. This doesn't not use garnet."""
@@ -50,7 +78,7 @@ class MyNetwork(SimpleNetwork):
         print("Int Links", self.int_links)
 
 
-class L1CacheTrace(RubyCache):
+class L1CacheTrace(CHI_Cache_Controller):
 
     _version = 0
 
@@ -117,7 +145,7 @@ class L1CacheTrace(RubyCache):
         self.datIn.in_port = ruby_system.network.out_port
 
 
-class DirController(RubyCache):
+class DirController(CHI_Cache_Controller):
 
     _version = 0
 
