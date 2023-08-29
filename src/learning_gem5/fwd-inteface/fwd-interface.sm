@@ -1,0 +1,30 @@
+machine(MachineType:FwdInterface, "forwarding interface generation"):
+    // Cache for storing local lines.
+    // May not be needed
+    CacheMemory * cache;
+
+
+    MessageBuffer * reqOut,   network="To", virtual_network="0", vnet_type="none";
+    MessageBuffer * snpOut,   network="To", virtual_network="1", vnet_type="none";
+    MessageBuffer * rspOut,   network="To", virtual_network="2", vnet_type="none";
+    MessageBuffer * datOut,   network="To", virtual_network="3", vnet_type="response";
+
+    MessageBuffer * reqIn,   network="From", virtual_network="0", vnet_type="none";
+    MessageBuffer * snpIn,   network="From", virtual_network="1", vnet_type="none";
+    MessageBuffer * rspIn,   network="From", virtual_network="2", vnet_type="none";
+    MessageBuffer * datIn,   network="From", virtual_network="3", vnet_type="response";
+{
+    // States
+
+    state_declaration(State, default="IDLE"){
+        // Stable states
+        IDLE, AccessPermission:Read_Write,  desc="Default waiting state";
+        FWD, AccessPermission:Busy,         desc="Packet forwarded";
+    }
+
+    // Events
+
+    enumeration(Event){
+
+    }
+}
