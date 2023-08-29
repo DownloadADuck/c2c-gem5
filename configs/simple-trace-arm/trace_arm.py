@@ -26,13 +26,16 @@ from common.FileSystemConfig import config_filesystem
 addToPath("../traces")
 import packet_pb2
 
-import ruby_config
 from ruby_config import MyNetwork, L1CacheTrace, DirController
-
 
 np = 1
 system = System(
-    tgens = [TrafficGen(config_file="./m5out/lat_mem_rd.cfg", progress_check="10s") for i in range(1)],
+    tgens = [
+        TrafficGen(
+            config_file="./m5out/lat_mem_rd.cfg",
+            progress_check="10s",
+            ) for i in range(1)
+        ],
     cpus = [X86TimingSimpleCPU() for i in range(np)],
 )
 
