@@ -7,7 +7,8 @@ from m5.objects import *
 from topologies import *
 from network import Network
 
-from . import CHI_config as chi_defs
+addToPath("../ruby")
+import tgen_CHI_config as chi_defs
 
 
 
