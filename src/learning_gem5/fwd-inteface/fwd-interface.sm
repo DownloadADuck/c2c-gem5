@@ -14,7 +14,7 @@ machine(MachineType:FwdInterface, "forwarding interface generation"):
     MessageBuffer * rspIn,   network="From", virtual_network="2", vnet_type="none";
     MessageBuffer * datIn,   network="From", virtual_network="3", vnet_type="response";
 {
-    // States
+    ////// States //////
 
     state_declaration(State, default="IDLE"){
         // Stable states
@@ -22,9 +22,66 @@ machine(MachineType:FwdInterface, "forwarding interface generation"):
         FWD, AccessPermission:Busy,         desc="Packet forwarded";
     }
 
-    // Events
+    /////// Events //////
 
     enumeration(Event){
+       request,     desc=""; 
+       snoop,       desc=""; 
+       response,    desc="";
+       data,        desc="";
+    }
+
+    ////// Data structures //////
+
+    // Cache block size
+    int blockSize, default="RubySystem::getBlockSizeBytes()";
+
+
+    // CacheEntry
+    structure(CacheEntry, interface="AbstractCacheEntry") {
+      State state,        desc="SLICC line state";
+      DataBlock DataBlk,  desc="data for the block";
+      bool HWPrefetched,  default="false", desc="Set if this cache entry was prefetched";
+    }
+
+    // Directory entry
+    structure(DirEntry, interface="AbstractCacheEntry", main="false") {
+      NetDest sharers,   desc="All upstream controllers that have this line (includes ownwer)";
+      MachineID owner,   desc="Controller that has the line in UD,UC, or SD state";
+      bool ownerExists, default="false", desc="true if owner exists";
+      bool ownerIsExcl, default="false", desc="true if owner is UD or UC";
+      State state,       desc="SLICC line state";
+    }
+    
+    ////// Input/output port definitions //////
+    
+    // Outbound port definitions
+    out_port(reqOutPort, CHIRequestMsg, reqOut);
+    out_port(snpOutPort, CHIRequestMsg, snpOut);
+    out_port(rspOutPort, CHIResponseMsg, rspOut);
+    out_port(datOutPort, CHIDataMsg, datOut);
+
+    // Include helper functions here. Some of them require the outports to be
+    // already defined 
+    include "CHI-cache-funcs.sm"
+
+    // Inbound port definitions
+    in_port(reqInPort, CHIRequestMsg, reqIn, rank=2){
 
     }
+    in_port(snpInPort, CHIRequestMsg, snpIn, rank=3){
+
+    }
+    in_port(rspInPort, CHIResponseMsg, rspIn, rank=1){
+
+    }
+    in_port(datInPort, CHIDataMsg, datIn, rank=4){
+
+    }
+
+
+
+    ////// Actions //////
+
+    ////// transitions //////
 }
