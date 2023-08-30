@@ -67,21 +67,62 @@ machine(MachineType:FwdInterface, "forwarding interface generation"):
 
     // Inbound port definitions
     in_port(reqInPort, CHIRequestMsg, reqIn, rank=2){
-
+      if (reqInPort.isReady(clockEdge())){
+        peek(reqInPort, CHIRequestMsg){
+          trigger(Event:request, in_msg.addr,
+                  getCacheEntry(in_msg.addr), tbe);
+        }
+      }
     }
     in_port(snpInPort, CHIRequestMsg, snpIn, rank=3){
-
+      if (snpInPort.isReady(clockEdge())){
+        peek(snpInPort, CHIRequestMsg){
+          trigger(Event:snoop, in_msg.addr,
+                  getCacheEntry(in_msg.addr), tbe);
+        }
+      }
     }
     in_port(rspInPort, CHIResponseMsg, rspIn, rank=1){
-
+      if (rspInPort.isReady(clockEdge())){
+        peek(rspInPort, CHIResponseMsg){
+          trigger(Event:response, in_msg.addr,
+                  getCacheEntry(in_msg.addr), tbe);
+        }
+      }
     }
     in_port(datInPort, CHIDataMsg, datIn, rank=4){
-
+      if (datInPort.isReady(clockEdge())){
+        peek(datInPort, CHIDataMsg){
+          trigger(Event:data, in_msg.addr,
+                  getCacheEntry(in_msg.addr), tbe);
+        }
+      }
     }
-
-
 
     ////// Actions //////
 
+    action(fwdRequest, desc=""){
+
+    }
+
+    action(fwdSnoop, desc=""){
+
+    }
+
+    action(fwdResponse, desc=""){
+
+    }
+
+    action(fwdData, desc=""){
+    
+    }
+
     ////// transitions //////
+
+    transition(){
+
+    }
+    transition(){
+
+    }
 }
