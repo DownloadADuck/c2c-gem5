@@ -119,10 +119,16 @@ machine(MachineType:FwdInterface, "forwarding interface generation"):
 
     ////// transitions //////
 
-    transition(){
-
+    transition(IDLE, request, FWD){
+      fwdRequest;
     }
-    transition(){
-
+    transition(IDLE, snoop, FWD){
+      fwdSnoop;
+    }
+    transition(IDLE, response, FWD){
+      fwdResponse;
+    }
+    transition(IDLE, data, FWD){
+      fwdData;
     }
 }
