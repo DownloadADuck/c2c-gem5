@@ -72,3 +72,81 @@ def create_topology(controllers, options):
     topology = eval("Topo.%s(controllers)" % options.topology)
     return topology
 
+def create_system(
+    options,
+    full_system,
+    system,
+    piobus=None,
+    dma_ports=[],
+    bootmem=None,
+    cpus=None,
+):
+    system.ruby = RubySystem()
+    ruby = system.ruby
+    
+    # Generate pseudo filesystem
+    FileSystemConfig.config_filesystem(system, options)
+
+    # Create the network object
+    (
+        network,
+        IntLinkClass,
+        ExtLinkClass,
+        RouterClass,
+        InterfaceClass,
+    ) = Network.create_network(options, ruby)
+    ruby.network = network
+
+    if cpus is None:
+        cpus = system.cpu
+    
+    exec("from . import tgen_CHI")
+    try:
+        (cpu_sequencers, tgen_sequencers, dir_cntrls, topology) = eval(
+            "tgen_CHI.create_system(options, full_system, system, dma_ports, \
+                bootmem, ruby, cpus)"
+        )
+    except:
+        print("Error: could not create system for ruby protocol tgen_CHI")
+        raise
+
+    # Create the network topology
+    topology.makeTopology(
+        options, network, IntLinkClass, ExtLinkClass, RouterClass
+    )
+
+    # In SE register the ropology elements with fake filesystem
+    if not full_system:
+        topology.registerTopology(options)
+
+    # Initialize network based topology
+    Network.init_network(options, network, InterfaceClass)
+
+    # Create a port proxy for connecting the system port.
+    sys_port_proxy = RubyPortProxy(ruby_system=ruby)
+    if piobus is not None:
+        sys_port_proxy.pio_request_port = piobus.cpu_side_ports
+    
+    # Give the system port proxy a SimObject parent without creating a
+    # full-fledged controller
+    system.sys_port_proxy = sys_port_proxy
+    
+    # Connect the system port for loading of binaries etc
+    system.system_port = system.sys_port_proxy.in_ports
+    
+    setup_memory_controllers(system, ruby, dir_cntrls, options)
+
+    # Connect the cpu sequencers and the piobus
+    if piobus != None:
+        for cpu_seq in cpu_sequencers:
+            cpu_seq.connectIOPorts(piobus)
+
+    # TrafficGen setup
+    for i in range(len(cpus)):
+        system.tgens[i].port = cpu_sequencers.in_ports
+    
+    ruby.number_of_virtual_networks = ruby.network.number_of_virtual_networks
+    ruby._cpu_ports = cpu_sequencers
+    ruby.num_of_sequencers = len(cpu_sequencers) + len(tgen_sequencers)
+
+
