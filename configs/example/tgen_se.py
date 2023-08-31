@@ -143,7 +143,7 @@ if args.bench:
                 exec(
                     "workload = %s('arm_%s', 'linux', '%s')"
                     % (app, args.arm_iset, args.spec_input)
-                )
+                ) 
             else:
                 # TARGET_ISA has been removed, but this is missing a ], so it
                 # has incorrect syntax and wasn't being used anyway.
