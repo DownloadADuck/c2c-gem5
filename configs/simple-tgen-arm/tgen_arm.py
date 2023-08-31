@@ -130,7 +130,12 @@ class Object(object):
 # Needed options for the create_system method
 options = Object()
 options.caches = True
+options.cache_line_size = 64
+options.num_dirs = 1
+options.xor_low_bit = 20
+options.enable_dram_powerdown = False
 options.access_backing_store = False
+options.mem_type = 'DDR3_1600_8x8'
 options.topology = 'Pt2Pt'
 options.link_latency = 1
 options.router_latency = 1
