@@ -171,5 +171,16 @@ def create_directories(options, bootmem, ruby_system, system)
         return (dir_cntrl_nodes, rom_dir_cntrl)
     
     return (dir_cntrl_nodes, None) 
-        
-        
+
+
+def send_evicts(options):
+    # Forwarding evictions to the CPU happens when:
+    # 1. The O3 model must keep the LSQ coherent with the caches
+    # 2. The x86 mwait intruction is built on top of coherence invalidations
+    # 3. The local exclusive monitor in ARM systems
+    if options.cpu_type == "DerivO3CPU" or get_runtime_isa() in (
+        ISA.X86,
+        ISA.ARM,
+    ):
+        return True
+    return False
