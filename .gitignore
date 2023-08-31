@@ -6,3 +6,4 @@
 /.vscode
 /m5out
 /util/m5/build
+*.swp
