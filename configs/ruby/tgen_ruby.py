@@ -218,7 +218,6 @@ def create_system(
     dma_ports=[],
     bootmem=None,
     cpus=None,
-    tgens=None,
 ):
 
     system.ruby = RubySystem()
@@ -239,9 +238,6 @@ def create_system(
 
     if cpus is None:
         cpus = system.cpu
-    
-    if tgens is None: 
-        tgens = system.tgens
 
     #protocol = buildEnv["PROTOCOL"]
     protocol = "tgen_CHI"
@@ -249,7 +245,7 @@ def create_system(
     try:
         (cpu_sequencers, tgen_sequencers, dir_cntrls, topology) = eval(
             "%s.create_system(options, full_system, system, dma_ports,\
-                                    bootmem, ruby, cpus, tgens)"
+                                    bootmem, ruby, cpus)"
             % protocol
         )
     except:
@@ -290,10 +286,9 @@ def create_system(
             cpu_seq.connectIOPorts(piobus)
 
     ## TrafficGen setup
+    for i in range(len(cpus)):
+        system.tgens[i].port = cpu_sequencers[i].in_ports
 
-    #system.tgen.port = ruby.tgen_sequencer.in_ports
-    #tgens[0].port = tgen_sequencers[0].in_ports
-    tgens[0].port = ruby.tgen_data_sequencer[0].in_ports
 
     ruby.number_of_virtual_networks = ruby.network.number_of_virtual_networks
     ruby._cpu_ports = cpu_sequencers

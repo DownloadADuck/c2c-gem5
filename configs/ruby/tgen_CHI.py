@@ -63,7 +63,7 @@ def read_config_file(file):
 
 
 def create_system(
-    options, full_system, system, dma_ports, bootmem, ruby_system, cpus, tgens
+    options, full_system, system, dma_ports, bootmem, ruby_system, cpus
 ):
 
     if buildEnv["PROTOCOL"] != "CHI":
@@ -160,15 +160,15 @@ def create_system(
         for cpu in cpus
     ]
 
-    ruby_system.rnf_tgen = [
-        CHI_RNF_tgen(
-            [tgen],
-            ruby_system,
-            L1DCache,
-            system.cache_line_size.value,
-        )
-        for tgen in tgens
-    ]
+    #ruby_system.rnf_tgen = [
+    #    CHI_RNF_tgen(
+    #        [tgen],
+    #        ruby_system,
+    #        L1DCache,
+    #        system.cache_line_size.value,
+    #    )
+    #    for tgen in tgens
+    #]
 
     for rnf in ruby_system.rnf:
         rnf.addPrivL2Cache(L2Cache)
@@ -177,12 +177,12 @@ def create_system(
         network_nodes.append(rnf)
         network_cntrls.extend(rnf.getNetworkSideControllers())
     
-    for rnf_tgen in ruby_system.rnf_tgen:
-        #rnf_tgen.addPrivL2Cache(L2Cache)
-        tgen_sequencers.extend(rnf_tgen.getSequencers())
-        all_cntrls.extend(rnf_tgen.getAllControllers())
-        network_nodes.append(rnf_tgen)
-        network_cntrls.extend(rnf.getNetworkSideControllers())
+    #for rnf_tgen in ruby_system.rnf_tgen:
+    #    #rnf_tgen.addPrivL2Cache(L2Cache)
+    #    tgen_sequencers.extend(rnf_tgen.getSequencers())
+    #    all_cntrls.extend(rnf_tgen.getAllControllers())
+    #    network_nodes.append(rnf_tgen)
+    #    network_cntrls.extend(rnf.getNetworkSideControllers())
     
     # Creates one Misc Node
     ruby_system.mn = [CHI_MN(ruby_system, [cpu.l1d for cpu in cpus])]
@@ -268,8 +268,8 @@ def create_system(
     # Assign downstream destinations
     for rnf in ruby_system.rnf:
         rnf.setDownstream(hnf_dests)
-    for rnf_tgen in ruby_system.rnf_tgen:
-        rnf_tgen.setDownstream(hnf_dests)
+    #for rnf_tgen in ruby_system.rnf_tgen:
+    #    rnf_tgen.setDownstream(hnf_dests)
     if len(dma_ports) > 0:
         for rni in ruby_system.dma_rni:
             rni.setDownstream(hnf_dests)
