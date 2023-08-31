@@ -66,3 +66,9 @@ def setup_memory_controllers(system, ruby, dir_cntrls, options):
     
     if len(crossbar) > 0:
         ruby.crossbars = crossbars
+
+def create_topology(controllers, options):
+    exec("import topologies.%s as Topo" % options.topology)
+    topology = eval("Topo.%s(controllers)" % options.topology)
+    return topology
+
