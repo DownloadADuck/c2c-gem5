@@ -29,7 +29,7 @@ class Object(object):
 
 # Needed options for the create_system method
 options = Object()
-options.cmd = "tests/tests-progs/hello/bin/x86/linux/hello"
+options.cmd = "tests/test-progs/hello/bin/x86/linux/hello"
 options.input = ''
 options.output = ''
 options.errout = '' 
@@ -68,6 +68,21 @@ options.l3_assoc = 16
 options.cacheline_size = 64
 options.num_cpus = 1
 options.network_fault_model = False
+options.checkpoint_dir = None
+options.standard_switch = None
+options.stats_root = []
+options.prog_interval = None
+options.maxinsts = None
+options.override_vendor_string = None
+options.take_simpoint_checkpoints = None
+options.param = []
+options.initialize_only = False
+options.abs_max_tick = 18446744073709551615
+options.rel_max_tick = None
+options.maxtime = None
+options.restore_simpoint_checkpoint = False
+options.max_checkpoints = 5
+options.checkpoint_at_end = False
 
 def get_processes(args):
     """Interprets provided args and returns a list of processes"""
@@ -129,6 +144,7 @@ CPUClass.numThreads = numThreads
 
 # Number of cpus
 np = options.num_cpus
+mp0_path = multiprocesses[0].executable
 
 system = System(
     tgens=[
@@ -139,7 +155,7 @@ system = System(
     ],
     #cpus=[AtomicSimpleCPU(cpu_id=i) for i in range(np)],
     cpus=[CPUClass(cpu_id=i) for i in range(np)],
-    mem_mode="atomic",
+    mem_mode="timing",
     mem_ranges=[AddrRange('512MB')],
     cache_line_size=64
 )
@@ -182,8 +198,8 @@ system.ruby.clk_domain = SrcClockDomain(
 for i in range(np):
     ruby_port = system.ruby._cpu_ports[i]
     # Interrupt controller needs its message port conected only with x86
-    system.cpu[i].createInterruptController()
-    ruby_port.connectCpuPorts(system.cpu[i])
+    system.cpus[i].createInterruptController()
+    ruby_port.connectCpuPorts(system.cpus[i])
 
 system.workload = SEWorkload.init_compatible(mp0_path)
 
@@ -192,4 +208,4 @@ if wait_gdb:
     system.workload.wait_for_remote_gdb = True
     
 root = Root(full_system=False, system=system)
-simulation.run(options, root, system, FutureClass)
+Simulation.run(options, root, system, FutureClass)
