@@ -36,6 +36,7 @@
 import m5
 from m5.objects import *
 from m5.defines import buildEnv
+
 from .Ruby import create_topology
 
 
@@ -89,7 +90,7 @@ def create_system(
         m5.fatal("--noc-config must be provided if topology is CustomMesh")
     else:
         # Use the defaults from CHI_config
-        from . import CHI_config as chi_defs
+        from simple_tgen_arm import CHI_config as chi_defs
 
     # NoC params
     params = chi_defs.NoC_Params

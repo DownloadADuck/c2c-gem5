@@ -7,6 +7,8 @@ from m5.util import addToPath, fatal
 from gem5.isas import ISA
 from gem5.runtime import get_runtime_isa
 
+from simple_tgen_arm import tgen_CHI
+
 addToPath("../")
 from common import ObjectList
 from common import MemConfig
@@ -54,17 +56,17 @@ def setup_memory_controllers(system, ruby, dir_cntrls, options):
             if crossbar != None:
                 mem_ctrl.port = crossbar.mem_side_ports
             else:
-                mem_ctrl.port = dir_cntrl.mem_out_port
+                mem_ctrl.port = dir_cntrl.memory_out_port
             # Enable low-power DRAM states if option is enabled
             if issubclass(mem_type, DRAMInterface):
                 mem_ctrl.dram.enable_dram_powerdown = (
                     options.enable_dram_powerdown
                 )
         index += 1
-        dir_cntrl.addr_rages = dir_ranges
+        dir_cntrl.addr_ranges = dir_ranges
     system.mem_ctrls = mem_ctrls
     
-    if len(crossbar) > 0:
+    if len(crossbars) > 0:
         ruby.crossbars = crossbars
 
 def create_topology(controllers, options):
@@ -98,17 +100,18 @@ def create_system(
     ruby.network = network
 
     if cpus is None:
-        cpus = system.cpu
+        cpus = system.cpus
     
-    exec("from . import tgen_CHI")
-    try:
-        (cpu_sequencers, tgen_sequencers, dir_cntrls, topology) = eval(
-            "tgen_CHI.create_system(options, full_system, system, dma_ports, \
-                bootmem, ruby, cpus)"
+    (cpu_sequencers, tgen_sequencers, dir_cntrls, topology) = \
+        tgen_CHI.create_system(
+            options, 
+            full_system, 
+            system, 
+            dma_ports, 
+            bootmem, 
+            ruby, 
+            cpus
         )
-    except:
-        print("Error: could not create system for ruby protocol tgen_CHI")
-        raise
 
     # Create the network topology
     topology.makeTopology(
@@ -143,14 +146,14 @@ def create_system(
 
     # TrafficGen setup
     for i in range(len(cpus)):
-        system.tgens[i].port = cpu_sequencers.in_ports
+        system.tgens[i].port = cpu_sequencers[i].in_ports
     
     ruby.number_of_virtual_networks = ruby.network.number_of_virtual_networks
     ruby._cpu_ports = cpu_sequencers
     ruby.num_of_sequencers = len(cpu_sequencers) + len(tgen_sequencers)
 
 
-def create_directories(options, bootmem, ruby_system, system)
+def create_directories(options, bootmem, ruby_system, system):
     dir_cntrl_nodes = []
     for i in range(options.num_dirs):
         dir_cntrl = Directory_Controller()

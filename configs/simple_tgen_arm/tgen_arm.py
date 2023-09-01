@@ -9,9 +9,11 @@ from m5.util import addToPath, fatal, warn
 from gem5.isas import ISA
 from gem5.runtime import get_runtime_isa
 
-from . import ruby_config
+#from ruby_config import *
 
 addToPath("../")
+from simple_tgen_arm import ruby_config
+
 from common import Options
 from common import Simulation
 from common import CacheConfig
@@ -21,6 +23,51 @@ from common import MemConfig
 from common.FileSystemConfig import config_filesystem
 from common.Caches import *
 from common.cpu2000 import *
+
+class Object(object):
+    pass
+
+# Needed options for the create_system method
+options = Object()
+options.cmd = "tests/tests-progs/hello/bin/x86/linux/hello"
+options.input = ''
+options.output = ''
+options.errout = '' 
+options.options = ''
+options.env = ''
+options.caches = True
+options.cache_line_size = 64
+options.num_dirs = 1
+options.xor_low_bit = 20
+options.enable_dram_powerdown = False
+options.access_backing_store = False
+options.mem_type = 'DDR3_1600_8x8'
+options.topology = 'Pt2Pt'
+options.link_latency = 1
+options.router_latency = 1
+options.outdir = "/m5out"
+options.cpu_clock = '2GHz'
+options.l2_size = '2MB'
+options.network = 'simple'
+options.simple_physical_channels = False
+options.repeat_switch = None
+options.take_checkpoints = None
+options.smt = False
+options.cpu_type = 'TimingSimpleCPU'
+options.checkpoint_restore = None
+options.fast_forward = None
+options.num_l3caches = 1
+options.chi_config = None
+options.l1i_size = '32kB'
+options.l1i_assoc = 2
+options.l1d_size = '64kB'
+options.l1d_assoc = 2
+options.l2_assoc = 8
+options.l3_size = '32kB'
+options.l3_assoc = 16
+options.cacheline_size = 64
+options.num_cpus = 1
+options.network_fault_model = False
 
 def get_processes(args):
     """Interprets provided args and returns a list of processes"""
@@ -76,11 +123,12 @@ def get_processes(args):
 multiprocesses = []
 numThreads = 1
 
-cmd = "tests/tests-progs/hello/bin/x86/linux/hello"
-multiprocesses, numThreads = get_processes(cmd)
+multiprocesses, numThreads = get_processes(options)
+(CPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
+CPUClass.numThreads = numThreads
 
 # Number of cpus
-np = 2
+np = options.num_cpus
 
 system = System(
     tgens=[
@@ -89,7 +137,8 @@ system = System(
             progress_check="10s",
         ) for i in range(np)
     ],
-    cpus=[AtomicSimpleCPU(cpu_id=i) for i in range(np)],
+    #cpus=[AtomicSimpleCPU(cpu_id=i) for i in range(np)],
+    cpus=[CPUClass(cpu_id=i) for i in range(np)],
     mem_mode="atomic",
     mem_ranges=[AddrRange('512MB')],
     cache_line_size=64
@@ -119,33 +168,11 @@ for cpu in system.cpus:
 
 for i in range(np):
     if len(multiprocesses) == 1:
-        system.cpu[i].workload = multiprocesses[0]
+        system.cpus[i].workload = multiprocesses[0]
     else:
-        system.cpu[i].workload = multiprocesses[i]
-    system.cpu[i].createTreads()
+        system.cpus[i].workload = multiprocesses[i]
+    system.cpus[i].createThreads()
 
-class Object(object):
-    pass
-
-# Needed options for the create_system method
-options = Object()
-options.caches = True
-options.cache_line_size = 64
-options.num_dirs = 1
-options.xor_low_bit = 20
-options.enable_dram_powerdown = False
-options.access_backing_store = False
-options.mem_type = 'DDR3_1600_8x8'
-options.topology = 'Pt2Pt'
-options.link_latency = 1
-options.router_latency = 1
-options.outdir = "/m5out"
-options.cpu_clock = '2GHz'
-options.l2_size = '2MB'
-options.network = 'simple'
-options.simple_physical_channels = False
-options.repeat_switch = None
-options.take_checkpoints = None
 
 ruby_config.create_system(options, False, system)
 
