@@ -3,6 +3,12 @@ machine(MachineType:FwdInterface, "forwarding interface generation"):
     // May not be needed
     CacheMemory * cache;
 
+    Cycles request_latency := 1;
+    Cycles snp_latency := 0;
+    Cycles response_latency := 1;
+    Cycles data_latency := 1;
+
+
 
     MessageBuffer * reqOut,   network="To", virtual_network="0", vnet_type="none";
     MessageBuffer * snpOut,   network="To", virtual_network="1", vnet_type="none";
@@ -102,19 +108,37 @@ machine(MachineType:FwdInterface, "forwarding interface generation"):
     ////// Actions //////
 
     action(fwdRequest, desc=""){
-
+      peek(reqInPort, CHIRequestMsg){
+        enqueue(reqOutPort, CHIRequestMsg, request_latency){
+          assert(in_msg.addr == address);
+          out_msg := in_msg;
+        }
+      }
     }
 
     action(fwdSnoop, desc=""){
-
+      peek(snpInPort, CHIRequestMsg){
+        enqueue(snpOutPort, CHIRequestMsg, snoop_latency){
+          assert(in_msg.addr == address);
+          out_msg := in_msg;
+        }
+      }
     }
 
     action(fwdResponse, desc=""){
-
+      peek(rspInPort, CHIResponseMsg){
+        enqueue(rspOutPort, CHIResponseMsg, response_latency){
+          out_msg := in_msg;
+        }
+      }
     }
 
     action(fwdData, desc=""){
-    
+      peek(dataInPort, CHIDataMsg){
+        enqueue(dataOutPort, CHIDataMsg, data_latency){
+          out_msg := in_msg;
+        }
+      }
     }
 
     ////// transitions //////
