@@ -1,3 +1,0 @@
-protocol "FWD";
-include "CHI.slicc";
-indluce "FWD-inteface.sm";
