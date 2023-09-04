@@ -69,7 +69,7 @@ machine(MachineType:FwdInterface, "forwarding interface generation"):
 
     // Include helper functions here. Some of them require the outports to be
     // already defined 
-    include "CHI-cache-funcs.sm"
+    include "CHI-cache-funcs.sm";
 
     // Inbound port definitions
     in_port(reqInPort, CHIRequestMsg, reqIn, rank=2){
