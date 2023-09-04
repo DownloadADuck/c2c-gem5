@@ -12,10 +12,11 @@ class Interface_Controller(RubyController):
     interface = Param.RubyDirectoryMemory("")
     toMemLatency = Param.Cycles((1), "")
 
-    # Finish the buffer setup
-    forwardToCache = Param.MessageBuffer("")
-    responseToCache = Param.MessageBuffer("")
-    requestFromCache = Param.MessageBuffer("")
-    responseFromCache = Param.MessageBuffer("")
-    requestToMemory = Param.MessageBuffer("")
-    responseFromMemory = Param.MessageBuffer("")
+    reqOut = Param.MessageBuffer("")
+    snpOut = Param.MessageBuffer("")
+    rspOut = Param.MessageBuffer("")
+    datOut = Param.MessageBuffer("")
+    reqIn = Param.MessageBuffer("")
+    snpIn = Param.MessageBuffer("")
+    rspIn = Param.MessageBuffer("")
+    datIn = Param.MessageBuffer("")
