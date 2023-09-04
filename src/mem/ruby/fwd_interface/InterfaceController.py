@@ -2,8 +2,6 @@
 from m5.params import *
 from m5.SimObjects import SimObjects
 from m5.objects.Controller import RubyController
-from m5.objects.SimpleMemory import *
-
 
 class Interface_Controller(RubyController):
     type = "Interface_Controller"

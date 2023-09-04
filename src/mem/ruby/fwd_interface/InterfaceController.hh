@@ -1,0 +1,106 @@
+#ifndef __Interface_CONTROLLER_HH__
+#define __Interface_CONTROLLER_HH__
+
+#include <iostream>
+#include <sstream>
+#include <string>
+
+#include "mem/ruby/common/Consumer.hh"
+#include "mem/ruby/protocol/TransitionResult.hh"
+#include "mem/ruby/protocol/Types.hh"
+#include "mem/ruby/slicc_interface/AbstractController.hh"
+#include "params/Interface_Controller.hh"
+
+namespace gem5
+{
+
+namespace ruby
+{
+
+extern std::stringstream Interface_transitionComment;
+
+class Interface_Controller : public AbstractController
+{
+  public:
+    typedef Interface_ControllerParams Params;
+    Interface_Controller(const Params &p);
+    static int getNumControllers();
+    void init();
+
+    MessageBuffer *getMandatoryQueue() const;
+    MessageBuffer *getMemReqQueue() const;
+    MessageBuffer *getMemRespQueue() const;
+    void initNetQueues();
+
+    void print(std::ostream& out) const;
+    void wakeup();
+    void resetStats();
+    void regStats();
+    void collateStats();
+
+    void recordCacheTrace(int cntrl, CacheRecorder* tr);
+    Sequencer* getCPUSequencer() const;
+    DMASequencer* getDMASequencer() const;
+    GPUCoalescer* getGPUCoalescer() const;
+
+    bool functionalReadBuffers(PacketPtr&);
+    bool functionalReadBuffers(PacketPtr&, WriteMask&);
+    int functionalWriteBuffers(PacketPtr&);
+
+    void countTransition(Interface_State state, Interface_Event event);
+    void possibleTransition(Interface_State state, Interface_Event event);
+    uint64_t getEventCount(Interface_Event event);
+    bool isPossible(Interface_State state, Interface_Event event);
+    uint64_t getTransitionCount(Interface_State state, Interface_Event event);
+
+private:
+    DirectoryMemory* m_interface_ptr;
+    Cycles m_toMemLatency;
+    MessageBuffer* m_outResponse_ptr;
+    MessageBuffer* m_outForward_ptr;
+    MessageBuffer* m_inResponse_ptr;
+    MessageBuffer* m_inRequest_ptr;
+    TransitionResult doTransition(Interface_Event event,
+                                  Addr addr);
+
+    TransitionResult doTransitionWorker(Interface_Event event,
+                                        Interface_State state,
+                                        Interface_State& next_state,
+                                        Addr addr);
+
+    Interface_Event m_curTransitionEvent;
+    Interface_State m_curTransitionNextState;
+
+    Interface_Event curTransitionEvent() { return m_curTransitionEvent; }
+    Interface_State curTransitionNextState() { return m_curTransitionNextState; }
+
+    int m_counters[Interface_State_NUM][Interface_Event_NUM];
+    int m_event_counters[Interface_Event_NUM];
+    bool m_possible[Interface_State_NUM][Interface_Event_NUM];
+
+    static std::vector<statistics::Vector *> eventVec;
+    static std::vector<std::vector<statistics::Vector *> > transVec;
+    static int m_num_controllers;
+
+    // Internal functions
+    Interface_Entry* getInterfaceEntry(const Addr& param_addr);
+    Interface_State getState(const Addr& param_addr);
+    void setState(const Addr& param_addr, const Interface_State& param_state);
+    AccessPermission getAccessPermission(const Addr& param_addr);
+    void setAccessPermission(const Addr& param_addr, const Interface_State& param_state);
+    void functionalRead(const Addr& param_addr, Packet* param_pkt);
+    int functionalWrite(const Addr& param_addr, Packet* param_pkt);
+
+    // Actions
+    /** \brief Forwards the response message */
+    void fwdResponse(Addr addr);
+    /** \brief Forwards the request message */
+    void fwdRequest(Addr addr);
+
+    // Objects
+};
+
+} // namespace ruby
+} // namespace gem5
+
+#endif // __Interface_CONTROLLER_H__
