@@ -1,3 +1,0 @@
-protocol "fwd";
-include "CHI.slicc";
-indluce "fwd-inteface.sm";
