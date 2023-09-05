@@ -533,12 +533,17 @@ int
 Interface_Controller::functionalWriteBuffers(PacketPtr& pkt)
 {
     int num_functional_writes = 0;
-num_functional_writes += m_outResponse_ptr->functionalWrite(pkt);
-num_functional_writes += m_outForward_ptr->functionalWrite(pkt);
-num_functional_writes += m_inResponse_ptr->functionalWrite(pkt);
-num_functional_writes += m_inRequest_ptr->functionalWrite(pkt);
+    num_functional_writes += m_reqIn_ptr->functionalWrite(pkt);
+    num_functional_writes += m_snpIn_ptr->functionalWrite(pkt);
+    num_functional_writes += m_rspIn_ptr->functionalWrite(pkt);
+    num_functional_writes += m_datIn_ptr->functionalWrite(pkt);
+    num_functional_writes += m_reqOut_ptr->functionalWrite(pkt);
+    num_functional_writes += m_snpOut_ptr->functionalWrite(pkt);
+    num_functional_writes += m_rspOut_ptr->functionalWrite(pkt);
+    num_functional_writes += m_datOut_ptr->functionalWrite(pkt);
     return num_functional_writes;
 }
+
 bool
 Interface_Controller::functionalReadBuffers(PacketPtr& pkt)
 {
