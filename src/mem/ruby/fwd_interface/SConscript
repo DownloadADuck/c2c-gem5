@@ -1,4 +1,4 @@
-Import(*)
+Import('*')
 
 SimObject("InterfaceController.py", sim_objects=['InterfaceController'])
 Source('InterfaceController.cc')
