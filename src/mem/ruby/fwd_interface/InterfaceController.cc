@@ -113,11 +113,15 @@ Interface_Controller::init()
     // initialize objects
 
 
-    (*m_inResponse_ptr).setConsumer(this);
-    (*m_inRequest_ptr).setConsumer(this);
+    (*m_reqIn_ptr).setConsumer(this);
+    (*m_snpIn_ptr).setConsumer(this);
+    (*m_rspIn_ptr).setConsumer(this);
+    (*m_datIn_ptr).setConsumer(this);
 
-    possibleTransition(Interface_State_IDLE, Interface_Event_responseMsgIn);
-    possibleTransition(Interface_State_IDLE, Interface_Event_requestMsgIn);
+    possibleTransition(Interface_State_IDLE, Interface_Event_request);
+    possibleTransition(Interface_State_IDLE, Interface_Event_snoop);
+    possibleTransition(Interface_State_IDLE, Interface_Event_response);
+    possibleTransition(Interface_State_IDLE, Interface_Event_data);
     AbstractController::init();
     resetStats();
 }
