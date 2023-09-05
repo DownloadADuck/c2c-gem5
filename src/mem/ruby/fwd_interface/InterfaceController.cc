@@ -358,32 +358,6 @@ Interface_Controller::recordCacheTrace(int cntrl, CacheRecorder* tr)
 }
 
 // Actions
-/** \brief Forwards the response message */
-void
-Interface_Controller::fwdResponse(Addr addr)
-{
-    DPRINTF(RubyGenerated, "executing fwdResponse\n");
-    {
-    // Declare message
-    [[maybe_unused]] const ResponseMsg* in_msg_ptr;
-    in_msg_ptr = dynamic_cast<const ResponseMsg *>(((*m_inResponse_ptr)).peek());
-    if (in_msg_ptr == NULL) {
-        // If the cast fails, this is the wrong inport (wrong message type).
-        // Throw an exception, and the caller will decide to either try a
-        // different inport or punt.
-        throw RejectException();
-    }
-{
-    std::shared_ptr<ResponseMsg> out_msg = std::make_shared<ResponseMsg>(clockEdge());
-    (*out_msg).m_addr = addr;
-    (*out_msg).m_Sender = m_machineID;
-    (*out_msg).m_DataBlk = ((*in_msg_ptr)).m_DataBlk;
-    ((*m_outResponse_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles((1))));
-}
-}
-
-}
-
 /** \brief Forwards the request message */
 void
 Interface_Controller::fwdRequest(Addr addr)
@@ -391,8 +365,8 @@ Interface_Controller::fwdRequest(Addr addr)
     DPRINTF(RubyGenerated, "executing fwdRequest\n");
     {
     // Declare message
-    [[maybe_unused]] const RequestMsg* in_msg_ptr;
-    in_msg_ptr = dynamic_cast<const RequestMsg *>(((*m_inRequest_ptr)).peek());
+    [[maybe_unused]] const CHIRequestMsg* in_msg_ptr;
+    in_msg_ptr = dynamic_cast<const CHIRequestMsg *>(((*m_reqInPort_ptr)).peek());
     if (in_msg_ptr == NULL) {
         // If the cast fails, this is the wrong inport (wrong message type).
         // Throw an exception, and the caller will decide to either try a
@@ -400,11 +374,89 @@ Interface_Controller::fwdRequest(Addr addr)
         throw RejectException();
     }
 {
-    std::shared_ptr<RequestMsg> out_msg = std::make_shared<RequestMsg>(clockEdge());
+    std::shared_ptr<CHIResponseMsg> out_msg = std::make_shared<CHIResponseMsg>(clockEdge());
+    (*out_msg).m_addr = addr;
+    (*out_msg).m_Sender = m_machineID;
+    (*out_msg).m_Requestor = ((*in_msg_ptr)).m_Requestor;
+    //(*out_msg).m_DataBlk = ((*in_msg_ptr)).m_DataBlk;
+    ((*m_reqOutPort_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles((1))));
+}
+}
+}
+
+/** \brief Forwards the snoop message */
+void
+Interface_Controller::fwdSnoop(Addr addr)
+{
+    DPRINTF(RubyGenerated, "executing fwdRequest\n");
+    {
+    // Declare message
+    [[maybe_unused]] const CHIRequestMsg* in_msg_ptr;
+    in_msg_ptr = dynamic_cast<const CHIRequestMsg *>(((*m_snpInPort_ptr)).peek());
+    if (in_msg_ptr == NULL) {
+        // If the cast fails, this is the wrong inport (wrong message type).
+        // Throw an exception, and the caller will decide to either try a
+        // different inport or punt.
+        throw RejectException();
+    }
+{
+    std::shared_ptr<CHIRequestMsg> out_msg = std::make_shared<CHIResquestMsg>(clockEdge());
+    (*out_msg).m_addr = addr;
+    (*out_msg).m_Sender = m_machineID;
+    (*out_msg).m_Requestor = ((*in_msg_ptr)).m_Requestor;
+    //(*out_msg).m_DataBlk = ((*in_msg_ptr)).m_DataBlk;
+    ((*m_snpOutPort_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles((1))));
+}
+}
+}
+
+/** \brief Forwards the response message */
+void
+Interface_Controller::fwdResponse(Addr addr)
+{
+    DPRINTF(RubyGenerated, "executing fwdRequest\n");
+    {
+    // Declare message
+    [[maybe_unused]] const CHIResponseMsg* in_msg_ptr;
+    in_msg_ptr = dynamic_cast<const CHIResponseMsg *>(((*m_rspInPort_ptr)).peek());
+    if (in_msg_ptr == NULL) {
+        // If the cast fails, this is the wrong inport (wrong message type).
+        // Throw an exception, and the caller will decide to either try a
+        // different inport or punt.
+        throw RejectException();
+    }
+{
+    std::shared_ptr<CHIResponseMsg> out_msg = std::make_shared<CHIResponseMsg>(clockEdge());
+    (*out_msg).m_addr = addr;
+    (*out_msg).m_Sender = m_machineID;
+    (*out_msg).m_Requestor = ((*in_msg_ptr)).m_Requestor;
+    //(*out_msg).m_DataBlk = ((*in_msg_ptr)).m_DataBlk;
+    ((*m_rspOutPort_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles((1))));
+}
+}
+}
+
+/** \brief Forwards the request message */
+void
+Interface_Controller::fwdData(Addr addr)
+{
+    DPRINTF(RubyGenerated, "executing fwdRequest\n");
+    {
+    // Declare message
+    [[maybe_unused]] const CHIDataMsg* in_msg_ptr;
+    in_msg_ptr = dynamic_cast<const CHIDataMsg *>(((*m_inData_ptr)).peek());
+    if (in_msg_ptr == NULL) {
+        // If the cast fails, this is the wrong inport (wrong message type).
+        // Throw an exception, and the caller will decide to either try a
+        // different inport or punt.
+        throw RejectException();
+    }
+{
+    std::shared_ptr<CHIDataMsg> out_msg = std::make_shared<CHIDataMsg>(clockEdge());
     (*out_msg).m_addr = addr;
     (*out_msg).m_Requestor = ((*in_msg_ptr)).m_Requestor;
     (*out_msg).m_Destination = (*(getInterfaceEntry(addr))).m_Owner;
-    ((*m_outForward_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles((1))));
+    ((*m_datOutPort_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles((1))));
 }
 }
 
