@@ -32,7 +32,9 @@ Interface_Event_to_string(const Interface_Event& obj)
       case Interface_Event_response:
         return "response";
       case Interface_Event_data:
-        return "data"
+        return "data";
+      case Interface_Event_fwd:
+        return "fwd";
       default:
         panic("Invalid range for type Interface_Event");
     }
@@ -52,6 +54,8 @@ string_to_Interface_Event(const std::string& str)
         return Interface_Event_response;
     } else if (str == "data") {
         return Interface_Event_data;
+    } else if (str == "fwd") {
+        return Interface_Event_fwd;
     } else {
         panic("Invalid string conversion for %s, type Interface_Event", str);
     }

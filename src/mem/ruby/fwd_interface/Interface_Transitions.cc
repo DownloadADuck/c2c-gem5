@@ -105,7 +105,7 @@ Interface_Controller::doTransitionWorker(Interface_Event event,
     return TransitionResult_Valid;
   
   case HASH_FUN(Interface_State_FWD, Interface_Event_fwd):
-    fwdDone(addr);
+    fwd(addr);
     return TransitionResult_Valid;
 
       default:

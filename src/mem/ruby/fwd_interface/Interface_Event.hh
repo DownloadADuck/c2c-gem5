@@ -19,7 +19,8 @@ enum Interface_Event {
     Interface_Event_request = Interface_Event_FIRST,
     Interface_Event_snoop,
     Interface_Event_response,
-    Interface_Event_data
+    Interface_Event_data,
+    Interface_Event_fwd,
     Interface_Event_NUM
 };
 

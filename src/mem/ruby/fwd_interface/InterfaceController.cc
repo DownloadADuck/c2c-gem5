@@ -112,7 +112,6 @@ Interface_Controller::init()
 {
     // initialize objects
 
-
     (*m_reqIn_ptr).setConsumer(this);
     (*m_snpIn_ptr).setConsumer(this);
     (*m_rspIn_ptr).setConsumer(this);
@@ -122,6 +121,7 @@ Interface_Controller::init()
     possibleTransition(Interface_State_IDLE, Interface_Event_snoop);
     possibleTransition(Interface_State_IDLE, Interface_Event_response);
     possibleTransition(Interface_State_IDLE, Interface_Event_data);
+    possibleTransition(Interface_State_FWD, Interface_Event_fwd);
     AbstractController::init();
     resetStats();
 }
@@ -366,7 +366,7 @@ Interface_Controller::fwdRequest(Addr addr)
     {
     // Declare message
     [[maybe_unused]] const CHIRequestMsg* in_msg_ptr;
-    in_msg_ptr = dynamic_cast<const CHIRequestMsg *>(((*m_reqInPort_ptr)).peek());
+    in_msg_ptr = dynamic_cast<const CHIRequestMsg *>(((*m_reqIn_ptr)).peek());
     if (in_msg_ptr == NULL) {
         // If the cast fails, this is the wrong inport (wrong message type).
         // Throw an exception, and the caller will decide to either try a
@@ -379,7 +379,7 @@ Interface_Controller::fwdRequest(Addr addr)
     (*out_msg).m_Sender = m_machineID;
     (*out_msg).m_Requestor = ((*in_msg_ptr)).m_Requestor;
     //(*out_msg).m_DataBlk = ((*in_msg_ptr)).m_DataBlk;
-    ((*m_reqOutPort_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles((1))));
+    ((*m_reqOut_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles((1))));
 }
 }
 }
@@ -392,7 +392,7 @@ Interface_Controller::fwdSnoop(Addr addr)
     {
     // Declare message
     [[maybe_unused]] const CHIRequestMsg* in_msg_ptr;
-    in_msg_ptr = dynamic_cast<const CHIRequestMsg *>(((*m_snpInPort_ptr)).peek());
+    in_msg_ptr = dynamic_cast<const CHIRequestMsg *>(((*m_snpIn_ptr)).peek());
     if (in_msg_ptr == NULL) {
         // If the cast fails, this is the wrong inport (wrong message type).
         // Throw an exception, and the caller will decide to either try a
@@ -405,7 +405,7 @@ Interface_Controller::fwdSnoop(Addr addr)
     (*out_msg).m_Sender = m_machineID;
     (*out_msg).m_Requestor = ((*in_msg_ptr)).m_Requestor;
     //(*out_msg).m_DataBlk = ((*in_msg_ptr)).m_DataBlk;
-    ((*m_snpOutPort_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles((1))));
+    ((*m_snpOut_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles((1))));
 }
 }
 }
@@ -418,7 +418,7 @@ Interface_Controller::fwdResponse(Addr addr)
     {
     // Declare message
     [[maybe_unused]] const CHIResponseMsg* in_msg_ptr;
-    in_msg_ptr = dynamic_cast<const CHIResponseMsg *>(((*m_rspInPort_ptr)).peek());
+    in_msg_ptr = dynamic_cast<const CHIResponseMsg *>(((*m_rspIn_ptr)).peek());
     if (in_msg_ptr == NULL) {
         // If the cast fails, this is the wrong inport (wrong message type).
         // Throw an exception, and the caller will decide to either try a
@@ -431,7 +431,7 @@ Interface_Controller::fwdResponse(Addr addr)
     (*out_msg).m_Sender = m_machineID;
     (*out_msg).m_Requestor = ((*in_msg_ptr)).m_Requestor;
     //(*out_msg).m_DataBlk = ((*in_msg_ptr)).m_DataBlk;
-    ((*m_rspOutPort_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles((1))));
+    ((*m_rspOut_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles((1))));
 }
 }
 }
@@ -456,7 +456,7 @@ Interface_Controller::fwdData(Addr addr)
     (*out_msg).m_addr = addr;
     (*out_msg).m_Requestor = ((*in_msg_ptr)).m_Requestor;
     (*out_msg).m_Destination = (*(getInterfaceEntry(addr))).m_Owner;
-    ((*m_datOutPort_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles((1))));
+    ((*m_datOut_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles((1))));
 }
 }
 
