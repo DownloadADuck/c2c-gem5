@@ -537,6 +537,7 @@ Interface_Controller::functionalWriteBuffers(PacketPtr& pkt)
     num_functional_writes += m_snpIn_ptr->functionalWrite(pkt);
     num_functional_writes += m_rspIn_ptr->functionalWrite(pkt);
     num_functional_writes += m_datIn_ptr->functionalWrite(pkt);
+
     num_functional_writes += m_reqOut_ptr->functionalWrite(pkt);
     num_functional_writes += m_snpOut_ptr->functionalWrite(pkt);
     num_functional_writes += m_rspOut_ptr->functionalWrite(pkt);
@@ -547,10 +548,15 @@ Interface_Controller::functionalWriteBuffers(PacketPtr& pkt)
 bool
 Interface_Controller::functionalReadBuffers(PacketPtr& pkt)
 {
-if (m_outResponse_ptr->functionalRead(pkt)) return true;
-if (m_outForward_ptr->functionalRead(pkt)) return true;
-if (m_inResponse_ptr->functionalRead(pkt)) return true;
-if (m_inRequest_ptr->functionalRead(pkt)) return true;
+    if (m_reqIn_ptr->functionalRead(pkt)) return true;
+    if (m_snpIn_ptr->functionalRead(pkt)) return true;
+    if (m_rspIn_ptr->functionalRead(pkt)) return true;
+    if (m_datIn_ptr->functionalRead(pkt)) return true;
+
+    if (m_reqOut_ptr->functionalRead(pkt)) return true;
+    if (m_snpOut_ptr->functionalRead(pkt)) return true;
+    if (m_rspOut_ptr->functionalRead(pkt)) return true;
+    if (m_datOut_ptr->functionalRead(pkt)) return true;
     return false;
 }
 
@@ -558,10 +564,15 @@ bool
 Interface_Controller::functionalReadBuffers(PacketPtr& pkt, WriteMask &mask)
 {
     bool read = false;
-if (m_outResponse_ptr->functionalRead(pkt, mask)) read = true;
-if (m_outForward_ptr->functionalRead(pkt, mask)) read = true;
-if (m_inResponse_ptr->functionalRead(pkt, mask)) read = true;
-if (m_inRequest_ptr->functionalRead(pkt, mask)) read = true;
+    if (m_reqIn_ptr->functionalRead(pkt, mask)) read = true;
+    if (m_snpIn_ptr->functionalRead(pkt, mask)) read = true;
+    if (m_rspIn_ptr->functionalRead(pkt, mask)) read = true;
+    if (m_datIn_ptr->functionalRead(pkt, mask)) read = true;
+
+    if (m_reqOut_ptr->functionalRead(pkt, mask)) read = true;
+    if (m_snpOut_ptr->functionalRead(pkt, mask)) read = true;
+    if (m_rspOut_ptr->functionalRead(pkt, mask)) read = true;
+    if (m_datOut_ptr->functionalRead(pkt, mask)) read = true;
     return read;
 }
 
