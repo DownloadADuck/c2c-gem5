@@ -56,10 +56,10 @@ class Interface_Controller : public AbstractController
 private:
     DirectoryMemory* m_interface_ptr;
     Cycles m_toMemLatency;
-    MessageBuffer* m_outResponse_ptr;
-    MessageBuffer* m_outForward_ptr;
-    MessageBuffer* m_inResponse_ptr;
-    MessageBuffer* m_inRequest_ptr;
+    MessageBuffer* m_reqOut_ptr;
+    MessageBuffer* m_snpOut_ptr;
+    MessageBuffer* m_rspOut_ptr;
+    MessageBuffer* m_datOut_ptr;
     TransitionResult doTransition(Interface_Event event,
                                   Addr addr);
 
@@ -103,4 +103,4 @@ private:
 } // namespace ruby
 } // namespace gem5
 
-#endif // __Interface_CONTROLLER_H__
+#endif // __Interface_CONTROLLER_HH__

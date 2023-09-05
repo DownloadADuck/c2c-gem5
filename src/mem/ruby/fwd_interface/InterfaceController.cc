@@ -42,7 +42,7 @@ std::stringstream Interface_transitionComment;
 #endif
 
 /** \brief constructor */
-Inteface_Controller::Interface_Controller(const Params &p)
+Interface_Controller::Interface_Controller(const Params &p)
     : AbstractController(p)
 {
     m_machineID.type = MachineType_Interface;
@@ -53,9 +53,14 @@ Inteface_Controller::Interface_Controller(const Params &p)
     m_in_ports = 2;
     m_interface_ptr = p.interface;
     m_toMemLatency = p.toMemLatency;
-    m_outResponse_ptr = p.outResponse;
-    m_outForward_ptr = p.outForward;
-    m_inResponse_ptr = p.inResponse;
+    m_reqOut_ptr = p.reqOut;
+    m_snpOut_ptr = p.snpOut;
+    m_rspOut_ptr = p.rspOut;
+    m_datOut_ptr = p.datOut;
+    m_reqIn_ptr = p.reqIn;
+    m_snpIn_ptr = p.snpIn;
+    m_rspIn_ptr = p.rspIn;
+    m_datIn_ptr = p.datIn;
     m_inRequest_ptr = p.inRequest;
 
     for (int state = 0; state < Interface_State_NUM; state++) {
