@@ -9,9 +9,9 @@
 
 #include "debug/RubyGenerated.hh"
 #include "debug/RubySlicc.hh"
-#include "mem/ruby/protocol/Interface_Controller.hh"
-#include "mem/ruby/protocol/Interface_Event.hh"
-#include "mem/ruby/protocol/Interface_State.hh"
+#include "src/mem/ruby/fwd_interface/InterfaceController.hh"
+#include "src/mem/ruby/fwd_interface/Interface_Event.hh"
+#include "src/mem/ruby/fwd_interface/Interface_State.hh"
 
 #include "mem/ruby/protocol/Types.hh"
 #include "mem/ruby/system/RubySystem.hh"

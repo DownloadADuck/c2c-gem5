@@ -2,8 +2,8 @@
 #include <iostream>
 #include <memory>
 
-#include "mem/ruby/protocol/Interface_Entry.hh"
-#include "mem/ruby/system/RubySystem.hh"
+#include "src/mem/ruby/fwd_interface/Interface_Entry.hh"
+#include "src/mem/ruby/system/RubySystem.hh"
 
 namespace gem5
 {

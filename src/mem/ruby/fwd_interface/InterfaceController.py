@@ -5,7 +5,7 @@ from m5.objects.Controller import RubyController
 
 class Interface_Controller(RubyController):
     type = "Interface_Controller"
-    cxx_header = "mem/ruby/fwd_interface/Interface_Controller.hh"
+    cxx_header = "src/mem/ruby/fwd_interface/Interface_Controller.hh"
     cxx_class = "gem5::ruby::Interface_Controller"
     interface = Param.RubyDirectoryMemory("")
     toMemLatency = Param.Cycles((1), "")

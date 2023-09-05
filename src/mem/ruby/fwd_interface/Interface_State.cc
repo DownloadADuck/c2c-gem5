@@ -4,7 +4,7 @@
 #include <string>
 
 #include "base/logging.hh"
-#include "mem/ruby/protocol/Interface_State.hh"
+#include "src/mem/ruby/fwd_interface/Interface_State.hh"
 
 namespace gem5
 {

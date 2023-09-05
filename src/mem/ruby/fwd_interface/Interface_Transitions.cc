@@ -5,11 +5,11 @@
 #include "base/trace.hh"
 #include "debug/ProtocolTrace.hh"
 #include "debug/RubyGenerated.hh"
-#include "mem/ruby/protocol/Interface_Controller.hh"
-#include "mem/ruby/protocol/Interface_Event.hh"
-#include "mem/ruby/protocol/Interface_State.hh"
-#include "mem/ruby/protocol/Types.hh"
-#include "mem/ruby/system/RubySystem.hh"
+#include "src/mem/ruby/fwd_interface/InterfaceController.hh"
+#include "src/mem/ruby/fwd_interface/Interface_Event.hh"
+#include "src/mem/ruby/fwd_interface/Interface_State.hh"
+#include "src/mem/ruby/protocol/Types.hh"
+#include "src/mem/ruby/system/RubySystem.hh"
 
 #define HASH_FUN(state, event)  ((int(state)*Interface_Event_NUM)+int(event))
 

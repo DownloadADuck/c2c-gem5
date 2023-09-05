@@ -1,4 +1,4 @@
-#include <sys/types.hh>
+#include <base/types.hh>
 #include <unistd.h>
 
 #include <cassert>
@@ -6,7 +6,7 @@
 #include <string>
 #include <typeinfo>
 
-#include "mem/ruby/common/boolVec.hh"
+#include "mem/ruby/common/BoolVec.hh"
 
 #include "base/compiler.hh"
 #include "base/cprintf.hh"
