@@ -1,6 +1,6 @@
 
 from m5.params import *
-from m5.SimObjects import SimObjects
+from m5.SimObject import SimObject
 from m5.objects.Controller import RubyController
 
 class Interface_Controller(RubyController):
