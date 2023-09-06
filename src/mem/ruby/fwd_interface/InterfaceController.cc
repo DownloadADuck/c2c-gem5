@@ -12,11 +12,11 @@
 #include "base/cprintf.hh"
 
 #include "debug/RubyGenerated.hh"
-#include "RubySlicc.hh"
+#include "debug/RubySlicc.hh"
 #include "mem/ruby/network/Network.hh"
-#include "mem/ruby/protocol/Interface_Controller.hh"
-#include "mem/ruby/protocol/Interface_Event.hh"
-#include "mem/ruby/protocol/Interface_State.hh"
+#include "mem/ruby/fwd_interface/InterfaceController.hh"
+#include "mem/ruby/fwd_interface/Interface_Event.hh"
+#include "mem/ruby/fwd_interface/Interface_State.hh"
 #include "mem/ruby/protocol/Types.hh"
 #include "mem/ruby/system/RubySystem.hh"
 

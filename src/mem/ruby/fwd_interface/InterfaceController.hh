@@ -9,7 +9,7 @@
 #include "mem/ruby/protocol/TransitionResult.hh"
 #include "mem/ruby/protocol/Types.hh"
 #include "mem/ruby/slicc_interface/AbstractController.hh"
-#include "params/Interface_Controller.hh"
+#include "params/InterfaceController.hh"
 
 namespace gem5
 {

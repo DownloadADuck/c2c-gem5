@@ -69,7 +69,12 @@ sim_object_name = "_".join(no_ext.split("_")[1:])
 
 importer.install()
 module = importlib.import_module(args.modpath)
+if module == "m5.objects.InterfaceController":
+    print("In sim_object_param_struct_cc - module:", module)
+    print("In sim_object_param_struct_cc - sim_object_name:", module)
+
 sim_object = getattr(module, sim_object_name)
+
 
 from m5.objects.SimObject import PyBindProperty
 
