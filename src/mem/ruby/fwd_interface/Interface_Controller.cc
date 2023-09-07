@@ -399,7 +399,7 @@ Interface_Controller::fwdSnoop(Addr addr)
         throw RejectException();
     }
 {
-    std::shared_ptr<CHIRequestMsg> out_msg = std::make_shared<CHIResquestMsg>(clockEdge());
+    std::shared_ptr<CHIRequestMsg> out_msg = std::make_shared<CHIRequestMsg>(clockEdge());
     (*out_msg).m_addr = addr;
     (*out_msg).m_Sender = m_machineID;
     (*out_msg).m_requestor = ((*in_msg_ptr)).m_requestor;
