@@ -99,10 +99,14 @@ private:
     int functionalWrite(const Addr& param_addr, Packet* param_pkt);
 
     // Actions
-    /** \brief Forwards the response message */
-    void fwdResponse(Addr addr);
     /** \brief Forwards the request message */
     void fwdRequest(Addr addr);
+    /** \brief Forwards the snoop message */
+    void fwdSnoop (Addr addr);
+    /** \brief Forwards the response message */
+    void fwdResponse(Addr addr);
+    /** \brief Forwards the data message*/
+    void fwdData(Addr addr);
 
     // Objects
 };
