@@ -3,7 +3,7 @@
 #include <string>
 
 #include "base/logging.hh"
-#include "src/mem/ruby/fwd_interface/Interface_Event.hh"
+#include "mem/ruby/fwd_interface/Interface_Event.hh"
 
 namespace gem5
 {
