@@ -5,7 +5,7 @@
 #include "base/trace.hh"
 #include "debug/ProtocolTrace.hh"
 #include "debug/RubyGenerated.hh"
-#include "src/mem/ruby/fwd_interface/InterfaceController.hh"
+#include "src/mem/ruby/fwd_interface/Interface_Controller.hh"
 #include "src/mem/ruby/fwd_interface/Interface_Event.hh"
 #include "src/mem/ruby/fwd_interface/Interface_State.hh"
 #include "src/mem/ruby/protocol/Types.hh"

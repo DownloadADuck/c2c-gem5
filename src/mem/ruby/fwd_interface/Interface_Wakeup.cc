@@ -9,7 +9,7 @@
 
 #include "debug/RubyGenerated.hh"
 #include "debug/RubySlicc.hh"
-#include "src/mem/ruby/fwd_interface/InterfaceController.hh"
+#include "src/mem/ruby/fwd_interface/Interface_Controller.hh"
 #include "src/mem/ruby/fwd_interface/Interface_Event.hh"
 #include "src/mem/ruby/fwd_interface/Interface_State.hh"
 
