@@ -428,7 +428,7 @@ Interface_Controller::fwdResponse(Addr addr)
     std::shared_ptr<CHIResponseMsg> out_msg = std::make_shared<CHIResponseMsg>(clockEdge());
     (*out_msg).m_addr = addr;
     (*out_msg).m_responder = m_machineID;
-    (*out_msg).m_Destination = ((*in_msg_ptr)).m_Desination;
+    (*out_msg).m_Destination = ((*in_msg_ptr)).m_Destination;
     //(*out_msg).m_DataBlk = ((*in_msg_ptr)).m_DataBlk;
     ((*m_rspOut_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles((1))));
 }
@@ -437,7 +437,7 @@ Interface_Controller::fwdResponse(Addr addr)
 
 /** \brief Forwards the request message */
 void
-Interface_Controller::fwdData(Addr addr):
+Interface_Controller::fwdData(Addr addr)
 {
     DPRINTF(RubyGenerated, "executing fwdRequest\n");
     {
