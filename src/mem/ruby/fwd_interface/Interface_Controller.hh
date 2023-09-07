@@ -1,5 +1,5 @@
-#ifndef __Interface_CONTROLLER_HH__
-#define __Interface_CONTROLLER_HH__
+#ifndef __Interface_Controller_HH__
+#define __Interface_Controller_HH__
 
 #include <iostream>
 #include <sstream>
@@ -10,6 +10,9 @@
 #include "mem/ruby/protocol/Types.hh"
 #include "mem/ruby/slicc_interface/AbstractController.hh"
 #include "params/Interface_Controller.hh"
+#include "mem/ruby/fwd_interface/Interface_State.hh"
+#include "mem/ruby/fwd_interface/Interface_Event.hh"
+#include "mem/ruby/fwd_interface/Interface_Entry.hh"
 
 namespace gem5
 {
@@ -103,4 +106,4 @@ private:
 } // namespace ruby
 } // namespace gem5
 
-#endif // __Interface_CONTROLLER_HH__
+#endif // __Interface_Controller_HH__

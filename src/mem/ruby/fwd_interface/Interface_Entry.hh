@@ -6,7 +6,7 @@
 
 #include "mem/ruby/slicc_interface/RubySlicc_Util.hh"
 
-#include "mem/ruby/protocol/Interface_State.hh"
+#include "mem/ruby/fwd_interface/Interface_State.hh"
 #include "mem/ruby/protocol/NetDest.hh"
 #include "mem/ruby/protocol/AbstractCacheEntry.hh"
 
