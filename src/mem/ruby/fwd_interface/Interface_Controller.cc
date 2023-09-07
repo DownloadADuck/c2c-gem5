@@ -61,7 +61,6 @@ Interface_Controller::Interface_Controller(const Params &p)
     m_snpIn_ptr = p.snpIn;
     m_rspIn_ptr = p.rspIn;
     m_datIn_ptr = p.datIn;
-    m_inRequest_ptr = p.inRequest;
 
     for (int state = 0; state < Interface_State_NUM; state++) {
         for (int event = 0; event < Interface_Event_NUM; event++) {
@@ -374,10 +373,10 @@ Interface_Controller::fwdRequest(Addr addr)
         throw RejectException();
     }
 {
-    std::shared_ptr<CHIResponseMsg> out_msg = std::make_shared<CHIResponseMsg>(clockEdge());
+    std::shared_ptr<CHIRequestMsg> out_msg = std::make_shared<CHIRequestMsg>(clockEdge());
     (*out_msg).m_addr = addr;
-    (*out_msg).m_Sender = m_machineID;
-    (*out_msg).m_Requestor = ((*in_msg_ptr)).m_Requestor;
+    //(*out_msg).m_Sender = m_machineID;
+    (*out_msg).m_requestor = ((*in_msg_ptr)).m_requestor;
     //(*out_msg).m_DataBlk = ((*in_msg_ptr)).m_DataBlk;
     ((*m_reqOut_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles((1))));
 }
@@ -403,7 +402,7 @@ Interface_Controller::fwdSnoop(Addr addr)
     std::shared_ptr<CHIRequestMsg> out_msg = std::make_shared<CHIResquestMsg>(clockEdge());
     (*out_msg).m_addr = addr;
     (*out_msg).m_Sender = m_machineID;
-    (*out_msg).m_Requestor = ((*in_msg_ptr)).m_Requestor;
+    (*out_msg).m_requestor = ((*in_msg_ptr)).m_requestor;
     //(*out_msg).m_DataBlk = ((*in_msg_ptr)).m_DataBlk;
     ((*m_snpOut_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles((1))));
 }
@@ -438,7 +437,7 @@ Interface_Controller::fwdResponse(Addr addr)
 
 /** \brief Forwards the request message */
 void
-Interface_Controller::fwdData(Addr addr)
+Interface_Controller::fwdData(Addr addr):
 {
     DPRINTF(RubyGenerated, "executing fwdRequest\n");
     {
