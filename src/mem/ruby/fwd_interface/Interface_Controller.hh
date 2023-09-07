@@ -63,6 +63,10 @@ private:
     MessageBuffer* m_snpOut_ptr;
     MessageBuffer* m_rspOut_ptr;
     MessageBuffer* m_datOut_ptr;
+    MessageBuffer* m_reqIn_ptr;
+    MessageBuffer* m_snpIn_ptr;
+    MessageBuffer* m_rspIn_ptr;
+    MessageBuffer* m_datIn_ptr;
     TransitionResult doTransition(Interface_Event event,
                                   Addr addr);
 
