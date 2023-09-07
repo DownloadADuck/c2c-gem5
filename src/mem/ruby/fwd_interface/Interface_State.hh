@@ -21,7 +21,7 @@ enum Interface_State {
     Interface_State_IDLE = Interface_State_FIRST, /**< Idle, waiting a for requests */
     Interface_State_FWD,
     Interface_State_NUM
-}
+};
 
 // Code to convert from a string to the enumeration
 Interface_State string_to_Interface_State(const ::std::string& str);
