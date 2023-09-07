@@ -443,7 +443,7 @@ Interface_Controller::fwdData(Addr addr)
     {
     // Declare message
     [[maybe_unused]] const CHIDataMsg* in_msg_ptr;
-    in_msg_ptr = dynamic_cast<const CHIDataMsg *>(((*m_inData_ptr)).peek());
+    in_msg_ptr = dynamic_cast<const CHIDataMsg *>(((*m_datIn_ptr)).peek());
     if (in_msg_ptr == NULL) {
         // If the cast fails, this is the wrong inport (wrong message type).
         // Throw an exception, and the caller will decide to either try a
@@ -453,7 +453,7 @@ Interface_Controller::fwdData(Addr addr)
 {
     std::shared_ptr<CHIDataMsg> out_msg = std::make_shared<CHIDataMsg>(clockEdge());
     (*out_msg).m_addr = addr;
-    (*out_msg).m_Requestor = ((*in_msg_ptr)).m_Requestor;
+    (*out_msg).m_responder = ((*in_msg_ptr)).m_responder;
     (*out_msg).m_Destination = (*(getInterfaceEntry(addr))).m_Owner;
     ((*m_datOut_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles((1))));
 }
