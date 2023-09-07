@@ -401,7 +401,7 @@ Interface_Controller::fwdSnoop(Addr addr)
 {
     std::shared_ptr<CHIRequestMsg> out_msg = std::make_shared<CHIRequestMsg>(clockEdge());
     (*out_msg).m_addr = addr;
-    (*out_msg).m_Sender = m_machineID;
+    //(*out_msg).m_Sender = m_machineID;
     (*out_msg).m_requestor = ((*in_msg_ptr)).m_requestor;
     //(*out_msg).m_DataBlk = ((*in_msg_ptr)).m_DataBlk;
     ((*m_snpOut_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles((1))));
@@ -427,8 +427,8 @@ Interface_Controller::fwdResponse(Addr addr)
 {
     std::shared_ptr<CHIResponseMsg> out_msg = std::make_shared<CHIResponseMsg>(clockEdge());
     (*out_msg).m_addr = addr;
-    (*out_msg).m_Sender = m_machineID;
-    (*out_msg).m_Requestor = ((*in_msg_ptr)).m_Requestor;
+    (*out_msg).m_responder = m_machineID;
+    (*out_msg).m_Destination = ((*in_msg_ptr)).m_Desination;
     //(*out_msg).m_DataBlk = ((*in_msg_ptr)).m_DataBlk;
     ((*m_rspOut_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles((1))));
 }
