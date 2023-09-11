@@ -17,6 +17,7 @@
 #include "mem/ruby/fwd_interface/Interface_Controller.hh"
 #include "mem/ruby/fwd_interface/Interface_Event.hh"
 #include "mem/ruby/fwd_interface/Interface_State.hh"
+#include "mem/ruby/fwd_interface/Interface_Entry.hh"
 #include "mem/ruby/protocol/Types.hh"
 #include "mem/ruby/system/RubySystem.hh"
 
