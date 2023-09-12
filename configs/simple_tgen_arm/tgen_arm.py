@@ -84,6 +84,62 @@ options.restore_simpoint_checkpoint = False
 options.max_checkpoints = 5
 options.checkpoint_at_end = False
 
+options1 = Object()
+options1.cmd = "tests/test-progs/hello/bin/x86/linux/hello"
+options1.input = ''
+options1.output = ''
+options1.errout = '' 
+options1.options = ''
+options1.env = ''
+options1.caches = True
+options1.cache_line_size = 64
+options1.num_dirs = 1
+options1.xor_low_bit = 20
+options1.enable_dram_powerdown = False
+options1.access_backing_store = False
+options1.mem_type = 'DDR3_1600_8x8'
+options1.topology = 'Pt2Pt'
+options1.link_latency = 1
+options1.router_latency = 1
+options1.outdir = "/m5out"
+options1.cpu_clock = '2GHz'
+options1.l2_size = '2MB'
+options1.network = 'simple'
+options1.simple_physical_channels = False
+options1.repeat_switch = None
+options1.take_checkpoints = None
+options1.smt = False
+options1.cpu_type = 'TimingSimpleCPU'
+options1.checkpoint_restore = None
+options1.fast_forward = None
+options1.num_l3caches = 1
+options1.chi_config = None
+options1.l1i_size = '32kB'
+options1.l1i_assoc = 2
+options1.l1d_size = '64kB'
+options1.l1d_assoc = 2
+options1.l2_assoc = 8
+options1.l3_size = '32kB'
+options1.l3_assoc = 16
+options1.cacheline_size = 64
+options1.num_cpus = 0
+options1.network_fault_model = False
+options1.checkpoint_dir = None
+options1.standard_switch = None
+options1.stats_root = []
+options1.prog_interval = None
+options1.maxinsts = None
+options1.override_vendor_string = None
+options1.take_simpoint_checkpoints = None
+options1.param = []
+options1.initialize_only = False
+options1.abs_max_tick = 18446744073709551615
+options1.rel_max_tick = None
+options1.maxtime = None
+options1.restore_simpoint_checkpoint = False
+options1.max_checkpoints = 5
+options1.checkpoint_at_end = False
+
 def get_processes(args):
     """Interprets provided args and returns a list of processes"""
 
@@ -190,7 +246,7 @@ for i in range(np):
     system.cpus[i].createThreads()
 
 
-ruby_config.create_system(options, False, system)
+ruby_config.create_system(options, options1, False, system)
 
 system.ruby.clk_domain = SrcClockDomain(
     clock='2GHz', voltage_domain=system.voltage_domain
