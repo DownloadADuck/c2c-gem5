@@ -47,11 +47,11 @@ Interface_Controller::wakeup()
             // InterfaceInPort request in
             m_cur_in_port = 0;
             try {
-                            if ((((*m_reqInPort_ptr)).isReady((clockEdge())))) {
+                            if ((((*m_reqIn_ptr)).isReady((clockEdge())))) {
                                 {
                                     // Declare message
                                     [[maybe_unused]] const CHIRequestMsg* in_msg_ptr;
-                                    in_msg_ptr = dynamic_cast<const CHIRequestMsg *>(((*m_reqInPort_ptr)).peek());
+                                    in_msg_ptr = dynamic_cast<const CHIRequestMsg *>(((*m_reqIn_ptr)).peek());
                                     if (in_msg_ptr == NULL) {
                                         // If the cast fails, this is the wrong inport (wrong message type).
                                         // Throw an exception, and the caller will decide to either try a
@@ -87,11 +87,11 @@ Interface_Controller::wakeup()
             // InterfaceInPort snoop in 
             m_cur_in_port = 0;
             try {
-                            if ((((*m_snpInPort_ptr)).isReady((clockEdge())))) {
+                            if ((((*m_snpIn_ptr)).isReady((clockEdge())))) {
                                 {
                                     // Declare message
                                     [[maybe_unused]] const CHIRequestMsg* in_msg_ptr;
-                                    in_msg_ptr = dynamic_cast<const CHIRequestMsg *>(((*m_snpInPort_ptr)).peek());
+                                    in_msg_ptr = dynamic_cast<const CHIRequestMsg *>(((*m_snpIn_ptr)).peek());
                                     if (in_msg_ptr == NULL) {
                                         // If the cast fails, this is the wrong inport (wrong message type).
                                         // Throw an exception, and the caller will decide to either try a
@@ -127,11 +127,11 @@ Interface_Controller::wakeup()
             // InterfaceInPort response in 
             m_cur_in_port = 0;
             try {
-                            if ((((*m_rspInPort_ptr)).isReady((clockEdge())))) {
+                            if ((((*m_rspIn_ptr)).isReady((clockEdge())))) {
                                 {
                                     // Declare message
                                     [[maybe_unused]] const CHIResponseMsg* in_msg_ptr;
-                                    in_msg_ptr = dynamic_cast<const CHIResponseMsg *>(((*m_rspInPort_ptr)).peek());
+                                    in_msg_ptr = dynamic_cast<const CHIResponseMsg *>(((*m_rspIn_ptr)).peek());
                                     if (in_msg_ptr == NULL) {
                                         // If the cast fails, this is the wrong inport (wrong message type).
                                         // Throw an exception, and the caller will decide to either try a
@@ -167,11 +167,11 @@ Interface_Controller::wakeup()
             // InterfaceInPort data in 
             m_cur_in_port = 0;
             try {
-                            if ((((*m_datInPort_ptr)).isReady((clockEdge())))) {
+                            if ((((*m_datIn_ptr)).isReady((clockEdge())))) {
                                 {
                                     // Declare message
                                     [[maybe_unused]] const CHIDataMsg* in_msg_ptr;
-                                    in_msg_ptr = dynamic_cast<const CHIDataMsg *>(((*m_datInPort_ptr)).peek());
+                                    in_msg_ptr = dynamic_cast<const CHIDataMsg *>(((*m_datIn_ptr)).peek());
                                     if (in_msg_ptr == NULL) {
                                         // If the cast fails, this is the wrong inport (wrong message type).
                                         // Throw an exception, and the caller will decide to either try a
