@@ -1,4 +1,10 @@
 Import('*')
 
 SimObject("Interface_Controller.py", sim_objects=['Interface_Controller'])
+
 Source('Interface_Controller.cc')
+Source('Interface_Entry.cc')
+Source('Interface_State.cc')
+Source('Interface_Transitions.cc')
+Source('Interface_Wakeup.cc')
+Source('Interface_Event.cc')

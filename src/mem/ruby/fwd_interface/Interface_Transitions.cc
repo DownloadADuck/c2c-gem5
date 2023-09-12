@@ -81,25 +81,25 @@ Interface_Controller::doTransitionWorker(Interface_Event event,
     m_curTransitionNextState = next_state;
     switch(HASH_FUN(state, event)) {
   case HASH_FUN(Interface_State_IDLE, Interface_Event_request):
-    if (!(*m_reqOutPort_ptr).areNSlotsAvailable(1, clockEdge()))
+    if (!(*m_reqOut_ptr).areNSlotsAvailable(1, clockEdge()))
         return TransitionResult_ResourceStall;
     fwdRequest(addr);
     return TransitionResult_Valid;
 
   case HASH_FUN(Interface_State_IDLE, Interface_Event_snoop):
-    if (!(*m_snpOutPort_ptr).areNSlotsAvailable(1, clockEdge()))
+    if (!(*m_snpOut_ptr).areNSlotsAvailable(1, clockEdge()))
         return TransitionResult_ResourceStall;
     fwdSnoop(addr);
     return TransitionResult_Valid;
   
   case HASH_FUN(Interface_State_IDLE, Interface_Event_response):
-    if (!(*m_rspOutPort_ptr).areNSlotsAvailable(1, clockEdge()))
+    if (!(*m_rspOut_ptr).areNSlotsAvailable(1, clockEdge()))
         return TransitionResult_ResourceStall;
     fwdResponse(addr);
     return TransitionResult_Valid;
   
   case HASH_FUN(Interface_State_IDLE, Interface_Event_data):
-    if (!(*m_datOutPort_ptr).areNSlotsAvailable(1, clockEdge()))
+    if (!(*m_datOut_ptr).areNSlotsAvailable(1, clockEdge()))
         return TransitionResult_ResourceStall;
     fwdData(addr);
     return TransitionResult_Valid;

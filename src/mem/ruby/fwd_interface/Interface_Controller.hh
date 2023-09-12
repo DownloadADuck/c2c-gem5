@@ -107,6 +107,8 @@ private:
     void fwdResponse(Addr addr);
     /** \brief Forwards the data message*/
     void fwdData(Addr addr);
+    /** \brief Do nothing and goes back to IDLE*/
+    void fwd(Addr addr);
 
     // Objects
 };
