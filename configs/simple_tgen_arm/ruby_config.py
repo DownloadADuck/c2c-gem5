@@ -2,12 +2,12 @@ import math
 import m5
 
 from m5.objects import *
-#from m5.defines import buildEnv
+from m5.defines import buildEnv
 from m5.util import addToPath, fatal
 from gem5.isas import ISA
 from gem5.runtime import get_runtime_isa
 
-from simple_tgen_arm import tgen_CHI
+from interface_testing import tgen_CHI
 
 addToPath("../")
 from common import ObjectList
@@ -76,7 +76,6 @@ def create_topology(controllers, options):
 
 def create_system(
     options,
-    options1,
     full_system,
     system,
     piobus=None,
@@ -92,27 +91,18 @@ def create_system(
 
     # Create the network object
     (
-        network0,
+        network,
         IntLinkClass,
         ExtLinkClass,
         RouterClass,
         InterfaceClass,
     ) = Network.create_network(options, ruby)
-    ruby.network0 = network0
-
-    (
-        network1,
-        IntLinkClass,
-        ExtLinkClass,
-        RouterClass,
-        InterfaceClass,
-    ) = Network.create_network(options1, ruby)
-    ruby.network1 = network1
+    ruby.network = network
 
     if cpus is None:
         cpus = system.cpus
     
-    (cpu_sequencers, tgen_sequencers, dir_cntrls, topology0) = \
+    (cpu_sequencers, tgen_sequencers, dir_cntrls, topology) = \
         tgen_CHI.create_system(
             options, 
             full_system, 
@@ -122,34 +112,18 @@ def create_system(
             ruby, 
             cpus
         )
-    
-    (cpu_sequencers1, tgen_sequencers1, dir_cntrls1, topology1) = \
-        tgen_CHI.create_system(
-            options1,
-            full_system,
-            system,
-            dma_ports,
-            bootmem,
-            ruby,
-            cpus
-        )
 
     # Create the network topology
-    topology0.makeTopology(
-        options, network0, IntLinkClass, ExtLinkClass, RouterClass
-    )
-    topology1.makeTopology(
-        options1, network1, IntLinkClass, ExtLinkClass, RouterClass
+    topology.makeTopology(
+        options, network, IntLinkClass, ExtLinkClass, RouterClass
     )
 
     # In SE register the ropology elements with fake filesystem
     if not full_system:
-        topology0.registerTopology(options)
-        topology1.registerTopology(options1)
+        topology.registerTopology(options)
 
     # Initialize network based topology
-    Network.init_network(options, network0, InterfaceClass)
-    Network.init_network(options1, network1, InterfaceClass)
+    Network.init_network(options, network, InterfaceClass)
 
     # Create a port proxy for connecting the system port.
     sys_port_proxy = RubyPortProxy(ruby_system=ruby)
@@ -164,10 +138,7 @@ def create_system(
     system.system_port = system.sys_port_proxy.in_ports
     
     setup_memory_controllers(system, ruby, dir_cntrls, options)
-    setup_memory_controllers(system, ruby, dir_cntrls1, options1)
 
-    # Instantiate and connect interface
-    system.interface = Interface(ruby, network0, network1)
     # Connect the cpu sequencers and the piobus
     if piobus != None:
         for cpu_seq in cpu_sequencers:
@@ -177,7 +148,7 @@ def create_system(
     for i in range(len(cpus)):
         system.tgens[i].port = cpu_sequencers[i].in_ports
     
-    ruby.number_of_virtual_networks = ruby.network0.number_of_virtual_networks
+    ruby.number_of_virtual_networks = ruby.network.number_of_virtual_networks
     ruby._cpu_ports = cpu_sequencers
     ruby.num_of_sequencers = len(cpu_sequencers) + len(tgen_sequencers)
 
@@ -216,38 +187,3 @@ def send_evicts(options):
     ):
         return True
     return False
-
-class Interface(Interface_Controller):
-    _version = 0
-    
-    @classmethod
-    def versionCount(cls):
-        cls._version += 1
-        return cls._version - 1
-    
-    def __init__(self, ruby_system, network0, network1):
-        super(Interface, self).__init__()
-        
-        self.version = self.versionCount()
-        self.clk_domain = ruby_system.clk_domain
-        self.ruby_system = ruby_system
-        self.connectQueues(network0, network1)
-    
-    def connectQueues(self, network0, network1):
-        self.reqIn = MessageBuffer(ordered=True)
-        self.snpIn = MessageBuffer(ordered=True)
-        self.rspIn = MessageBuffer(ordered=True)
-        self.datIn = MessageBuffer(ordered=True)
-        self.reqIn.in_port = network0.out_port
-        self.snpIn.in_port = network0.out_port
-        self.rspIn.in_port = network0.out_port
-        self.datIn.in_port = network0.out_port
-
-        self.reqOut = MessageBuffer(ordered=True)
-        self.snpOut = MessageBuffer(ordered=True)
-        self.rspOut = MessageBuffer(ordered=True)
-        self.datOut = MessageBuffer(ordered=True)
-        self.reqOut.out_port = network1.in_port
-        self.snpOut.out_port = network1.in_port
-        self.rspOut.out_port = network1.in_port
-        self.datOut.out_port = network1.in_port

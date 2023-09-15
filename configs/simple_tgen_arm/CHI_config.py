@@ -118,7 +118,7 @@ class CHI_Node(SubSystem):
     def __init__(self, ruby_system):
         super(CHI_Node, self).__init__()
         self._ruby_system = ruby_system
-        self._network = ruby_system.network0
+        self._network = ruby_system.network
 
     def getNetworkSideControllers(self):
         """

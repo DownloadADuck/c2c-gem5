@@ -90,7 +90,7 @@ def create_system(
         m5.fatal("--noc-config must be provided if topology is CustomMesh")
     else:
         # Use the defaults from CHI_config
-        from simple_tgen_arm import CHI_config as chi_defs
+        from interface_testing import CHI_config as chi_defs
 
     # NoC params
     params = chi_defs.NoC_Params
@@ -149,19 +149,27 @@ def create_system(
     all_cntrls = []
 
     # Creates on RNF per cpu with priv l2 caches
+    assert len(cpus) == options.num_cpus
+    ruby_system.rnf = [
+        CHI_RNF(
+            [cpu],
+            ruby_system,
+            L1ICache,
+            L1DCache,
+            system.cache_line_size.value,
+        )
+        for cpu in cpus
+    ]
 
-    #assert len(cpus) == options.num_cpus
-    if options.num_cpus > 0:
-        ruby_system.rnf = [
-            CHI_RNF(
-                [cpu],
-                ruby_system,
-                L1ICache,
-                L1DCache,
-                system.cache_line_size.value,
-            )
-            for cpu in cpus
-        ]
+    #ruby_system.rnf_tgen = [
+    #    CHI_RNF_tgen(
+    #        [tgen],
+    #        ruby_system,
+    #        L1DCache,
+    #        system.cache_line_size.value,
+    #    )
+    #    for tgen in tgens
+    #]
 
     for rnf in ruby_system.rnf:
         rnf.addPrivL2Cache(L2Cache)
@@ -169,6 +177,13 @@ def create_system(
         all_cntrls.extend(rnf.getAllControllers())
         network_nodes.append(rnf)
         network_cntrls.extend(rnf.getNetworkSideControllers())
+    
+    #for rnf_tgen in ruby_system.rnf_tgen:
+    #    #rnf_tgen.addPrivL2Cache(L2Cache)
+    #    tgen_sequencers.extend(rnf_tgen.getSequencers())
+    #    all_cntrls.extend(rnf_tgen.getAllControllers())
+    #    network_nodes.append(rnf_tgen)
+    #    network_cntrls.extend(rnf.getNetworkSideControllers())
     
     # Creates one Misc Node
     ruby_system.mn = [CHI_MN(ruby_system, [cpu.l1d for cpu in cpus])]
@@ -270,17 +285,12 @@ def create_system(
 
     # Network configurations
     # virtual networks: 0=request, 1=snoop, 2=response, 3=data
-    ruby_system.network0.number_of_virtual_networks = 4
-    ruby_system.network1.number_of_virtual_networks = 4
+    ruby_system.network.number_of_virtual_networks = 4
 
-    ruby_system.network0.control_msg_size = params.cntrl_msg_size
-    ruby_system.network0.data_msg_size = params.data_width
-    ruby_system.network1.control_msg_size = params.cntrl_msg_size
-    ruby_system.network1.data_msg_size = params.data_width
-
+    ruby_system.network.control_msg_size = params.cntrl_msg_size
+    ruby_system.network.data_msg_size = params.data_width
     if options.network == "simple":
-        ruby_system.network0.buffer_size = params.router_buffer_size
-        ruby_system.network1.buffer_size = params.router_buffer_size
+        ruby_system.network.buffer_size = params.router_buffer_size
 
     # Incorporate the params into options so it's propagated to
     # makeTopology and create_topology the parent scripts
