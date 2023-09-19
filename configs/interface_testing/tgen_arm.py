@@ -83,6 +83,7 @@ options.maxtime = None
 options.restore_simpoint_checkpoint = False
 options.max_checkpoints = 5
 options.checkpoint_at_end = False
+options.num_interface = 1
 
 options1 = Object()
 options1.cmd = "tests/test-progs/hello/bin/x86/linux/hello"
@@ -91,7 +92,7 @@ options1.output = ''
 options1.errout = '' 
 options1.options = ''
 options1.env = ''
-options1.caches = True
+options1.caches = False
 options1.cache_line_size = 64
 options1.num_dirs = 1
 options1.xor_low_bit = 20

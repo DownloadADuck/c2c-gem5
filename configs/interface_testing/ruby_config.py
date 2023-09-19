@@ -120,7 +120,8 @@ def create_system(
             dma_ports, 
             bootmem, 
             ruby, 
-            cpus
+            cpus,
+            ruby.network0,
         )
     
     (cpu_sequencers1, tgen_sequencers1, dir_cntrls1, topology1) = \
@@ -131,7 +132,8 @@ def create_system(
             dma_ports,
             bootmem,
             ruby,
-            cpus
+            cpus,
+            ruby.network1,
         )
 
     # Create the network topology
@@ -167,7 +169,8 @@ def create_system(
     setup_memory_controllers(system, ruby, dir_cntrls1, options1)
 
     # Instantiate and connect interface
-    system.interface = Interface(ruby, network0, network1)
+    ruby.interface = Interface(ruby, network0, network1)
+
     # Connect the cpu sequencers and the piobus
     if piobus != None:
         for cpu_seq in cpu_sequencers:
