@@ -169,8 +169,8 @@ def create_system(
     setup_memory_controllers(system, ruby, dir_cntrls1, 2, options1)
 
     # Instantiate and connect interface
-    ruby.fwd_interface = Interface(ruby, network0, network1)
-    ruby.fwd_interface.interface = True
+    #ruby.fwd_interface = Interface(ruby, network0, network1)
+    system.fwd_interface = Interface(ruby, network0, network1)
 
     # Connect the cpu sequencers and the piobus
     if piobus != None:

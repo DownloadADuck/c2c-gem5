@@ -52,7 +52,7 @@ Interface_Controller::Interface_Controller(const Params &p)
     p.ruby_system->registerAbstractController(this);
 
     m_in_ports = 4;
-    m_interface_ptr = p.interface;
+    //m_interface_ptr = p.interface;
     m_toMemLatency = p.toMemLatency;
     m_reqOut_ptr = p.reqOut;
     m_snpOut_ptr = p.snpOut;

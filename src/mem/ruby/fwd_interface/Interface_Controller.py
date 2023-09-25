@@ -7,7 +7,7 @@ class Interface_Controller(RubyController):
     type = "Interface_Controller"
     cxx_header = "mem/ruby/fwd_interface/Interface_Controller.hh"
     cxx_class = "gem5::ruby::Interface_Controller"
-    interface = Param.RubyDirectoryMemory("")
+    #interface = Param.RubyDirectoryMemory("")
     toMemLatency = Param.Cycles((1), "")
 
     reqOut = Param.MessageBuffer("")
