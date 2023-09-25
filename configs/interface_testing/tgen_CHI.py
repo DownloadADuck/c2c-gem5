@@ -53,23 +53,23 @@ def define_options(parser):
     parser.add_argument("--enable-dvm", default=False, action="store_true")
 
 
-def read_config_file(file):
-    """Read file as a module and return it"""
-    import types
-    import importlib.machinery
-
-    loader = importlib.machinery.SourceFileLoader("chi_configs", file)
-    chi_configs = types.ModuleType(loader.name)
-    loader.exec_module(chi_configs)
-    return chi_configs
+#def read_config_file(file):
+#    """Read file as a module and return it"""
+#    import types
+#    import importlib.machinery
+#
+#    loader = importlib.machinery.SourceFileLoader("chi_configs", file)
+#    chi_configs = types.ModuleType(loader.name)
+#    loader.exec_module(chi_configs)
+#    return chi_configs
 
 
 def create_system(
     options, full_system, system, dma_ports, bootmem, ruby_system, cpus, network
 ):
 
-    if buildEnv["PROTOCOL"] != "CHI":
-        m5.panic("This script requires the CHI build")
+    #if buildEnv["PROTOCOL"] != "CHI":
+    #    m5.panic("This script requires the CHI build")
 
     if options.num_dirs < 1:
         m5.fatal("--num-dirs must be at least 1")
@@ -77,21 +77,21 @@ def create_system(
     if options.num_l3caches < 1:
         m5.fatal("--num-l3caches must be at least 1")
 
-    if full_system and options.enable_dvm:
-        if len(cpus) <= 1:
-            m5.fatal("--enable-dvm can't be used with a single CPU")
-        for cpu in cpus:
-            for decoder in cpu.decoder:
-                decoder.dvm_enabled = True
+    #if full_system and options.enable_dvm:
+    #    if len(cpus) <= 1:
+    #        m5.fatal("--enable-dvm can't be used with a single CPU")
+    #    for cpu in cpus:
+    #        for decoder in cpu.decoder:
+    #            decoder.dvm_enabled = True
 
-    # read specialized classes from config file if provided
-    if options.chi_config:
-        chi_defs = read_config_file(options.chi_config)
-    elif options.topology == "CustomMesh":
-        m5.fatal("--noc-config must be provided if topology is CustomMesh")
-    else:
-        # Use the defaults from CHI_config
-        from interface_testing import CHI_config as chi_defs
+    ## read specialized classes from config file if provided
+    #if options.chi_config:
+    #    chi_defs = read_config_file(options.chi_config)
+    #elif options.topology == "CustomMesh":
+    #    m5.fatal("--noc-config must be provided if topology is CustomMesh")
+    #else:
+    #    # Use the defaults from CHI_config
+    #    from interface_testing import CHI_config as chi_defs
 
     # NoC params
     params = chi_defs.NoC_Params
@@ -103,7 +103,7 @@ def create_system(
     CHI_SNF_BootMem = chi_defs.CHI_SNF_BootMem
     CHI_RNI_DMA = chi_defs.CHI_RNI_DMA
     CHI_RNI_IO = chi_defs.CHI_RNI_IO
-    CHI_interface = chi_defs.Interface
+    #CHI_interface = chi_defs.Interface
 
     # Declare caches and controller types used by the protocol
     # Notice tag and data accesses are not concurrent, so the a cache hit
@@ -165,17 +165,6 @@ def create_system(
             for cpu in cpus
         ]
     
-    # Creates one interface with the option.interface
-    #if options.num_interface > 0:
-    #    ruby_system.interface = [
-    #        CHI_interface(
-    #            ruby_system,
-    #            ruby_system.network0,
-    #            ruby_system.network1,
-    #        )
-    #    ]
-    
-
 
     for rnf in ruby_system.rnf:
         rnf.addPrivL2Cache(L2Cache)

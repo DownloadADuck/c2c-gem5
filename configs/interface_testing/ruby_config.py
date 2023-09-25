@@ -17,11 +17,11 @@ from common import FileSystemConfig
 from topologies import *
 from network import Network
 
-def setup_memory_controllers(system, ruby, dir_cntrls, options):
+def setup_memory_controllers(system, ruby, dir_cntrls, index, options):
     ruby.block_size_bytes = options.cacheline_size
     ruby.memory_size_bits = 48
 
-    index = 0
+    #index = 0
     mem_ctrls = []
     crossbars = []
 
@@ -62,17 +62,17 @@ def setup_memory_controllers(system, ruby, dir_cntrls, options):
                 mem_ctrl.dram.enable_dram_powerdown = (
                     options.enable_dram_powerdown
                 )
-        index += 1
+        #index += 1
         dir_cntrl.addr_ranges = dir_ranges
     system.mem_ctrls = mem_ctrls
     
     if len(crossbars) > 0:
         ruby.crossbars = crossbars
 
-def create_topology(controllers, options):
-    exec("import topologies.%s as Topo" % options.topology)
-    topology = eval("Topo.%s(controllers)" % options.topology)
-    return topology
+#def create_topology(controllers, options):
+#    exec("import topologies.%s as Topo" % options.topology)
+#    topology = eval("Topo.%s(controllers)" % options.topology)
+#    return topology
 
 def create_system(
     options,
@@ -165,11 +165,12 @@ def create_system(
     # Connect the system port for loading of binaries etc
     system.system_port = system.sys_port_proxy.in_ports
     
-    setup_memory_controllers(system, ruby, dir_cntrls, options)
-    setup_memory_controllers(system, ruby, dir_cntrls1, options1)
+    setup_memory_controllers(system, ruby, dir_cntrls, 1, options)
+    setup_memory_controllers(system, ruby, dir_cntrls1, 2, options1)
 
     # Instantiate and connect interface
-    ruby.interface = Interface(ruby, network0, network1)
+    ruby.fwd_interface = Interface(ruby, network0, network1)
+    ruby.fwd_interface.interface = True
 
     # Connect the cpu sequencers and the piobus
     if piobus != None:
