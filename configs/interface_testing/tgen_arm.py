@@ -9,8 +9,6 @@ from m5.util import addToPath, fatal, warn
 from gem5.isas import ISA
 from gem5.runtime import get_runtime_isa
 
-#from ruby_config import *
-
 addToPath("../")
 from interface_testing import ruby_config
 
@@ -83,7 +81,7 @@ options.maxtime = None
 options.restore_simpoint_checkpoint = False
 options.max_checkpoints = 5
 options.checkpoint_at_end = False
-options.num_interface = 1
+#options.num_interface = 1
 
 options1 = Object()
 options1.cmd = "tests/test-progs/hello/bin/x86/linux/hello"

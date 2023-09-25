@@ -12,7 +12,7 @@ from gem5.runtime import get_runtime_isa
 #from ruby_config import *
 
 addToPath("../")
-from interface_testing import ruby_config
+from simple_tgen_arm import ruby_config
 
 from common import Options
 from common import Simulation

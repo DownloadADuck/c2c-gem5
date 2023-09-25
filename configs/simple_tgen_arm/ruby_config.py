@@ -7,7 +7,7 @@ from m5.util import addToPath, fatal
 from gem5.isas import ISA
 from gem5.runtime import get_runtime_isa
 
-from interface_testing import tgen_CHI
+from simple_tgen_arm import tgen_CHI
 
 addToPath("../")
 from common import ObjectList

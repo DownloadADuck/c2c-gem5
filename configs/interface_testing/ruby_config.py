@@ -148,7 +148,7 @@ def create_system(
     if not full_system:
         topology0.registerTopology(options)
         topology1.registerTopology(options1)
-
+    
     # Initialize network based topology
     Network.init_network(options, network0, InterfaceClass)
     Network.init_network(options1, network1, InterfaceClass)
@@ -169,8 +169,7 @@ def create_system(
     setup_memory_controllers(system, ruby, dir_cntrls1, 2, options1)
 
     # Instantiate and connect interface
-    #ruby.fwd_interface = Interface(ruby, network0, network1)
-    system.fwd_interface = Interface(ruby, network0, network1)
+    ruby.fwd_interface = Interface(ruby, network0, network1)
 
     # Connect the cpu sequencers and the piobus
     if piobus != None:
@@ -186,27 +185,27 @@ def create_system(
     ruby.num_of_sequencers = len(cpu_sequencers) + len(tgen_sequencers)
 
 
-def create_directories(options, bootmem, ruby_system, system):
-    dir_cntrl_nodes = []
-    for i in range(options.num_dirs):
-        dir_cntrl = Directory_Controller()
-        dir_cntrl.version = i
-        dir_cntrl.directory = RubyDirectoryMemory()
-        dir_cntrl.ruby_system = ruby_system
-        
-        exec("ruby_system.dir_cntrl%d = dir_cntrl" % i)
-        dir_cntrl_nodes.append(dir_cntrl)
-    
-    if bootmem is not None:
-        rom_dir_cntrl = Directory_Controller()
-        rom_dir_cntrl.directoy = RubyDirectoryMemory()
-        rom_dir_cntrl.ruby_system = ruby_system
-        rom_dir_cntrl.version = i + 1
-        rom_dir_cntrl.memory = bootmem.port
-        rom_dir_cntrl.addr_ranges = bootmem.range
-        return (dir_cntrl_nodes, rom_dir_cntrl)
-    
-    return (dir_cntrl_nodes, None) 
+#def create_directories(options, bootmem, ruby_system, system):
+#    dir_cntrl_nodes = []
+#    for i in range(options.num_dirs):
+#        dir_cntrl = Directory_Controller()
+#        dir_cntrl.version = i
+#        dir_cntrl.directory = RubyDirectoryMemory()
+#        dir_cntrl.ruby_system = ruby_system
+#        
+#        exec("ruby_system.dir_cntrl%d = dir_cntrl" % i)
+#        dir_cntrl_nodes.append(dir_cntrl)
+#    
+#    if bootmem is not None:
+#        rom_dir_cntrl = Directory_Controller()
+#        rom_dir_cntrl.directoy = RubyDirectoryMemory()
+#        rom_dir_cntrl.ruby_system = ruby_system
+#        rom_dir_cntrl.version = i + 1
+#        rom_dir_cntrl.memory = bootmem.port
+#        rom_dir_cntrl.addr_ranges = bootmem.range
+#        return (dir_cntrl_nodes, rom_dir_cntrl)
+#    
+#    return (dir_cntrl_nodes, None) 
 
 
 def send_evicts(options):
