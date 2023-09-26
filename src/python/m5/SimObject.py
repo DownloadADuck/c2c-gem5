@@ -1195,7 +1195,6 @@ class SimObject(object, metaclass=MetaSimObject):
                     self.path(),
                     param,
                 )
-
             value = value.getValue()
             if isinstance(self._params[param], VectorParamDesc):
                 assert isinstance(value, list)

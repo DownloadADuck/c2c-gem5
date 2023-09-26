@@ -68,8 +68,8 @@ def create_system(
     options, full_system, system, dma_ports, bootmem, ruby_system, cpus, network
 ):
 
-    #if buildEnv["PROTOCOL"] != "CHI":
-    #    m5.panic("This script requires the CHI build")
+    if buildEnv["PROTOCOL"] != "CHI":
+        m5.panic("This script requires the CHI build")
 
     if options.num_dirs < 1:
         m5.fatal("--num-dirs must be at least 1")
@@ -273,17 +273,13 @@ def create_system(
 
     # Network configurations
     # virtual networks: 0=request, 1=snoop, 2=response, 3=data
-    ruby_system.network0.number_of_virtual_networks = 4
-    ruby_system.network1.number_of_virtual_networks = 4
+    network.number_of_virtual_networks = 4
 
-    ruby_system.network0.control_msg_size = params.cntrl_msg_size
-    ruby_system.network0.data_msg_size = params.data_width
-    ruby_system.network1.control_msg_size = params.cntrl_msg_size
-    ruby_system.network1.data_msg_size = params.data_width
+    network.control_msg_size = params.cntrl_msg_size
+    network.data_msg_size = params.data_width
 
     if options.network == "simple":
-        ruby_system.network0.buffer_size = params.router_buffer_size
-        ruby_system.network1.buffer_size = params.router_buffer_size
+        network.buffer_size = params.router_buffer_size
 
     # Incorporate the params into options so it's propagated to
     # makeTopology and create_topology the parent scripts
