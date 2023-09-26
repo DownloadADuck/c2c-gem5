@@ -174,12 +174,14 @@ def create_system(
         network_cntrls.extend(rnf.getNetworkSideControllers())
     
     # Creates one Misc Node
-    ruby_system.mn = [CHI_MN(ruby_system, [cpu.l1d for cpu in cpus], network)]
-    for mn in ruby_system.mn:
-        all_cntrls.extend(mn.getAllControllers())
-        network_nodes.append(mn)
-        network_cntrls.extend(mn.getNetworkSideControllers())
-        assert mn.getAllControllers() == mn.getNetworkSideControllers()
+    # Added the if statement to add a MN is there is CPUs
+    if options.num_cpus > 0:
+        ruby_system.mn = [CHI_MN(ruby_system, [cpu.l1d for cpu in cpus], network)]
+        for mn in ruby_system.mn:
+            all_cntrls.extend(mn.getAllControllers())
+            network_nodes.append(mn)
+            network_cntrls.extend(mn.getNetworkSideControllers())
+            assert mn.getAllControllers() == mn.getNetworkSideControllers()
 
     # Look for other memories
     other_memories = []

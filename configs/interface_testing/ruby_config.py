@@ -110,7 +110,8 @@ def create_system(
     ruby.network1 = network1
 
     if cpus is None:
-        cpus = system.cpus
+        cpus0 = system.cpus
+        cpus1 = []
     
     (cpu_sequencers, tgen_sequencers, dir_cntrls, topology0) = \
         tgen_CHI.create_system(
@@ -120,7 +121,7 @@ def create_system(
             dma_ports, 
             bootmem, 
             ruby, 
-            cpus,
+            cpus0,
             ruby.network0,
         )
     
@@ -132,7 +133,7 @@ def create_system(
             dma_ports,
             bootmem,
             ruby,
-            cpus,
+            cpus1,
             ruby.network1,
         )
 
@@ -177,7 +178,7 @@ def create_system(
             cpu_seq.connectIOPorts(piobus)
 
     # TrafficGen setup
-    for i in range(len(cpus)):
+    for i in range(len(cpus0)):
         system.tgens[i].port = cpu_sequencers[i].in_ports
     
     ruby.number_of_virtual_networks = ruby.network0.number_of_virtual_networks

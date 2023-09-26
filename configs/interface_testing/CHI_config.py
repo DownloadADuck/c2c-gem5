@@ -611,6 +611,8 @@ class CHI_HNF(CHI_Node):
         # All ranges should have the same interleaving
         assert len(addr_ranges) >= 1
 
+        self._network = network
+
         ll_cache = llcache_type(start_index_bit=intlvHighBit + 1)
         self._cntrl = CHI_HNFController(
             ruby_system, ll_cache, NULL, addr_ranges
@@ -621,7 +623,7 @@ class CHI_HNF(CHI_Node):
         else:
             parent.cntrl = self._cntrl
 
-        self.connectController(self._cntrl, network)
+        self.connectController(self._cntrl, self._network)
 
     def getAllControllers(self):
         return [self._cntrl]
