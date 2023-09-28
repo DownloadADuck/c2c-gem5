@@ -163,8 +163,8 @@ def create_system(
             ruby_system,
             L1ICache,
             L1DCache,
-            network,
             system.cache_line_size.value,
+            network,
         )
         for cpu in cpus
     ]
@@ -203,7 +203,7 @@ def create_system(
     hnf_list = [i for i in range(options.num_l3caches)]
     CHI_HNF.createAddrRanges(sysranges, system.cache_line_size.value, hnf_list)
     ruby_system.hnf = [
-        CHI_HNF(i, ruby_system, HNFCache, network, None)
+        CHI_HNF(i, ruby_system, HNFCache, None, network)
         for i in range(options.num_l3caches)
     ]
 
@@ -219,7 +219,7 @@ def create_system(
     # create_directories shared by other protocols.
 
     ruby_system.snf = [
-        CHI_SNF_MainMem(ruby_system, network, None, None)
+        CHI_SNF_MainMem(ruby_system, None, network, None)
         for i in range(options.num_dirs)
     ]
     for snf in ruby_system.snf:

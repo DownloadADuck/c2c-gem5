@@ -110,7 +110,8 @@ def create_system(
             dma_ports, 
             bootmem, 
             ruby, 
-            cpus
+            cpus,
+            network
         )
 
     # Create the network topology
