@@ -211,6 +211,7 @@ system = System(
     cpus=[CPUClass(cpu_id=i) for i in range(np)],
     mem_mode="timing",
     mem_ranges=[AddrRange('512MB')],
+    mem_ranges1=[AddrRange('512MB')],
     cache_line_size=64
 )
 

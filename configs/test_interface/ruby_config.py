@@ -17,7 +17,7 @@ from common import FileSystemConfig
 from topologies import *
 from network import Network
 
-def setup_memory_controllers(system, ruby, dir_cntrls, options):
+def setup_memory_controllers(system, ruby, dir_cntrls, mem_ranges, options):
     ruby.block_size_bytes = options.cacheline_size
     ruby.memory_size_bits = 48
 
@@ -35,7 +35,7 @@ def setup_memory_controllers(system, ruby, dir_cntrls, options):
             dir_cntrl.memory_out_ports = crossbar.cpu_side_ports
         
         dir_ranges = []
-        for r in system.mem_ranges:
+        for r in mem_ranges:
             mem_type = ObjectList.mem_list.get(options.mem_type)
             dram_intf = MemConfig.create_mem_intf(
                 mem_type,
@@ -171,8 +171,10 @@ def create_system(
     
     # Connect the system port for loading of binaries etc
     system.system_port = system.sys_port_proxy.in_ports
+    print("mem_ranges from system --> ", system.mem_ranges)
     
-    setup_memory_controllers(system, ruby, dir_cntrls0, options)
+    setup_memory_controllers(system, ruby, dir_cntrls0, system.mem_ranges, options)
+    setup_memory_controllers(system, ruby, dir_cntrls1, system.mem_ranges1, options1)
 
     # Connect the cpu sequencers and the piobus
     if piobus != None:

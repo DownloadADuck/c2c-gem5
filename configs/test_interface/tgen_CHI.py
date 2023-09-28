@@ -426,8 +426,8 @@ def create_chip1(
     for m in other_memories:
         sysranges.append(m.range)
 
-    hnf_list = [i for i in range(options.num_l3caches)]
-    CHI_HNF.createAddrRanges(sysranges, system.cache_line_size.value, hnf_list)
+    hnf_list1 = [i for i in range(options.num_l3caches)]
+    CHI_HNF.createAddrRanges(sysranges, system.cache_line_size.value, hnf_list1)
     ruby_system.hnf1 = [
         CHI_HNF(i, ruby_system, HNFCache, None, network)
         for i in range(options.num_l3caches)
