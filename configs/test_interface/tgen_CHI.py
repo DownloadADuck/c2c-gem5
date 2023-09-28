@@ -65,7 +65,14 @@ def read_config_file(file):
 
 
 def create_system(
-    options, full_system, system, dma_ports, bootmem, ruby_system, cpus
+    options,
+    full_system,
+    system,
+    dma_ports, 
+    bootmem, 
+    ruby_system, 
+    cpus,
+    network
 ):
 
     if buildEnv["PROTOCOL"] != "CHI":
@@ -97,7 +104,6 @@ def create_system(
     params = chi_defs.NoC_Params
     # Node types
     CHI_RNF = chi_defs.CHI_RNF
-    CHI_RNF_tgen = chi_defs.CHI_RNF_tgen
     CHI_HNF = chi_defs.CHI_HNF
     CHI_MN = chi_defs.CHI_MN
     CHI_SNF_MainMem = chi_defs.CHI_SNF_MainMem
@@ -157,20 +163,11 @@ def create_system(
             ruby_system,
             L1ICache,
             L1DCache,
+            network,
             system.cache_line_size.value,
         )
         for cpu in cpus
     ]
-
-    #ruby_system.rnf_tgen = [
-    #    CHI_RNF_tgen(
-    #        [tgen],
-    #        ruby_system,
-    #        L1DCache,
-    #        system.cache_line_size.value,
-    #    )
-    #    for tgen in tgens
-    #]
 
     for rnf in ruby_system.rnf:
         rnf.addPrivL2Cache(L2Cache)
@@ -179,15 +176,8 @@ def create_system(
         network_nodes.append(rnf)
         network_cntrls.extend(rnf.getNetworkSideControllers())
     
-    #for rnf_tgen in ruby_system.rnf_tgen:
-    #    #rnf_tgen.addPrivL2Cache(L2Cache)
-    #    tgen_sequencers.extend(rnf_tgen.getSequencers())
-    #    all_cntrls.extend(rnf_tgen.getAllControllers())
-    #    network_nodes.append(rnf_tgen)
-    #    network_cntrls.extend(rnf.getNetworkSideControllers())
-    
     # Creates one Misc Node
-    ruby_system.mn = [CHI_MN(ruby_system, [cpu.l1d for cpu in cpus])]
+    ruby_system.mn = [CHI_MN(ruby_system, [cpu.l1d for cpu in cpus], network)]
     for mn in ruby_system.mn:
         all_cntrls.extend(mn.getAllControllers())
         network_nodes.append(mn)
@@ -213,7 +203,7 @@ def create_system(
     hnf_list = [i for i in range(options.num_l3caches)]
     CHI_HNF.createAddrRanges(sysranges, system.cache_line_size.value, hnf_list)
     ruby_system.hnf = [
-        CHI_HNF(i, ruby_system, HNFCache, None)
+        CHI_HNF(i, ruby_system, HNFCache, network, None)
         for i in range(options.num_l3caches)
     ]
 
@@ -229,7 +219,7 @@ def create_system(
     # create_directories shared by other protocols.
 
     ruby_system.snf = [
-        CHI_SNF_MainMem(ruby_system, None, None)
+        CHI_SNF_MainMem(ruby_system, network, None, None)
         for i in range(options.num_dirs)
     ]
     for snf in ruby_system.snf:
