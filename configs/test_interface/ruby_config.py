@@ -111,10 +111,11 @@ def create_system(
     ruby.network1 = network1
 
     if cpus is None:
-        cpus = system.cpus
+        cpus0 = system.cpus
+        cpus1 = []
     
     # Chip 0
-    (cpu_sequencers, dir_cntrls, topology) = \
+    (cpu_sequencers0, dir_cntrls0, topology0) = \
         tgen_CHI.create_chip0(
             options, 
             full_system, 
@@ -122,12 +123,12 @@ def create_system(
             dma_ports, 
             bootmem, 
             ruby, 
-            cpus,
+            cpus0,
             network0
         )
     
     # Chip 1
-    (cpu_sequencers, dir_cntrls, topology) = \
+    (cpu_sequencers1, dir_cntrls1, topology1) = \
         tgen_CHI.create_chip1(
             options1,
             full_system,
@@ -135,24 +136,29 @@ def create_system(
             dma_ports,
             bootmem,
             ruby,
-            cpus,
+            cpus1,
             network1
         )
     
-    
-
 
     # Create the network topology
-    topology.makeTopology(
+    topology0.makeTopology(
         options, network0, IntLinkClass, ExtLinkClass, RouterClass
+    )
+
+    topology1.makeTopology(
+        options1, network1, IntLinkClass, ExtLinkClass, RouterClass
     )
 
     # In SE register the ropology elements with fake filesystem
     if not full_system:
-        topology.registerTopology(options)
+        topology0.registerTopology(options)
+        topology1.registerTopology(options1)
 
     # Initialize network based topology
     Network.init_network(options, network0, InterfaceClass)
+    Network.init_network(options1, network1, InterfaceClass)
+
 
     # Create a port proxy for connecting the system port.
     sys_port_proxy = RubyPortProxy(ruby_system=ruby)
@@ -166,20 +172,20 @@ def create_system(
     # Connect the system port for loading of binaries etc
     system.system_port = system.sys_port_proxy.in_ports
     
-    setup_memory_controllers(system, ruby, dir_cntrls, options)
+    setup_memory_controllers(system, ruby, dir_cntrls0, options)
 
     # Connect the cpu sequencers and the piobus
     if piobus != None:
-        for cpu_seq in cpu_sequencers:
+        for cpu_seq in cpu_sequencers0:
             cpu_seq.connectIOPorts(piobus)
 
     # TrafficGen setup
-    for i in range(len(cpus)):
-        system.tgens[i].port = cpu_sequencers[i].in_ports
+    for i in range(len(cpus0)):
+        system.tgens[i].port = cpu_sequencers0[i].in_ports
     
     ruby.number_of_virtual_networks = ruby.network0.number_of_virtual_networks
-    ruby._cpu_ports = cpu_sequencers
-    ruby.num_of_sequencers = len(cpu_sequencers) + len(tgen_sequencers)
+    ruby._cpu_ports = cpu_sequencers0
+    ruby.num_of_sequencers = len(cpu_sequencers0)
 
 
 def create_directories(options, bootmem, ruby_system, system):
