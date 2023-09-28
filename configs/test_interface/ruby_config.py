@@ -76,6 +76,7 @@ def create_topology(controllers, options):
 
 def create_system(
     options,
+    options1,
     full_system,
     system,
     piobus=None,
@@ -89,21 +90,32 @@ def create_system(
     # Generate pseudo filesystem
     FileSystemConfig.config_filesystem(system, options)
 
-    # Create the network object
+    # Create the network0 object
+    # Chip 0
     (
-        network,
+        network0,
         IntLinkClass,
         ExtLinkClass,
         RouterClass,
         InterfaceClass,
     ) = Network.create_network(options, ruby)
-    ruby.network = network
+    ruby.network0 = network0
+
+    (
+        network1,
+        IntLinkClass,
+        ExtLinkClass,
+        RouterClass,
+        InterfaceClass,
+    ) = Network.create_network(options1, ruby)
+    ruby.network1 = network1
 
     if cpus is None:
         cpus = system.cpus
     
-    (cpu_sequencers, tgen_sequencers, dir_cntrls, topology) = \
-        tgen_CHI.create_system(
+    # Chip 0
+    (cpu_sequencers, dir_cntrls, topology) = \
+        tgen_CHI.create_chip0(
             options, 
             full_system, 
             system, 
@@ -111,12 +123,28 @@ def create_system(
             bootmem, 
             ruby, 
             cpus,
-            network
+            network0
         )
+    
+    # Chip 1
+    (cpu_sequencers, dir_cntrls, topology) = \
+        tgen_CHI.create_chip1(
+            options1,
+            full_system,
+            system,
+            dma_ports,
+            bootmem,
+            ruby,
+            cpus,
+            network1
+        )
+    
+    
+
 
     # Create the network topology
     topology.makeTopology(
-        options, network, IntLinkClass, ExtLinkClass, RouterClass
+        options, network0, IntLinkClass, ExtLinkClass, RouterClass
     )
 
     # In SE register the ropology elements with fake filesystem
@@ -124,7 +152,7 @@ def create_system(
         topology.registerTopology(options)
 
     # Initialize network based topology
-    Network.init_network(options, network, InterfaceClass)
+    Network.init_network(options, network0, InterfaceClass)
 
     # Create a port proxy for connecting the system port.
     sys_port_proxy = RubyPortProxy(ruby_system=ruby)
@@ -149,7 +177,7 @@ def create_system(
     for i in range(len(cpus)):
         system.tgens[i].port = cpu_sequencers[i].in_ports
     
-    ruby.number_of_virtual_networks = ruby.network.number_of_virtual_networks
+    ruby.number_of_virtual_networks = ruby.network0.number_of_virtual_networks
     ruby._cpu_ports = cpu_sequencers
     ruby.num_of_sequencers = len(cpu_sequencers) + len(tgen_sequencers)
 

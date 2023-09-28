@@ -25,62 +25,118 @@ from common.cpu2000 import *
 class Object(object):
     pass
 
-# Needed options for the create_system method
-options = Object()
-options.cmd = "tests/test-progs/hello/bin/x86/linux/hello"
-options.input = ''
-options.output = ''
-options.errout = '' 
-options.options = ''
-options.env = ''
-options.caches = True
-options.cache_line_size = 64
-options.num_dirs = 1
-options.xor_low_bit = 20
-options.enable_dram_powerdown = False
-options.access_backing_store = False
-options.mem_type = 'DDR3_1600_8x8'
-options.topology = 'Pt2Pt'
-options.link_latency = 1
-options.router_latency = 1
-options.outdir = "/m5out"
-options.cpu_clock = '2GHz'
-options.l2_size = '2MB'
-options.network = 'simple'
-options.simple_physical_channels = False
-options.repeat_switch = None
-options.take_checkpoints = None
-options.smt = False
-options.cpu_type = 'TimingSimpleCPU'
-options.checkpoint_restore = None
-options.fast_forward = None
-options.num_l3caches = 1
-options.chi_config = None
-options.l1i_size = '32kB'
-options.l1i_assoc = 2
-options.l1d_size = '64kB'
-options.l1d_assoc = 2
-options.l2_assoc = 8
-options.l3_size = '32kB'
-options.l3_assoc = 16
-options.cacheline_size = 64
-options.num_cpus = 1
-options.network_fault_model = False
-options.checkpoint_dir = None
-options.standard_switch = None
-options.stats_root = []
-options.prog_interval = None
-options.maxinsts = None
-options.override_vendor_string = None
-options.take_simpoint_checkpoints = None
-options.param = []
-options.initialize_only = False
-options.abs_max_tick = 18446744073709551615
-options.rel_max_tick = None
-options.maxtime = None
-options.restore_simpoint_checkpoint = False
-options.max_checkpoints = 5
-options.checkpoint_at_end = False
+# Needed options0 for the create_system method
+options0 = Object()
+options0.cmd = "tests/test-progs/hello/bin/x86/linux/hello"
+options0.input = ''
+options0.output = ''
+options0.errout = '' 
+options0.options0 = ''
+options0.env = ''
+options0.caches = True
+options0.cache_line_size = 64
+options0.num_dirs = 1
+options0.xor_low_bit = 20
+options0.enable_dram_powerdown = False
+options0.access_backing_store = False
+options0.mem_type = 'DDR3_1600_8x8'
+options0.topology = 'Pt2Pt'
+options0.link_latency = 1
+options0.router_latency = 1
+options0.outdir = "/m5out"
+options0.cpu_clock = '2GHz'
+options0.l2_size = '2MB'
+options0.network = 'simple'
+options0.simple_physical_channels = False
+options0.repeat_switch = None
+options0.take_checkpoints = None
+options0.smt = False
+options0.cpu_type = 'TimingSimpleCPU'
+options0.checkpoint_restore = None
+options0.fast_forward = None
+options0.num_l3caches = 1
+options0.chi_config = None
+options0.l1i_size = '32kB'
+options0.l1i_assoc = 2
+options0.l1d_size = '64kB'
+options0.l1d_assoc = 2
+options0.l2_assoc = 8
+options0.l3_size = '32kB'
+options0.l3_assoc = 16
+options0.cacheline_size = 64
+options0.num_cpus = 1
+options0.network_fault_model = False
+options0.checkpoint_dir = None
+options0.standard_switch = None
+options0.stats_root = []
+options0.prog_interval = None
+options0.maxinsts = None
+options0.override_vendor_string = None
+options0.take_simpoint_checkpoints = None
+options0.param = []
+options0.initialize_only = False
+options0.abs_max_tick = 18446744073709551615
+options0.rel_max_tick = None
+options0.maxtime = None
+options0.restore_simpoint_checkpoint = False
+options0.max_checkpoints = 5
+options0.checkpoint_at_end = False
+
+options1 = Object()
+options1.cmd = "tests/test-progs/hello/bin/x86/linux/hello"
+options1.input = ''
+options1.output = ''
+options1.errout = '' 
+options1.options0 = ''
+options1.env = ''
+options1.caches = False
+options1.cache_line_size = 64
+options1.num_dirs = 1
+options1.xor_low_bit = 20
+options1.enable_dram_powerdown = False
+options1.access_backing_store = False
+options1.mem_type = 'DDR3_1600_8x8'
+options1.topology = 'Pt2Pt'
+options1.link_latency = 1
+options1.router_latency = 1
+options1.outdir = "/m5out"
+options1.cpu_clock = '2GHz'
+options1.l2_size = '2MB'
+options1.network = 'simple'
+options1.simple_physical_channels = False
+options1.repeat_switch = None
+options1.take_checkpoints = None
+options1.smt = False
+options1.cpu_type = 'TimingSimpleCPU'
+options1.checkpoint_restore = None
+options1.fast_forward = None
+options1.num_l3caches = 1
+options1.chi_config = None
+options1.l1i_size = '32kB'
+options1.l1i_assoc = 2
+options1.l1d_size = '64kB'
+options1.l1d_assoc = 2
+options1.l2_assoc = 8
+options1.l3_size = '32kB'
+options1.l3_assoc = 16
+options1.cacheline_size = 64
+options1.num_cpus = 0
+options1.network_fault_model = False
+options1.checkpoint_dir = None
+options1.standard_switch = None
+options1.stats_root = []
+options1.prog_interval = None
+options1.maxinsts = None
+options1.override_vendor_string = None
+options1.take_simpoint_checkpoints = None
+options1.param = []
+options1.initialize_only = False
+options1.abs_max_tick = 18446744073709551615
+options1.rel_max_tick = None
+options1.maxtime = None
+options1.restore_simpoint_checkpoint = False
+options1.max_checkpoints = 5
+options1.checkpoint_at_end = False
 
 def get_processes(args):
     """Interprets provided args and returns a list of processes"""
@@ -98,8 +154,8 @@ def get_processes(args):
         outputs = args.output.split(";")
     if args.errout != "":
         errouts = args.errout.split(";")
-    if args.options != "":
-        pargs = args.options.split(";")
+    if args.options0 != "":
+        pargs = args.options0.split(";")
 
     idx = 0
     for wrkld in workloads:
@@ -136,12 +192,12 @@ def get_processes(args):
 multiprocesses = []
 numThreads = 1
 
-multiprocesses, numThreads = get_processes(options)
-(CPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options)
+multiprocesses, numThreads = get_processes(options0)
+(CPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options0)
 CPUClass.numThreads = numThreads
 
 # Number of cpus
-np = options.num_cpus
+np = options0.num_cpus
 mp0_path = multiprocesses[0].executable
 
 system = System(
@@ -188,7 +244,7 @@ for i in range(np):
     system.cpus[i].createThreads()
 
 
-ruby_config.create_system(options, False, system)
+ruby_config.create_system(options0, options1, False, system)
 
 system.ruby.clk_domain = SrcClockDomain(
     clock='2GHz', voltage_domain=system.voltage_domain
@@ -206,4 +262,4 @@ if wait_gdb:
     system.workload.wait_for_remote_gdb = True
     
 root = Root(full_system=False, system=system)
-Simulation.run(options, root, system, FutureClass)
+Simulation.run(options0, root, system, FutureClass)
