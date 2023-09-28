@@ -17,54 +17,104 @@ from common import FileSystemConfig
 from topologies import *
 from network import Network
 
-def setup_memory_controllers(system, ruby, dir_cntrls, mem_ranges, options):
-    ruby.block_size_bytes = options.cacheline_size
+def setup_memory_controllers(
+    system,
+    ruby, 
+    dir_cntrls0, 
+    dir_cntrls1, 
+    mem_ranges0,
+    mem_ranges1,
+    options0,
+    options1
+):
+    ruby.block_size_bytes = options0.cacheline_size
     ruby.memory_size_bits = 48
 
     index = 0
-    mem_ctrls = []
+    mem_ctrls0 = []
+    mem_ctrls1 = []
     crossbars = []
 
-    intlv_size = options.cacheline_size
+    intlv_size = options0.cacheline_size
 
-    for dir_cntrl in dir_cntrls:
+    for dir_cntrl in dir_cntrls0:
         crossbar = None
-        if len(system.mem_ranges) > 1:
-            crossbar = IOXBar()
-            crossbars.append(crossbar)
-            dir_cntrl.memory_out_ports = crossbar.cpu_side_ports
+        #if len(mem_ranges0) > 1:
+        #    crossbar = IOXBar()
+        #    crossbars.append(crossbar)
+        #    dir_cntrl.memory_out_ports = crossbar.cpu_side_ports
         
         dir_ranges = []
-        for r in mem_ranges:
-            mem_type = ObjectList.mem_list.get(options.mem_type)
-            dram_intf = MemConfig.create_mem_intf(
-                mem_type,
-                r,
-                index,
-                int(math.log(options.num_dirs, 2)),
-                intlv_size,
-                options.xor_low_bit,
-            )
-            if issubclass(mem_type, DRAMInterface):
-                mem_ctrl = m5.objects.MemCtrl(dram=dram_intf)
-            else: 
-                mem_ctrl = dram_intf
+        #for mem_range in mem_ranges0:
+        mem_type = ObjectList.mem_list.get(options0.mem_type)
+        dram_intf = MemConfig.create_mem_intf(
+            mem_type,
+            mem_ranges0,
+            index,
+            int(math.log(options0.num_dirs, 2)),
+            intlv_size,
+            options0.xor_low_bit,
+        )
+        if issubclass(mem_type, DRAMInterface):
+            mem_ctrl = m5.objects.MemCtrl(dram=dram_intf)
+        else: 
+            mem_ctrl = dram_intf
             
-            mem_ctrls.append(mem_ctrl)
-            dir_ranges.append(dram_intf.range)
+        mem_ctrls0.append(mem_ctrl)
+        dir_ranges.append(dram_intf.range)
 
-            if crossbar != None:
-                mem_ctrl.port = crossbar.mem_side_ports
-            else:
-                mem_ctrl.port = dir_cntrl.memory_out_port
-            # Enable low-power DRAM states if option is enabled
-            if issubclass(mem_type, DRAMInterface):
-                mem_ctrl.dram.enable_dram_powerdown = (
-                    options.enable_dram_powerdown
-                )
+        if crossbar != None:
+            mem_ctrl.port = crossbar.mem_side_ports
+        else:
+            mem_ctrl.port = dir_cntrl.memory_out_port
+        # Enable low-power DRAM states if option is enabled
+        if issubclass(mem_type, DRAMInterface):
+            mem_ctrl.dram.enable_dram_powerdown = (
+                options0.enable_dram_powerdown
+            )
         index += 1
         dir_cntrl.addr_ranges = dir_ranges
-    system.mem_ctrls = mem_ctrls
+
+    for dir_cntrl in dir_cntrls1:
+        crossbar = None
+        #if len(mem_ranges1) > 1:
+        #    crossbar = IOXBar()
+        #    crossbars.append(crossbar)
+        #    dir_cntrl.memory_out_ports = crossbar.cpu_side_ports
+        
+        dir_ranges = []
+        #for mem_range in mem_ranges1:
+        mem_type = ObjectList.mem_list.get(options1.mem_type)
+        dram_intf = MemConfig.create_mem_intf(
+            mem_type,
+            mem_ranges1,
+            index,
+            int(math.log(options1.num_dirs, 2)),
+            intlv_size,
+            options1.xor_low_bit,
+        )
+        if issubclass(mem_type, DRAMInterface):
+            mem_ctrl = m5.objects.MemCtrl(dram=dram_intf)
+        else: 
+            mem_ctrl = dram_intf
+            
+        mem_ctrls1.append(mem_ctrl)
+        dir_ranges.append(dram_intf.range)
+
+        if crossbar != None:
+            mem_ctrl.port = crossbar.mem_side_ports
+        else:
+            mem_ctrl.port = dir_cntrl.memory_out_port
+        # Enable low-power DRAM states if option is enabled
+        if issubclass(mem_type, DRAMInterface):
+            mem_ctrl.dram.enable_dram_powerdown = (
+                options1.enable_dram_powerdown
+            )
+        index += 1
+        dir_cntrl.addr_ranges = dir_ranges
+    system.mem_ctrls0 = mem_ctrls0
+    system.mem_ctrls1 = mem_ctrls1
+
     
     if len(crossbars) > 0:
         ruby.crossbars = crossbars
@@ -171,10 +221,17 @@ def create_system(
     
     # Connect the system port for loading of binaries etc
     system.system_port = system.sys_port_proxy.in_ports
-    print("mem_ranges from system --> ", system.mem_ranges)
     
-    setup_memory_controllers(system, ruby, dir_cntrls0, system.mem_ranges, options)
-    setup_memory_controllers(system, ruby, dir_cntrls1, system.mem_ranges1, options1)
+    setup_memory_controllers(
+        system,
+        ruby,
+        dir_cntrls0,
+        dir_cntrls1,
+        system.mem_ranges[0],
+        system.mem_ranges[1],
+        options,
+        options1
+    )
 
     # Connect the cpu sequencers and the piobus
     if piobus != None:

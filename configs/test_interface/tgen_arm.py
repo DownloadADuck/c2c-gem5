@@ -5,7 +5,7 @@ import m5
 from m5.defines import buildEnv
 from m5.objects import *
 from m5.params import NULL
-from m5.util import addToPath, fatal, warn
+from m5.util import *
 from gem5.isas import ISA
 from gem5.runtime import get_runtime_isa
 
@@ -200,6 +200,11 @@ CPUClass.numThreads = numThreads
 np = options0.num_cpus
 mp0_path = multiprocesses[0].executable
 
+# Memory ranges
+arv = convert.toMemorySize('256MB')
+print("bruh --> ", arv)
+addr_range_vaults = [AddrRange(i*arv, ((i+1)*arv-1)) for i in range(2)]
+
 system = System(
     tgens=[
         TrafficGen(
@@ -207,11 +212,9 @@ system = System(
             progress_check="10s",
         ) for i in range(np)
     ],
-    #cpus=[AtomicSimpleCPU(cpu_id=i) for i in range(np)],
     cpus=[CPUClass(cpu_id=i) for i in range(np)],
     mem_mode="timing",
-    mem_ranges=[AddrRange('512MB')],
-    mem_ranges1=[AddrRange('512MB')],
+    mem_ranges=addr_range_vaults,
     cache_line_size=64
 )
 
