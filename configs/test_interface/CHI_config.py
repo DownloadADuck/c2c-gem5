@@ -115,10 +115,10 @@ class CHI_Node(SubSystem):
         num_nodes_per_router = None
         router_list = None
 
-    def __init__(self, ruby_system):
+    def __init__(self, ruby_system, network):
         super(CHI_Node, self).__init__()
         self._ruby_system = ruby_system
-        self._network = ruby_system.network
+        self._network = network
 
     def getNetworkSideControllers(self):
         """
@@ -456,10 +456,11 @@ class CHI_RNF(CHI_Node):
         l1Icache_type,
         l1Dcache_type,
         cache_line_size,
+        network,
         l1Iprefetcher_type=None,
         l1Dprefetcher_type=None,
     ):
-        super(CHI_RNF, self).__init__(ruby_system)
+        super(CHI_RNF, self).__init__(ruby_system, network)
 
         self._block_size_bits = int(math.log(cache_line_size, 2))
 
@@ -472,6 +473,7 @@ class CHI_RNF(CHI_Node):
         self._ll_cntrls = []
 
         self._cpus = cpus
+        #self._network = network
 
         # First creates L1 caches and sequencers
         for cpu in self._cpus:
@@ -601,8 +603,8 @@ class CHI_HNF(CHI_Node):
 
     # The CHI controller can be a child of this object or another if
     # 'parent' if specified
-    def __init__(self, hnf_idx, ruby_system, llcache_type, parent):
-        super(CHI_HNF, self).__init__(ruby_system)
+    def __init__(self, hnf_idx, ruby_system, llcache_type, parent, network):
+        super(CHI_HNF, self).__init__(ruby_system, network)
 
         addr_ranges, intlvHighBit = self.getAddrRanges(hnf_idx)
         # All ranges should have the same interleaving
@@ -639,8 +641,8 @@ class CHI_MN(CHI_Node):
 
     # The CHI controller can be a child of this object or another if
     # 'parent' if specified
-    def __init__(self, ruby_system, l1d_caches, early_nonsync_comp=False):
-        super(CHI_MN, self).__init__(ruby_system)
+    def __init__(self, ruby_system, l1d_caches, network, early_nonsync_comp=False):
+        super(CHI_MN, self).__init__(ruby_system, network)
 
         # MiscNode has internal address range starting at 0
         addr_range = AddrRange(0, size="1kB")
@@ -670,8 +672,8 @@ class CHI_SNF_Base(CHI_Node):
 
     # The CHI controller can be a child of this object or another if
     # 'parent' if specified
-    def __init__(self, ruby_system, parent):
-        super(CHI_SNF_Base, self).__init__(ruby_system)
+    def __init__(self, ruby_system, network, parent):
+        super(CHI_SNF_Base, self).__init__(ruby_system, network)
 
         self._cntrl = Memory_Controller(
             version=Versions.getVersion(Memory_Controller),
@@ -728,8 +730,8 @@ class CHI_SNF_MainMem(CHI_SNF_Base):
     Create the SNF for a list main memory controllers
     """
 
-    def __init__(self, ruby_system, parent, mem_ctrl=None):
-        super(CHI_SNF_MainMem, self).__init__(ruby_system, parent)
+    def __init__(self, ruby_system, parent, network, mem_ctrl=None):
+        super(CHI_SNF_MainMem, self).__init__(ruby_system, network, parent)
         if mem_ctrl:
             self._cntrl.memory_out_port = mem_ctrl.port
             self._cntrl.addr_ranges = self.getMemRange(mem_ctrl)
@@ -743,8 +745,8 @@ class CHI_RNI_Base(CHI_Node):
 
     # The CHI controller can be a child of this object or another if
     # 'parent' if specified
-    def __init__(self, ruby_system, parent):
-        super(CHI_RNI_Base, self).__init__(ruby_system)
+    def __init__(self, ruby_system, network, parent):
+        super(CHI_RNI_Base, self).__init__(ruby_system, network)
 
         self._sequencer = RubySequencer(
             version=Versions.getSeqId(),
@@ -772,8 +774,8 @@ class CHI_RNI_DMA(CHI_RNI_Base):
     DMA controller wiredup to a given dma port
     """
 
-    def __init__(self, ruby_system, dma_port, parent):
-        super(CHI_RNI_DMA, self).__init__(ruby_system, parent)
+    def __init__(self, ruby_system, dma_port, network, parent):
+        super(CHI_RNI_DMA, self).__init__(ruby_system, network, parent)
         assert dma_port != None
         self._sequencer.in_ports = dma_port
 
@@ -932,3 +934,43 @@ class tgenSequencerWrapper:
 
     def __setattr__(self, name, value):
         setattr(self.data_seq, name, value)
+
+class Interface(Interface_Controller):
+    _version = 0
+    
+    @classmethod
+    def versionCount(cls):
+        cls._version += 1
+        return cls._version - 1
+    
+    def __init__(
+        self, 
+        ruby_system, 
+        network0, 
+        network1,
+    ):
+        super(Interface, self).__init__()
+        
+        self.version = self.versionCount()
+        self.clk_domain = ruby_system.clk_domain
+        self.ruby_system = ruby_system
+        self.connectQueues(network0, network1)
+    
+    def connectQueues(self, network0, network1):
+        self.reqIn = MessageBuffer(ordered=True)
+        self.snpIn = MessageBuffer(ordered=True)
+        self.rspIn = MessageBuffer(ordered=True)
+        self.datIn = MessageBuffer(ordered=True)
+        self.reqOut = MessageBuffer(ordered=True)
+        self.snpOut = MessageBuffer(ordered=True)
+        self.rspOut = MessageBuffer(ordered=True)
+        self.datOut = MessageBuffer(ordered=True)
+
+        self.reqIn.in_port = network0.out_port
+        self.snpIn.in_port = network0.out_port
+        self.rspIn.in_port = network0.out_port
+        self.datIn.in_port = network0.out_port
+        self.reqOut.out_port = network1.in_port
+        self.snpOut.out_port = network1.in_port
+        self.rspOut.out_port = network1.in_port
+        self.datOut.out_port = network1.in_port
