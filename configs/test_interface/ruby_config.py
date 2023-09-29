@@ -8,6 +8,8 @@ from gem5.isas import ISA
 from gem5.runtime import get_runtime_isa
 
 from test_interface import tgen_CHI
+#from test_interface import CHI_config
+from CHI_config import Interface
 
 addToPath("../")
 from common import ObjectList
@@ -209,6 +211,8 @@ def create_system(
     Network.init_network(options, network0, InterfaceClass)
     Network.init_network(options1, network1, InterfaceClass)
 
+    # C2C forwarding interface setup
+    ruby.interface = Interface(ruby, network0, network1)
 
     # Create a port proxy for connecting the system port.
     sys_port_proxy = RubyPortProxy(ruby_system=ruby)
