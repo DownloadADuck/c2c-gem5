@@ -974,3 +974,6 @@ class Interface(Interface_Controller):
         self.snpOut.out_port = network1.in_port
         self.rspOut.out_port = network1.in_port
         self.datOut.out_port = network1.in_port
+    
+    def getNetworkSideController(self):
+        return([self])

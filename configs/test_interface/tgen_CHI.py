@@ -71,7 +71,8 @@ def create_chip0(
     bootmem, 
     ruby_system, 
     cpus,
-    network
+    network,
+    interface
 ):
 
     if buildEnv["PROTOCOL"] != "CHI":
@@ -174,6 +175,9 @@ def create_chip0(
         all_cntrls.extend(rnf.getAllControllers())
         network_nodes.append(rnf)
         network_cntrls.extend(rnf.getNetworkSideControllers())
+
+    # Registers the Inerface controller in the network_cntrls
+    network_cntrls.extend([interface])
     
     # Creates one Misc Node
     ruby_system.mn = [CHI_MN(ruby_system, [cpu.l1d for cpu in cpus], network)]
@@ -250,17 +254,15 @@ def create_chip0(
             network_cntrls.extend(rni.getNetworkSideControllers())
             all_cntrls.extend(rni.getAllControllers())
 
-    if full_system:
-        ruby_system.io_rni = CHI_RNI_IO(ruby_system, None)
-        network_nodes.append(ruby_system.io_rni)
-        network_cntrls.extend(ruby_system.io_rni.getNetworkSideControllers())
-        all_cntrls.extend(ruby_system.io_rni.getAllControllers())
+    #if full_system:
+    #    ruby_system.io_rni = CHI_RNI_IO(ruby_system, None)
+    #    network_nodes.append(ruby_system.io_rni)
+    #    network_cntrls.extend(ruby_system.io_rni.getNetworkSideControllers())
+    #    all_cntrls.extend(ruby_system.io_rni.getAllControllers())
 
     # Assign downstream destinations
     for rnf in ruby_system.rnf:
         rnf.setDownstream(hnf_dests)
-    #for rnf_tgen in ruby_system.rnf_tgen:
-    #    rnf_tgen.setDownstream(hnf_dests)
     if len(dma_ports) > 0:
         for rni in ruby_system.dma_rni:
             rni.setDownstream(hnf_dests)
@@ -305,7 +307,8 @@ def create_chip1(
     bootmem, 
     ruby_system, 
     cpus,
-    network
+    network,
+    interface
 ):
 
     if buildEnv["PROTOCOL"] != "CHI":
@@ -400,6 +403,9 @@ def create_chip1(
 #        all_cntrls.extend(rnf.getAllControllers())
 #        network_nodes.append(rnf)
 #        network_cntrls.extend(rnf.getNetworkSideControllers())
+
+    # Registers the Inerface controller in the network_cntrls
+    network_cntrls.extend([interface])
     
     # Creates one Misc Node
     ruby_system.mn1 = [CHI_MN(ruby_system, [cpu.l1d for cpu in cpus], network)]
