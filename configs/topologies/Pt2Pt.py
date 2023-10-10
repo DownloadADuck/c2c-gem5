@@ -37,7 +37,7 @@ class Pt2Pt(SimpleTopology):
     def __init__(self, controllers):
         self.nodes = controllers
 
-    def makeTopology(self, options, network, IntLink, ExtLink, Router):
+    def makeTopology(self, options, network, IntLink, ExtLink, Router, int_link_id):
         nodes = self.nodes
 
         # default values for link latency and router latency.
@@ -67,11 +67,12 @@ class Pt2Pt(SimpleTopology):
         ]
         network.ext_links = ext_links
 
-        link_count = len(nodes)
+        link_count = len(nodes) + int_link_id
         int_links = []
         for i in range(len(nodes)):
             for j in range(len(nodes)):
                 if i != j:
+                    print("link_count = ", link_count)
                     link_count += 1
                     int_links.append(
                         IntLink(
@@ -83,3 +84,4 @@ class Pt2Pt(SimpleTopology):
                     )
 
         network.int_links = int_links
+        return link_count
