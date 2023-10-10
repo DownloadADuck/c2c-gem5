@@ -105,8 +105,6 @@ class MessageBuffer : public SimObject
     void setConsumer(Consumer* consumer)
     {
         DPRINTF(RubyQueue, "Setting consumer: %s\n", *consumer);
-        std::cout << "*consumer --> " << *consumer << std::endl;
-        std::cout << "m_consumer --> " << m_consumer << std::endl;
         if (m_consumer != NULL) {
             fatal("Trying to connect %s to MessageBuffer %s. \
                   \n%s already connected. Check the cntrl_id's.\n",

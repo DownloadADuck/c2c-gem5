@@ -147,7 +147,6 @@ def create_chip0(
     assert system.cache_line_size.value == options.cacheline_size
 
     cpu_sequencers = []
-    tgen_sequencers = []    
     mem_cntrls = []
     mem_dests = []
     network_nodes = []

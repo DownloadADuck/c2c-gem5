@@ -82,7 +82,7 @@ PerfectSwitch::addInPort(const std::vector<MessageBuffer*>& in)
 {
     NodeID port = m_in.size();
     m_in.push_back(in);
-
+    std::cout << "PerfectSwitch::addInPort called!" << std::endl;
     for (int i = 0; i < in.size(); ++i) {
         if (in[i] != nullptr) {
             in[i]->setConsumer(this);
