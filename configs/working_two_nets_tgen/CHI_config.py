@@ -118,7 +118,6 @@ class CHI_Node(SubSystem):
     def __init__(self, ruby_system, network):
         super(CHI_Node, self).__init__()
         self._ruby_system = ruby_system
-        #self._network = ruby_system.network0
         self._network = network
 
     def getNetworkSideControllers(self):
@@ -141,7 +140,7 @@ class CHI_Node(SubSystem):
         for c in self.getNetworkSideControllers():
             c.downstream_destinations = cntrls
 
-    def connectController(self, cntrl, network):
+    def connectController(self, cntrl):
         """
         Creates and configures the messages buffers for the CHI input/output
         ports that connect to the network
@@ -159,14 +158,14 @@ class CHI_Node(SubSystem):
         # Controllers that are not part of the getNetworkSideControllers list
         # still communicate using internal routers, thus we need to wire-up the
         # ports
-        cntrl.reqOut.out_port = network.in_port
-        cntrl.rspOut.out_port = network.in_port
-        cntrl.snpOut.out_port = network.in_port
-        cntrl.datOut.out_port = network.in_port
-        cntrl.reqIn.in_port = network.out_port
-        cntrl.rspIn.in_port = network.out_port
-        cntrl.snpIn.in_port = network.out_port
-        cntrl.datIn.in_port = network.out_port
+        cntrl.reqOut.out_port = self._network.in_port
+        cntrl.rspOut.out_port = self._network.in_port
+        cntrl.snpOut.out_port = self._network.in_port
+        cntrl.datOut.out_port = self._network.in_port
+        cntrl.reqIn.in_port = self._network.out_port
+        cntrl.rspIn.in_port = self._network.out_port
+        cntrl.snpIn.in_port = self._network.out_port
+        cntrl.datIn.in_port = self._network.out_port
 
 
 class TriggerMessageBuffer(MessageBuffer):
@@ -456,8 +455,8 @@ class CHI_RNF(CHI_Node):
         ruby_system,
         l1Icache_type,
         l1Dcache_type,
-        network,
         cache_line_size,
+        network,
         l1Iprefetcher_type=None,
         l1Dprefetcher_type=None,
     ):
@@ -474,7 +473,7 @@ class CHI_RNF(CHI_Node):
         self._ll_cntrls = []
 
         self._cpus = cpus
-        self._network = network
+        #self._network = network
 
         # First creates L1 caches and sequencers
         for cpu in self._cpus:
@@ -521,7 +520,7 @@ class CHI_RNF(CHI_Node):
             cpu._ll_cntrls = [cpu.l1i, cpu.l1d]
             for c in cpu._ll_cntrls:
                 self._cntrls.append(c)
-                self.connectController(c, self._network)
+                self.connectController(c)
                 self._ll_cntrls.append(c)
 
     def getSequencers(self):
@@ -554,7 +553,7 @@ class CHI_RNF(CHI_Node):
             cpu.l2 = CHI_L2Controller(self._ruby_system, l2_cache, l2_pf)
 
             self._cntrls.append(cpu.l2)
-            self.connectController(cpu.l2, self._network)
+            self.connectController(cpu.l2)
 
             self._ll_cntrls.append(cpu.l2)
 
@@ -604,14 +603,12 @@ class CHI_HNF(CHI_Node):
 
     # The CHI controller can be a child of this object or another if
     # 'parent' if specified
-    def __init__(self, hnf_idx, ruby_system, llcache_type, network, parent):
+    def __init__(self, hnf_idx, ruby_system, llcache_type, parent, network):
         super(CHI_HNF, self).__init__(ruby_system, network)
 
         addr_ranges, intlvHighBit = self.getAddrRanges(hnf_idx)
         # All ranges should have the same interleaving
         assert len(addr_ranges) >= 1
-
-        self._network = network
 
         ll_cache = llcache_type(start_index_bit=intlvHighBit + 1)
         self._cntrl = CHI_HNFController(
@@ -623,7 +620,7 @@ class CHI_HNF(CHI_Node):
         else:
             parent.cntrl = self._cntrl
 
-        self.connectController(self._cntrl, self._network)
+        self.connectController(self._cntrl)
 
     def getAllControllers(self):
         return [self._cntrl]
@@ -655,12 +652,11 @@ class CHI_MN(CHI_Node):
         )
 
         self.cntrl = self._cntrl
-        self._network = network
 
         self.connectController(self._cntrl)
 
     def connectController(self, cntrl):
-        CHI_Node.connectController(self, cntrl, self._network)
+        CHI_Node.connectController(self, cntrl)
 
     def getAllControllers(self):
         return [self._cntrl]
@@ -689,8 +685,6 @@ class CHI_SNF_Base(CHI_Node):
             transitions_per_cycle=1024,
         )
 
-        self._network = network
-
         # The Memory_Controller implementation deallocates the TBE for
         # write requests when they are queue up to memory. The size of this
         # buffer must be limited to prevent unlimited outstanding writes.
@@ -698,7 +692,7 @@ class CHI_SNF_Base(CHI_Node):
             int(self._cntrl.to_memory_controller_latency) + 1
         )
 
-        self.connectController(self._cntrl, self._network)
+        self.connectController(self._cntrl)
 
         if parent:
             parent.cntrl = self._cntrl
@@ -736,7 +730,7 @@ class CHI_SNF_MainMem(CHI_SNF_Base):
     Create the SNF for a list main memory controllers
     """
 
-    def __init__(self, ruby_system, network, parent, mem_ctrl=None):
+    def __init__(self, ruby_system, parent, network, mem_ctrl=None):
         super(CHI_SNF_MainMem, self).__init__(ruby_system, network, parent)
         if mem_ctrl:
             self._cntrl.memory_out_port = mem_ctrl.port
@@ -751,8 +745,8 @@ class CHI_RNI_Base(CHI_Node):
 
     # The CHI controller can be a child of this object or another if
     # 'parent' if specified
-    def __init__(self, ruby_system, parent):
-        super(CHI_RNI_Base, self).__init__(ruby_system)
+    def __init__(self, ruby_system, network, parent):
+        super(CHI_RNI_Base, self).__init__(ruby_system, network)
 
         self._sequencer = RubySequencer(
             version=Versions.getSeqId(),
@@ -780,8 +774,8 @@ class CHI_RNI_DMA(CHI_RNI_Base):
     DMA controller wiredup to a given dma port
     """
 
-    def __init__(self, ruby_system, dma_port, parent):
-        super(CHI_RNI_DMA, self).__init__(ruby_system, parent)
+    def __init__(self, ruby_system, dma_port, network, parent):
+        super(CHI_RNI_DMA, self).__init__(ruby_system, network, parent)
         assert dma_port != None
         self._sequencer.in_ports = dma_port
 
@@ -794,6 +788,87 @@ class CHI_RNI_IO(CHI_RNI_Base):
     def __init__(self, ruby_system, parent):
         super(CHI_RNI_IO, self).__init__(ruby_system, parent)
         ruby_system._io_port = self._sequencer
+
+class CHI_RNF_tgen(CHI_Node):
+    """
+    Defines a CHI traffic generator request node.
+    """
+
+    def __init__(
+        self,
+        tgens,
+        ruby_system,
+        l1Dcache_type,
+        cache_line_size,
+        l1Iprefetcher_type=None,
+        l1Dprefetcher_type=None,
+    ):
+        super(CHI_RNF_tgen, self).__init__(ruby_system)
+
+        self._block_size_bits = int(math.log(cache_line_size, 2))
+
+        # All sequencers and controllers
+        self._seqs = []
+        self._cntrls = []
+
+        # Last level controllers in this node, i.e., the ones that will send
+        # requests to the home nodes
+        self._ll_cntrls = []
+
+        self._tgens = tgens
+
+        # First creates L1 caches and sequencers
+        #for tgen in self._tgens:
+        for i in range(len(self._tgens)):
+            #tgen.data_sequencer = RubySequencer(
+            #    version=Versions.getSeqId(), ruby_system=ruby_system
+            #)
+
+            ruby_system.tgen_data_sequencer = RubySequencer(
+                version=Versions.getSeqId(), ruby_system=ruby_system
+            )
+
+            #self._seqs.append(
+            #    tgenSequencerWrapper(tgen.data_sequencer)
+            #)
+            self._seqs.append(
+                tgenSequencerWrapper(ruby_system.tgen_data_sequencer)
+            )
+
+            l1d_cache = l1Dcache_type(
+                start_index_bit=self._block_size_bits, is_icache=False
+            )
+
+            # Placeholders for future prefetcher support
+            if l1Iprefetcher_type != None or l1Dprefetcher_type != None:
+                m5.fatal("Prefetching not supported yet")
+            #l1i_pf = NULL
+            l1d_pf = NULL
+
+            #tgen.l1d = CHI_L1Controller(
+            #    ruby_system, tgen.data_sequencer, l1d_cache, l1d_pf
+            #)
+
+            ruby_system.l1d = CHI_L1Controller(
+                ruby_system, ruby_system.tgen_data_sequencer, l1d_cache, l1d_pf
+            )
+
+            #tgen.data_sequencer.dcache = tgen.l1d.cache
+            ruby_system.tgen_data_sequencer.dcache = ruby_system.l1d.cache
+
+            #tgen.l1d.sc_lock_enabled = True
+            ruby_system.l1d.sc_lock_enabled = True
+
+            #tgen._ll_cntrls = [tgen.l1d]
+            ruby_system._ll_cntrls = [ruby_system.l1d]
+            #for c in tgen._ll_cntrls:
+            #    self._cntrls.append(c)
+            #    self.connectController(c)
+            #    self._ll_cntrls.append(c)
+            for c in ruby_system._ll_cntrls:
+                self._cntrls.append(c)
+                self.connectController(c)
+                self._ll_cntrls.append(c)
 
     def getSequencers(self):
         return self._seqs
@@ -860,14 +935,13 @@ class tgenSequencerWrapper:
     def __setattr__(self, name, value):
         setattr(self.data_seq, name, value)
 
-
 class Interface(Interface_Controller):
     _version = 0
     
-    #@classmethod
-    #def versionCount(cls):
-    #    cls._version += 1
-    #    return cls._version - 1
+    @classmethod
+    def versionCount(cls):
+        cls._version += 1
+        return cls._version - 1
     
     def __init__(
         self, 
@@ -877,7 +951,7 @@ class Interface(Interface_Controller):
     ):
         super(Interface, self).__init__()
         
-        #self.version = self.versionCount()
+        self.version = self.versionCount()
         self.clk_domain = ruby_system.clk_domain
         self.ruby_system = ruby_system
         self.connectQueues(network0, network1)
@@ -887,15 +961,15 @@ class Interface(Interface_Controller):
         self.snpIn = MessageBuffer(ordered=True)
         self.rspIn = MessageBuffer(ordered=True)
         self.datIn = MessageBuffer(ordered=True)
-        self.reqIn.in_port = network0.out_port
-        self.snpIn.in_port = network0.out_port
-        self.rspIn.in_port = network0.out_port
-        self.datIn.in_port = network0.out_port
-
         self.reqOut = MessageBuffer(ordered=True)
         self.snpOut = MessageBuffer(ordered=True)
         self.rspOut = MessageBuffer(ordered=True)
         self.datOut = MessageBuffer(ordered=True)
+
+        self.reqIn.in_port = network0.out_port
+        self.snpIn.in_port = network0.out_port
+        self.rspIn.in_port = network0.out_port
+        self.datIn.in_port = network0.out_port
         self.reqOut.out_port = network1.in_port
         self.snpOut.out_port = network1.in_port
         self.rspOut.out_port = network1.in_port
