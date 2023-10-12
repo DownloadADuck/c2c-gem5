@@ -198,13 +198,15 @@ def create_system(
 
     # Create the network topology
     int_link_id = 0
-    link_count = topology0.makeTopology(
+    ext_link_id = 0
+    link_count, ext_link_count = topology0.makeTopology(
         options, 
         network0,
         IntLinkClass,
         ExtLinkClass,
         RouterClass,
-        int_link_id
+        int_link_id,
+        ext_link_id
     )
 
     topology1.makeTopology(
@@ -213,7 +215,8 @@ def create_system(
         IntLinkClass, 
         ExtLinkClass, 
         RouterClass,
-        link_count
+        link_count,
+        ext_link_count
     )
 
     # In SE register the ropology elements with fake filesystem

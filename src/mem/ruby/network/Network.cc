@@ -58,6 +58,7 @@ uint32_t Network::m_data_msg_size;
 Network::Network(const Params &p)
     : ClockedObject(p)
 {
+    std::cout << "Network Constructor" << std::endl;
     m_virtual_networks = p.number_of_virtual_networks;
     m_control_msg_size = p.control_msg_size;
 
