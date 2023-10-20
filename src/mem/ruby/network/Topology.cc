@@ -79,6 +79,10 @@ Topology::Topology(uint32_t num_nodes, uint32_t num_routers,
         AbstractController *abs_cntrl = ext_link->params().ext_node;
         BasicRouter *router = ext_link->params().int_node;
 
+        std::cout << "ext_link --> " << *ext_link << std::endl;
+        std::cout << "BasicRouter --> " << *router << std::endl;
+        std::cout << "AbstractController --> " << *abs_cntrl << std::endl;
+
         int machine_base_idx = MachineType_base_number(abs_cntrl->getType());
         int ext_idx1 = machine_base_idx + abs_cntrl->getVersion();
         int ext_idx2 = ext_idx1 + m_nodes;

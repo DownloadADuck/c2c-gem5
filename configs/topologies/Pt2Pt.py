@@ -56,6 +56,8 @@ class Pt2Pt(SimpleTopology):
             for i in range(len(nodes))
         ]
         network.routers = routers
+        for i in routers:
+            print("Routers --> ", i)
 
         ext_links = [
             ExtLink(
@@ -66,27 +68,19 @@ class Pt2Pt(SimpleTopology):
             )
             for (i, n) in enumerate(nodes)
         ]
-        #ext_link_ids = ext_link_id
-        #ext_links = []
-        #for (i, n) in enumerate(nodes):
-        #    ext_links += [
-        #        ExtLink(
-        #            link_id=ext_link_ids,
-        #            ext_node=n,
-        #            int_node=routers[i],
-        #            latency=link_latency,
-        #        )
-        #    ]
-        #    ext_link_ids += 1 
         network.ext_links = ext_links
+        for i in ext_links:
+            print("ext_links --> ", i)
 
-        #link_count = len(nodes) + int_link_id
         link_count = len(nodes)
         int_links = []
         for i in range(len(nodes)):
             for j in range(len(nodes)):
                 if i != j:
                     link_count += 1
+                    print("int_link count (id) --> ", link_count)
+                    print("int_link src node --> ", routers[i])
+                    print("int_link dst node --> ", routers[j])
                     int_links.append(
                         IntLink(
                             link_id=link_count,
@@ -95,6 +89,7 @@ class Pt2Pt(SimpleTopology):
                             latency=link_latency,
                         )
                     )
+        #for i in int_links:
+        #    print("int_links --> ", i)
 
         network.int_links = int_links
-        #return link_count, ext_link_ids

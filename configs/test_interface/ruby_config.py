@@ -8,6 +8,7 @@ from gem5.isas import ISA
 from gem5.runtime import get_runtime_isa
 
 from test_interface import tgen_CHI
+#from test_interface import tgen_CHI_v2
 from CHI_config import Interface
 
 addToPath("../")
@@ -196,17 +197,34 @@ def create_system(
             ruby.interface
         )
 
+#    (
+#        cpu_sequencers0, 
+#        cpu_sequencers1,
+#        dir_cntrls0,
+#        dir_cntrls1,
+#        topology0,
+#        topology1
+#    ) = \
+#        tgen_CHI_v2.create_chips(
+#            options,
+#            options1,
+#            full_system,
+#            system,
+#            dma_ports,
+#            bootmem,
+#            ruby,
+#            cpus0,
+#            network0,
+#            network1
+#        )
+
     # Create the network topology
-    int_link_id = 0
-    ext_link_id = 0
-    link_count, ext_link_count = topology0.makeTopology(
+    topology0.makeTopology(
         options, 
         network0,
         IntLinkClass,
         ExtLinkClass,
-        RouterClass,
-        int_link_id,
-        ext_link_id
+        RouterClass
     )
 
     topology1.makeTopology(
@@ -214,9 +232,7 @@ def create_system(
         network1, 
         IntLinkClass, 
         ExtLinkClass, 
-        RouterClass,
-        link_count,
-        ext_link_count
+        RouterClass
     )
 
     # In SE register the ropology elements with fake filesystem

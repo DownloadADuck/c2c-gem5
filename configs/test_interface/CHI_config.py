@@ -167,6 +167,64 @@ class CHI_Node(SubSystem):
         cntrl.snpIn.in_port = self._network.out_port
         cntrl.datIn.in_port = self._network.out_port
 
+class CHI_Interface_Node(SubSystem):
+    """
+    Base class for the Interface.
+    getNetworkSideControllers and getAllControllers must be implemented in the
+    derived classes.
+    """
+    class NoC_Params:
+        num_nodes_per_router = None
+        router_list = None
+    
+    def __init__(self, ruby_system, network0, network1):
+        super(CHI_Interface_Node, self).__init__()
+        self._ruby_system = ruby_system
+        self._network0 = network0
+        self._network1 = network1
+    
+    def getNetworkSideControllers(self):
+        """
+        Returns all ruby controllers that need to be connected to the
+        network
+        """
+        raise NotImplementedError()
+
+    def getAllControllers(self):
+        """
+        Returns all ruby controllers associated with this node
+        """
+        raise NotImplementedError()
+
+    def setDownstream(self, cntrls):
+        """
+        Sets cntrls as the downstream list of all controllers in this node
+        """
+        for c in self.getNetworkSideControllers():
+            c.downstream_destinations = cntrls
+
+    def connectController(self, cntrl):
+        """
+        Creates and configures the messages buffers for the CHI input/output
+        ports that connect to the network
+        """
+        cntrl.reqOut = MessageBuffer()
+        cntrl.rspOut = MessageBuffer()
+        cntrl.snpOut = MessageBuffer()
+        cntrl.datOut = MessageBuffer()
+        cntrl.reqIn = MessageBuffer()
+        cntrl.rspIn = MessageBuffer()
+        cntrl.snpIn = MessageBuffer()
+        cntrl.datIn = MessageBuffer()
+
+        cntrl.reqOut.out_port = self._network1.in_port
+        cntrl.rspOut.out_port = self._network1.in_port
+        cntrl.snpOut.out_port = self._network1.in_port
+        cntrl.datOut.out_port = self._network1.in_port
+        cntrl.reqIn.in_port = self._network0.out_port
+        cntrl.rspIn.in_port = self._network0.out_port
+        cntrl.snpIn.in_port = self._network0.out_port
+        cntrl.datIn.in_port = self._network0.out_port
 
 class TriggerMessageBuffer(MessageBuffer):
     """
@@ -328,6 +386,10 @@ class CHI_HNFController(CHI_Cache_Controller):
         self.number_of_DVM_snoop_TBEs = 1  # should not receive any dvm
         self.unify_repl_TBEs = False
 
+class CHI_InterfaceController(Interface_Controller):
+    def __init__(self, ruby_system):
+        super(CHI_InterfaceController, self).__init__(ruby_system)
+        # No parameters yet
 
 class CHI_MNController(MiscNode_Controller):
     """
@@ -628,6 +690,26 @@ class CHI_HNF(CHI_Node):
     def getNetworkSideControllers(self):
         return [self._cntrl]
 
+class CHI_Interface(CHI_Interface_Node):
+    
+    class NoC_Params(CHI_Interface_Node.NoC_Params):
+        pairing = None
+
+    @classmethod
+    def __init__(self, ruby_system, network0, network1):
+        super(CHI_Interface, self).__init__(ruby_system, network0, network1)
+
+        self._cntrl = CHI_InterfaceController(
+            ruby_system
+        )
+        
+        self.connectController(self._cntrl)
+    
+    def getAllControllers(self):
+        return [self._cntrl]
+    
+    def getNetworkSideControllers(self):
+        return [self._cntrl]
 
 class CHI_MN(CHI_Node):
     """
@@ -957,14 +1039,14 @@ class Interface(Interface_Controller):
         self.connectQueues(network0, network1)
     
     def connectQueues(self, network0, network1):
-        self.reqIn = MessageBuffer(ordered=True)
-        self.snpIn = MessageBuffer(ordered=True)
-        self.rspIn = MessageBuffer(ordered=True)
-        self.datIn = MessageBuffer(ordered=True)
-        self.reqOut = MessageBuffer(ordered=True)
-        self.snpOut = MessageBuffer(ordered=True)
-        self.rspOut = MessageBuffer(ordered=True)
-        self.datOut = MessageBuffer(ordered=True)
+        self.reqIn = MessageBuffer()
+        self.snpIn = MessageBuffer()
+        self.rspIn = MessageBuffer()
+        self.datIn = MessageBuffer()
+        self.reqOut = MessageBuffer()
+        self.snpOut = MessageBuffer()
+        self.rspOut = MessageBuffer()
+        self.datOut = MessageBuffer()
 
         self.reqIn.in_port = network0.out_port
         self.snpIn.in_port = network0.out_port

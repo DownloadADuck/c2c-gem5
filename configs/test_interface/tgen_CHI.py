@@ -111,6 +111,8 @@ def create_chip0(
     CHI_RNI_DMA = chi_defs.CHI_RNI_DMA
     CHI_RNI_IO = chi_defs.CHI_RNI_IO
 
+    CHI_Interface = chi_defs.CHI_Interface
+
     # Declare caches and controller types used by the protocol
     # Notice tag and data accesses are not concurrent, so the a cache hit
     # latency = tag + data + response latencies.
@@ -175,6 +177,7 @@ def create_chip0(
         network_nodes.append(rnf)
         network_cntrls.extend(rnf.getNetworkSideControllers())
 
+    # C2C Interface between the two networks
     # Registers the Inerface controller in the network_cntrls
     network_cntrls.extend([interface])
     
