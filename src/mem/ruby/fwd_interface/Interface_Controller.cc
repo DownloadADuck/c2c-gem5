@@ -494,13 +494,14 @@ Interface_Controller::setState(const Addr& param_addr, const Interface_State& pa
 AccessPermission
 Interface_Controller::getAccessPermission(const Addr& param_addr)
 {
-    if ((((*m_interface_ptr)).isPresent(param_addr))) {
-        Interface_Entry* e
-         = (getInterfaceEntry(param_addr));
-        return (Interface_State_to_permission((*e).m_InterfaceState));
-    } else {
-        return AccessPermission_NotPresent;
-    }
+    //if ((((*m_interface_ptr)).isPresent(param_addr))) {
+    //    Interface_Entry* e
+    //     = (getInterfaceEntry(param_addr));
+    //    return (Interface_State_to_permission((*e).m_InterfaceState));
+    //} else {
+    //    return AccessPermission_NotPresent;
+    //}
+    return AccessPermission_NotPresent;
 
 }
 void
