@@ -84,7 +84,6 @@ PerfectSwitch::addInPort(const std::vector<MessageBuffer*>& in)
     m_in.push_back(in);
     for (int i = 0; i < in.size(); ++i) {
         if (in[i] != nullptr) {
-            std::cout << "addInPort --> " << *this << std::endl;
             in[i]->setConsumer(this);
             in[i]->setIncomingLink(port);
             in[i]->setVnet(i);
