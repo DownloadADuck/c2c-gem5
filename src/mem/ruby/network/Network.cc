@@ -61,6 +61,8 @@ Network::Network(const Params &p)
     m_virtual_networks = p.number_of_virtual_networks;
     m_control_msg_size = p.control_msg_size;
 
+    printf("--> Network constructor call\n");
+
     fatal_if(p.data_msg_size > p.ruby_system->getBlockSizeBytes(),
              "%s: data message size > cache line size", name());
     m_data_msg_size = p.data_msg_size + m_control_msg_size;

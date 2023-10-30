@@ -48,6 +48,7 @@ Interface_Controller::Interface_Controller(const Params &p)
 {
     m_machineID.type = MachineType_Interface;
     m_machineID.num = m_version;
+    printf("version interface --> %u\n", m_version);
     m_num_controllers++;
     p.ruby_system->registerAbstractController(this);
 
@@ -82,29 +83,29 @@ Interface_Controller::initNetQueues()
 
     assert(m_reqOut_ptr != NULL);
     m_net_ptr->setToNetQueue(m_version + base, m_reqOut_ptr->getOrdered(), 0,
-                                     "request", m_reqOut_ptr);
+                                     "none", m_reqOut_ptr);
     assert(m_snpOut_ptr != NULL);
     m_net_ptr->setToNetQueue(m_version + base, m_snpOut_ptr->getOrdered(), 1,
-                                     "snoop", m_snpOut_ptr);
+                                     "none", m_snpOut_ptr);
     assert(m_rspOut_ptr != NULL);
     m_net_ptr->setToNetQueue(m_version + base, m_rspOut_ptr->getOrdered(), 2,
-                                     "response", m_rspOut_ptr);
+                                     "none", m_rspOut_ptr);
     assert(m_datOut_ptr != NULL);
     m_net_ptr->setToNetQueue(m_version + base, m_datOut_ptr->getOrdered(), 3,
-                                     "data", m_datOut_ptr);
+                                     "none", m_datOut_ptr);
 
     assert(m_reqIn_ptr != NULL);
     m_net_ptr->setFromNetQueue(m_version + base, m_reqIn_ptr->getOrdered(), 0,
-                                     "request", m_reqIn_ptr);
+                                     "none", m_reqIn_ptr);
     assert(m_snpIn_ptr != NULL);
     m_net_ptr->setFromNetQueue(m_version + base, m_snpIn_ptr->getOrdered(), 1,
-                                     "snoop", m_snpIn_ptr);
+                                     "none", m_snpIn_ptr);
     assert(m_rspIn_ptr != NULL);
     m_net_ptr->setFromNetQueue(m_version + base, m_rspIn_ptr->getOrdered(), 2,
-                                     "response", m_rspIn_ptr);
+                                     "none", m_rspIn_ptr);
     assert(m_datIn_ptr != NULL);
     m_net_ptr->setFromNetQueue(m_version + base, m_datIn_ptr->getOrdered(), 3,
-                                     "data", m_datIn_ptr);
+                                     "none", m_datIn_ptr);
 }
 
 void

@@ -63,6 +63,7 @@ SimpleNetwork::SimpleNetwork(const Params &p)
       m_endpoint_bandwidth(p.endpoint_bandwidth),
       networkStats(this)
 {
+    printf("--> SimpleNetwork constructor call\n");
     // record the routers
     for (std::vector<BasicRouter*>::const_iterator i = p.routers.begin();
          i != p.routers.end(); ++i) {
@@ -94,6 +95,7 @@ void
 SimpleNetwork::init()
 {
     Network::init();
+    printf("SimpleNetwork::init called\n");
 
     // The topology pointer should have already been initialized in
     // the parent class network constructor.
@@ -130,6 +132,7 @@ void
 SimpleNetwork::makeExtInLink(NodeID global_src, SwitchID dest, BasicLink* link,
                           std::vector<NetDest>& routing_table_entry)
 {
+    std::cout << "SimpleNetwork::makeExtLink global_src" << global_src << "dest" << dest << std::endl;
     NodeID local_src = getLocalNodeID(global_src);
     assert(local_src < m_nodes);
     m_switches[dest]->addInPort(m_toNetQueues[local_src]);
