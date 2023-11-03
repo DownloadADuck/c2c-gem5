@@ -156,8 +156,10 @@ def do_ruby_dot(root, outdir, dotFilename):
         return isinstance(obj, RubyNetwork)
 
     for network in filter(is_ruby_network, root.descendants()):
-        # We assume each ruby system has a single network.
+        # Use a unique identifier for each network to create 
+        # distinct files
+        network_name = network.get_name()
         rubydotFilename = dotFilename.replace(
-            ".dot", "." + network.get_parent().path() + ".dot"
+            ".dot", f".{network_name}.dot"
         )
         _do_dot(network, outdir, rubydotFilename)
