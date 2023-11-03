@@ -253,7 +253,6 @@ Topology::makeLink(Network *net, SwitchID src, SwitchID dest,
 {
     // Make sure we're not trying to connect two end-point nodes
     // directly together
-    std::cout << "Topology::makeLink Network --> " << *net << std::endl;
     assert(src >= 2 * m_nodes || dest >= 2 * m_nodes);
 
     std::pair<int, int> src_dest;

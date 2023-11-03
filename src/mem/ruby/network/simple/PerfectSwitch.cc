@@ -63,8 +63,6 @@ PerfectSwitch::PerfectSwitch(SwitchID sid, Switch *sw, uint32_t virt_nets)
     : Consumer(sw, Switch::PERFECTSWITCH_EV_PRI),
       m_switch_id(sid), m_switch(sw)
 {
-    printf("--> PerfectSwitch constructor call\n");
-    std::cout << "PerfectSwitch ID --> " << sid << std::endl;
     m_wakeups_wo_switch = 0;
     m_virtual_networks = virt_nets;
 }

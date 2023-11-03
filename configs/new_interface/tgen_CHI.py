@@ -310,7 +310,7 @@ def create_chip1(
     ruby_system, 
     cpus,
     network,
-    #interface
+    interface
 ):
     if buildEnv["PROTOCOL"] != "CHI":
         m5.panic("This script requires the CHI build")
@@ -406,7 +406,7 @@ def create_chip1(
 #        network_cntrls.extend(rnf.getNetworkSideControllers())
 
     # Registers the Inerface controller in the network_cntrls
-    #network_cntrls.extend([interface])
+    network_cntrls.extend([interface])
     
     # Creates one Misc Node
     ruby_system.mn1 = [CHI_MN(ruby_system, [cpu.l1d for cpu in cpus], network)]

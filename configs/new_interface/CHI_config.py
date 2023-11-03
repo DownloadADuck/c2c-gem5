@@ -1018,7 +1018,7 @@ class tgenSequencerWrapper:
         setattr(self.data_seq, name, value)
 
 class Interface(Interface_Controller):
-    _version = 0
+    _version = 4
     
     @classmethod
     def versionCount(cls):

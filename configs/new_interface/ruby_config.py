@@ -169,7 +169,7 @@ def create_system(
     # C2C forwarding interface setup
     ## Connecting one interface to one unique network
     ruby.interface0 = Interface(ruby, network0, network0)
-#    ruby.interface1 = Interface(ruby, network1, network1)
+    ruby.interface1 = Interface(ruby, network1, network1)
     
     # Chip 0
     (cpu_sequencers0, dir_cntrls0, topology0) = \
@@ -196,7 +196,7 @@ def create_system(
             ruby,
             cpus1,
             network1,
-#            ruby.interface1
+            ruby.interface1
         )
 
 #    (
