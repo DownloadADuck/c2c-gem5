@@ -1,4 +1,4 @@
-#include "src/mem/ruby/fwd_interface/Interface_Bridge.hh"
+#include "mem/ruby/fwd_interface/Interface_Bridge.hh"
 
 #include "base/trace.hh"
 #include "debug/Interface_Bridge.hh"

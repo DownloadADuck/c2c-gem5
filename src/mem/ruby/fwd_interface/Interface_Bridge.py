@@ -1,5 +1,5 @@
 from m5.params import *
-from m5.simObject import SimObject
+from m5.SimObject import SimObject
 
 class InterfaceBridge(SimObject):
     type = "InterfaceBridge"
