@@ -11,3 +11,5 @@ Source('Interface_Wakeup.cc')
 Source('Interface_Event.cc')
 
 Source('Bridge.cc')
+
+DebugFlag('Bridge', "For bridging two interface controllers")
