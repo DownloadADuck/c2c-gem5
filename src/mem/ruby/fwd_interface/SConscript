@@ -1,7 +1,7 @@
 Import('*')
 
 SimObject("Interface_Controller.py", sim_objects=['Interface_Controller'])
-SimObject("Bridge.py", sim_objects=['Bridge'])
+SimObject("Interface_Bridge.py", sim_objects=['InterfaceBridge'])
 
 Source('Interface_Controller.cc')
 Source('Interface_Entry.cc')
@@ -10,6 +10,6 @@ Source('Interface_Transitions.cc')
 Source('Interface_Wakeup.cc')
 Source('Interface_Event.cc')
 
-Source('Bridge.cc')
+Source('Interface_Bridge.cc')
 
-DebugFlag('Bridge', "For bridging two interface controllers")
+DebugFlag('InterfaceBridge', "For bridging two interface controllers")

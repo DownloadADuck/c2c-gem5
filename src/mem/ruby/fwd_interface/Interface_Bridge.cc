@@ -1,12 +1,12 @@
-#include "src/mem/ruby/fwd_interface/Bridge.hh"
+#include "src/mem/ruby/fwd_interface/Interface_Bridge.hh"
 
 #include "base/trace.hh"
-#include "debug/Bridge.hh"
+#include "debug/Interface_Bridge.hh"
 
 namespace gem5
 {
 
-Bridge::Bridge(const BridgeParams &params) :
+InterfaceBridge::InterfaceBridge(const InterfaceBridgeParams &params) :
     SimObject(params),
     chip0Port(params.name + ".chip0_port", this),
     chip1Port(params.name + ".chip1_port", this),
@@ -15,11 +15,11 @@ Bridge::Bridge(const BridgeParams &params) :
 }
 
 Port &
-Bridge::getPort(const std::string &if_name, PortID idx)
+InterfaceBridge::getPort(const std::string &if_name, PortID idx)
 {
     panic_if(idx != InvalidPortID, "This object doesn't support vector ports");
 
-    // Name from the Python SimObject declaration (Bridge.py)
+    // Name from the Python SimObject declaration (Interface_Bridge.py)
     if (if_name == "chip0_port") {
         return chip0Port;
     } else if (if_name == "chip1_port") {
@@ -31,7 +31,7 @@ Bridge::getPort(const std::string &if_name, PortID idx)
 }
 
 void
-Bridge::chip0SidePort::sendPacket(PacketPtr pkt)
+InterfaceBridge::chip0SidePort::sendPacket(PacketPtr pkt)
 {
     panic_if(blockedPacket != nullptr, "Should never try to send if blocked");
 
@@ -42,7 +42,7 @@ Bridge::chip0SidePort::sendPacket(PacketPtr pkt)
 }
 
 void
-Bridge::chip1SidePort::sendPacket(PacketPtr pkt)
+InterfaceBridge::chip1SidePort::sendPacket(PacketPtr pkt)
 {
     panic_if(blockedPacket != nullptr, "Should never try to send if blocked");
 
@@ -53,14 +53,14 @@ Bridge::chip1SidePort::sendPacket(PacketPtr pkt)
 }
 
 bool
-Bridge::handleRequest(PacketPtr pkt)
+InterfaceBridge::handleRequest(PacketPtr pkt)
 {
     if (blocked) {
         // There is currently an outstanding request. Stall.
         return false;
     }
 
-    DPRINTF(Bridge, "Request for addr %#x\n", pkt->getAddr());
+    DPRINTF(InterfaceBridge, "Request for addr %#x\n", pkt->getAddr());
 
     // This object is now blocked waiting for the response to this packet.
     blocked = true;
@@ -72,10 +72,10 @@ Bridge::handleRequest(PacketPtr pkt)
 }
 
 bool
-Bridge::handleResponse(PacketPtr pkt)
+InterfaceBridge::handleResponse(PacketPtr pkt)
 {
     assert(blocked);
-    DPRINTF(Bridge, "Response for addr %#x\n", pkt->getAddr());
+    DPRINTF(InterfaceBridge, "Response for addr %#x\n", pkt->getAddr());
 
     // The packet is done.
     // Put it in the port, no need for this object to stall more
