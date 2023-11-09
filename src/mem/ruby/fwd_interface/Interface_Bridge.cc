@@ -1,7 +1,7 @@
 #include "mem/ruby/fwd_interface/Interface_Bridge.hh"
 
 #include "base/trace.hh"
-#include "debug/Interface_Bridge.hh"
+#include "debug/InterfaceBridge.hh"
 
 namespace gem5
 {

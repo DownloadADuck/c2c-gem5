@@ -2,7 +2,7 @@
 #define __Interface_Bridge_HH__
 
 #include "mem/port.hh"
-#include "params/Interface_Bridge.hh"
+#include "params/InterfaceBridge.hh"
 #include "sim/sim_object.hh"
 
 namespace gem5
