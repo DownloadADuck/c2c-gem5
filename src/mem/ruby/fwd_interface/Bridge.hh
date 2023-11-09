@@ -70,10 +70,10 @@ class Bridge : public SimObject
                 void sendPacket(PacketPtr pkt);
 
             protected:
-                /**
-                 * Receive a timing response from the response port.
-                 */
-                bool recvTimingResp(PacketPtr pkt) override;
+                ///**
+                // * Receive a timing response from the response port.
+                // */
+                //bool recvTimingResp(PacketPtr pkt) override;
         };
 
         // Handle request from the chip0 side
