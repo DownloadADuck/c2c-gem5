@@ -30,7 +30,7 @@ InterfaceBridge::getPort(const std::string &if_name, PortID idx)
     }
 }
 
-// CHIP0 SIDE
+// CHIP0 SIDE /////////////////////////////////////////////////////////////////
 void
 InterfaceBridge::chip0SidePort::sendPacket(PacketPtr pkt)
 {
@@ -59,7 +59,42 @@ InterfaceBridge::chip0SidePort::trySendRetry()
     }
 }
 
-// CHIP1 SIDE
+void
+InterfaceBridge::chip0SidePort::recvFunctional(PacketPtr pkt)
+{
+    // Just forward to the memobj
+    return owner->handleFunctional(pkt);
+}
+
+bool
+InterfaceBridge::chip0SidePort::recvTimingReq(PacketPtr pkt)
+{
+    // Just forward to the memobj
+    if (!owner->handleRequest(pkt)) {
+        needRetry = true;
+        return false;
+    } else {
+        return true;
+    }
+}
+
+void
+InterfaceBridge::chip0SidePort::recvRespRetry()
+{
+    // If this is called, we have a blocked packet
+    assert(blockedPacket != nullptr);
+
+    // Grab the blocked packet
+    PacketPtr pkt = blockedPacket;
+    blockedPacket = nullptr;
+
+    // Try to resend it
+    sendPacket(pkt);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+// CHIP1 SIDE /////////////////////////////////////////////////////////////////
 void
 InterfaceBridge::chip1SidePort::sendPacket(PacketPtr pkt)
 {
