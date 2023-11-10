@@ -39,6 +39,13 @@ class InterfaceBridge : public SimObject
                 void sendPacket(PacketPtr pkt);
 
                 /**
+                 * Get a list of the non-overlapping address ranges the owner 
+                 * is responsible for. All response ports must override this 
+                 * function and return a populated list with at least one item.
+                 */
+                AddrRangeList getAddrRanges() const override;
+
+                /**
                  * Send a retry to the peer port only if needed. 
                  */
                 void trySendRetry();
@@ -47,6 +54,24 @@ class InterfaceBridge : public SimObject
                 // Receive a packet from the chip0 request port
                 Tick recvAtomic(PacketPtr pkt) override
                 { panic("recvAtomic unimplemented"); }
+
+                /**
+                 * Receive a functional request packet from the request port.
+                 * 
+                 * @param packet the requestor sent.
+                 */
+                void recvFunctional(PacketPtr pkt) override;
+
+                /**
+                 * Receive a timing request from the request port.
+                 */
+                bool recvTimingReq(PacketPtr pkt) override;
+
+                /**
+                 * Called by the request port if sendTimingResp was called on
+                 * this response port and was unsuccesfull.
+                 */
+                void recvRespRetry() override;
         };
 
         /**
@@ -70,10 +95,25 @@ class InterfaceBridge : public SimObject
                 void sendPacket(PacketPtr pkt);
 
             protected:
-                ///**
-                // * Receive a timing response from the response port.
-                // */
-                //bool recvTimingResp(PacketPtr pkt) override;
+                /**
+                 * Receive a timing response from the response port.
+                 */
+                bool recvTimingResp(PacketPtr pkt) override;
+
+                /**
+                 * Called by the response port if senTimingReq was called on
+                 * this request port and was unsuccesful.
+                 */
+                void recvReqRetry() override;
+
+                /**
+                 * Called to receive an address range from the peer responder
+                 * port. The default implementation ignores the change and does
+                 * nothing. Override this function in a defived class if the 
+                 * owner needs to be aware of the address ranges, e.g. in an
+                 * interconnect component like a bus.
+                 */
+                void recvRangeChange() override;
         };
 
         // Handle request from the chip0 side
@@ -81,6 +121,9 @@ class InterfaceBridge : public SimObject
 
         // Handle response from the memory side
         bool handleResponse(PacketPtr pkt);
+
+        // Handle a packet functionally
+        void handleFunctional(PacketPtr pkt);
 
         // Instantiation of the chip0-side ports
         chip0SidePort chip0Port;
