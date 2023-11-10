@@ -135,7 +135,7 @@ InterfaceBridge::chip1SidePort::recvRangeChange()
 
 ///////////////////////////////////////////////////////////////////////////////
 
-// BRIDGE FUNCTIONS
+// BRIDGE FUNCTIONS ///////////////////////////////////////////////////////////
 bool
 InterfaceBridge::handleRequest(PacketPtr pkt)
 {
@@ -174,6 +174,27 @@ InterfaceBridge::handleResponse(PacketPtr pkt)
     chip0Port.trySendRetry();
 
     return true;
+}
+
+void
+InterfaceBridge::handleFunctional(PacketPtr pkt)
+{
+    // Just pass this to the chip1 side to handle for now
+    chip1Port.sendFunctional(pkt);
+}
+
+AddrRangeList
+InterfaceBridge::getAddrRanges() const
+{
+    DPRINTF(InterfaceBridge, "Sending new ranges\n");
+    // Just use the same ranges as whatever is on the memory side
+    return chip1Port.getAddrRanges();
+}
+
+void
+InterfaceBridge::sendRangeChange()
+{
+    chip0Port.sendRangeChange();
 }
 
 } // namespace gem5

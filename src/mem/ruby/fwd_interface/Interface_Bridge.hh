@@ -22,13 +22,18 @@ class InterfaceBridge : public SimObject
             private:
                 // The object that owns this object (Bridge)
                 InterfaceBridge *owner;
+
+                // True is the port needs to send a retry req.
+                bool needRetry;
+
                 // If we tried to send a packet and it was blocked, store here
                 PacketPtr blockedPacket;
 
             public:
                 // Constructor
                 chip0SidePort(const std::string& name, InterfaceBridge *owner):
-                    ResponsePort(name, owner), owner(owner), blockedPacket(nullptr)
+                    ResponsePort(name, owner), owner(owner), needRetry(false),
+                    blockedPacket(nullptr)
                 { }
 
                 /**
@@ -124,6 +129,12 @@ class InterfaceBridge : public SimObject
 
         // Handle a packet functionally
         void handleFunctional(PacketPtr pkt);
+
+        // Return the address ranges this obj is responsible for
+        AddrRangeList getAddrRanges() const;
+
+        // Tell the cpu side to ask for our memory ranges
+        void sendRangeChange();
 
         // Instantiation of the chip0-side ports
         chip0SidePort chip0Port;
