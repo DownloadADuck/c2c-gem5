@@ -106,6 +106,35 @@ InterfaceBridge::chip1SidePort::sendPacket(PacketPtr pkt)
     }
 }
 
+bool
+InterfaceBridge::chip1SidePort::recvTimingResp(PacketPtr pkt)
+{
+    // Just forward to the memobj
+    return owner->handleResponse(pkt);
+}
+
+void
+InterfaceBridge::chip1SidePort::recvReqRetry()
+{
+    // If this is called, we have a blocked packet
+    assert(blockedPacket != nullptr);
+
+    // Grab the blocked packet
+    PacketPtr pkt = blockedPacket;
+    blockedPacket = nullptr;
+
+    // Try to resend it
+    sendPacket(pkt);
+}
+
+void
+InterfaceBridge::chip1SidePort::recvRangeChange()
+{
+    owner->sendRangeChange();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 // BRIDGE FUNCTIONS
 bool
 InterfaceBridge::handleRequest(PacketPtr pkt)
