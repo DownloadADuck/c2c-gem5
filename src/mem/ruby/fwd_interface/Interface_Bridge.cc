@@ -30,6 +30,7 @@ InterfaceBridge::getPort(const std::string &if_name, PortID idx)
     }
 }
 
+// CHIP0 SIDE
 void
 InterfaceBridge::chip0SidePort::sendPacket(PacketPtr pkt)
 {
@@ -41,6 +42,24 @@ InterfaceBridge::chip0SidePort::sendPacket(PacketPtr pkt)
     }
 }
 
+AddrRangeList
+InterfaceBridge::chip0SidePort::getAddrRanges() const
+{
+    return owner->getAddrRanges();
+}
+
+void
+InterfaceBridge::chip0SidePort::trySendRetry()
+{
+    if (needRetry && blockedPacket == nullptr) {
+        // Only send a retry if the port is now free
+        needRetry = false;
+        DPRINTF(InterfaceBridge, "Sending retry req for %d\n", id);
+        sendRetryReq();
+    }
+}
+
+// CHIP1 SIDE
 void
 InterfaceBridge::chip1SidePort::sendPacket(PacketPtr pkt)
 {
@@ -52,6 +71,7 @@ InterfaceBridge::chip1SidePort::sendPacket(PacketPtr pkt)
     }
 }
 
+// BRIDGE FUNCTIONS
 bool
 InterfaceBridge::handleRequest(PacketPtr pkt)
 {
