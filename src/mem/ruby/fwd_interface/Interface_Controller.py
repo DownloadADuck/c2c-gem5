@@ -18,3 +18,7 @@ class Interface_Controller(RubyController):
     snpIn = Param.MessageBuffer("")
     rspIn = Param.MessageBuffer("")
     datIn = Param.MessageBuffer("")
+
+    # Interface to the bridge
+    requestToBridge = Param.MessageBuffer("")
+    responseFromBridge = Param.MessageBuffer("")
