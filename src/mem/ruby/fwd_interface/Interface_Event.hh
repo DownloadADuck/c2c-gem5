@@ -16,10 +16,14 @@ namespace ruby
 */
 enum Interface_Event {
     Interface_Event_FIRST,
-    Interface_Event_request = Interface_Event_FIRST,
-    Interface_Event_snoop,
-    Interface_Event_response,
-    Interface_Event_data,
+    Interface_Event_requestToBridge = Interface_Event_FIRST,
+    Interface_Event_snoopToBridge,
+    Interface_Event_responseToBridge,
+    Interface_Event_dataToBridge,
+    Interface_Event_requestToNetwork,
+    Interface_Event_snoopToNetwork,
+    Interface_Event_responseToNetwork,
+    Interface_Event_dataToNetwork,
     Interface_Event_fwd,
     Interface_Event_NUM
 };

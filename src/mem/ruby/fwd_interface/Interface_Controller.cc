@@ -120,10 +120,18 @@ Interface_Controller::init()
     (*m_rspIn_ptr).setConsumer(this);
     (*m_datIn_ptr).setConsumer(this);
 
-    possibleTransition(Interface_State_IDLE, Interface_Event_request);
-    possibleTransition(Interface_State_IDLE, Interface_Event_snoop);
-    possibleTransition(Interface_State_IDLE, Interface_Event_response);
-    possibleTransition(Interface_State_IDLE, Interface_Event_data);
+    (*m_fromBridge_ptr).setConsumer(this);
+
+    possibleTransition(Interface_State_IDLE, Interface_Event_requestToBridge);
+    possibleTransition(Interface_State_IDLE, Interface_Event_snoopToBridge);
+    possibleTransition(Interface_State_IDLE, Interface_Event_responseToBridge);
+    possibleTransition(Interface_State_IDLE, Interface_Event_dataToBridge);
+
+    possibleTransition(Interface_State_IDLE, Interface_Event_requestToNetwork);
+    possibleTransition(Interface_State_IDLE, Interface_Event_snoopToNetwork);
+    possibleTransition(Interface_State_IDLE, Interface_Event_responseToNetwork);
+    possibleTransition(Interface_State_IDLE, Interface_Event_dataToNetwork);
+
     possibleTransition(Interface_State_FWD, Interface_Event_fwd);
     AbstractController::init();
     resetStats();
