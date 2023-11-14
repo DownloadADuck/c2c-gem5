@@ -7,8 +7,6 @@ class Interface_Controller(RubyController):
     type = "Interface_Controller"
     cxx_header = "mem/ruby/fwd_interface/Interface_Controller.hh"
     cxx_class = "gem5::ruby::Interface_Controller"
-    #interface = Param.RubyDirectoryMemory("")
-    toMemLatency = Param.Cycles((1), "")
     to_bridge_latency = Param.Cycles((1), "")
 
     reqOut = Param.MessageBuffer("")
@@ -21,5 +19,5 @@ class Interface_Controller(RubyController):
     datIn = Param.MessageBuffer("")
 
     # Interface to the bridge
-    requestToBridge = Param.MessageBuffer("")
-    responseFromBridge = Param.MessageBuffer("")
+    toBridge = Param.MessageBuffer("")
+    fromBridge = Param.MessageBuffer("")

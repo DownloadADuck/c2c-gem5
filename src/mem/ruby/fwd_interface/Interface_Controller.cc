@@ -54,8 +54,6 @@ Interface_Controller::Interface_Controller(const Params &p)
     p.ruby_system->registerAbstractController(this);
 
     m_in_ports = 4;
-    //m_interface_ptr = p.interface;
-    m_toMemLatency = p.toMemLatency;
     m_reqOut_ptr = p.reqOut;
     m_snpOut_ptr = p.snpOut;
     m_rspOut_ptr = p.rspOut;
@@ -65,8 +63,8 @@ Interface_Controller::Interface_Controller(const Params &p)
     m_rspIn_ptr = p.rspIn;
     m_datIn_ptr = p.datIn;
 
-    m_requestToBridge_ptr = p.requestToBridge;
-    m_responseFromBridge_ptr = p.responseFromBridge;
+    m_toBridge_ptr = p.toBridge;
+    m_fromBridge_ptr = p.fromBridge;
 
     for (int state = 0; state < Interface_State_NUM; state++) {
         for (int event = 0; event < Interface_Event_NUM; event++) {
@@ -362,6 +360,7 @@ Interface_Controller::recordCacheTrace(int cntrl, CacheRecorder* tr)
 {
 }
 
+
 // Actions
 
 // Sending to the Bridge
@@ -369,7 +368,24 @@ Interface_Controller::recordCacheTrace(int cntrl, CacheRecorder* tr)
 void 
 Interface_Controller::sendReqToBridge(Addr addr)
 {
+    DPRINTF(RubyGenerated, "executing fwdRequest\n");
+    {
+        [[maybe_unused]] const CHIRequestMsg* in_msg_ptr;
+        in_msg_ptr = dynamic_cast<const CHIRequestMsg *>(((*m_reqIn_ptr)).peek());
+        if (in_msg_ptr == NULL) {
+            throw RejectException();
+        }
+    }
+{
+    std::shared_ptr<CHIRequestMsg> out_msg = \
+    std::make_shared<CHIRequestMsg>(clockEdge());
+    (*out_msg).m_addr = addr;
+    (*out_msg).m_Sender = m_machineID;
+    (*out_msg).m_requestor = ((*in_msg_ptr)).m_requestor;
+    (*out_msg).m_DataBlk = ((*in_msg_ptr)).m_DataBlk;
+    ((*m_toBridge_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(1)));
 
+}
 }
 
 /** \brief Send snoop to Bridge */
@@ -471,7 +487,7 @@ Interface_Controller::sendDatToNetwork(Addr addr)
 //    //(*out_msg).m_Sender = m_machineID;
 //    (*out_msg).m_requestor = ((*in_msg_ptr)).m_requestor;
 //    //(*out_msg).m_DataBlk = ((*in_msg_ptr)).m_DataBlk;
-//    ((*m_reqOut_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles((1))));
+//    ((*m_reqOut_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(1))));
 //}
 //}
 //}

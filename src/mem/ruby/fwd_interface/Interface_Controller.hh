@@ -69,8 +69,8 @@ private:
     MessageBuffer* m_rspIn_ptr;
     MessageBuffer* m_datIn_ptr;
 
-    MessageBuffer* m_requestToBridge_ptr;
-    MessageBuffer* m_responseFromBridge_ptr;
+    MessageBuffer* m_toBridge_ptr;
+    MessageBuffer* m_fromBridge_ptr;
 
     TransitionResult doTransition(Interface_Event event,
                                   Addr addr);
