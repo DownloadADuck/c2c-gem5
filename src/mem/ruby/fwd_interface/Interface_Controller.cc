@@ -364,137 +364,120 @@ Interface_Controller::recordCacheTrace(int cntrl, CacheRecorder* tr)
 
 // Actions
 
-/** \brief Send read request to Bridge */
-void
-Interface_Controller::sendBridgeRead(Memory_TBE*& n_tbe_ptr, Addr addr)
-{
-    DPRINTF(RubyGenerated, "sendMemoryRead to Bridge\n");
-    #ifndef NDEBUG
-    if (!((m_tbe_ptr != NULL))) {
-        panic("Runtime Error at Interface_Controller: %s.\n", "assert failure");
-    }
-    #endif;
-    {
-        std::shared_ptr<MemoryMsg> out_msg = std::make_shared<MemoryMsg>(clockEdge());
-        (*out_msg).m_addr = addr;
-        (*out_msg).m_Type = MemoryRequestType_MEMORY_READ;
-        (*out_msg).m_Sender = (*m_tbe_ptr).m_requestor;
-        (*out_msg).m_MessageSize = MessageSizeType_Request_Control;
-        (*out_msg).m_Len = (0);
-        ((*m_requestToBridge_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_to_bridge_latency)));
-    }
-}
-
-/** \brief Send write request to Bridge*/
-void
-Interface_Controller::sendBridgeWrite(Memory_TBE*& m_tbe_ptr, Addr addr)
+// Sending to the Bridge
+/** \brief Send request to Bridge */
+void 
+Interface_Controller::sendReqToBridge(Addr addr)
 {
 
 }
 
-/** \brief Forwards the request message */
-void
-Interface_Controller::fwdRequest(Addr addr)
+/** \brief Send snoop to Bridge */
+void 
+Interface_Controller::sendSnpToBridge(Addr addr)
 {
-    DPRINTF(RubyGenerated, "executing fwdRequest\n");
-    {
-    // Declare message
-    [[maybe_unused]] const CHIRequestMsg* in_msg_ptr;
-    in_msg_ptr = dynamic_cast<const CHIRequestMsg *>(((*m_reqIn_ptr)).peek());
-    if (in_msg_ptr == NULL) {
-        // If the cast fails, this is the wrong inport (wrong message type).
-        // Throw an exception, and the caller will decide to either try a
-        // different inport or punt.
-        throw RejectException();
-    }
-{
-    std::shared_ptr<CHIRequestMsg> out_msg = std::make_shared<CHIRequestMsg>(clockEdge());
-    (*out_msg).m_addr = addr;
-    //(*out_msg).m_Sender = m_machineID;
-    (*out_msg).m_requestor = ((*in_msg_ptr)).m_requestor;
-    //(*out_msg).m_DataBlk = ((*in_msg_ptr)).m_DataBlk;
-    ((*m_reqOut_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles((1))));
-}
-}
-}
-
-/** \brief Forwards the snoop message */
-void
-Interface_Controller::fwdSnoop(Addr addr)
-{
-    DPRINTF(RubyGenerated, "executing fwdRequest\n");
-    {
-    // Declare message
-    [[maybe_unused]] const CHIRequestMsg* in_msg_ptr;
-    in_msg_ptr = dynamic_cast<const CHIRequestMsg *>(((*m_snpIn_ptr)).peek());
-    if (in_msg_ptr == NULL) {
-        // If the cast fails, this is the wrong inport (wrong message type).
-        // Throw an exception, and the caller will decide to either try a
-        // different inport or punt.
-        throw RejectException();
-    }
-{
-    std::shared_ptr<CHIRequestMsg> out_msg = std::make_shared<CHIRequestMsg>(clockEdge());
-    (*out_msg).m_addr = addr;
-    //(*out_msg).m_Sender = m_machineID;
-    (*out_msg).m_requestor = ((*in_msg_ptr)).m_requestor;
-    //(*out_msg).m_DataBlk = ((*in_msg_ptr)).m_DataBlk;
-    ((*m_snpOut_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles((1))));
-}
-}
-}
-
-/** \brief Forwards the response message */
-void
-Interface_Controller::fwdResponse(Addr addr)
-{
-    DPRINTF(RubyGenerated, "executing fwdRequest\n");
-    {
-    // Declare message
-    [[maybe_unused]] const CHIResponseMsg* in_msg_ptr;
-    in_msg_ptr = dynamic_cast<const CHIResponseMsg *>(((*m_rspIn_ptr)).peek());
-    if (in_msg_ptr == NULL) {
-        // If the cast fails, this is the wrong inport (wrong message type).
-        // Throw an exception, and the caller will decide to either try a
-        // different inport or punt.
-        throw RejectException();
-    }
-{
-    std::shared_ptr<CHIResponseMsg> out_msg = std::make_shared<CHIResponseMsg>(clockEdge());
-    (*out_msg).m_addr = addr;
-    (*out_msg).m_responder = m_machineID;
-    (*out_msg).m_Destination = ((*in_msg_ptr)).m_Destination;
-    //(*out_msg).m_DataBlk = ((*in_msg_ptr)).m_DataBlk;
-    ((*m_rspOut_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles((1))));
-}
-}
-}
-
-/** \brief Forwards the request message */
-void
-Interface_Controller::fwdData(Addr addr)
-{
-    DPRINTF(RubyGenerated, "executing fwdRequest\n");
-    {
-    // Declare message
-    [[maybe_unused]] const CHIDataMsg* in_msg_ptr;
-    in_msg_ptr = dynamic_cast<const CHIDataMsg *>(((*m_datIn_ptr)).peek());
-    if (in_msg_ptr == NULL) {
-        // If the cast fails, this is the wrong inport (wrong message type).
-        // Throw an exception, and the caller will decide to either try a
-        // different inport or punt.
-        throw RejectException();
-    }
-{
-    std::shared_ptr<CHIDataMsg> out_msg = std::make_shared<CHIDataMsg>(clockEdge());
-    (*out_msg).m_addr = addr;
-    (*out_msg).m_responder = ((*in_msg_ptr)).m_responder;
-    (*out_msg).m_Destination = (*(getInterfaceEntry(addr))).m_Owner;
-    ((*m_datOut_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles((1))));
-}
-}
 
 }
+
+/** \brief Send response to Bridge */
+void 
+Interface_Controller::sendRspToBridge(Addr addr)
+{
+
+}
+
+/** \brief Send data to Bridge */
+void 
+Interface_Controller::sendDatToBridge(Addr addr)
+{
+
+}
+
+// Sending to the Network
+/** \brief Send request to Network */
+void 
+Interface_Controller::sendReqToNetwork(Addr addr)
+{
+
+}
+
+/** \brief Send snoop to Network */
+void 
+Interface_Controller::sendSnpToNetwork(Addr addr)
+{
+
+}
+
+/** \brief Send response to Network */
+void 
+Interface_Controller::sendRspToNetwork(Addr addr)
+{
+
+}
+
+/** \brief Send data to Network */
+void 
+Interface_Controller::sendDatToNetwork(Addr addr)
+{
+
+}
+
+///** \brief Send read request to Bridge */
+//void
+//Interface_Controller::sendBridgeRead(Memory_TBE*& n_tbe_ptr, Addr addr)
+//{
+//    DPRINTF(RubyGenerated, "sendMemoryRead to Bridge\n");
+//    #ifndef NDEBUG
+//    if (!((m_tbe_ptr != NULL))) {
+//        panic("Runtime Error at Interface_Controller: %s.\n", "assert failure");
+//    }
+//    #endif;
+//    {
+//        std::shared_ptr<MemoryMsg> out_msg = std::make_shared<MemoryMsg>(clockEdge());
+//        (*out_msg).m_addr = addr;
+//        (*out_msg).m_Type = MemoryRequestType_MEMORY_READ;
+//        (*out_msg).m_Sender = (*m_tbe_ptr).m_requestor;
+//        (*out_msg).m_MessageSize = MessageSizeType_Request_Control;
+//        (*out_msg).m_Len = (0);
+//        ((*m_requestToBridge_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_to_bridge_latency)));
+//    }
+//}
+//
+///** \brief Send write request to Bridge*/
+//void
+//Interface_Controller::sendBridgeWrite(Memory_TBE*& m_tbe_ptr, Addr addr)
+//{
+//
+//}
+//
+///** \brief Forwards the request message */
+//void
+//Interface_Controller::fwdRequest(Addr addr)
+//{
+//    DPRINTF(RubyGenerated, "executing fwdRequest\n");
+//    {
+//    // Declare message
+//    [[maybe_unused]] const CHIRequestMsg* in_msg_ptr;
+//    in_msg_ptr = dynamic_cast<const CHIRequestMsg *>(((*m_reqIn_ptr)).peek());
+//    if (in_msg_ptr == NULL) {
+//        // If the cast fails, this is the wrong inport (wrong message type).
+//        // Throw an exception, and the caller will decide to either try a
+//        // different inport or punt.
+//        throw RejectException();
+//    }
+//{
+//    std::shared_ptr<CHIRequestMsg> out_msg = std::make_shared<CHIRequestMsg>(clockEdge());
+//    (*out_msg).m_addr = addr;
+//    //(*out_msg).m_Sender = m_machineID;
+//    (*out_msg).m_requestor = ((*in_msg_ptr)).m_requestor;
+//    //(*out_msg).m_DataBlk = ((*in_msg_ptr)).m_DataBlk;
+//    ((*m_reqOut_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles((1))));
+//}
+//}
+//}
+
+
+
 
 Interface_Entry*
 Interface_Controller::getInterfaceEntry(const Addr& param_addr)
