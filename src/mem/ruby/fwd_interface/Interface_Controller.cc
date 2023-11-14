@@ -50,6 +50,7 @@ Interface_Controller::Interface_Controller(const Params &p)
     m_machineID.num = m_version;
     printf("version interface --> %u\n", m_version);
     m_num_controllers++;
+    m_to_bridge_latency = p.to_bridge_latency;
     p.ruby_system->registerAbstractController(this);
 
     m_in_ports = 4;
@@ -63,6 +64,9 @@ Interface_Controller::Interface_Controller(const Params &p)
     m_snpIn_ptr = p.snpIn;
     m_rspIn_ptr = p.rspIn;
     m_datIn_ptr = p.datIn;
+
+    m_requestToBridge_ptr = p.requestToBridge;
+    m_responseFromBridge_ptr = p.responseFromBridge;
 
     for (int state = 0; state < Interface_State_NUM; state++) {
         for (int event = 0; event < Interface_Event_NUM; event++) {
@@ -323,13 +327,13 @@ Interface_Controller::getMandatoryQueue() const
 MessageBuffer*
 Interface_Controller::getMemReqQueue() const
 {
-    return NULL;
+    return m_requestToBridge_ptr;
 }
 
 MessageBuffer*
 Interface_Controller::getMemRespQueue() const
 {
-    return NULL;
+    return m_responseFromBridge_ptr;
 }
 
 void
@@ -359,6 +363,35 @@ Interface_Controller::recordCacheTrace(int cntrl, CacheRecorder* tr)
 }
 
 // Actions
+
+/** \brief Send read request to Bridge */
+void
+Interface_Controller::sendBridgeRead(Memory_TBE*& n_tbe_ptr, Addr addr)
+{
+    DPRINTF(RubyGenerated, "sendMemoryRead to Bridge\n");
+    #ifndef NDEBUG
+    if (!((m_tbe_ptr != NULL))) {
+        panic("Runtime Error at Interface_Controller: %s.\n", "assert failure");
+    }
+    #endif;
+    {
+        std::shared_ptr<MemoryMsg> out_msg = std::make_shared<MemoryMsg>(clockEdge());
+        (*out_msg).m_addr = addr;
+        (*out_msg).m_Type = MemoryRequestType_MEMORY_READ;
+        (*out_msg).m_Sender = (*m_tbe_ptr).m_requestor;
+        (*out_msg).m_MessageSize = MessageSizeType_Request_Control;
+        (*out_msg).m_Len = (0);
+        ((*m_requestToBridge_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_to_bridge_latency)));
+    }
+}
+
+/** \brief Send write request to Bridge*/
+void
+Interface_Controller::sendBridgeWrite(Memory_TBE*& m_tbe_ptr, Addr addr)
+{
+
+}
+
 /** \brief Forwards the request message */
 void
 Interface_Controller::fwdRequest(Addr addr)

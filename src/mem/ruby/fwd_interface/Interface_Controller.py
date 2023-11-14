@@ -9,6 +9,7 @@ class Interface_Controller(RubyController):
     cxx_class = "gem5::ruby::Interface_Controller"
     #interface = Param.RubyDirectoryMemory("")
     toMemLatency = Param.Cycles((1), "")
+    to_bridge_latency = Param.Cycles((1), "")
 
     reqOut = Param.MessageBuffer("")
     snpOut = Param.MessageBuffer("")

@@ -59,6 +59,7 @@ class Interface_Controller : public AbstractController
 private:
     DirectoryMemory* m_interface_ptr;
     Cycles m_toMemLatency;
+    Cycles m_to_bridge_latency;
     MessageBuffer* m_reqOut_ptr;
     MessageBuffer* m_snpOut_ptr;
     MessageBuffer* m_rspOut_ptr;
@@ -67,6 +68,10 @@ private:
     MessageBuffer* m_snpIn_ptr;
     MessageBuffer* m_rspIn_ptr;
     MessageBuffer* m_datIn_ptr;
+
+    MessageBuffer* m_requestToBridge_ptr;
+    MessageBuffer* m_responseFromBridge_ptr;
+
     TransitionResult doTransition(Interface_Event event,
                                   Addr addr);
 
@@ -99,16 +104,25 @@ private:
     int functionalWrite(const Addr& param_addr, Packet* param_pkt);
 
     // Actions
-    /** \brief Forwards the request message */
-    void fwdRequest(Addr addr);
-    /** \brief Forwards the snoop message */
-    void fwdSnoop (Addr addr);
-    /** \brief Forwards the response message */
-    void fwdResponse(Addr addr);
-    /** \brief Forwards the data message*/
-    void fwdData(Addr addr);
-    /** \brief Do nothing and goes back to IDLE*/
-    void fwd(Addr addr);
+    // Sending to the Bridge
+    /** \brief Send request to Bridge */
+    void sendReqToBridge(Addr addr);
+    /** \brief Send snoop to Bridge */
+    void sendSnpToBridge(Addr addr);
+    /** \brief Send response to Bridge */
+    void sendRspToBridge(Addr addr);
+    /** \brief Send data to Bridge */
+    void sendDatToBridge(Addr addr);
+
+    // Sending to the Network
+    /** \brief Send request to Network */
+    void sendReqToNetwork(Addr addr);
+    /** \brief Send snoop to Network */
+    void sendSnpToNetwork(Addr addr);
+    /** \brief Send response to Network */
+    void sendRspToNetwork(Addr addr);
+    /** \brief Send data to Network */
+    void sendDatToNetwork(Addr addr);
 
     // Objects
 };
