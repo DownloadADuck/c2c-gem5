@@ -77,44 +77,44 @@ Interface_Controller::doTransitionWorker(Interface_Event event,
                                         Interface_State& next_state,
                                         Addr addr)
 {
-    m_curTransitionEvent = event;
-    m_curTransitionNextState = next_state;
-    switch(HASH_FUN(state, event)) {
-  case HASH_FUN(Interface_State_IDLE, Interface_Event_request):
-    if (!(*m_reqOut_ptr).areNSlotsAvailable(1, clockEdge()))
-        return TransitionResult_ResourceStall;
-    fwdRequest(addr);
-    return TransitionResult_Valid;
+  m_curTransitionEvent = event;
+  m_curTransitionNextState = next_state;
+  switch(HASH_FUN(state, event)) {
 
-  case HASH_FUN(Interface_State_IDLE, Interface_Event_snoop):
-    if (!(*m_snpOut_ptr).areNSlotsAvailable(1, clockEdge()))
+    case HASH_FUN(Interface_State_IDLE, Interface_Event_request):
+      if (!(*m_reqOut_ptr).areNSlotsAvailable(1, clockEdge()))
         return TransitionResult_ResourceStall;
-    fwdSnoop(addr);
-    return TransitionResult_Valid;
+      fwdRequest(addr);
+      return TransitionResult_Valid;
+
+    case HASH_FUN(Interface_State_IDLE, Interface_Event_snoop):
+      if (!(*m_snpOut_ptr).areNSlotsAvailable(1, clockEdge()))
+        return TransitionResult_ResourceStall;
+      fwdSnoop(addr);
+      return TransitionResult_Valid;
   
-  case HASH_FUN(Interface_State_IDLE, Interface_Event_response):
-    if (!(*m_rspOut_ptr).areNSlotsAvailable(1, clockEdge()))
+    case HASH_FUN(Interface_State_IDLE, Interface_Event_response):
+      if (!(*m_rspOut_ptr).areNSlotsAvailable(1, clockEdge()))
         return TransitionResult_ResourceStall;
     fwdResponse(addr);
     return TransitionResult_Valid;
   
-  case HASH_FUN(Interface_State_IDLE, Interface_Event_data):
-    if (!(*m_datOut_ptr).areNSlotsAvailable(1, clockEdge()))
+    case HASH_FUN(Interface_State_IDLE, Interface_Event_data):
+      if (!(*m_datOut_ptr).areNSlotsAvailable(1, clockEdge()))
         return TransitionResult_ResourceStall;
     fwdData(addr);
     return TransitionResult_Valid;
   
-  case HASH_FUN(Interface_State_FWD, Interface_Event_fwd):
+    case HASH_FUN(Interface_State_FWD, Interface_Event_fwd):
     //fwd(addr);
     return TransitionResult_Valid;
 
-      default:
-        panic("Invalid transition\n"
-              "%s time: %d addr: %#x event: %s state: %s\n",
-              name(), curCycle(), addr, event, state);
-    }
-
-    return TransitionResult_Valid;
+    default:
+      panic("Invalid transition\n"
+            "%s time: %d addr: %#x event: %s state: %s\n",
+            name(), curCycle(), addr, event, state);
+  }
+  return TransitionResult_Valid;
 }
 
 } // namespace ruby

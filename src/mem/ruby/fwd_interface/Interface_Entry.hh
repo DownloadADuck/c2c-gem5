@@ -23,7 +23,7 @@ class Interface_Entry :  public AbstractCacheEntry
 ()
 		{
         m_InterfaceState = Interface_State_IDLE;
-         // default value of Interface_State
+        // default value of Interface_State
         // m_Sharers has no default
         // m_Owner has no default
     }
