@@ -47,7 +47,7 @@ Interface_Controller::wakeup()
             scheduleEvent(Cycles(1));
             break;
         }
-        // InterfaceInPort request in
+        // Interface reqIn port
         m_cur_in_port = 0;
         try
         {
@@ -66,7 +66,7 @@ Interface_Controller::wakeup()
                     }
                     {
 
-                        TransitionResult result = doTransition(Interface_Event_response, ((*in_msg_ptr)).m_addr);
+                        TransitionResult result = doTransition(Interface_Event_requestToBridge, ((*in_msg_ptr)).m_addr);
 
                         if (result == TransitionResult_Valid)
                         {
@@ -77,13 +77,11 @@ Interface_Controller::wakeup()
                         {
 
                             scheduleEvent(Cycles(1));
-                            // Cannot do anything with this transition, go check next doable transition (mostly likely of next port)
                         }
                         else if (result == TransitionResult_ProtocolStall)
                         {
 
                             scheduleEvent(Cycles(1));
-                            // Cannot do anything with this transition, go check next doable transition (mostly likely of next port)
                         }
                     };
                 }
@@ -93,7 +91,8 @@ Interface_Controller::wakeup()
         {
             rejected[0]++;
         }
-        // InterfaceInPort snoop in
+
+        // Interface snpIn port 
         m_cur_in_port = 0;
         try
         {
@@ -112,7 +111,7 @@ Interface_Controller::wakeup()
                     }
                     {
 
-                        TransitionResult result = doTransition(Interface_Event_snoop, ((*in_msg_ptr)).m_addr);
+                        TransitionResult result = doTransition(Interface_Event_snoopToBridge, ((*in_msg_ptr)).m_addr);
 
                         if (result == TransitionResult_Valid)
                         {
@@ -123,13 +122,11 @@ Interface_Controller::wakeup()
                         {
 
                             scheduleEvent(Cycles(1));
-                            // Cannot do anything with this transition, go check next doable transition (mostly likely of next port)
                         }
                         else if (result == TransitionResult_ProtocolStall)
                         {
 
                             scheduleEvent(Cycles(1));
-                            // Cannot do anything with this transition, go check next doable transition (mostly likely of next port)
                         }
                     };
                 }
@@ -139,7 +136,8 @@ Interface_Controller::wakeup()
         {
             rejected[0]++;
         }
-        // InterfaceInPort response in
+
+        // Interface rspIn port 
         m_cur_in_port = 0;
         try
         {
@@ -158,7 +156,7 @@ Interface_Controller::wakeup()
                     }
                     {
 
-                        TransitionResult result = doTransition(Interface_Event_response, ((*in_msg_ptr)).m_addr);
+                        TransitionResult result = doTransition(Interface_Event_responseToBridge, ((*in_msg_ptr)).m_addr);
 
                         if (result == TransitionResult_Valid)
                         {
@@ -169,13 +167,11 @@ Interface_Controller::wakeup()
                         {
 
                             scheduleEvent(Cycles(1));
-                            // Cannot do anything with this transition, go check next doable transition (mostly likely of next port)
                         }
                         else if (result == TransitionResult_ProtocolStall)
                         {
 
                             scheduleEvent(Cycles(1));
-                            // Cannot do anything with this transition, go check next doable transition (mostly likely of next port)
                         }
                     };
                 }
@@ -185,7 +181,8 @@ Interface_Controller::wakeup()
         {
             rejected[0]++;
         }
-        // InterfaceInPort data in
+
+        // Interface datIn port 
         m_cur_in_port = 0;
         try
         {
@@ -204,7 +201,7 @@ Interface_Controller::wakeup()
                     }
                     {
 
-                        TransitionResult result = doTransition(Interface_Event_data, ((*in_msg_ptr)).m_addr);
+                        TransitionResult result = doTransition(Interface_Event_dataToBridge, ((*in_msg_ptr)).m_addr);
 
                         if (result == TransitionResult_Valid)
                         {
@@ -215,13 +212,11 @@ Interface_Controller::wakeup()
                         {
 
                             scheduleEvent(Cycles(1));
-                            // Cannot do anything with this transition, go check next doable transition (mostly likely of next port)
                         }
                         else if (result == TransitionResult_ProtocolStall)
                         {
 
                             scheduleEvent(Cycles(1));
-                            // Cannot do anything with this transition, go check next doable transition (mostly likely of next port)
                         }
                     };
                 }
@@ -231,6 +226,7 @@ Interface_Controller::wakeup()
         {
             rejected[0]++;
         }
+
         // If we got this far, we have nothing left todo or something went
         // wrong
         break;
