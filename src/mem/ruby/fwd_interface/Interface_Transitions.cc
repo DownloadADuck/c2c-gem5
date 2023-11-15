@@ -81,30 +81,56 @@ Interface_Controller::doTransitionWorker(Interface_Event event,
   m_curTransitionNextState = next_state;
   switch(HASH_FUN(state, event)) {
 
-    case HASH_FUN(Interface_State_IDLE, Interface_Event_request):
-      if (!(*m_reqOut_ptr).areNSlotsAvailable(1, clockEdge()))
+    // To the BRIDGE
+    case HASH_FUN(Interface_State_IDLE, Interface_Event_requestToBridge):
+      if (!(*m_toBridge_ptr).areNSlotsAvailable(1, clockEdge()))
         return TransitionResult_ResourceStall;
-      fwdRequest(addr);
+      sendReqToBridge(addr);
       return TransitionResult_Valid;
 
-    case HASH_FUN(Interface_State_IDLE, Interface_Event_snoop):
+    case HASH_FUN(Interface_State_IDLE, Interface_Event_snoopToBridge):
+      if (!(*m_toBridge_ptr).areNSlotsAvailable(1, clockEdge()))
+        return TransitionResult_ResourceStall;
+      sendSnpToBridge(addr);
+      return TransitionResult_Valid;
+
+    case HASH_FUN(Interface_State_IDLE, Interface_Event_responseToBridge):
+      if (!(*m_toBridge_ptr).areNSlotsAvailable(1, clockEdge()))
+        return TransitionResult_ResourceStall;
+      sendRspToBridge(addr);
+      return TransitionResult_Valid;
+
+    case HASH_FUN(Interface_State_IDLE, Interface_Event_dataToBridge):
+      if (!(*m_toBridge_ptr).areNSlotsAvailable(1, clockEdge()))
+        return TransitionResult_ResourceStall;
+      sendDatToBridge(addr);
+      return TransitionResult_Valid;
+
+    // To the NETWORK
+    case HASH_FUN(Interface_State_IDLE, Interface_Event_requestToNetwork):
+      if (!(*m_reqOut_ptr).areNSlotsAvailable(1, clockEdge()))
+        return TransitionResult_ResourceStall;
+      sendReqToNetwork();
+      return TransitionResult_Valid;
+
+    case HASH_FUN(Interface_State_IDLE, Interface_Event_snoopToNetwork):
       if (!(*m_snpOut_ptr).areNSlotsAvailable(1, clockEdge()))
         return TransitionResult_ResourceStall;
-      fwdSnoop(addr);
+      sendSnpToNetwork();
       return TransitionResult_Valid;
-  
-    case HASH_FUN(Interface_State_IDLE, Interface_Event_response):
+
+    case HASH_FUN(Interface_State_IDLE, Interface_Event_responseToNetwork):
       if (!(*m_rspOut_ptr).areNSlotsAvailable(1, clockEdge()))
         return TransitionResult_ResourceStall;
-    fwdResponse(addr);
-    return TransitionResult_Valid;
-  
-    case HASH_FUN(Interface_State_IDLE, Interface_Event_data):
+      sendRspToNetwork();
+      return TransitionResult_Valid;
+
+    case HASH_FUN(Interface_State_IDLE, Interface_Event_dataToNetwork):
       if (!(*m_datOut_ptr).areNSlotsAvailable(1, clockEdge()))
         return TransitionResult_ResourceStall;
-    fwdData(addr);
-    return TransitionResult_Valid;
-  
+      sendDatToNetwork();
+      return TransitionResult_Valid;
+
     case HASH_FUN(Interface_State_FWD, Interface_Event_fwd):
     //fwd(addr);
     return TransitionResult_Valid;
