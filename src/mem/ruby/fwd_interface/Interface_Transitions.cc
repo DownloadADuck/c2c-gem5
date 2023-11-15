@@ -110,25 +110,25 @@ Interface_Controller::doTransitionWorker(Interface_Event event,
     case HASH_FUN(Interface_State_IDLE, Interface_Event_requestToNetwork):
       if (!(*m_reqOut_ptr).areNSlotsAvailable(1, clockEdge()))
         return TransitionResult_ResourceStall;
-      sendReqToNetwork();
+      sendReqToNetwork(addr);
       return TransitionResult_Valid;
 
     case HASH_FUN(Interface_State_IDLE, Interface_Event_snoopToNetwork):
       if (!(*m_snpOut_ptr).areNSlotsAvailable(1, clockEdge()))
         return TransitionResult_ResourceStall;
-      sendSnpToNetwork();
+      sendSnpToNetwork(addr);
       return TransitionResult_Valid;
 
     case HASH_FUN(Interface_State_IDLE, Interface_Event_responseToNetwork):
       if (!(*m_rspOut_ptr).areNSlotsAvailable(1, clockEdge()))
         return TransitionResult_ResourceStall;
-      sendRspToNetwork();
+      sendRspToNetwork(addr);
       return TransitionResult_Valid;
 
     case HASH_FUN(Interface_State_IDLE, Interface_Event_dataToNetwork):
       if (!(*m_datOut_ptr).areNSlotsAvailable(1, clockEdge()))
         return TransitionResult_ResourceStall;
-      sendDatToNetwork();
+      sendDatToNetwork(addr);
       return TransitionResult_Valid;
 
     case HASH_FUN(Interface_State_FWD, Interface_Event_fwd):

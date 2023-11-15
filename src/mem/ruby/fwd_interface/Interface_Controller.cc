@@ -333,13 +333,13 @@ Interface_Controller::getMandatoryQueue() const
 MessageBuffer*
 Interface_Controller::getMemReqQueue() const
 {
-    return m_requestToBridge_ptr;
+    return m_toBridge_ptr;
 }
 
 MessageBuffer*
 Interface_Controller::getMemRespQueue() const
 {
-    return m_responseFromBridge_ptr;
+    return m_fromBridge_ptr;
 }
 
 void
@@ -379,21 +379,17 @@ Interface_Controller::sendReqToBridge(Addr addr)
     DPRINTF(RubyGenerated, "executing sendReqToBridge\n");
     {
         [[maybe_unused]] const CHIRequestMsg* in_msg_ptr;
-        in_msg_ptr = dynamic_cast<const CHIRequestMsg *>(((*m_reqIn_ptr)).peek());
+        in_msg_ptr = dynamic_cast<const CHIRequestMsg *>((*m_reqIn_ptr).peek());
         if (in_msg_ptr == NULL) {
             throw RejectException();
         }
+    
+        std::shared_ptr<CHIRequestMsg> out_msg = \
+        std::make_shared<CHIRequestMsg>(clockEdge());
+        (*out_msg).m_addr = addr;
+        (*out_msg).m_requestor = (*in_msg_ptr).m_requestor;
+        (*m_toBridge_ptr).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(1)));
     }
-{
-    std::shared_ptr<CHIRequestMsg> out_msg = \
-    std::make_shared<CHIRequestMsg>(clockEdge());
-    (*out_msg).m_addr = addr;
-    (*out_msg).m_Sender = m_machineID;
-    (*out_msg).m_requestor = ((*in_msg_ptr)).m_requestor;
-    (*out_msg).m_DataBlk = ((*in_msg_ptr)).m_DataBlk;
-    ((*m_toBridge_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(1)));
-
-}
 }
 
 /** \brief Send snoop to Bridge */
@@ -403,21 +399,17 @@ Interface_Controller::sendSnpToBridge(Addr addr)
     DPRINTF(RubyGenerated, "executing sendSnpToBridge\n");
     {
         [[maybe_unused]] const CHIRequestMsg* in_msg_ptr;
-        in_msg_ptr = dynamic_cast<const CHIRequestMsg *>(((*m_snpIn_ptr)).peek());
+        in_msg_ptr = dynamic_cast<const CHIRequestMsg *>((*m_snpIn_ptr).peek());
         if (in_msg_ptr == NULL) {
             throw RejectException();
         }
-    }
-{
-    std::shared_ptr<CHIRequestMsg> out_msg = \
-    std::make_shared<CHIRequestMsg>(clockEdge());
-    (*out_msg).m_addr = addr;
-    (*out_msg).m_Sender = m_machineID;
-    (*out_msg).m_requestor = ((*in_msg_ptr)).m_requestor;
-    (*out_msg).m_DataBlk = ((*in_msg_ptr)).m_DataBlk;
-    ((*m_toBridge_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(1)));
 
-}
+        std::shared_ptr<CHIRequestMsg> out_msg = \
+        std::make_shared<CHIRequestMsg>(clockEdge());
+        (*out_msg).m_addr = addr;
+        (*out_msg).m_requestor = (*in_msg_ptr).m_requestor;
+        (*m_toBridge_ptr).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(1)));
+    }
 }
 
 /** \brief Send response to Bridge */
@@ -427,21 +419,19 @@ Interface_Controller::sendRspToBridge(Addr addr)
     DPRINTF(RubyGenerated, "executing sendRspToBridge\n");
     {
         [[maybe_unused]] const CHIResponseMsg* in_msg_ptr;
-        in_msg_ptr = dynamic_cast<const CHIResponseMsg *>(((*m_rspIn_ptr)).peek());
+        in_msg_ptr = dynamic_cast<const CHIResponseMsg *>((*m_rspIn_ptr).peek());
         if (in_msg_ptr == NULL) {
             throw RejectException();
         }
-    }
-{
-    std::shared_ptr<CHIResponseMsg> out_msg = \
-    std::make_shared<CHIResponseMsg>(clockEdge());
-    (*out_msg).m_addr = addr;
-    (*out_msg).m_Sender = m_machineID;
-    (*out_msg).m_requestor = ((*in_msg_ptr)).m_requestor;
-    (*out_msg).m_DataBlk = ((*in_msg_ptr)).m_DataBlk;
-    ((*m_toBridge_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(1)));
 
-}
+        std::shared_ptr<CHIResponseMsg> out_msg = \
+        std::make_shared<CHIResponseMsg>(clockEdge());
+        (*out_msg).m_addr = addr;
+        //(*out_msg).m_type = CHIResponseType_<responseType>;
+        (*out_msg).m_type = (*in_msg_ptr).m_type;
+        (*out_msg).m_responder = m_machineID;
+        (*m_toBridge_ptr).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(1)));
+    }
 }
 
 /** \brief Send data to Bridge */
@@ -451,21 +441,17 @@ Interface_Controller::sendDatToBridge(Addr addr)
     DPRINTF(RubyGenerated, "executing sendDatToBridge\n");
     {
         [[maybe_unused]] const CHIDataMsg* in_msg_ptr;
-        in_msg_ptr = dynamic_cast<const CHIDataMsg *>(((*m_datIn_ptr)).peek());
+        in_msg_ptr = dynamic_cast<const CHIDataMsg *>((*m_datIn_ptr).peek());
         if (in_msg_ptr == NULL) {
             throw RejectException();
         }
-    }
-{
-    std::shared_ptr<CHIDataMsg> out_msg = \
-    std::make_shared<CHIDataMsg>(clockEdge());
-    (*out_msg).m_addr = addr;
-    (*out_msg).m_Sender = m_machineID;
-    (*out_msg).m_requestor = ((*in_msg_ptr)).m_requestor;
-    (*out_msg).m_DataBlk = ((*in_msg_ptr)).m_DataBlk;
-    ((*m_toBridge_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(1)));
 
-}
+        std::shared_ptr<CHIDataMsg> out_msg = \
+        std::make_shared<CHIDataMsg>(clockEdge());
+        (*out_msg).m_addr = addr;
+        (*out_msg).m_dataBlk = (*in_msg_ptr).m_dataBlk;
+        (*m_toBridge_ptr).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(1)));
+    }
 }
 
 // Sending to the Network
@@ -476,21 +462,17 @@ Interface_Controller::sendReqToNetwork(Addr addr)
     DPRINTF(RubyGenerated, "executing sendReqToNetwork\n");
     {
         [[maybe_unused]] const CHIRequestMsg* in_msg_ptr;
-        in_msg_ptr = dynamic_cast<const CHIRequestMsg *>(((*m_fromBridge_ptr)).peek());
+        in_msg_ptr = dynamic_cast<const CHIRequestMsg *>((*m_fromBridge_ptr).peek());
         if (in_msg_ptr == NULL) {
             throw RejectException();
         }
-    }
-{
-    std::shared_ptr<CHIRequestMsg> out_msg = \
-    std::make_shared<CHIRequestMsg>(clockEdge());
-    (*out_msg).m_addr = addr;
-    (*out_msg).m_Sender = m_machineID;
-    (*out_msg).m_requestor = ((*in_msg_ptr)).m_requestor;
-    (*out_msg).m_DataBlk = ((*in_msg_ptr)).m_DataBlk;
-    ((*m_reqOut_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(1)));
 
-}
+        std::shared_ptr<CHIRequestMsg> out_msg = \
+        std::make_shared<CHIRequestMsg>(clockEdge());
+        (*out_msg).m_addr = addr;
+        (*out_msg).m_requestor = (*in_msg_ptr).m_requestor;
+        (*m_reqOut_ptr).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(1)));
+    }
 }
 
 /** \brief Send snoop to Network */
@@ -500,20 +482,17 @@ Interface_Controller::sendSnpToNetwork(Addr addr)
     DPRINTF(RubyGenerated, "executing sendSnpToNetwork\n");
     {
         [[maybe_unused]] const CHIRequestMsg* in_msg_ptr;
-        in_msg_ptr = dynamic_cast<const CHIRequestMsg *>(((*m_fromBridge_ptr)).peek());
+        in_msg_ptr = dynamic_cast<const CHIRequestMsg *>((*m_fromBridge_ptr).peek());
         if (in_msg_ptr == NULL) {
             throw RejectException();
         }
+
+        std::shared_ptr<CHIRequestMsg> out_msg = \
+        std::make_shared<CHIRequestMsg>(clockEdge());
+        (*out_msg).m_addr = addr;
+        (*out_msg).m_requestor = (*in_msg_ptr).m_requestor;
+        (*m_snpOut_ptr).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(1)));
     }
-{
-    std::shared_ptr<CHIRequestMsg> out_msg = \
-    std::make_shared<CHIRequestMsg>(clockEdge());
-    (*out_msg).m_addr = addr;
-    (*out_msg).m_Sender = m_machineID;
-    (*out_msg).m_requestor = ((*in_msg_ptr)).m_requestor;
-    (*out_msg).m_DataBlk = ((*in_msg_ptr)).m_DataBlkl;
-    ((*m_snpOut_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(1)));
-}
 }
 
 /** \brief Send response to Network */
@@ -523,20 +502,19 @@ Interface_Controller::sendRspToNetwork(Addr addr)
     DPRINTF(RubyGenerated, "executing sendRspToNetwork\n");
     {
         [[maybe_unused]] const CHIResponseMsg* in_msg_ptr;
-        in_msg_ptr = dynamic_cast<const CHIResponseMsg *>(((*m_fromBridge_ptr)).peek());
+        in_msg_ptr = dynamic_cast<const CHIResponseMsg *>((*m_fromBridge_ptr).peek());
         if (in_msg_ptr == NULL) {
             throw RejectException();
         }
+
+        std::shared_ptr<CHIResponseMsg> out_msg = \
+        std::make_shared<CHIResponseMsg>(clockEdge());
+        (*out_msg).m_addr = addr;
+        //(*out_msg).m_type = CHIResponseType_<responseType>;
+        (*out_msg).m_type = (*in_msg_ptr).m_type;
+        (*out_msg).m_responder = m_machineID;
+        (*m_rspOut_ptr).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(1)));
     }
-{
-    std::shared_ptr<CHIResponseMsg> out_msg = \
-    std::make_shared<CHIResponseMsg>(clockEdge());
-    (*out_msg).m_addr = addr;
-    (*out_msg).m_Sender = m_machineID;
-    (*out_msg).m_requestor = ((*in_msg_ptr)).m_requestor;
-    (*out_msg).m_DataBlk = ((*in_msg_ptr)).m_DataBlkl;
-    ((*m_rspOut_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(1)));
-}
 }
 
 /** \brief Send data to Network */
@@ -546,20 +524,17 @@ Interface_Controller::sendDatToNetwork(Addr addr)
     DPRINTF(RubyGenerated, "executing sendDatToNetwork\n");
     {
         [[maybe_unused]] const CHIDataMsg* in_msg_ptr;
-        in_msg_ptr = dynamic_cast<const CHIDataMsg *>(((*m_fromBridge_ptr)).peek());
+        in_msg_ptr = dynamic_cast<const CHIDataMsg *>((*m_fromBridge_ptr).peek());
         if (in_msg_ptr == NULL) {
             throw RejectException();
         }
+
+        std::shared_ptr<CHIDataMsg> out_msg = \
+        std::make_shared<CHIDataMsg>(clockEdge());
+        (*out_msg).m_addr = addr;
+        (*out_msg).m_dataBlk = (*in_msg_ptr).m_dataBlk;
+        (*m_datOut_ptr).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(1)));
     }
-{
-    std::shared_ptr<CHIDataMsg> out_msg = \
-    std::make_shared<CHIDataMsg>(clockEdge());
-    (*out_msg).m_addr = addr;
-    (*out_msg).m_Sender = m_machineID;
-    (*out_msg).m_requestor = ((*in_msg_ptr)).m_requestor;
-    (*out_msg).m_DataBlk = ((*in_msg_ptr)).m_DataBlkl;
-    ((*m_datOut_ptr)).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(1)));
-}
 }
 
 
@@ -567,10 +542,10 @@ Interface_Entry*
 Interface_Controller::getInterfaceEntry(const Addr& param_addr)
 {
 Interface_Entry* interface_entry
- = static_cast<Interface_Entry *>((((*m_interface_ptr)).lookup(param_addr)))
+ = static_cast<Interface_Entry *>(((*m_interface_ptr).lookup(param_addr)))
 ;
-    if ((interface_entry == NULL)) {
-        interface_entry = static_cast<Interface_Entry *>((((*m_interface_ptr)).allocate(param_addr, new Interface_Entry)))
+    if (interface_entry == NULL) {
+        interface_entry = static_cast<Interface_Entry *>(((*m_interface_ptr).allocate(param_addr, new Interface_Entry)))
         ;
     }
     return interface_entry;
@@ -579,7 +554,7 @@ Interface_Entry* interface_entry
 Interface_State
 Interface_Controller::getState(const Addr& param_addr)
 {
-    if ((((*m_interface_ptr)).isPresent(param_addr))) {
+    if ((*m_interface_ptr).isPresent(param_addr)) {
         return (*(getInterfaceEntry(param_addr))).m_InterfaceState;
     } else {
         return Interface_State_IDLE;
@@ -608,10 +583,10 @@ Interface_Controller::getAccessPermission(const Addr& param_addr)
 void
 Interface_Controller::setAccessPermission(const Addr& param_addr, const Interface_State& param_state)
 {
-    if ((((*m_interface_ptr)).isPresent(param_addr))) {
+    if ((*m_interface_ptr).isPresent(param_addr)) {
         Interface_Entry* e
          = (getInterfaceEntry(param_addr));
-        ((*(e)).changePermission((Interface_State_to_permission(param_state))));
+        ((*(e)).changePermission(Interface_State_to_permission(param_state)));
     }
 
 }
@@ -624,7 +599,7 @@ Interface_Controller::functionalRead(const Addr& param_addr, Packet* param_pkt)
 int
 Interface_Controller::functionalWrite(const Addr& param_addr, Packet* param_pkt)
 {
-    if ((functionalMemoryWrite(param_pkt))) {
+    if (functionalMemoryWrite(param_pkt)) {
         return (1);
     } else {
         return (0);
