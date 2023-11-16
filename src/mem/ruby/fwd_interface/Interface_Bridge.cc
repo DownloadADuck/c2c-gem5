@@ -37,8 +37,48 @@ InterfaceBridge::getPort(const std::string &if_name, PortID idx)
 }
 
 // CHIP0 SIDE /////////////////////////////////////////////////////////////////
+// REQUEST //
 void
-InterfaceBridge::chip0SidePort::sendPacket(PacketPtr pkt)
+InterfaceBridge::chip0Request::sendPacket(PacketPtr pkt)
+{
+    panic_if(blockedPacket != nullptr, "Should never try to send if blocked");
+
+    // If we can't send the packet across the port, store it for later
+    if (!sendTimingReq(pkt)) {
+        blockedPacket = pkt;
+    }
+}
+
+bool
+InterfaceBridge::chip0Request::recvTimingResp(PacketPtr pkt)
+{
+    // Just forward to the memobj
+    return owner->handleResponse(pkt);
+}
+
+void
+InterfaceBridge::chip0Request::recvReqRetry()
+{
+    // If this is called, we have a blocked packet
+    assert(blockedPacket != nullptr);
+
+    // Grab the blocked packet
+    PacketPtr pkt = blockedPacket;
+    blockedPacket = nullptr;
+
+    // Try to resend it
+    sendPacket(pkt);
+}
+
+void
+InterfaceBridge::chip0Request::recvRangeChange()
+{
+    owner->sendRangeChange();
+}
+
+// RESPONSE //
+void
+InterfaceBridge::chip0Response::sendPacket(PacketPtr pkt)
 {
     panic_if(blockedPacket != nullptr, "Should never try to send if blocked");
 
@@ -49,13 +89,13 @@ InterfaceBridge::chip0SidePort::sendPacket(PacketPtr pkt)
 }
 
 AddrRangeList
-InterfaceBridge::chip0SidePort::getAddrRanges() const
+InterfaceBridge::chip0Response::getAddrRanges() const
 {
     return owner->getAddrRanges();
 }
 
 void
-InterfaceBridge::chip0SidePort::trySendRetry()
+InterfaceBridge::chip0Response::trySendRetry()
 {
     if (needRetry && blockedPacket == nullptr) {
         // Only send a retry if the port is now free
@@ -66,14 +106,14 @@ InterfaceBridge::chip0SidePort::trySendRetry()
 }
 
 void
-InterfaceBridge::chip0SidePort::recvFunctional(PacketPtr pkt)
+InterfaceBridge::chip0Response::recvFunctional(PacketPtr pkt)
 {
     // Just forward to the memobj
     return owner->handleFunctional(pkt);
 }
 
 bool
-InterfaceBridge::chip0SidePort::recvTimingReq(PacketPtr pkt)
+InterfaceBridge::chip0Response::recvTimingReq(PacketPtr pkt)
 {
     // Just forward to the memobj
     if (!owner->handleRequest(pkt)) {
@@ -85,7 +125,7 @@ InterfaceBridge::chip0SidePort::recvTimingReq(PacketPtr pkt)
 }
 
 void
-InterfaceBridge::chip0SidePort::recvRespRetry()
+InterfaceBridge::chip0Response::recvRespRetry()
 {
     // If this is called, we have a blocked packet
     assert(blockedPacket != nullptr);
@@ -101,8 +141,9 @@ InterfaceBridge::chip0SidePort::recvRespRetry()
 ///////////////////////////////////////////////////////////////////////////////
 
 // CHIP1 SIDE /////////////////////////////////////////////////////////////////
+// REQUEST //
 void
-InterfaceBridge::chip1SidePort::sendPacket(PacketPtr pkt)
+InterfaceBridge::chip1Request::sendPacket(PacketPtr pkt)
 {
     panic_if(blockedPacket != nullptr, "Should never try to send if blocked");
 
@@ -113,14 +154,14 @@ InterfaceBridge::chip1SidePort::sendPacket(PacketPtr pkt)
 }
 
 bool
-InterfaceBridge::chip1SidePort::recvTimingResp(PacketPtr pkt)
+InterfaceBridge::chip1Request::recvTimingResp(PacketPtr pkt)
 {
     // Just forward to the memobj
     return owner->handleResponse(pkt);
 }
 
 void
-InterfaceBridge::chip1SidePort::recvReqRetry()
+InterfaceBridge::chip1Request::recvReqRetry()
 {
     // If this is called, we have a blocked packet
     assert(blockedPacket != nullptr);
@@ -134,9 +175,71 @@ InterfaceBridge::chip1SidePort::recvReqRetry()
 }
 
 void
-InterfaceBridge::chip1SidePort::recvRangeChange()
+InterfaceBridge::chip1Request::recvRangeChange()
 {
     owner->sendRangeChange();
+}
+
+// RESPONSE //
+void
+InterfaceBridge::chip1Response::sendPacket(PacketPtr pkt)
+{
+    panic_if(blockedPacket != nullptr, "Should never try to send if blocked");
+
+    // If we can't send the packet across the port, store it for later
+    if(!sendTimingResp(pkt)) {
+        blockedPacket = pkt;
+    }
+}
+
+AddrRangeList
+InterfaceBridge::chip1Response::getAddrRanges() const
+{
+    return owner->getAddrRanges();
+}
+
+void
+InterfaceBridge::chip1Response::trySendRetry()
+{
+    if (needRetry && blockedPacket == nullptr) {
+        // Only send a retry if the port is now free
+        needRetry = false;
+        DPRINTF(InterfaceBridge, "Sending retry req for %d\n", id);
+        sendRetryReq();
+    }
+}
+
+void
+InterfaceBridge::chip1Response::recvFunctional(PacketPtr pkt)
+{
+    // Just forward to the memobj
+    return owner->handleFunctional(pkt);
+}
+
+bool
+InterfaceBridge::chip1Response::recvTimingReq(PacketPtr pkt)
+{
+    // Just forward to the memobj
+    if (!owner->handleRequest(pkt)) {
+        needRetry = true;
+        return false;
+    } else {
+        return true;
+    }
+}
+
+void
+InterfaceBridge::chip1Response::recvRespRetry()
+{
+    // If this is called, we have a blocked packet
+    assert(blockedPacket != nullptr);
+
+    // Grab the blocked packet
+    PacketPtr pkt = blockedPacket;
+    blockedPacket = nullptr;
+
+    // Try to resend it
+    sendPacket(pkt);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -156,7 +259,7 @@ InterfaceBridge::handleRequest(PacketPtr pkt)
     blocked = true;
 
     // Simply forward to the chip1 port
-    chip0Port.sendPacket(pkt);
+    chip0ResponsePort.sendPacket(pkt);
 
     return true;
 }
@@ -173,11 +276,11 @@ InterfaceBridge::handleResponse(PacketPtr pkt)
     blocked = false;
 
     // Forward to the port
-    chip0Port.sendPacket(pkt);
+    chip0RequestPort.sendPacket(pkt);
 
     // For the chip0, it there is a retry, it is done now since this Bridge
     // object may be unblocked now
-    chip0Port.trySendRetry();
+    chip0ResponsePort.trySendRetry();
 
     return true;
 }
@@ -186,7 +289,7 @@ void
 InterfaceBridge::handleFunctional(PacketPtr pkt)
 {
     // Just pass this to the chip1 side to handle for now
-    chip1Port.sendFunctional(pkt);
+    chip1RequestPort.sendFunctional(pkt);
 }
 
 AddrRangeList
@@ -194,13 +297,13 @@ InterfaceBridge::getAddrRanges() const
 {
     DPRINTF(InterfaceBridge, "Sending new ranges\n");
     // Just use the same ranges as whatever is on the memory side
-    return chip1Port.getAddrRanges();
+    return chip1RequestPort.getAddrRanges();
 }
 
 void
 InterfaceBridge::sendRangeChange()
 {
-    chip0Port.sendRangeChange();
+    chip0ResponsePort.sendRangeChange();
 }
 
 } // namespace gem5
