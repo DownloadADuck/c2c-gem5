@@ -17,42 +17,47 @@ class InterfaceBridge : public SimObject
          * This object is fully blocking. Only a single request can be 
          * oustanding at a time.
          */
-        class chip0SidePort : public ResponsePort
+        class chip0Request : public RequestPort
         {
             private:
-                // The object that owns this object (Bridge)
                 InterfaceBridge *owner;
 
-                // True is the port needs to send a retry req.
-                bool needRetry;
+                PacketPtr blockedPacket;
 
-                // If we tried to send a packet and it was blocked, store here
+            public:
+                chip0Request(const std::string& name, InterfaceBridge *owner):
+                    RequestPort(name, owner), owner(owner), blockedPacket(nullptr)
+                { }
+
+                void sendPacket(PacketPtr pkt);
+
+            protected:
+                bool recvTimingResp(PacketPtr pkt) override;
+
+                void recvReqRetry() override;
+
+                void recvRangeChange() override;
+        };
+
+        class chip0Response : public ResponsePort
+        {
+            private:
+                InterfaceBridge *owner;
+
+                bool needRetry;
                 PacketPtr blockedPacket;
 
             public:
                 // Constructor
-                chip0SidePort(const std::string& name, InterfaceBridge *owner):
+                chip0Response(const std::string& name, InterfaceBridge *owner):
                     ResponsePort(name, owner), owner(owner), needRetry(false),
                     blockedPacket(nullptr)
                 { }
 
-                /**
-                 * Send a packet across this port.
-                 * 
-                 * @param packet to send.
-                 */
                 void sendPacket(PacketPtr pkt);
 
-                /**
-                 * Get a list of the non-overlapping address ranges the owner 
-                 * is responsible for. All response ports must override this 
-                 * function and return a populated list with at least one item.
-                 */
                 AddrRangeList getAddrRanges() const override;
 
-                /**
-                 * Send a retry to the peer port only if needed. 
-                 */
                 void trySendRetry();
             
             protected:
@@ -60,65 +65,70 @@ class InterfaceBridge : public SimObject
                 Tick recvAtomic(PacketPtr pkt) override
                 { panic("recvAtomic unimplemented"); }
 
-                /**
-                 * Receive a functional request packet from the request port.
-                 * 
-                 * @param packet the requestor sent.
-                 */
                 void recvFunctional(PacketPtr pkt) override;
 
-                /**
-                 * Receive a timing request from the request port.
-                 */
                 bool recvTimingReq(PacketPtr pkt) override;
 
-                /**
-                 * Called by the request port if sendTimingResp was called on
-                 * this response port and was unsuccesfull.
-                 */
                 void recvRespRetry() override;
         };
+
 
         /**
          * Port on the chip1 side that send requests
          */
-        class chip1SidePort : public RequestPort
+        class chip1Request : public RequestPort
         {
             private:
-                // The object that own this object (Bridge)
                 InterfaceBridge *owner;
 
-                // If we tried to send a packed and it was blockd, store here
                 PacketPtr blockedPacket;
 
             public:
-                // Constructor
-                chip1SidePort(const std::string& name, InterfaceBridge *owner):
+                chip1Request(const std::string& name, InterfaceBridge *owner):
                     RequestPort(name, owner), owner(owner), blockedPacket(nullptr)
                 { }
 
                 void sendPacket(PacketPtr pkt);
 
             protected:
-                /**
-                 * Receive a timing response from the response port.
-                 */
                 bool recvTimingResp(PacketPtr pkt) override;
 
-                /**
-                 * Called by the response port if senTimingReq was called on
-                 * this request port and was unsuccesful.
-                 */
                 void recvReqRetry() override;
 
-                /**
-                 * Called to receive an address range from the peer responder
-                 * port. The default implementation ignores the change and does
-                 * nothing. Override this function in a defived class if the 
-                 * owner needs to be aware of the address ranges, e.g. in an
-                 * interconnect component like a bus.
-                 */
                 void recvRangeChange() override;
+        };
+
+        class chip1Response : public ResponsePort
+        {
+            private:
+                InterfaceBridge *owner;
+
+                bool needRetry;
+                PacketPtr blockedPacket;
+
+            public:
+                // Constructor
+                chip1Response(const std::string& name, InterfaceBridge *owner):
+                    ResponsePort(name, owner), owner(owner), needRetry(false),
+                    blockedPacket(nullptr)
+                { }
+
+                void sendPacket(PacketPtr pkt);
+
+                AddrRangeList getAddrRanges() const override;
+
+                void trySendRetry();
+            
+            protected:
+                // Receive a packet from the chip0 request port
+                Tick recvAtomic(PacketPtr pkt) override
+                { panic("recvAtomic unimplemented"); }
+
+                void recvFunctional(PacketPtr pkt) override;
+
+                bool recvTimingReq(PacketPtr pkt) override;
+
+                void recvRespRetry() override;
         };
 
         // Handle request from the chip0 side
@@ -136,11 +146,13 @@ class InterfaceBridge : public SimObject
         // Tell the cpu side to ask for our memory ranges
         void sendRangeChange();
 
-        // Instantiation of the chip0-side ports
-        chip0SidePort chip0Port;
-
-        // Instantiation of the chip1-side ports
-        chip1SidePort chip1Port;
+        // Ports instantiation
+        // chip0-side
+        chip0Request chip0RequestPort;
+        chip0Response chip0ResponsePort;
+        // chip1-side
+        chip1Request chip1RequestPort;
+        chip1Response chip1ResponsePort;
 
         // True if currently blocked waiting for a response
         bool blocked;
