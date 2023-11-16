@@ -8,8 +8,10 @@ namespace gem5
 
 InterfaceBridge::InterfaceBridge(const InterfaceBridgeParams &params) :
     SimObject(params),
-    chip0Port(params.name + ".chip0_port", this),
-    chip1Port(params.name + ".chip1_port", this),
+    chip0RequestPort(params.name + ".chip0Request", this),
+    chip0ResponsePort(params.name + ".chip0Response", this),
+    chip1RequestPort(params.name + ".chip1Request", this),
+    chip1ResponsePort(params.name + ".chip1Response", this),
     blocked(false)
 {
 }
@@ -20,10 +22,14 @@ InterfaceBridge::getPort(const std::string &if_name, PortID idx)
     panic_if(idx != InvalidPortID, "This object doesn't support vector ports");
 
     // Name from the Python SimObject declaration (Interface_Bridge.py)
-    if (if_name == "chip0_port") {
-        return chip0Port;
-    } else if (if_name == "chip1_port") {
-        return chip1Port;
+    if (if_name == "chip0Request") {
+        return chip0RequestPort;
+    } else if (if_name == "chip0Response") {
+        return chip0ResponsePort;
+    } else if (if_name == "chip1Request") {
+        return chip1RequestPort;
+    } else if (if_name == "chip1Response") {
+        return chip1ResponsePort;
     } else {
         // Pass it along to our super class
         return SimObject::getPort(if_name, idx);
