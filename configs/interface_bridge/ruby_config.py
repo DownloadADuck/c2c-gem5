@@ -8,7 +8,6 @@ from gem5.isas import ISA
 from gem5.runtime import get_runtime_isa
 
 from interface_bridge import tgen_CHI
-
 from CHI_config import Interface
 
 addToPath("../")
@@ -167,7 +166,9 @@ def create_system(
         cpus1 = []
 
     # C2C forwarding interface setup
-    ruby.interface = Interface(ruby, network0, network1)
+    ## Connecting one interface to one unique network
+    ruby.interface0 = Interface(ruby, network0, network0)
+    ruby.interface1 = Interface(ruby, network1, network1)
     
     # Chip 0
     (cpu_sequencers0, dir_cntrls0, topology0) = \
@@ -180,7 +181,7 @@ def create_system(
             ruby, 
             cpus0,
             network0,
-            ruby.interface
+            ruby.interface0
         )
     
     # Chip 1
@@ -194,7 +195,7 @@ def create_system(
             ruby,
             cpus1,
             network1,
-            ruby.interface
+            ruby.interface1
         )
 
     # Create the network topology
@@ -223,13 +224,13 @@ def create_system(
     Network.init_network(options, network0, InterfaceClass)
     Network.init_network(options1, network1, InterfaceClass)
 
-    # Initializing the Interface_Bridge and connecting it to both interfaces
-    system.bridge = InterfaceBridge() 
-    system.ruby.interface0.fromBridge = system.bridge.chip0response
-    system.ruby.interface0.toBridge = system.bridge.chip0request
+    # Create the bridge object and connect it to both interfaces
+    #system.bridge = InterfaceBridge()
+    #system.ruby.interface0.toBridge = system.bridge.chip0request
+    #system.ruby.interface0.fromBridge = system.bridge.chip0response
 
-    system.ruby.interface1.fromBridge = system.bridge.chip1request
-    system.ruby.interface1.toBridge = system.bridge.chip1response
+    #system.ruby.interface1.toBridge = system.bridge.chip1response
+    #system.ruby.interface1.fromBridge = system.bridge.chip1request
 
     # Create a port proxy for connecting the system port.
     sys_port_proxy = RubyPortProxy(ruby_system=ruby)

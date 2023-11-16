@@ -312,7 +312,6 @@ def create_chip1(
     network,
     interface
 ):
-
     if buildEnv["PROTOCOL"] != "CHI":
         m5.panic("This script requires the CHI build")
 
