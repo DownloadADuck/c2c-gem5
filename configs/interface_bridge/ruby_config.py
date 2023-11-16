@@ -225,12 +225,16 @@ def create_system(
     Network.init_network(options1, network1, InterfaceClass)
 
     # Create the bridge object and connect it to both interfaces
-    #system.bridge = InterfaceBridge()
-    #system.ruby.interface0.toBridge = system.bridge.chip0request
-    #system.ruby.interface0.fromBridge = system.bridge.chip0response
+    system.bridge = InterfaceBridge()
+    system.ruby.interface0.toBridge = MessageBuffer()
+    system.ruby.interface0.fromBridge = MessageBuffer()
+    system.ruby.interface0.toBridge.out_port = system.bridge.chip0Request
+    system.ruby.interface0.fromBridge.in_port = system.bridge.chip0Response
 
-    #system.ruby.interface1.toBridge = system.bridge.chip1response
-    #system.ruby.interface1.fromBridge = system.bridge.chip1request
+    system.ruby.interface1.toBridge = MessageBuffer()
+    system.ruby.interface1.fromBridge = MessageBuffer()
+    system.ruby.interface1.toBridge.out_port = system.bridge.chip1Response
+    system.ruby.interface1.fromBridge.in_port = system.bridge.chip1Request
 
     # Create a port proxy for connecting the system port.
     sys_port_proxy = RubyPortProxy(ruby_system=ruby)
