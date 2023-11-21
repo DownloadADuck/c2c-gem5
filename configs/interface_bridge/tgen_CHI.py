@@ -38,6 +38,7 @@ from m5.objects import *
 from m5.defines import buildEnv
 
 from ruby_config import create_topology
+from interface_bridge import CHI_config as chi_defs
 
 
 def define_options(parser):
@@ -90,15 +91,6 @@ def create_chip0(
         for cpu in cpus:
             for decoder in cpu.decoder:
                 decoder.dvm_enabled = True
-
-    # read specialized classes from config file if provided
-    if options.chi_config:
-        chi_defs = read_config_file(options.chi_config)
-    elif options.topology == "CustomMesh":
-        m5.fatal("--noc-config must be provided if topology is CustomMesh")
-    else:
-        # Use the defaults from CHI_config
-        from test_interface import CHI_config as chi_defs
 
     # NoC params
     params = chi_defs.NoC_Params
@@ -320,15 +312,6 @@ def create_chip1(
 
     if options.num_l3caches < 1:
         m5.fatal("--num-l3caches must be at least 1")
-
-    # read specialized classes from config file if provided
-    if options.chi_config:
-        chi_defs = read_config_file(options.chi_config)
-    elif options.topology == "CustomMesh":
-        m5.fatal("--noc-config must be provided if topology is CustomMesh")
-    else:
-        # Use the defaults from CHI_config
-        from test_interface import CHI_config as chi_defs
 
     # NoC params
     params = chi_defs.NoC_Params

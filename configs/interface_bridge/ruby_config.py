@@ -8,7 +8,7 @@ from gem5.isas import ISA
 from gem5.runtime import get_runtime_isa
 
 from interface_bridge import tgen_CHI
-from CHI_config import Interface
+from CHI_config import Interface, MemCtrlMessageBuffer
 
 addToPath("../")
 from common import ObjectList
@@ -169,6 +169,18 @@ def create_system(
     ## Connecting one interface to one unique network
     ruby.interface0 = Interface(ruby, network0, network0)
     ruby.interface1 = Interface(ruby, network1, network1)
+
+    # Create the bridge object and connect it to both interfaces
+    system.bridge = InterfaceBridge()
+    system.ruby.interface0.toBridge = MemCtrlMessageBuffer()
+    system.ruby.interface0.fromBridge = MemCtrlMessageBuffer()
+    system.ruby.interface0.toBridge.out_port = system.bridge.chip0Response
+    system.ruby.interface0.fromBridge.in_port = system.bridge.chip1Request
+
+    system.ruby.interface1.toBridge = MemCtrlMessageBuffer()
+    system.ruby.interface1.fromBridge = MemCtrlMessageBuffer()
+    system.ruby.interface1.toBridge.out_port = system.bridge.chip1Response
+    system.ruby.interface1.fromBridge.in_port = system.bridge.chip0Request
     
     # Chip 0
     (cpu_sequencers0, dir_cntrls0, topology0) = \
@@ -223,18 +235,6 @@ def create_system(
     # Initialize network based topology
     Network.init_network(options, network0, InterfaceClass)
     Network.init_network(options1, network1, InterfaceClass)
-
-    # Create the bridge object and connect it to both interfaces
-    system.bridge = InterfaceBridge()
-    system.ruby.interface0.toBridge = MessageBuffer()
-    system.ruby.interface0.fromBridge = MessageBuffer()
-    system.ruby.interface0.toBridge.out_port = system.bridge.chip0Request
-    system.ruby.interface0.fromBridge.in_port = system.bridge.chip0Response
-
-    system.ruby.interface1.toBridge = MessageBuffer()
-    system.ruby.interface1.fromBridge = MessageBuffer()
-    system.ruby.interface1.toBridge.out_port = system.bridge.chip1Response
-    system.ruby.interface1.fromBridge.in_port = system.bridge.chip1Request
 
     # Create a port proxy for connecting the system port.
     sys_port_proxy = RubyPortProxy(ruby_system=ruby)
