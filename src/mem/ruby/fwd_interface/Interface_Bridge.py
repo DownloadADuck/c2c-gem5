@@ -8,6 +8,3 @@ class InterfaceBridge(SimObject):
 
     chip0Request = RequestPort("chip0 side port, receives requests")
     chip0Response = ResponsePort("chip0 side port, sends responses")
-
-    chip1Request = RequestPort("chip1 side port, receives requests")
-    chip1Response = ResponsePort("chip1 side port, sends responses")

@@ -10,8 +10,8 @@ InterfaceBridge::InterfaceBridge(const InterfaceBridgeParams &params) :
     SimObject(params),
     chip0RequestPort(params.name + ".chip0Request", this),
     chip0ResponsePort(params.name + ".chip0Response", this),
-    chip1RequestPort(params.name + ".chip1Request", this),
-    chip1ResponsePort(params.name + ".chip1Response", this),
+//    chip1RequestPort(params.name + ".chip1Request", this),
+//    chip1ResponsePort(params.name + ".chip1Response", this),
     blocked(false)
 {
 }
@@ -26,10 +26,10 @@ InterfaceBridge::getPort(const std::string &if_name, PortID idx)
         return chip0RequestPort;
     } else if (if_name == "chip0Response") {
         return chip0ResponsePort;
-    } else if (if_name == "chip1Request") {
-        return chip1RequestPort;
-    } else if (if_name == "chip1Response") {
-        return chip1ResponsePort;
+//    } else if (if_name == "chip1Request") {
+//        return chip1RequestPort;
+//    } else if (if_name == "chip1Response") {
+//        return chip1ResponsePort;
     } else {
         // Pass it along to our super class
         return SimObject::getPort(if_name, idx);
@@ -289,7 +289,7 @@ void
 InterfaceBridge::handleFunctional(PacketPtr pkt)
 {
     // Just pass this to the chip1 side to handle for now
-    chip1RequestPort.sendFunctional(pkt);
+//    chip1RequestPort.sendFunctional(pkt);
 }
 
 AddrRangeList
@@ -297,7 +297,7 @@ InterfaceBridge::getAddrRanges() const
 {
     DPRINTF(InterfaceBridge, "Sending new ranges\n");
     // Just use the same ranges as whatever is on the memory side
-    return chip1RequestPort.getAddrRanges();
+//    return chip1RequestPort.getAddrRanges();
 }
 
 void

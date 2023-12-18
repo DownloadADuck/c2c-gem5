@@ -151,8 +151,8 @@ class InterfaceBridge : public SimObject
         chip0Request chip0RequestPort;
         chip0Response chip0ResponsePort;
         // chip1-side
-        chip1Request chip1RequestPort;
-        chip1Response chip1ResponsePort;
+        //chip1Request chip1RequestPort;
+        //chip1Response chip1ResponsePort;
 
         // True if currently blocked waiting for a response
         bool blocked;
