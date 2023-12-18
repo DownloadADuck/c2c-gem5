@@ -17,7 +17,7 @@ class InterfaceBridge : public SimObject
          * This object is fully blocking. Only a single request can be 
          * oustanding at a time.
          */
-        class chip0Request : public RequestPort
+        class chip0Request : public ResponsePort
         {
             private:
                 InterfaceBridge *owner;
@@ -26,7 +26,7 @@ class InterfaceBridge : public SimObject
 
             public:
                 chip0Request(const std::string& name, InterfaceBridge *owner):
-                    RequestPort(name, owner), owner(owner), blockedPacket(nullptr)
+                    ResponsePort(name, owner), owner(owner), blockedPacket(nullptr)
                 { }
 
                 void sendPacket(PacketPtr pkt);
