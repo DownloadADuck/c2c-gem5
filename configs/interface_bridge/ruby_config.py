@@ -172,16 +172,16 @@ def create_system(
 
     # Create the bridge object and connect it to both interfaces
     system.bridge = InterfaceBridge()
-    #system.ruby.interface0.toBridge = MemCtrlMessageBuffer()
-    #system.ruby.interface0.fromBridge = MemCtrlMessageBuffer()
+    system.ruby.interface0.toBridge = MemCtrlMessageBuffer()
+    system.ruby.interface0.fromBridge = MemCtrlMessageBuffer()
     #system.ruby.interface0.toBridge.out_port = system.bridge.chip0Response
     #system.ruby.interface0.fromBridge.in_port = system.bridge.chip1Request
 
     # Trying to use the RubyController mem_out_port
     system.ruby.interface0.memory_out_port = system.bridge.chip0Response
 
-    #system.ruby.interface1.toBridge = MemCtrlMessageBuffer()
-    #system.ruby.interface1.fromBridge = MemCtrlMessageBuffer()
+    system.ruby.interface1.toBridge = MemCtrlMessageBuffer()
+    system.ruby.interface1.fromBridge = MemCtrlMessageBuffer()
     #system.ruby.interface1.toBridge.out_port = system.bridge.chip1Response
     #system.ruby.interface1.fromBridge.in_port = system.bridge.chip0Request
 
