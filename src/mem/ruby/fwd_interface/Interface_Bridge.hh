@@ -22,21 +22,32 @@ class InterfaceBridge : public SimObject
             private:
                 InterfaceBridge *owner;
 
+                bool needRetry;
                 PacketPtr blockedPacket;
 
             public:
+                // Constructor
                 chip0Request(const std::string& name, InterfaceBridge *owner):
-                    ResponsePort(name, owner), owner(owner), blockedPacket(nullptr)
+                    ResponsePort(name, owner), owner(owner), needRetry(false),
+                    blockedPacket(nullptr)
                 { }
 
                 void sendPacket(PacketPtr pkt);
 
+                AddrRangeList getAddrRanges() const override;
+
+                void trySendRetry();
+            
             protected:
-                bool recvTimingResp(PacketPtr pkt) override;
+                // Receive a packet from the chip0 request port
+                Tick recvAtomic(PacketPtr pkt) override
+                { panic("recvAtomic unimplemented"); }
 
-                void recvReqRetry() override;
+                void recvFunctional(PacketPtr pkt) override;
 
-                void recvRangeChange() override;
+                bool recvTimingReq(PacketPtr pkt) override;
+
+                void recvRespRetry() override;
         };
 
         class chip0Response : public ResponsePort
@@ -151,8 +162,8 @@ class InterfaceBridge : public SimObject
         chip0Request chip0RequestPort;
         chip0Response chip0ResponsePort;
         // chip1-side
-        //chip1Request chip1RequestPort;
-        //chip1Response chip1ResponsePort;
+        chip1Request chip1RequestPort;
+        chip1Response chip1ResponsePort;
 
         // True if currently blocked waiting for a response
         bool blocked;
