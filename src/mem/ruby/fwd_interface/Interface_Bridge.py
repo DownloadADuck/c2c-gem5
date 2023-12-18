@@ -7,4 +7,4 @@ class InterfaceBridge(SimObject):
     cxx_class = "gem5::InterfaceBridge"
 
     chip0Request = RequestPort("chip0 side port, receives requests")
-    chip0Response = ResponsePort("chip0 side port, sends responses")
+    chip0Response = RequestPort("chip0 side port, sends responses")
