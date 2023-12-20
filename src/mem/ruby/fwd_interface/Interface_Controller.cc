@@ -48,7 +48,6 @@ Interface_Controller::Interface_Controller(const Params &p)
 {
     m_machineID.type = MachineType_Interface;
     m_machineID.num = m_version;
-    printf("version interface --> %u\n", m_version);
     m_num_controllers++;
     m_to_bridge_latency = p.to_bridge_latency;
     p.ruby_system->registerAbstractController(this);
