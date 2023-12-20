@@ -45,7 +45,7 @@ options0.link_latency = 1
 options0.router_latency = 1
 options0.outdir = "/m5out"
 options0.cpu_clock = '2GHz'
-options0.l2_size = '2MB'
+options0.l2_size = '32kB'
 options0.network = 'simple'
 options0.simple_physical_channels = False
 options0.repeat_switch = None
@@ -201,7 +201,7 @@ np = options0.num_cpus
 mp0_path = multiprocesses[0].executable
 
 # Memory ranges
-arv = convert.toMemorySize('256MB')
+arv = convert.toMemorySize('2kB')
 addr_range_vaults = [AddrRange(i*arv, ((i+1)*arv-1)) for i in range(2)]
 
 system = System(
