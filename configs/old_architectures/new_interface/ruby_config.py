@@ -8,10 +8,9 @@ from gem5.isas import ISA
 from gem5.runtime import get_runtime_isa
 
 from new_interface import tgen_CHI
-#from test_interface import tgen_CHI_v2
 from CHI_config import Interface
 
-addToPath("../")
+addToPath("../../")
 from common import ObjectList
 from common import MemConfig
 from common import FileSystemConfig
