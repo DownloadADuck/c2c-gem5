@@ -191,8 +191,11 @@ def create_trace(filename, max_addr, burst_size, itt):
     header.tick_freq = 1000000000000
     protolib.encodeMessage(proto_out, header)
 
+    start_addr = 0
+    end_addr = 4 * 1024 * 1024 # 4MB
+
     # create a list of every single address to touch
-    addrs = list(range(0, max_addr, burst_size))
+    addrs = list(range(start_addr, end_addr, burst_size))
 
     import random
 
