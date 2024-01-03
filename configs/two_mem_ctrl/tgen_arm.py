@@ -5,7 +5,7 @@ import m5
 from m5.defines import buildEnv
 from m5.objects import *
 from m5.params import NULL
-from m5.util import addToPath, fatal, warn
+from m5.util import *
 from gem5.isas import ISA
 from gem5.runtime import get_runtime_isa
 
@@ -37,7 +37,7 @@ options.options = ''
 options.env = ''
 options.caches = True
 options.cache_line_size = 64
-options.num_dirs = 1
+options.num_dirs = 2
 options.xor_low_bit = 20
 options.enable_dram_powerdown = False
 options.access_backing_store = False
@@ -147,7 +147,8 @@ np = options.num_cpus
 mp0_path = multiprocesses[0].executable
 
 # memory ranges
-
+arv = convert.toMemorySize('2MB')
+addr_range_vaults = [AddrRange(i*arv, ((i+1)*arv-1)) for i in range(1)]
 
 system = System(
     tgens=[
@@ -159,7 +160,7 @@ system = System(
     #cpus=[AtomicSimpleCPU(cpu_id=i) for i in range(np)],
     cpus=[CPUClass(cpu_id=i) for i in range(np)],
     mem_mode="timing",
-    mem_ranges=[AddrRange('512MB')],
+    mem_ranges=addr_range_vaults,
     cache_line_size=64
 )
 
