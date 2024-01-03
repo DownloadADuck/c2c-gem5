@@ -146,6 +146,9 @@ CPUClass.numThreads = numThreads
 np = options.num_cpus
 mp0_path = multiprocesses[0].executable
 
+# memory ranges
+
+
 system = System(
     tgens=[
         TrafficGen(
