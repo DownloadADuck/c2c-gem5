@@ -192,7 +192,8 @@ def create_trace(filename, max_addr, burst_size, itt):
     protolib.encodeMessage(proto_out, header)
 
     start_addr = 0
-    end_addr = 4 * 1024 * 1024 # 4MB
+    #end_addr = 4 * 1024 * 1024 # 4MB
+    end_addr = 2 * 1024
 
     # create a list of every single address to touch
     addrs = list(range(start_addr, end_addr, burst_size))
