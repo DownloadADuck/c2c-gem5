@@ -199,7 +199,7 @@ def create_trace(filename, max_addr, burst_size, itt):
 
     import random
 
-    random.shuffle(addrs)
+    #random.shuffle(addrs)
 
     tick = 0
 
