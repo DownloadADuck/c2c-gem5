@@ -147,7 +147,7 @@ np = options.num_cpus
 mp0_path = multiprocesses[0].executable
 
 # memory ranges
-arv = convert.toMemorySize('2MB')
+arv = convert.toMemorySize('4MB')
 addr_range_vaults = [AddrRange(i*arv, ((i+1)*arv-1)) for i in range(1)]
 
 system = System(

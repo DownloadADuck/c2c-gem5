@@ -190,7 +190,7 @@ def create_trace(filename, max_addr, burst_size, itt):
     header.tick_freq = 1000000000000
     protolib.encodeMessage(proto_out, header)
 
-    start_addr = 0
+    start_addr = 1000000
     end_addr = 4 * 1024 * 1024 # 4MB
     #end_addr = 2 * 1024
 
@@ -199,7 +199,7 @@ def create_trace(filename, max_addr, burst_size, itt):
 
     import random
 
-    #random.shuffle(addrs)
+    random.shuffle(addrs)
 
     tick = 0
 
