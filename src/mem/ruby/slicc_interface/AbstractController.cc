@@ -421,6 +421,11 @@ const
         // map to the first match
         for (const auto &i : downstreamAddrMap) {
             const auto mapping = i.second.contains(addr);
+
+            std::cout << this->getMachineID() << " sends to downstream --> " << \
+            mapping->second << " for address: " << addr << " of mem region: " << \
+            addr / (2*1024*1024) << std::endl;
+
             if (mapping != i.second.end())
                 return mapping->second;
         }
