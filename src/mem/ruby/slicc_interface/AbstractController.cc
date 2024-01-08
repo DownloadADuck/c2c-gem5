@@ -103,6 +103,9 @@ AbstractController::init()
                     name(), addr_range.to_string());
             }
             downstreamAddrMap[mid.getType()].insert(addr_range, mid);
+            for (const auto &i : downstreamAddrMap) {
+                std::cout << "Machine ID: " << mid << " allocated to mem range: " << addr_range.to_string() << " this controller: " << this->getMachineID() << std::endl; //" address map first member: " << i.first << std::endl;
+            }
         }
         downstreamDestinations.add(mid);
     }
