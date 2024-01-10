@@ -74,8 +74,8 @@ def create_system(
     if options.num_dirs < 1:
         m5.fatal("--num-dirs must be at least 1")
 
-    if options.num_l3caches < 1:
-        m5.fatal("--num-l3caches must be at least 1")
+    #if options.num_l3caches < 1:
+    #    m5.fatal("--num-l3caches must be at least 1")
 
     if full_system and options.enable_dvm:
         if len(cpus) <= 1:
@@ -162,29 +162,12 @@ def create_system(
         for cpu in cpus
     ]
 
-    #ruby_system.rnf_tgen = [
-    #    CHI_RNF_tgen(
-    #        [tgen],
-    #        ruby_system,
-    #        L1DCache,
-    #        system.cache_line_size.value,
-    #    )
-    #    for tgen in tgens
-    #]
-
     for rnf in ruby_system.rnf:
         rnf.addPrivL2Cache(L2Cache)
         cpu_sequencers.extend(rnf.getSequencers())
         all_cntrls.extend(rnf.getAllControllers())
         network_nodes.append(rnf)
         network_cntrls.extend(rnf.getNetworkSideControllers())
-    
-    #for rnf_tgen in ruby_system.rnf_tgen:
-    #    #rnf_tgen.addPrivL2Cache(L2Cache)
-    #    tgen_sequencers.extend(rnf_tgen.getSequencers())
-    #    all_cntrls.extend(rnf_tgen.getAllControllers())
-    #    network_nodes.append(rnf_tgen)
-    #    network_cntrls.extend(rnf.getNetworkSideControllers())
     
     # Creates one Misc Node
     ruby_system.mn = [CHI_MN(ruby_system, [cpu.l1d for cpu in cpus])]
@@ -209,6 +192,7 @@ def create_system(
 
     for m in other_memories:
         sysranges.append(m.range)
+    print("sysranges -> ", sysranges)
 
     hnf_list = [i for i in range(options.num_l3caches)]
     CHI_HNF.createAddrRanges(sysranges, system.cache_line_size.value, hnf_list)

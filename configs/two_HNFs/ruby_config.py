@@ -29,10 +29,10 @@ def setup_memory_controllers(system, ruby, dir_cntrls, options):
 
     for dir_cntrl in dir_cntrls:
         crossbar = None
-        if len(system.mem_ranges) > 1:
-            crossbar = IOXBar()
-            crossbars.append(crossbar)
-            dir_cntrl.memory_out_ports = crossbar.cpu_side_ports
+        #if len(system.mem_ranges) > 1:
+        #    crossbar = IOXBar()
+        #    crossbars.append(crossbar)
+        #    dir_cntrl.memory_out_ports = crossbar.cpu_side_ports
         
         dir_ranges = []
         for r in system.mem_ranges:
@@ -136,6 +136,9 @@ def create_system(
     
     # Connect the system port for loading of binaries etc
     system.system_port = system.sys_port_proxy.in_ports
+
+    for dir_cntrl in dir_cntrls:
+        print("dir cntrls -> ", dir_cntrl)
     
     setup_memory_controllers(system, ruby, dir_cntrls, options)
 
