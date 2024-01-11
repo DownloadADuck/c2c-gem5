@@ -47,7 +47,8 @@ def create_mem_intf(intf, r, i, intlv_bits, intlv_size, xor_low_bit):
 
     import math
 
-    intlv_low_bit = int(math.log(intlv_size, 2))
+    #intlv_low_bit = int(math.log(intlv_size, 2))
+    intlv_low_bit = 7
 
     # Use basic hashing for the channel selection, and preferably use
     # the lower tag bits from the last level cache. As we do not know
