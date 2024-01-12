@@ -27,44 +27,80 @@ def setup_memory_controllers(system, ruby, dir_cntrls, options):
 
     intlv_size = options.cacheline_size
 
-    for dir_cntrl in dir_cntrls:
+    for dir_cntrl, mem_range in zip(dir_cntrls, system.mem_ranges):
         crossbar = None
-        #if len(system.mem_ranges) > 1:
-        #    crossbar = IOXBar()
-        #    crossbars.append(crossbar)
-        #    dir_cntrl.memory_out_ports = crossbar.cpu_side_ports
         
         dir_ranges = []
-        for r in system.mem_ranges:
-            mem_type = ObjectList.mem_list.get(options.mem_type)
-            dram_intf = MemConfig.create_mem_intf(
-                mem_type,
-                r,
-                index,
-                int(math.log(options.num_dirs, 2)),
-                intlv_size, # 6
-                options.xor_low_bit + 1, #20
-            )
-            if issubclass(mem_type, DRAMInterface):
-                mem_ctrl = m5.objects.MemCtrl(dram=dram_intf)
-            else: 
-                mem_ctrl = dram_intf
-            
-            mem_ctrls.append(mem_ctrl)
-            dir_ranges.append(dram_intf.range)
+        mem_type = ObjectList.mem_list.get(options.mem_type) 
+        dram_intf = MemConfig.create_mem_intf(
+            mem_type,
+            mem_range,
+            index,
+            int(math.log(options.num_dirs, 2)),
+            intlv_size, #6
+            options.xor_low_bit + 1, #20
+        )
 
-            if crossbar != None:
-                mem_ctrl.port = crossbar.mem_side_ports
-            else:
-                mem_ctrl.port = dir_cntrl.memory_out_port
-            # Enable low-power DRAM states if option is enabled
-            if issubclass(mem_type, DRAMInterface):
-                mem_ctrl.dram.enable_dram_powerdown = (
-                    options.enable_dram_powerdown
-                )
+        if issubclass(mem_type, DRAMInterface):
+            mem_ctrl = m5.objects.MemCtrl(dram=dram_intf)
+        else:
+            mem_ctrl = dram_intf
+        
+        mem_ctrls.append(mem_ctrl)
+        dir_ranges.append(dram_intf.range)
+
+        if crossbar is not None:
+            mem_ctrl.port = crossbar.mem_side_ports
+        else:
+            mem_ctrl.port = dir_cntrl.memory_out_port
+        
+        # Enable low-power DRAM states if option is enabled
+        if issubclass(mem_type, DRAMInterface):
+            mem_ctrl.dram.enable_dram_powerdown = options.enable_dram_powerdown
+        
         index += 1
         dir_cntrl.addr_ranges = dir_ranges
+    
     system.mem_ctrls = mem_ctrls
+
+    #for dir_cntrl in dir_cntrls:
+    #    crossbar = None
+    #    #if len(system.mem_ranges) > 1:
+    #    #    crossbar = IOXBar()
+    #    #    crossbars.append(crossbar)
+    #    #    dir_cntrl.memory_out_ports = crossbar.cpu_side_ports
+    #    
+    #    dir_ranges = []
+    #    for r in system.mem_ranges:
+    #        mem_type = ObjectList.mem_list.get(options.mem_type)
+    #        dram_intf = MemConfig.create_mem_intf(
+    #            mem_type,
+    #            r,
+    #            index,
+    #            int(math.log(options.num_dirs, 2)),
+    #            intlv_size, # 6
+    #            options.xor_low_bit + 1, #20
+    #        )
+    #        if issubclass(mem_type, DRAMInterface):
+    #            mem_ctrl = m5.objects.MemCtrl(dram=dram_intf)
+    #        else: 
+    #            mem_ctrl = dram_intf
+    #        
+    #        mem_ctrls.append(mem_ctrl)
+    #        dir_ranges.append(dram_intf.range)
+
+    #        if crossbar != None:
+    #            mem_ctrl.port = crossbar.mem_side_ports
+    #        else:
+    #            mem_ctrl.port = dir_cntrl.memory_out_port
+    #        # Enable low-power DRAM states if option is enabled
+    #        if issubclass(mem_type, DRAMInterface):
+    #            mem_ctrl.dram.enable_dram_powerdown = (
+    #                options.enable_dram_powerdown
+    #            )
+    #    index += 1
+    #    dir_cntrl.addr_ranges = dir_ranges
+    #system.mem_ctrls = mem_ctrls
     
     if len(crossbars) > 0:
         ruby.crossbars = crossbars
