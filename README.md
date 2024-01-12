@@ -2,13 +2,26 @@
 
 In `/gem5/.`
 
-Compile gem5 with C2C protocol:
+- Checkout on the last branch
 ```bash
-scons build/C2C_X86/gem5.opt --default=X86 PROTOCOL=C2C -j12
+git checkout bridge-ports
 ```
 
-Run the C2C testing script :
-
+- Compile gem5 with X86 and the CHI protocol
+    - default binary
 ```bash
-source c2c-interface-testing.sh
+scons build/X86_CHI/gem5.opt --default=X86 PROTOCOL=CHI -j<num of cores>
+```
+    - debug binary
+```bash
+scons build/X86_CHI/gem5.debug --default=X86 PROTOCOL=CHI -j<num of cores>
+```
+
+- Run the last architecture (optional tgen debug flag)
+```bash
+build/X86_CHI/gem5.opt --debug-flags=TrafficGen configs/interface_bridge/tgen_arm.py
+```
+- Run the `two_HNFs` working architecture (working memory region setup)
+```bash
+build/X86_CHI/gem5.opt --debug-flags=TrafficGen configs/two_HNFs/tgen_arm.py
 ```
