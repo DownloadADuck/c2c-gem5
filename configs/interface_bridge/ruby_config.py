@@ -40,10 +40,6 @@ def setup_memory_controllers(
 
     for dir_cntrl in dir_cntrls0:
         crossbar = None
-        #if len(mem_ranges0) > 1:
-        #    crossbar = IOXBar()
-        #    crossbars.append(crossbar)
-        #    dir_cntrl.memory_out_ports = crossbar.cpu_side_ports
         
         dir_ranges = []
         #for mem_range in mem_ranges0:
@@ -78,10 +74,6 @@ def setup_memory_controllers(
 
     for dir_cntrl in dir_cntrls1:
         crossbar = None
-        #if len(mem_ranges1) > 1:
-        #    crossbar = IOXBar()
-        #    crossbars.append(crossbar)
-        #    dir_cntrl.memory_out_ports = crossbar.cpu_side_ports
         
         dir_ranges = []
         #for mem_range in mem_ranges1:
