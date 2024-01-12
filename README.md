@@ -12,7 +12,9 @@ git checkout bridge-ports
 ```bash
 scons build/X86_CHI/gem5.opt --default=X86 PROTOCOL=CHI -j<num of cores>
 ```
+
     - debug binary
+
 ```bash
 scons build/X86_CHI/gem5.debug --default=X86 PROTOCOL=CHI -j<num of cores>
 ```
