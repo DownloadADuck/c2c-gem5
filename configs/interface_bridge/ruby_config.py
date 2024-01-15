@@ -181,7 +181,7 @@ def create_system(
     system.ruby.interface1.memory_out_port = system.bridge.chip0Request
     
     # Chip 0
-    (cpu_sequencers0, dir_cntrls0, topology0) = \
+    (cpu_sequencers0, dir_cntrls0, topology0, hnf_dests) = \
         tgen_CHI.create_chip0(
             options, 
             full_system, 
@@ -205,7 +205,8 @@ def create_system(
             ruby,
             cpus1,
             network1,
-            ruby.interface1
+            ruby.interface1,
+            hnf_dests
         )
 
     # Create the network topology

@@ -255,8 +255,9 @@ def create_chip0(
     #    all_cntrls.extend(ruby_system.io_rni.getAllControllers())
 
     # Assign downstream destinations
-    for rnf in ruby_system.rnf:
-        rnf.setDownstream(hnf_dests)
+    #for rnf in ruby_system.rnf:
+    #    rnf.setDownstream(hnf_dests)
+
     if len(dma_ports) > 0:
         for rni in ruby_system.dma_rni:
             rni.setDownstream(hnf_dests)
@@ -291,7 +292,7 @@ def create_chip0(
     else:
         m5.fatal("%s not supported!" % options.topology)
 
-    return (cpu_sequencers, mem_cntrls, topology)
+    return (cpu_sequencers, mem_cntrls, topology, hnf_dests)
 
 def create_chip1(
     options,
@@ -302,7 +303,8 @@ def create_chip1(
     ruby_system, 
     cpus,
     network,
-    interface
+    interface,
+    hnf_dests
 ):
     if buildEnv["PROTOCOL"] != "CHI":
         m5.panic("This script requires the CHI build")
@@ -364,7 +366,7 @@ def create_chip1(
     mem_dests = []
     network_nodes = []
     network_cntrls = []
-    hnf_dests = []
+    hnf_dests1 = []
     all_cntrls = []
 
     # Creates on RNF per cpu with priv l2 caches
@@ -427,7 +429,7 @@ def create_chip1(
         network_cntrls.extend(hnf.getNetworkSideControllers())
         assert hnf.getAllControllers() == hnf.getNetworkSideControllers()
         all_cntrls.extend(hnf.getAllControllers())
-        hnf_dests.extend(hnf.getAllControllers())
+        hnf_dests1.extend(hnf.getAllControllers())
 
     # Create the memory controllers
     # Notice we don't define a Directory_Controller type so we don't use
@@ -473,8 +475,17 @@ def create_chip1(
         all_cntrls.extend(ruby_system.io_rni.getAllControllers())
 
     # Assign downstream destinations
-#    for rnf in ruby_system.rnf1:
-#        rnf.setDownstream(hnf_dests)
+    # for now, since we only have one rnf in chip1 we iterate over it
+    # we also use the global hnf_dests 
+    print("hnf_dests before -> ", hnf_dests)
+    hnf_dests.append(hnf_dests1)
+    print("hnf_dests after -> ", hnf_dests)
+    print("rnf -> ", ruby_system.rnf)
+    #for rnf in enumerate(ruby_system.rnf):
+    #    rnf.setDownstream(hnf_dests)
+    ruby_system.rnf[0].setDownstream(hnf_dests[0])
+    ruby_system.rnf[0].setDownstream(hnf_dests[1])
+
     #for rnf_tgen in ruby_system.rnf_tgen:
     #    rnf_tgen.setDownstream(hnf_dests)
     if len(dma_ports) > 0:
