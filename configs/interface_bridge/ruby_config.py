@@ -156,29 +156,6 @@ def create_system(
     if cpus is None:
         cpus0 = system.cpus
         cpus1 = []
-
-    # C2C forwarding interface setup
-    ## Connecting one interface to one unique network
-    ruby.interface0 = Interface(ruby, network0, network0)
-    ruby.interface1 = Interface(ruby, network1, network1)
-
-    # Create the bridge object and connect it to both interfaces
-    system.bridge = InterfaceBridge()
-    system.ruby.interface0.toBridge = MemCtrlMessageBuffer()
-    system.ruby.interface0.fromBridge = MemCtrlMessageBuffer()
-    #system.ruby.interface0.toBridge.out_port = system.bridge.chip0Response
-    #system.ruby.interface0.fromBridge.in_port = system.bridge.chip1Request
-
-    # Trying to use the RubyController mem_out_port
-    system.ruby.interface0.memory_out_port = system.bridge.chip0Response
-
-    system.ruby.interface1.toBridge = MemCtrlMessageBuffer()
-    system.ruby.interface1.fromBridge = MemCtrlMessageBuffer()
-    #system.ruby.interface1.toBridge.out_port = system.bridge.chip1Response
-    #system.ruby.interface1.fromBridge.in_port = system.bridge.chip0Request
-
-    # Trying to use the RubyController mem_out_port
-    system.ruby.interface1.memory_out_port = system.bridge.chip0Request
     
     # Chip 0
     (cpu_sequencers0, dir_cntrls0, topology0, hnf_dests) = \
@@ -191,7 +168,6 @@ def create_system(
             ruby, 
             cpus0,
             network0,
-            ruby.interface0
         )
     
     # Chip 1
@@ -205,7 +181,6 @@ def create_system(
             ruby,
             cpus1,
             network1,
-            ruby.interface1,
             hnf_dests
         )
 
@@ -225,6 +200,25 @@ def create_system(
         ExtLinkClass, 
         RouterClass
     )
+
+    # C2C forwarding interface setup
+    ## Connecting one interface to one unique network
+    #ruby.interface0 = Interface(ruby, network0, network0)
+    #ruby.interface1 = Interface(ruby, network1, network1)
+
+    # Create the bridge object and connect it to both interfaces
+    system.bridge = InterfaceBridge()
+    system.ruby.interface0.toBridge = MemCtrlMessageBuffer()
+    system.ruby.interface0.fromBridge = MemCtrlMessageBuffer()
+
+    # Trying to use the RubyController mem_out_port
+    system.ruby.interface0.memory_out_port = system.bridge.chip0Response
+
+    system.ruby.interface1.toBridge = MemCtrlMessageBuffer()
+    system.ruby.interface1.fromBridge = MemCtrlMessageBuffer()
+
+    # Trying to use the RubyController mem_out_port
+    system.ruby.interface1.memory_out_port = system.bridge.chip0Request
 
     # In SE register the ropology elements with fake filesystem
     if not full_system:

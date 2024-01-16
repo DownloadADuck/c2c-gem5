@@ -177,11 +177,10 @@ class CHI_Interface_Node(SubSystem):
         num_nodes_per_router = None
         router_list = None
     
-    def __init__(self, ruby_system, network0, network1):
+    def __init__(self, ruby_system, network):
         super(CHI_Interface_Node, self).__init__()
         self._ruby_system = ruby_system
-        self._network0 = network0
-        self._network1 = network1
+        self._network = network
     
     def getNetworkSideControllers(self):
         """
@@ -217,14 +216,14 @@ class CHI_Interface_Node(SubSystem):
         cntrl.snpIn = MessageBuffer()
         cntrl.datIn = MessageBuffer()
 
-        cntrl.reqOut.out_port = self._network1.in_port
-        cntrl.rspOut.out_port = self._network1.in_port
-        cntrl.snpOut.out_port = self._network1.in_port
-        cntrl.datOut.out_port = self._network1.in_port
-        cntrl.reqIn.in_port = self._network0.out_port
-        cntrl.rspIn.in_port = self._network0.out_port
-        cntrl.snpIn.in_port = self._network0.out_port
-        cntrl.datIn.in_port = self._network0.out_port
+        cntrl.reqOut.out_port = self._network.in_port
+        cntrl.rspOut.out_port = self._network.in_port
+        cntrl.snpOut.out_port = self._network.in_port
+        cntrl.datOut.out_port = self._network.in_port
+        cntrl.reqIn.in_port = self._network.out_port
+        cntrl.rspIn.in_port = self._network.out_port
+        cntrl.snpIn.in_port = self._network.out_port
+        cntrl.datIn.in_port = self._network.out_port
 
 class TriggerMessageBuffer(MessageBuffer):
     """
@@ -691,8 +690,9 @@ class CHI_HNF(CHI_Node):
     def getNetworkSideControllers(self):
         return [self._cntrl]
 
-class CHI_Interface(CHI_Interface_Node):
-    
+#class CHI_Interface(CHI_Interface_Node):
+class CHI_Interface(CHI_Node):
+
     class NoC_Params(CHI_Interface_Node.NoC_Params):
         pairing = None
 
@@ -723,8 +723,8 @@ class CHI_Interface(CHI_Interface_Node):
         return cls._addr_ranges[interface_idx]
 
     @classmethod
-    def __init__(self, interface_idx, ruby_system, parent, network0, network1):
-        super(CHI_Interface, self).__init__(ruby_system, network0, network1)
+    def __init__(self, interface_idx, ruby_system, parent, network):
+        super(CHI_Interface, self).__init__(ruby_system, network)
 
         addr_ranges, intlvHighBit = self.getAddrRanges(interface_idx)
         # All ranges should have the same interleaving

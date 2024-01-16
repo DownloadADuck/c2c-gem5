@@ -73,7 +73,6 @@ def create_chip0(
     ruby_system, 
     cpus,
     network,
-    interface
 ):
 
     if buildEnv["PROTOCOL"] != "CHI":
@@ -169,10 +168,6 @@ def create_chip0(
         network_nodes.append(rnf)
         network_cntrls.extend(rnf.getNetworkSideControllers())
 
-    # C2C Interface between the two networks
-    # Registers the Inerface controller in the network_cntrls
-    network_cntrls.extend([interface])
-    
     # Creates one Misc Node
     ruby_system.mn = [CHI_MN(ruby_system, [cpu.l1d for cpu in cpus], network)]
     for mn in ruby_system.mn:
@@ -211,6 +206,24 @@ def create_chip0(
         all_cntrls.extend(hnf.getAllControllers())
         hnf_dests.extend(hnf.getAllControllers())
 
+    # C2C Interface
+    interface_list = [i for i in range(options.num_interfaces)]
+    CHI_Interface.createAddrRanges(sysranges, system.cache_line_size.value, \
+        interface_list)
+    ruby_system.interface0 = [
+        CHI_Interface(i, ruby_system, None, network)
+        for i in range(options.num_interfaces)
+    ]
+
+    # Registers the Inerface controller in the network_cntrls
+    #network_cntrls.extend([interface])
+    network_nodes.append(ruby_system.interface0)
+    network_cntrls.extend(ruby_system.interface0.getNetworkSideControllers())
+    assert ruby_system.interface0.getAllControllers() == \
+        ruby_system.interface0.getNetworkSideControllers()
+    all_cntrls.extend(ruby_system.interface0.getAllControllers())
+    hnf_dests.extend(ruby_system.interface0.getAllControllers())
+    
     # Create the memory controllers
     # Notice we don't define a Directory_Controller type so we don't use
     # create_directories shared by other protocols.
@@ -303,7 +316,6 @@ def create_chip1(
     ruby_system, 
     cpus,
     network,
-    interface,
     hnf_dests
 ):
     if buildEnv["PROTOCOL"] != "CHI":
@@ -325,6 +337,8 @@ def create_chip1(
     CHI_SNF_BootMem = chi_defs.CHI_SNF_BootMem
     CHI_RNI_DMA = chi_defs.CHI_RNI_DMA
     CHI_RNI_IO = chi_defs.CHI_RNI_IO
+
+    CHI_Interface = chi_defs.CHI_Interface
 
     # Declare caches and controller types used by the protocol
     # Notice tag and data accesses are not concurrent, so the a cache hit
@@ -430,6 +444,24 @@ def create_chip1(
         assert hnf.getAllControllers() == hnf.getNetworkSideControllers()
         all_cntrls.extend(hnf.getAllControllers())
         hnf_dests1.extend(hnf.getAllControllers())
+
+    # C2C Interface
+    interface_list = [i for i in range(options.num_interfaces)]
+    CHI_Interface.createAddrRanges(sysranges, system.cache_line_size.value, \
+        interface_list)
+    ruby_system.interface1 = [
+        CHI_Interface(i, ruby_system, None, network)
+        for i in range(options.num_interfaces)
+    ]
+
+    # Registers the Inerface controller in the network_cntrls
+    #network_cntrls.extend([interface])
+    network_nodes.append(ruby_system.interface1)
+    network_cntrls.extend(ruby_system.interface1.getNetworkSideControllers())
+    assert ruby_system.interface1.getAllControllers() == \
+        ruby_system.interface1.getNetworkSideControllers()
+    all_cntrls.extend(ruby_system.interface1.getAllControllers())
+    hnf_dests1.extend(ruby_system.interface1.getAllControllers())
 
     # Create the memory controllers
     # Notice we don't define a Directory_Controller type so we don't use
