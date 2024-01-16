@@ -696,6 +696,8 @@ class CHI_Interface(CHI_Interface_Node):
     class NoC_Params(CHI_Interface_Node.NoC_Params):
         pairing = None
 
+    _addr_ranges = {}
+
     @classmethod
     def createAddrRanges (cls, sys_mem_ranges, cache_line_size, interfaces):
         # create an address range for the interface

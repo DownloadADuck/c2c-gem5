@@ -81,6 +81,7 @@ options0.maxtime = None
 options0.restore_simpoint_checkpoint = False
 options0.max_checkpoints = 5
 options0.checkpoint_at_end = False
+options0.num_interfaces = 1
 
 options1 = Object()
 options1.cmd = "tests/test-progs/hello/bin/x86/linux/hello"
@@ -137,6 +138,7 @@ options1.maxtime = None
 options1.restore_simpoint_checkpoint = False
 options1.max_checkpoints = 5
 options1.checkpoint_at_end = False
+options1.num_interfaces = 1
 
 def get_processes(args):
     """Interprets provided args and returns a list of processes"""
