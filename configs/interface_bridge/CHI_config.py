@@ -387,9 +387,10 @@ class CHI_HNFController(CHI_Cache_Controller):
         self.unify_repl_TBEs = False
 
 class CHI_InterfaceController(Interface_Controller):
-    def __init__(self, ruby_system):
+    def __init__(self, ruby_system, addr_ranges):
         super(CHI_InterfaceController, self).__init__(ruby_system)
-        # No parameters yet
+        self.addr_ranges = addr_ranges
+
 
 class CHI_MNController(MiscNode_Controller):
     """
