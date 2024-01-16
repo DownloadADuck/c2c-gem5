@@ -304,7 +304,7 @@ def create_chip0(
     else:
         m5.fatal("%s not supported!" % options.topology)
 
-    return (cpu_sequencers, mem_cntrls, topology, hnf_dests)
+    return (cpu_sequencers, mem_cntrls, topology)
 
 def create_chip1(
     options,
@@ -314,8 +314,7 @@ def create_chip1(
     bootmem, 
     ruby_system, 
     cpus,
-    network,
-    hnf_dests
+    network
 ):
     if buildEnv["PROTOCOL"] != "CHI":
         m5.panic("This script requires the CHI build")
@@ -379,7 +378,7 @@ def create_chip1(
     mem_dests = []
     network_nodes = []
     network_cntrls = []
-    hnf_dests1 = []
+    hnf_dests = []
     all_cntrls = []
 
     # Creates on RNF per cpu with priv l2 caches
@@ -442,7 +441,7 @@ def create_chip1(
         network_cntrls.extend(hnf.getNetworkSideControllers())
         assert hnf.getAllControllers() == hnf.getNetworkSideControllers()
         all_cntrls.extend(hnf.getAllControllers())
-        hnf_dests1.extend(hnf.getAllControllers())
+        hnf_dests.extend(hnf.getAllControllers())
 
     # C2C Interface
     interface_list = [i for i in range(options.num_interfaces)]
@@ -460,7 +459,7 @@ def create_chip1(
     assert ruby_system.interface1.getAllControllers() == \
         ruby_system.interface1.getNetworkSideControllers()
     all_cntrls.extend(ruby_system.interface1.getAllControllers())
-    hnf_dests1.extend(ruby_system.interface1.getAllControllers())
+    hnf_dests.extend(ruby_system.interface1.getAllControllers())
 
     # Create the memory controllers
     # Notice we don't define a Directory_Controller type so we don't use
@@ -508,7 +507,6 @@ def create_chip1(
     # Assign downstream destinations
     # for now, since we only have one rnf in chip1 we iterate over it
     # we also use the global hnf_dests 
-    hnf_dests.append(hnf_dests1)
     for rnf in ruby_system.rnf:
         rnf.setDownstream(hnf_dests)
     #ruby_system.rnf[0].setDownstream(hnf_dests[1])

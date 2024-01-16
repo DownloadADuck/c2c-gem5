@@ -158,7 +158,7 @@ def create_system(
         cpus1 = []
     
     # Chip 0
-    (cpu_sequencers0, dir_cntrls0, topology0, hnf_dests) = \
+    (cpu_sequencers0, dir_cntrls0, topology0) = \
         tgen_CHI.create_chip0(
             options, 
             full_system, 
@@ -180,8 +180,7 @@ def create_system(
             bootmem,
             ruby,
             cpus1,
-            network1,
-            hnf_dests
+            network1
         )
 
     # Create the network topology
