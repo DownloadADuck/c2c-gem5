@@ -477,10 +477,7 @@ def create_chip1(
     # Assign downstream destinations
     # for now, since we only have one rnf in chip1 we iterate over it
     # we also use the global hnf_dests 
-    print("hnf_dests before -> ", hnf_dests)
     hnf_dests.append(hnf_dests1)
-    print("hnf_dests after -> ", hnf_dests)
-    print("rnf -> ", ruby_system.rnf)
     #for rnf in enumerate(ruby_system.rnf):
     #    rnf.setDownstream(hnf_dests)
     ruby_system.rnf[0].setDownstream(hnf_dests[0])
