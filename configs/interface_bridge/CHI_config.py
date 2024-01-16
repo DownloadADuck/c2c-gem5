@@ -720,12 +720,21 @@ class CHI_Interface(CHI_Interface_Node):
         return cls._addr_ranges[interface_idx]
 
     @classmethod
-    def __init__(self, ruby_system, network0, network1):
+    def __init__(self, interface_idx, ruby_system, parent, network0, network1):
         super(CHI_Interface, self).__init__(ruby_system, network0, network1)
 
+        addr_ranges, intlvHighBit = self.getAddrRanges(interface_idx)
+        # All ranges should have the same interleaving
+        assert len(addr_ranges) >= 1
+
         self._cntrl = CHI_InterfaceController(
-            ruby_system
+            ruby_system, addr_ranges
         )
+
+        if parent == None:
+            self.cntrl = self._cntrl
+        else:
+            parent.cntrl = self._cntrl
         
         self.connectController(self._cntrl)
     
