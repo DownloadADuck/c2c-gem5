@@ -478,10 +478,10 @@ def create_chip1(
     # for now, since we only have one rnf in chip1 we iterate over it
     # we also use the global hnf_dests 
     hnf_dests.append(hnf_dests1)
-    #for rnf in enumerate(ruby_system.rnf):
-    #    rnf.setDownstream(hnf_dests)
-    ruby_system.rnf[0].setDownstream(hnf_dests[0])
-    ruby_system.rnf[0].setDownstream(hnf_dests[1])
+    for rnf in ruby_system.rnf:
+        rnf.setDownstream(hnf_dests)
+    #ruby_system.rnf[0].setDownstream(hnf_dests[1])
+    #ruby_system.rnf[0].setDownstream(hnf_dests[0])
 
     #for rnf_tgen in ruby_system.rnf_tgen:
     #    rnf_tgen.setDownstream(hnf_dests)

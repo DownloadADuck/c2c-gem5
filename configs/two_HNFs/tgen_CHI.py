@@ -252,6 +252,7 @@ def create_system(
         all_cntrls.extend(ruby_system.io_rni.getAllControllers())
 
     # Assign downstream destinations
+    print("hnf_dests -> ", hnf_dests)
     for rnf in ruby_system.rnf:
         rnf.setDownstream(hnf_dests)
     #for rnf_tgen in ruby_system.rnf_tgen:
