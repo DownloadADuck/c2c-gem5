@@ -72,7 +72,7 @@ def create_chip0(
     bootmem, 
     ruby_system, 
     cpus,
-    network,
+    network
 ):
 
     if buildEnv["PROTOCOL"] != "CHI":
@@ -208,8 +208,7 @@ def create_chip0(
 
     # C2C Interface
     interface_list = [i for i in range(options.num_interfaces)]
-    CHI_Interface.createAddrRanges(sysranges, system.cache_line_size.value, \
-        interface_list)
+    CHI_Interface.createAddrRanges(sysranges, system.cache_line_size.value, interface_list)
     ruby_system.interface0 = [
         CHI_Interface(i, ruby_system, None, network)
         for i in range(options.num_interfaces)

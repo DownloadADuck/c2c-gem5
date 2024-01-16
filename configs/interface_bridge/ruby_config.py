@@ -167,7 +167,7 @@ def create_system(
             bootmem, 
             ruby, 
             cpus0,
-            network0,
+            network0
         )
     
     # Chip 1
