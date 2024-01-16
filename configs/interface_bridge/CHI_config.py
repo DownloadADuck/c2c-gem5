@@ -696,6 +696,30 @@ class CHI_Interface(CHI_Interface_Node):
         pairing = None
 
     @classmethod
+    def createAddrRanges (cls, sys_mem_ranges, cache_line_size, interfaces):
+        # create an address range for the interface
+        block_size_bits = int(math.log(cache_line_size, 2))
+        llc_bits = int(math.log(len(interfaces), 2))
+        numa_bit = block_size_bits + llc_bits - 1
+        for i, interface in enumerate(interfaces):
+            ranges = []
+            for r in sys_mem_ranges:
+                addr_range = AddrRange(
+                    r.start,
+                    size=r.size(),
+                    intlvHighBit=numa_bit,
+                    intlvBits=llc_bits,
+                    intlvMatch=i,
+                )
+                ranges.append(addr_range)
+            cls._addr_ranges[interface] = (ranges, numa_bit)
+    
+    @classmethod
+    def getAddrRanges(cls, interface_idx):
+        assert len(cls._addr_ranges) != 0
+        return cls._addr_ranges[interface_idx]
+
+    @classmethod
     def __init__(self, ruby_system, network0, network1):
         super(CHI_Interface, self).__init__(ruby_system, network0, network1)
 
