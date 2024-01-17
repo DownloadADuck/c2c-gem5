@@ -208,18 +208,18 @@ def create_system(
     # Create the bridge object and connect it to both interfaces
     system.bridge = InterfaceBridge()
     for interface in system.ruby.interface0:
-        interface.toBridge = MemCtrlMessageBuffer()
-        interface.fromBridge = MemCtrlMessageBuffer()
+        interface.cntrl.toBridge = MemCtrlMessageBuffer()
+        interface.cntrl.fromBridge = MemCtrlMessageBuffer()
 
         # Trying to use the RubyController mem_out_port
-        interface.memory_out_port = system.bridge.chip0Response
+        interface.cntrl.memory_out_port = system.bridge.chip0Response
 
     for interface in system.ruby.interface1:
-        interface.toBridge = MemCtrlMessageBuffer()
-        interface.fromBridge = MemCtrlMessageBuffer()
+        interface.cntrl.toBridge = MemCtrlMessageBuffer()
+        interface.cntrl.fromBridge = MemCtrlMessageBuffer()
 
         # Trying to use the RubyController mem_out_port
-        interface.memory_out_port = system.bridge.chip0Request
+        interface.cntrl.memory_out_port = system.bridge.chip0Request
 
     # In SE register the ropology elements with fake filesystem
     if not full_system:
