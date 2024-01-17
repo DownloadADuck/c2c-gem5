@@ -387,7 +387,8 @@ class CHI_HNFController(CHI_Cache_Controller):
 
 class CHI_InterfaceController(Interface_Controller):
     def __init__(self, ruby_system, addr_ranges):
-        super(CHI_InterfaceController, self).__init__(ruby_system)
+        super(CHI_InterfaceController, self).__init__()
+        self.ruby_system = ruby_system
         self.addr_ranges = addr_ranges
 
 
@@ -722,7 +723,6 @@ class CHI_Interface(CHI_Node):
         assert len(cls._addr_ranges) != 0
         return cls._addr_ranges[interface_idx]
 
-    @classmethod
     def __init__(self, interface_idx, ruby_system, parent, network):
         super(CHI_Interface, self).__init__(ruby_system, network)
 
