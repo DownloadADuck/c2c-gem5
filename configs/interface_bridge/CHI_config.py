@@ -387,7 +387,9 @@ class CHI_HNFController(CHI_Cache_Controller):
 
 class CHI_InterfaceController(Interface_Controller):
     def __init__(self, ruby_system, addr_ranges):
-        super(CHI_InterfaceController, self).__init__()
+        super(CHI_InterfaceController, self).__init__(
+            version=Versions.getVersion(Interface_Controller)
+        )
         self.ruby_system = ruby_system
         self.addr_ranges = addr_ranges
 
