@@ -215,13 +215,13 @@ def create_chip0(
     ]
 
     # Registers the Inerface controller in the network_cntrls
-    #network_cntrls.extend([interface])
-    network_nodes.append(ruby_system.interface0)
-    network_cntrls.extend(ruby_system.interface0.getNetworkSideControllers())
-    assert ruby_system.interface0.getAllControllers() == \
-        ruby_system.interface0.getNetworkSideControllers()
-    all_cntrls.extend(ruby_system.interface0.getAllControllers())
-    hnf_dests.extend(ruby_system.interface0.getAllControllers())
+    for interface in ruby_system.interface0:
+        #network_cntrls.extend([interface])
+        network_nodes.append(interface)
+        network_cntrls.extend(interface.getNetworkSideControllers())
+        assert interface.getAllControllers() == interface.getNetworkSideControllers()
+        all_cntrls.extend(interface.getAllControllers())
+        hnf_dests.extend(interface.getAllControllers())
     
     # Create the memory controllers
     # Notice we don't define a Directory_Controller type so we don't use
@@ -402,9 +402,6 @@ def create_chip1(
 #        network_nodes.append(rnf)
 #        network_cntrls.extend(rnf.getNetworkSideControllers())
 
-    # Registers the Inerface controller in the network_cntrls
-    network_cntrls.extend([interface])
-    
     # Creates one Misc Node
     ruby_system.mn1 = [CHI_MN(ruby_system, [cpu.l1d for cpu in cpus], network)]
     for mn in ruby_system.mn1:
@@ -452,14 +449,14 @@ def create_chip1(
         for i in range(options.num_interfaces)
     ]
 
-    # Registers the Inerface controller in the network_cntrls
-    #network_cntrls.extend([interface])
-    network_nodes.append(ruby_system.interface1)
-    network_cntrls.extend(ruby_system.interface1.getNetworkSideControllers())
-    assert ruby_system.interface1.getAllControllers() == \
-        ruby_system.interface1.getNetworkSideControllers()
-    all_cntrls.extend(ruby_system.interface1.getAllControllers())
-    hnf_dests.extend(ruby_system.interface1.getAllControllers())
+    # Registers the Interface controller in the network_cntrls
+    for interface in ruby_system.interface1:
+        #network_cntrls.extend([interface])
+        network_nodes.append(interface)
+        network_cntrls.extend(interface.getNetworkSideControllers())
+        assert interface.getAllControllers() == interface.getNetworkSideControllers()
+        all_cntrls.extend(interface.getAllControllers())
+        hnf_dests.extend(interface.getAllControllers())
 
     # Create the memory controllers
     # Notice we don't define a Directory_Controller type so we don't use

@@ -65,6 +65,8 @@ Interface_Controller::Interface_Controller(const Params &p)
     m_toBridge_ptr = p.toBridge;
     m_fromBridge_ptr = p.fromBridge;
 
+    m_data_channel_size = p.data_channel_size;
+
     for (int state = 0; state < Interface_State_NUM; state++) {
         for (int event = 0; event < Interface_Event_NUM; event++) {
             m_possible[state][event] = false;

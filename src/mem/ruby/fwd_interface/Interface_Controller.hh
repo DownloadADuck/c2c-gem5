@@ -72,6 +72,8 @@ private:
     MessageBuffer* m_toBridge_ptr;
     MessageBuffer* m_fromBridge_ptr;
 
+    int m_data_channel_size;
+
     TransitionResult doTransition(Interface_Event event,
                                   Addr addr);
 

@@ -8,6 +8,7 @@ class Interface_Controller(RubyController):
     cxx_header = "mem/ruby/fwd_interface/Interface_Controller.hh"
     cxx_class = "gem5::ruby::Interface_Controller"
     to_bridge_latency = Param.Cycles((1), "")
+    data_channel_size = Param.Int("")
 
     reqOut = Param.MessageBuffer("")
     snpOut = Param.MessageBuffer("")
