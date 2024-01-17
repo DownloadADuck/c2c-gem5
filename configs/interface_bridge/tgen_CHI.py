@@ -193,7 +193,7 @@ def create_chip0(
         sysranges.append(m.range)
 
     hnf_list = [i for i in range(options.num_l3caches)]
-    CHI_HNF.createAddrRanges(sysranges, system.cache_line_size.value, hnf_list)
+    CHI_HNF.createAddrRanges([sysranges[0]], system.cache_line_size.value, hnf_list)
     ruby_system.hnf = [
         CHI_HNF(i, ruby_system, HNFCache, None, network)
         for i in range(options.num_l3caches)
@@ -207,8 +207,9 @@ def create_chip0(
         hnf_dests.extend(hnf.getAllControllers())
 
     # C2C Interface
+    print("sysranges chip0 -> ", sysranges[0])
     interface_list = [i for i in range(options.num_interfaces)]
-    CHI_Interface.createAddrRanges(sysranges, system.cache_line_size.value, interface_list)
+    CHI_Interface.createAddrRanges([sysranges[1]], system.cache_line_size.value, interface_list)
     ruby_system.interface0 = [
         CHI_Interface(i, ruby_system, None, network)
         for i in range(options.num_interfaces)
@@ -267,14 +268,15 @@ def create_chip0(
     #    all_cntrls.extend(ruby_system.io_rni.getAllControllers())
 
     # Assign downstream destinations
-    #for rnf in ruby_system.rnf:
-    #    rnf.setDownstream(hnf_dests)
+    for rnf in ruby_system.rnf:
+        rnf.setDownstream(hnf_dests)
 
     if len(dma_ports) > 0:
         for rni in ruby_system.dma_rni:
             rni.setDownstream(hnf_dests)
-    if full_system:
-        ruby_system.io_rni.setDownstream(hnf_dests)
+    #if full_system:
+    #    ruby_system.io_rni.setDownstream(hnf_dests)
+    print("mem_dests chip0 -> ", mem_dests)
     for hnf in ruby_system.hnf:
         hnf.setDownstream(mem_dests)
 
@@ -441,8 +443,9 @@ def create_chip1(
         hnf_dests.extend(hnf.getAllControllers())
 
     # C2C Interface
+    print("sysranges chip1 -> ", sysranges[1])
     interface_list = [i for i in range(options.num_interfaces)]
-    CHI_Interface.createAddrRanges(sysranges, system.cache_line_size.value, \
+    CHI_Interface.createAddrRanges([sysranges[1]], system.cache_line_size.value, \
         interface_list)
     ruby_system.interface1 = [
         CHI_Interface(i, ruby_system, None, network)
@@ -504,18 +507,17 @@ def create_chip1(
     # Assign downstream destinations
     # for now, since we only have one rnf in chip1 we iterate over it
     # we also use the global hnf_dests 
-    for rnf in ruby_system.rnf:
-        rnf.setDownstream(hnf_dests)
-    #ruby_system.rnf[0].setDownstream(hnf_dests[1])
-    #ruby_system.rnf[0].setDownstream(hnf_dests[0])
+    #for rnf in ruby_system.rnf:
+    #    rnf.setDownstream(hnf_dests)
 
     #for rnf_tgen in ruby_system.rnf_tgen:
     #    rnf_tgen.setDownstream(hnf_dests)
     if len(dma_ports) > 0:
         for rni in ruby_system.dma_rni1:
             rni.setDownstream(hnf_dests)
-    if full_system:
-        ruby_system.io_rni.setDownstream(hnf_dests)
+    #if full_system:
+    #    ruby_system.io_rni.setDownstream(hnf_dests)
+    print("mem_dests chip1 -> ", mem_dests)
     for hnf in ruby_system.hnf1:
         hnf.setDownstream(mem_dests)
 
