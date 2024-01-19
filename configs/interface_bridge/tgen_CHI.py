@@ -207,13 +207,13 @@ def create_chip0(
         hnf_dests.extend(hnf.getAllControllers())
 
     # C2C Interface
-    print("sysranges chip0 -> ", sysranges[0])
     interface_list = [i for i in range(options.num_interfaces)]
     CHI_Interface.createAddrRanges([sysranges[1]], system.cache_line_size.value, interface_list)
     ruby_system.interface0 = [
         CHI_Interface(i, ruby_system, None, network)
         for i in range(options.num_interfaces)
     ]
+    ruby_system.interface0[0].cntrl.version = 4
 
     # Registers the Inerface controller in the network_cntrls
     for interface in ruby_system.interface0:
@@ -269,6 +269,7 @@ def create_chip0(
 
     # Assign downstream destinations
     for rnf in ruby_system.rnf:
+        #print(rnf, " sets ", hnf_dests, " as downstream destination")
         rnf.setDownstream(hnf_dests)
 
     if len(dma_ports) > 0:
@@ -276,8 +277,8 @@ def create_chip0(
             rni.setDownstream(hnf_dests)
     #if full_system:
     #    ruby_system.io_rni.setDownstream(hnf_dests)
-    print("mem_dests chip0 -> ", mem_dests)
     for hnf in ruby_system.hnf:
+        #print(hnf, " set ", mem_dests, " as downstream destination")
         hnf.setDownstream(mem_dests)
 
     # Setup data message size for all controllers
@@ -298,7 +299,7 @@ def create_chip0(
     for k in dir(params):
         if not k.startswith("__"):
             setattr(options, k, getattr(params, k))
-
+    
     if options.topology == "CustomMesh":
         topology = create_topology(network_nodes, options)
     elif options.topology in ["Crossbar", "Pt2Pt"]:
@@ -443,7 +444,6 @@ def create_chip1(
         hnf_dests.extend(hnf.getAllControllers())
 
     # C2C Interface
-    print("sysranges chip1 -> ", sysranges[1])
     interface_list = [i for i in range(options.num_interfaces)]
     CHI_Interface.createAddrRanges([sysranges[1]], system.cache_line_size.value, \
         interface_list)
@@ -451,6 +451,7 @@ def create_chip1(
         CHI_Interface(i, ruby_system, None, network)
         for i in range(options.num_interfaces)
     ]
+    ruby_system.interface1[0].cntrl.version = 5
 
     # Registers the Interface controller in the network_cntrls
     for interface in ruby_system.interface1:
@@ -459,7 +460,8 @@ def create_chip1(
         network_cntrls.extend(interface.getNetworkSideControllers())
         assert interface.getAllControllers() == interface.getNetworkSideControllers()
         all_cntrls.extend(interface.getAllControllers())
-        hnf_dests.extend(interface.getAllControllers())
+        # we donnot want the interface as a destination in this chip
+        #hnf_dests.extend(interface.getAllControllers())
 
     # Create the memory controllers
     # Notice we don't define a Directory_Controller type so we don't use
@@ -517,9 +519,11 @@ def create_chip1(
             rni.setDownstream(hnf_dests)
     #if full_system:
     #    ruby_system.io_rni.setDownstream(hnf_dests)
-    print("mem_dests chip1 -> ", mem_dests)
     for hnf in ruby_system.hnf1:
+        #print(hnf, " set ", mem_dests, " as downstream destination")
         hnf.setDownstream(mem_dests)
+    
+    ruby_system.interface1[0].setDownstream(hnf_dests)
 
     # Setup data message size for all controllers
     for cntrl in all_cntrls:
