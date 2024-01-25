@@ -699,6 +699,12 @@ AccessPermission ${{self.c_ident}}_to_permission(const ${{self.c_ident}}& obj)
                         '#include "mem/ruby/protocol/${{enum.ident}}'
                         '_Controller.hh"'
                     )
+                if enum.ident == "Interface":
+                    code(
+                        '#include "mem/ruby/fwd_interface/${{enum.ident}}'
+                        '_Controller.hh"'
+                    )
+                    
             code('#include "mem/ruby/common/MachineID.hh"')
 
         code(
@@ -858,7 +864,7 @@ ${{self.c_ident}}_base_number(const ${{self.c_ident}}& obj)
             code("  case ${{self.c_ident}}_NUM:")
             for enum in reversed(list(self.enums.values())):
                 # Check if there is a defined machine with this type
-                if enum.primary:
+                if enum.primary or enum.ident=="Interface":
                     code(
                         "    base += ${{enum.ident}}_Controller::getNumControllers();"
                     )
@@ -891,7 +897,7 @@ ${{self.c_ident}}_base_count(const ${{self.c_ident}}& obj)
             # For each field
             for enum in self.enums.values():
                 code("case ${{self.c_ident}}_${{enum.ident}}:")
-                if enum.primary:
+                if enum.primary or enum.ident=="Interface":
                     code(
                         "return ${{enum.ident}}_Controller::getNumControllers();"
                     )

@@ -213,7 +213,6 @@ def create_chip0(
         CHI_Interface(i, ruby_system, None, network)
         for i in range(options.num_interfaces)
     ]
-    ruby_system.interface0[0].cntrl.version = 4
 
     # Registers the Inerface controller in the network_cntrls
     for interface in ruby_system.interface0:
@@ -451,7 +450,6 @@ def create_chip1(
         CHI_Interface(i, ruby_system, None, network)
         for i in range(options.num_interfaces)
     ]
-    ruby_system.interface1[0].cntrl.version = 5
 
     # Registers the Interface controller in the network_cntrls
     for interface in ruby_system.interface1:
