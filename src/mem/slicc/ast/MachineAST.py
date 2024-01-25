@@ -82,6 +82,5 @@ class MachineAST(DeclAST):
     def findMachines(self):
         mtype = self.ident
         machine_type = self.symtab.find("MachineType", Type)
-        print(mtype, " and ", machine_type)
         if not machine_type.checkEnum(mtype):
             self.error("Duplicate machine name: %s:%s" % (machine_type, mtype))

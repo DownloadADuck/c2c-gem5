@@ -45,16 +45,6 @@ NetDest::NetDest()
 void
 NetDest::add(MachineID newElement)
 {
-    //std::cout << "bitIndex: " << bitIndex(newElement.num) << std::endl;
-    //std::cout << "newElement: " << newElement << std::endl;
-    //std::cout << "vecIndex: " << vecIndex(newElement) << std::endl;
-    //std::cout << "m_bits[vecIndex(newElement)]: " << m_bits[vecIndex(newElement)] << std::endl; 
-
-    //if (bitIndex(newElement.num) >= m_bits[vecIndex(newElement)].getSize()){
-    std::cout << bitIndex(newElement.num) << " < m_bits[" << vecIndex(newElement) << "]" << " = " << m_bits[vecIndex(newElement)] << std::endl;
-    std::cout << bitIndex(newElement.num) << " < " << m_bits[vecIndex(newElement)].getSize() << std::endl;
-    //}
-
     assert(bitIndex(newElement.num) < m_bits[vecIndex(newElement)].getSize());
     m_bits[vecIndex(newElement)].add(bitIndex(newElement.num));
 }
@@ -267,7 +257,6 @@ NetDest::resize()
     assert(m_bits.size() == MachineType_NUM);
 
     for (int i = 0; i < m_bits.size(); i++) {
-        std::cout << "m_bits[" << i << "] -->" << " number of " << (MachineType)i << " is " << MachineType_base_count((MachineType)i) << std::endl;
         m_bits[i].setSize(MachineType_base_count((MachineType)i));
         //std::cout << "m_bits[" << i << "] size -> " << m_bits[i].getSize() << std::endl;
     }
