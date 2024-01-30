@@ -117,6 +117,9 @@ EventQueue::insert(Event *event)
         return;
     }
 
+    // debug verify 
+    EventQueue::debugVerify();
+
     // Figure out either which 'in bin' list we are on, or where a new list
     // needs to be inserted
     Event *prev = head;
@@ -125,6 +128,8 @@ EventQueue::insert(Event *event)
         prev = curr;
         curr = curr->nextBin;
     }
+
+    EventQueue::debugVerify();
 
     // Note: this operation may render all nextBin pointers on the
     // prev 'in bin' list stale (except for the top one)
