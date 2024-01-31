@@ -3,7 +3,7 @@
 /logs
 /build
 /.vscode
-/m5out
+/m5out/*
 /util/m5/build
 *.swp
 
