@@ -13,6 +13,7 @@
 #include "mem/ruby/fwd_interface/Interface_State.hh"
 #include "mem/ruby/fwd_interface/Interface_Event.hh"
 #include "mem/ruby/fwd_interface/Interface_Entry.hh"
+#include "mem/ruby/fwd_interface/Interface_TBE.hh"
 
 namespace gem5
 {
