@@ -98,7 +98,7 @@ private:
 
     // Internal functions
     Interface_Entry* getInterfaceEntry(const Addr& param_addr);
-    Interface_State getState(const Addr& param_addr);
+    Interface_State getState(Memory_TBE* param_tbe, Addr& param_addr);
     void setState(const Addr& param_addr, const Interface_State& param_state);
     AccessPermission getAccessPermission(const Addr& param_addr);
     void setAccessPermission(const Addr& param_addr, const Interface_State& param_state);

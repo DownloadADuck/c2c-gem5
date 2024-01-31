@@ -552,22 +552,39 @@ Interface_Entry* interface_entry
     return interface_entry;
 
 }
+
+//Interface_State
+//Interface_Controller::getState(const Addr& param_addr)
+//{
+//    if ((*m_interface_ptr).isPresent(param_addr)) {
+//        return (*(getInterfaceEntry(param_addr))).m_InterfaceState;
+//    } else {
+//        return Interface_State_IDLE;
+//    }
+//
+//}
 Interface_State
-Interface_Controller::getState(const Addr& param_addr)
-{
-    if ((*m_interface_ptr).isPresent(param_addr)) {
-        return (*(getInterfaceEntry(param_addr))).m_InterfaceState;
+Interface_Controller::getState(Memory_TBE* param_tbe, Addr& param_addr) {
+    if (param_tbe != NULL) {
+        #ifndef NDEBUG
+        if (!((*param_tbe).m_addr == param_addr)) {
+            panic("Runtime Error at Interface_Controller:571: %s.\n", "assert failure");
+        }
+        #endif;
+        return (*param_tbe).m_state;
     } else {
         return Interface_State_IDLE;
     }
-
 }
+
+
 void
 Interface_Controller::setState(const Addr& param_addr, const Interface_State& param_state)
 {
 (*(getInterfaceEntry(param_addr))).m_InterfaceState = param_state;
 
 }
+
 AccessPermission
 Interface_Controller::getAccessPermission(const Addr& param_addr)
 {
