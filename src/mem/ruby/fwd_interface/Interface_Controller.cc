@@ -563,14 +563,17 @@ Interface_Entry* interface_entry
 //    }
 //
 //}
+
+// Inspo from Memory_Controller.cc
 Interface_State
-Interface_Controller::getState(Memory_TBE* param_tbe, Addr& param_addr) {
+Interface_Controller::getState(Interface_TBE* param_tbe, Addr& param_addr) {
     if (param_tbe != NULL) {
         #ifndef NDEBUG
         if (!((*param_tbe).m_addr == param_addr)) {
             panic("Runtime Error at Interface_Controller:571: %s.\n", "assert failure");
         }
-        #endif;
+        #endif
+        ;
         return (*param_tbe).m_state;
     } else {
         return Interface_State_IDLE;
@@ -578,11 +581,25 @@ Interface_Controller::getState(Memory_TBE* param_tbe, Addr& param_addr) {
 }
 
 
-void
-Interface_Controller::setState(const Addr& param_addr, const Interface_State& param_state)
-{
-(*(getInterfaceEntry(param_addr))).m_InterfaceState = param_state;
+//void
+//Interface_Controller::setState(const Addr& param_addr, const Interface_State& param_state)
+//{
+//(*(getInterfaceEntry(param_addr))).m_InterfaceState = param_state;
+//
+//}
 
+// Inspo from Memory_Controller.cc
+void
+Interface_Controller::setState(Interface_TBE* param_tbe, const Addr& param_addr,  const Interface_State& param_state) {
+    if (param_tbe != NULL) {
+        #ifndef NDEBUG
+        if (!((*param_tbe).m_addr == param_addr)) {
+            panic("Runtime Error at Interface_Controller:596: %s.\n", "assert failure");
+        }
+        #endif
+        ;
+        (*param_tbe).m_state = param_state;
+    }
 }
 
 AccessPermission

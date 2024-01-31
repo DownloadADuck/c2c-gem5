@@ -9,6 +9,7 @@ Source('Interface_State.cc')
 Source('Interface_Transitions.cc')
 Source('Interface_Wakeup.cc')
 Source('Interface_Event.cc')
+Source('Interface_TBE.cc')
 
 Source('Interface_Bridge.cc')
 

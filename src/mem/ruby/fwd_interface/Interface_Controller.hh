@@ -99,7 +99,7 @@ private:
     // Internal functions
     Interface_Entry* getInterfaceEntry(const Addr& param_addr);
     Interface_State getState(Memory_TBE* param_tbe, Addr& param_addr);
-    void setState(const Addr& param_addr, const Interface_State& param_state);
+    void setState(Interface_TBE* param_tbe, const Addr& param_addr, const Interface_State& param_state);
     AccessPermission getAccessPermission(const Addr& param_addr);
     void setAccessPermission(const Addr& param_addr, const Interface_State& param_state);
     void functionalRead(const Addr& param_addr, Packet* param_pkt);
