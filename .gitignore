@@ -1,5 +1,4 @@
 # Gem5 gitignore
-# Currently only tracking /configs and /tests
 **/__pycache__/
 /logs
 /build
@@ -7,3 +6,6 @@
 /m5out
 /util/m5/build
 *.swp
+
+# Adding the lat_mem traces in m5out/
+!m5out/lat_mem*
