@@ -1,0 +1,275 @@
+
+
+
+machine(MachineType:Interface, "Interface Controller") :
+
+  // no explicit modeling of allocation latency like the Caches, so add one
+  // cycle to the response enqueue latency as default
+  Cycles response_latency := 2;
+  Cycles data_latency := 1;
+  Cycles to_memory_controller_latency := 1;
+
+  int data_channel_size;
+
+  // Interface to the network
+  // Note vnet_type is used by Garnet only. "response" type is assumed to
+  // have data, so use it for data channels and "none" for the rest.
+  // network="To" for outbound queue; network="From" for inbound
+  // virtual networks: 0=request, 1=snoop, 2=response, 3=data
+
+  MessageBuffer * reqOut,   network="To", virtual_network="0", vnet_type="none";
+  MessageBuffer * snpOut,   network="To", virtual_network="1", vnet_type="none";
+  MessageBuffer * rspOut,   network="To", virtual_network="2", vnet_type="none";
+  MessageBuffer * datOut,   network="To", virtual_network="3", vnet_type="response";
+
+  MessageBuffer * reqIn,   network="From", virtual_network="0", vnet_type="none";
+  MessageBuffer * snpIn,   network="From", virtual_network="1", vnet_type="none";
+  MessageBuffer * rspIn,   network="From", virtual_network="2", vnet_type="none";
+  MessageBuffer * datIn,   network="From", virtual_network="3", vnet_type="response";
+
+  // Data/ack to/from memory
+  MessageBuffer * requestToMemory;
+  MessageBuffer * responseFromMemory;
+
+  // Trigger queue for internal events
+  MessageBuffer * triggerQueue;
+
+{
+
+    ////////////////////////////////////////////////////////////////////////////
+    // States
+    ////////////////////////////////////////////////////////////////////////////
+
+    state_declaration(State, desc="Transaction states", default="FORWARDING_READY") {
+        // Represents the state where the interface is ready to forward messages
+        FORWARDING_READY, AccessPermission:None, desc="Ready to forward requests and responses";
+
+        // State for actively forwarding a request from the network to memory
+        FORWARDING_REQUEST, AccessPermission:None, desc="Forwarding request to memory";
+
+        // State for actively forwarding a response from memory to the network
+        FORWARDING_RESPONSE, AccessPermission:None, desc="Forwarding response to the network";
+
+        // Optional: Consider a state for handling any internal processing or errors
+        PROCESSING, AccessPermission:None, desc="Processing internal events or errors";
+
+        // Null state for debugging; does not actively forward or process messages
+        null, AccessPermission:None, desc="Null state for debugging";
+    }
+
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Events
+    ////////////////////////////////////////////////////////////////////////////
+
+    enumeration(Event, desc="Interface events") {
+        // Forwarding Events
+        ForwardRequest, desc="Event to forward a request to memory";
+        ForwardResponse, desc="Event to forward a response to the network";
+
+        // Error or special handling events
+        ErrorEvent, desc="Handle errors or special conditions";
+    }
+
+
+    // Is there a less tedious way to convert messages to events ??
+
+    Event msgToEvent(CHIMessageType type) {
+        switch (type) {
+            case CHIMessageType:Request:
+                return Event:ForwardRequest;
+            case CHIMessageType:Response:
+                return Event:ForwardResponse;
+            default:
+                return Event:ErrorEvent;
+        }
+    }
+
+    Event respToEvent (CHIResponseType type) {
+        //return Event:ForwardResponse;
+        error("Invalid CHIResponseType");
+    }
+
+    Event dataToEvent (CHIDataType type) {
+        return Event:ForwardResponse;
+    }
+
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Data structures
+    ////////////////////////////////////////////////////////////////////////////
+
+    // Cache block size
+    int blockSize, default="RubySystem::getBlockSizeBytes()";
+
+    // Tracks all pending MemoryAcks (debug purposes only)
+    int pendingWrites, default="0";
+
+    structure(SimpleMsg, desc="Simplified message for forwarding") {
+      Addr addr;
+      Event event;
+      MachineID source;
+      MachineID destination;
+    }
+
+    // Interface does not manage credit and retries but this can be useful for
+    // aknowledgement and retry logic later. 
+    structure(SimpleQueueEntry) {
+      Addr addr;
+      MachineID destination;
+    }
+
+    structure(SimpleQueue, external ="yes") {
+      void pop();
+      bool empty();
+      void emplace(Addr, MachineID);
+      SimpleQueueEntry next();
+    }
+
+    SimpleQueue simpleQueue;
+
+    ////////////////////////////////////////////////////////////////////////////
+    // External functions
+    ////////////////////////////////////////////////////////////////////////////
+
+    Tick clockEdge();
+    Tick curTick();
+    Tick cyclesToTicks(Cycles c);
+    bool respondsTo(Addr addr);
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Interface functions required by SLICC
+    ////////////////////////////////////////////////////////////////////////////
+
+    // Simplified functional read and write operations might still be relevant for debugging or error checking.
+    void functionalRead(Addr addr, Packet *pkt) {
+      // Implement a simplified version if needed for logging or error handling.
+    }
+
+    int functionalWrite(Addr addr, Packet *pkt) {
+      // Implement a simplified version if needed for logging or error handling.
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Helper functions
+    ////////////////////////////////////////////////////////////////////////////
+
+    void printResources() {
+      DPRINTF(RubySlicc, "Resources(in/out size): rdy=%d req=%d/%d rsp=%d/%d dat=%d/%d snp=%d/%d\n",
+                    reqRdy.getSize(curTick()),
+                    reqIn.getSize(curTick()), reqOut.getSize(curTick()),
+                    rspIn.getSize(curTick()), rspOut.getSize(curTick()),
+                    datIn.getSize(curTick()), datOut.getSize(curTick()),
+                    snpIn.getSize(curTick()), snpOut.getSize(curTick()));
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Input/output port definitions
+    ////////////////////////////////////////////////////////////////////////////
+
+    // Outbound port definitions
+
+    // Outbound port definitions for forwarding to the network or memory
+
+    out_port(reqOutPort, CHIRequestMsg, requestToMemory); // Forward requests to memory
+    out_port(snpOutPort, CHIRequestMsg, snpOut); // Forward snoops to the network, if applicable
+    out_port(rspOutPort, CHIResponseMsg, rspOut); // Forward responses to the network
+    out_port(datOutPort, CHIDataMsg, datOut); // Forward data to the network
+
+
+    // Handling requests from the network, forwarding to memory
+    in_port(reqInPort, CHIRequestMsg, reqIn, rank=0) {
+      if (reqInPort.isReady(clockEdge())) {
+        printResources();
+        CHIRequestMsg msg = reqInPort.dequeue(); // Dequeue the incoming message
+        enqueue(requestToMemory, CHIRequestMsg, msg); // Forward it to memory
+      }
+    }
+
+    // Handling snoops 
+    in_port(snpInPort, CHIRequestMsg, snpIn, rank=1) {
+      if (snpInPort.isReady(clockEdge())) {
+        printResources();
+        CHIRequestMsg msg = snpInPort.dequeue(); // Dequeue the incoming snoop message
+        // Forward snoops according to your system's requirements, e.g., to another cache or processor
+      }
+    }
+
+    // Handling responses from memory, forwarding to the network
+    in_port(responseFromMemory, CHIResponseMsg, rspIn, rank=2) {
+      if (responseFromMemory.isReady(clockEdge())) {
+        printResources();
+        CHIResponseMsg msg = responseFromMemory.dequeue(); // Dequeue the incoming message
+        enqueue(rspOutPort, CHIResponseMsg, msg); // Forward it to the network
+      }
+    }
+
+    // Handling data from memory, forwarding to the network
+    in_port(datInPort, CHIDataMsg, datIn, rank=3) {
+      if (datInPort.isReady(clockEdge())) {
+        printResources();
+        CHIDataMsg msg = datInPort.dequeue(); // Dequeue the incoming data message
+        enqueue(datOutPort, CHIDataMsg, msg); // Forward it to the network
+      }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Actions
+    ////////////////////////////////////////////////////////////////////////////
+
+    // Action to forward requests from the network to memory
+    action(forwardRequest, desc="Forward request to memory") {
+      while (reqInPort.isReady(clockEdge())) {
+        CHIRequestMsg msg = reqInPort.dequeue();
+        enqueue(requestToMemory, CHIRequestMsg, msg); // Forward the message directly to memory
+      }
+    }
+
+    // Action to forward responses and data from memory back to the network
+    action(forwardResponse, desc="Forward response to the network") {
+      while (responseFromMemory.isReady(clockEdge())) {
+        CHIResponseMsg msg = responseFromMemory.dequeue();
+        enqueue(rspOutPort, CHIResponseMsg, msg); // Forward memory responses to the network
+      }
+    }
+
+    // Additional forwarding actions for data and snoops if applicable
+    action(forwardData, desc="Forward data to the network") {
+      while (datInPort.isReady(clockEdge())) {
+        CHIDataMsg msg = datInPort.dequeue();
+        enqueue(datOutPort, CHIDataMsg, msg); // Forward data received from memory to the network
+      }
+    }
+
+    // Assuming snoops are part of your model, forward them as required
+    action(forwardSnoop, desc="Forward snoop requests") {
+      while (snpInPort.isReady(clockEdge())) {
+        CHIRequestMsg msg = snpInPort.dequeue();
+        // Forward snoop messages according to your system's coherence protocol
+        // This might involve sending it to another cache, processor, or handling it differently
+      }
+    }
+
+    // Removing actions not directly related to forwarding
+    // This includes most TBE management, retry handling, and data copying actions
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Transitions
+    ////////////////////////////////////////////////////////////////////////////
+
+    transition(FORWARDING_READY, ForwardRequest) {
+      forwardRequest();
+    }
+
+    transition(FORWARDING_READY, ForwardResponse) {
+      forwardResponse();
+    }
+
+    transition(FORWARDING_READY, ForwardData) {
+      forwardData();
+    }
+
+    transition(FORWARDING_READY, ForwardSnoop) {
+      forwardSnoop();
+    }
+}
