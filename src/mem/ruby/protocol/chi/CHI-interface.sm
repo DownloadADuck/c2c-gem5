@@ -64,35 +64,36 @@ machine(MachineType:Interface, "Interface Controller") :
 
     enumeration(Event, desc="Interface events") {
         // Forwarding Events
-        ForwardRequest, desc="Event to forward a request to memory";
-        ForwardResponse, desc="Event to forward a response to the network";
+        forwardRequest, desc="Event to forward a request to memory";
+        forwardSnoop, desc="";
+        forwardResponse, desc="Event to forward a response to the network";
+        forwardData, dest="";
 
         // Error or special handling events
-        ErrorEvent, desc="Handle errors or special conditions";
+        errorEvent, desc="Handle errors or special conditions";
     }
 
 
     // Is there a less tedious way to convert messages to events ??
 
-    Event msgToEvent(CHIMessageType type) {
-        switch (type) {
-            case CHIMessageType:Request:
-                return Event:ForwardRequest;
-            case CHIMessageType:Response:
-                return Event:ForwardResponse;
-            default:
-                return Event:ErrorEvent;
-        }
-    }
+    //Event msgToEvent(CHIMessageType type) {
+    //    if (type == CHIMessageType:Request) {
+    //        return Event:ForwardRequest;
+    //    } else if (type == CHIMessageType:Response){
+    //        return Event:ForwardResponse;
+    //    } else {
+    //        return Event:ErrorEvent;
+    //    }
+    //}
 
-    Event respToEvent (CHIResponseType type) {
-        //return Event:ForwardResponse;
-        error("Invalid CHIResponseType");
-    }
+    //Event respToEvent (CHIResponseType type) {
+    //    //return Event:ForwardResponse;
+    //    error("Invalid CHIResponseType");
+    //}
 
-    Event dataToEvent (CHIDataType type) {
-        return Event:ForwardResponse;
-    }
+    //Event dataToEvent (CHIDataType type) {
+    //    return Event:forwardResponse;
+    //}
 
 
     ////////////////////////////////////////////////////////////////////////////
@@ -155,8 +156,7 @@ machine(MachineType:Interface, "Interface Controller") :
     ////////////////////////////////////////////////////////////////////////////
 
     void printResources() {
-      DPRINTF(RubySlicc, "Resources(in/out size): rdy=%d req=%d/%d rsp=%d/%d dat=%d/%d snp=%d/%d\n",
-                    reqRdy.getSize(curTick()),
+      DPRINTF(RubySlicc, "Resources(in/out size): req=%d/%d rsp=%d/%d dat=%d/%d snp=%d/%d\n",
                     reqIn.getSize(curTick()), reqOut.getSize(curTick()),
                     rspIn.getSize(curTick()), rspOut.getSize(curTick()),
                     datIn.getSize(curTick()), datOut.getSize(curTick()),
@@ -169,8 +169,6 @@ machine(MachineType:Interface, "Interface Controller") :
 
     // Outbound port definitions
 
-    // Outbound port definitions for forwarding to the network or memory
-
     out_port(reqOutPort, CHIRequestMsg, requestToMemory); // Forward requests to memory
     out_port(snpOutPort, CHIRequestMsg, snpOut); // Forward snoops to the network, if applicable
     out_port(rspOutPort, CHIResponseMsg, rspOut); // Forward responses to the network
@@ -178,38 +176,54 @@ machine(MachineType:Interface, "Interface Controller") :
 
 
     // Handling requests from the network, forwarding to memory
+
+    in_port(rspInPort, CHIResponseMsg, rspIn, rank=6) {
+      if (rspInPort.isReady(clockEdge())) {
+        printResources();
+        peek(rspInPort, CHIResponseMsg) {
+          enqueue(rspOutPort, CHIResponseMsg, 0) {
+            out_msg.addr := address;
+          }
+        }
+      }
+    }
+    
+    // Handling and forwarding data from the network to memory
+    in_port(datInPort, CHIDataMsg, datIn, rank=5) {
+      if (datInPort.isReady(clockEdge())) {
+        printResources();
+        peek(datInPort, CHIDataMsg) {
+          // Forward data messages directly to the appropriate port
+          enqueue(datOutPort, CHIDataMsg, 0) {
+
+          }
+        }
+      }
+    }
+    
+    // Handling responses and data from memory, forwarding to the network
+    in_port(memQueue_in, MemoryMsg, responseFromMemory, rank=4) {
+      if (memQueue_in.isReady(clockEdge())) {
+        printResources();
+        peek(memQueue_in, MemoryMsg) {
+          // Decide on forwarding based on the type of memory message
+          enqueue(rspOutPort, MemoryMsg, 0) {
+
+          } // Simplified for example
+        }
+      }
+    }
+    
+    // Handling requests from the network, forwarding to memory
     in_port(reqInPort, CHIRequestMsg, reqIn, rank=0) {
       if (reqInPort.isReady(clockEdge())) {
         printResources();
-        CHIRequestMsg msg = reqInPort.dequeue(); // Dequeue the incoming message
-        enqueue(requestToMemory, CHIRequestMsg, msg); // Forward it to memory
-      }
-    }
+        peek(reqInPort, CHIRequestMsg) {
+          // Forward incoming requests directly to memory
+          enqueue(requestToMemory, CHIRequestMsg, 0) {
 
-    // Handling snoops 
-    in_port(snpInPort, CHIRequestMsg, snpIn, rank=1) {
-      if (snpInPort.isReady(clockEdge())) {
-        printResources();
-        CHIRequestMsg msg = snpInPort.dequeue(); // Dequeue the incoming snoop message
-        // Forward snoops according to your system's requirements, e.g., to another cache or processor
-      }
-    }
-
-    // Handling responses from memory, forwarding to the network
-    in_port(responseFromMemory, CHIResponseMsg, rspIn, rank=2) {
-      if (responseFromMemory.isReady(clockEdge())) {
-        printResources();
-        CHIResponseMsg msg = responseFromMemory.dequeue(); // Dequeue the incoming message
-        enqueue(rspOutPort, CHIResponseMsg, msg); // Forward it to the network
-      }
-    }
-
-    // Handling data from memory, forwarding to the network
-    in_port(datInPort, CHIDataMsg, datIn, rank=3) {
-      if (datInPort.isReady(clockEdge())) {
-        printResources();
-        CHIDataMsg msg = datInPort.dequeue(); // Dequeue the incoming data message
-        enqueue(datOutPort, CHIDataMsg, msg); // Forward it to the network
+          }
+        }
       }
     }
 
@@ -217,36 +231,16 @@ machine(MachineType:Interface, "Interface Controller") :
     // Actions
     ////////////////////////////////////////////////////////////////////////////
 
-    // Action to forward requests from the network to memory
-    action(forwardRequest, desc="Forward request to memory") {
-      while (reqInPort.isReady(clockEdge())) {
-        CHIRequestMsg msg = reqInPort.dequeue();
-        enqueue(requestToMemory, CHIRequestMsg, msg); // Forward the message directly to memory
+    action(forwardResponseToNetwork, desc="Forward memory response to network") {
+      peek(responseFromMemory, MemoryMsg) {
+        enqueue(rspOutPort, CHIResponseMsg, convertToResponseMsg(in_msg)); // Assuming conversion
       }
     }
 
-    // Action to forward responses and data from memory back to the network
-    action(forwardResponse, desc="Forward response to the network") {
-      while (responseFromMemory.isReady(clockEdge())) {
-        CHIResponseMsg msg = responseFromMemory.dequeue();
-        enqueue(rspOutPort, CHIResponseMsg, msg); // Forward memory responses to the network
-      }
-    }
-
-    // Additional forwarding actions for data and snoops if applicable
-    action(forwardData, desc="Forward data to the network") {
-      while (datInPort.isReady(clockEdge())) {
-        CHIDataMsg msg = datInPort.dequeue();
-        enqueue(datOutPort, CHIDataMsg, msg); // Forward data received from memory to the network
-      }
-    }
-
-    // Assuming snoops are part of your model, forward them as required
-    action(forwardSnoop, desc="Forward snoop requests") {
-      while (snpInPort.isReady(clockEdge())) {
-        CHIRequestMsg msg = snpInPort.dequeue();
-        // Forward snoop messages according to your system's coherence protocol
-        // This might involve sending it to another cache, processor, or handling it differently
+    // Direct action for forwarding requests to memory
+    action(forwardRequestToMemory, desc="Forward network request to memory") {
+      peek(reqInPort, CHIRequestMsg) {
+        enqueue(requestToMemory, CHIRequestMsg, in_msg);
       }
     }
 
@@ -258,18 +252,18 @@ machine(MachineType:Interface, "Interface Controller") :
     ////////////////////////////////////////////////////////////////////////////
 
     transition(FORWARDING_READY, ForwardRequest) {
-      forwardRequest();
+      forwardRequest;
     }
 
     transition(FORWARDING_READY, ForwardResponse) {
-      forwardResponse();
+      forwardResponse;
     }
 
     transition(FORWARDING_READY, ForwardData) {
-      forwardData();
+      forwardData;
     }
 
     transition(FORWARDING_READY, ForwardSnoop) {
-      forwardSnoop();
+      forwardSnoop;
     }
 }
