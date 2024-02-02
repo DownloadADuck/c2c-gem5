@@ -236,7 +236,55 @@ machine(MachineType:Interface, "Interface Controller") :
 
   out_port(memQueue_out, MemoryMsg, requestToMemory);
 
+  // Inbound port definitions
 
+  // Response
+  in_port(rspInPort, CHIResponseMsg, rspIn, rank=6) {
+    if (rspInPort.isReady(clockEdge())) {
+      printResources();
+      peek(rspInPort, CHIResponseMsg) {
+        error("Unexpected message");
+      }
+    }
+  }
+
+  // Snoop 
+  in_port(snpInPort, CHIRequestMsg, snpIn, rank=2) {
+    if (snpInPort.isReady(clockEdge())) {
+      printResources();
+      peek(snpInPort, CHIRequestMsg) {
+        error("Unexpected message");
+      }
+    }
+  }
+
+  // Data/Ack from bridge
+  in_port(memQueue_in, MemoryMsg, responseFromMemory, rank=4) {
+    if(memQueue_in.isReady(clockEdge())) {
+      printResources();
+      peek(memQueue_in, MemoryMsg) {
+        Addr addr := makeLineAddress(in_msg.addr);
+        if (in_msg.Type == MemoryRequestType:MEMORY_READ) {
+          trigger(Event:forwardRsp, in_msg.addr, FTBEs[in_msg.addr]);
+        } else if (in_msg.Type == MemoryRequestType:MEMORY_WB) {
+          // for now we trigger the same event independently of the type
+          trigger(Event:forwardRsp, in_msg.addr, FTBEs[in_msg.addr]);
+        } else {
+          error("Invalid message");
+        }
+      }
+    }
+  }
+
+  // Request
+  in_port(reqInPort, CHIRequestMsg, reqIn, rank=0) {
+    if (reqRdyInPort.isReady(clockEdge())) {
+      printResources();
+      peek(reqRdyInPort, CHIRequestMsg) {
+        trigger(Event:forwardReq, in_msg.addr, FTBEs[in_msg.addr]);
+      }
+    }
+  }
 
 
 }
