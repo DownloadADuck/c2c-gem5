@@ -8,12 +8,7 @@ machine(MachineType:Interface, "Interface Controller") :
 
   int data_channel_size;
 
-  // Interface to the network
-  // Note vnet_type is used by Garnet only. "response" type is assumed to
-  // have data, so use it for data channels and "none" for the rest.
-  // network="To" for outbound queue; network="From" for inbound
-  // virtual networks: 0=request, 1=snoop, 2=response, 3=data
-
+  // Comunicate to the Network 
   MessageBuffer * reqOut,   network="To", virtual_network="0", vnet_type="none";
   MessageBuffer * snpOut,   network="To", virtual_network="1", vnet_type="none";
   MessageBuffer * rspOut,   network="To", virtual_network="2", vnet_type="none";
@@ -24,7 +19,7 @@ machine(MachineType:Interface, "Interface Controller") :
   MessageBuffer * rspIn,   network="From", virtual_network="2", vnet_type="none";
   MessageBuffer * datIn,   network="From", virtual_network="3", vnet_type="response";
 
-  // Data/ack to/from memory
+  // Communicate with the Bridge 
   MessageBuffer * requestToMemory;
   MessageBuffer * responseFromMemory;
 
@@ -32,17 +27,216 @@ machine(MachineType:Interface, "Interface Controller") :
   MessageBuffer * triggerQueue;
 
 {
-    state_declaration(State, desc="Transaction states", default="IDLE") {
-        // Ready to forward messages
-        IDLE, AccessPermission:None, desc="Ready to forward requests and responses";
 
-        // Actively forwarding a request from the network to bridge
-        SENDING_TO_BRIDGE, AccessPermission:None, desc="Forwarding to memory";
+  ////////////////////////////////////////////////////////////////////////////
+  // States
+  ////////////////////////////////////////////////////////////////////////////
+  state_declaration(State, desc="Transaction states", default="READY") {
+    // Ready to forward messages
+    READY, AccessPermission:None, desc="Ready to forward requests and responses";
 
-        // Actively forwarding a message from bridge to the network
-        SENDING_TO_NETWORK, AccessPermission:None, desc="Forwarding to the network";
+    // Actively forwarding a request from the network to bridge
+    FORWARDING_REQ, AccessPermission:None, desc="Forwarding request to bridge";
 
-        // Null state for debugging
-        null, AccessPermission:None, desc="Null state for debugging";
+    // Actively forwarding a message from bridge to the network
+    FORWARDING_RSP, AccessPermission:None, desc="Forwarding response to the network";
+
+    WAIT_EXTERNAL, AccessPermission:None, desc="Waiting for a response from the bridge";
+
+    // Null state for debugging
+    null, AccessPermission:None, desc="Null state for debugging";
+  }
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Events
+  ////////////////////////////////////////////////////////////////////////////
+  enumeration(Event, desc="Interface events") {
+
+    receiveReq,       desc="A request is received from the network";
+    receiveRsp,       desc="A response is received from the bridge";
+    externalRspReady, desc="The bridge has a response ready";
+    forwardReq,       desc="Forward a request to the bridge";
+    forwardRsp,       desc="Forward a response back to the network";
+
+  }
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Data structures
+  ////////////////////////////////////////////////////////////////////////////
+
+  structure(FTBE, desc="Forwarding Transaction Buffer Entry") {
+    int storeSlot, desc="Slot in the storage occupied by this entry";
+    Addr addr, desc="Address related to the transaction";
+    State state, desc="Current state of the transaction";
+    MachineID requestor, desc="ID of the requestor to route responses";
+    MachineID destination, desc="Destination for forwarding messages";
+    bool isRequest, desc="Flag for request or response";
+  }
+
+  structure(FTBETable, external="yes") {
+    FTBE lookup(Addr);
+    void allocate(Addr);
+    void deallocate(Addr);
+    bool isPresent(Addr);
+    bool areNSlotsAvailable(int n, Tick curTime);
+  }
+
+  structure(FTBEStorage, external="yes") {
+    int size();
+    int capacity();
+    int reserved();
+    int slotsAvailable();
+    bool areNSlotsAvailable(int n);
+    void incrementReserved();
+    void decrementReserved();
+    int addEntryToNewSlot();
+    void removeEntryFromSlot(int slot);
+  }
+
+  FTBETable FTBEs, template="<Forwarding_FTBE>", constructor="m_number_of_FTBEs";
+  FTBEStorage storFTBEs, constructor="this, m_number_of_FTBEs";
+
+  int pendingForwards, default="0";
+
+  structure(ForwardingMsg, desc="Message structure for forwarding", interface="Message") {
+    Addr addr;
+    Event event;
+    MachineID retryDest;
+
+    bool functionalRead(Packet *pkt) { return false; }
+    bool functionalRead(Packet *pkt, WriteMask &mask) { return false; }
+    bool functionalWrite(Packet *pkt) { return false; }
+  }
+
+  // For managing retries when forwarding is temporarily blocked or delayed
+  structure(RetryForwardQueueEntry) {
+    Addr addr, desc="Address for the retry entry";
+    MachineID retryDest, desc="Destination for the retry";
+  }
+
+  structure(ForwardRetryQueue, external="yes") {
+    void pop();
+    bool empty();
+    void emplace(Addr, MachineID);
+    RetryForwardQueueEntry next();
+  }
+
+  ForwardRetryQueue retryForwardQueue, template="<Forwarding_RetryQueueEntry>";
+
+  ////////////////////////////////////////////////////////////////////////////
+  // External functions
+  ////////////////////////////////////////////////////////////////////////////
+
+  Tick clockEdge();
+  Tick curTick();
+  Tick cyclesToTicks(Cycles c);
+  void set_tbe(TBE b);
+  void unset_tbe();
+  void wakeUpAllBuffers(Addr a);
+  bool respondsTo(Addr addr);
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Interface functions required by SLICC
+  ////////////////////////////////////////////////////////////////////////////
+
+  State getState(TBE tbe, Addr addr) {
+    if (is_valid(tbe)) {
+        assert(tbe.addr == addr);
+        return tbe.state;
+    } else {
+        return State:READY;
     }
+  }
+
+  void setState(TBE tbe, Addr addr, State state) {
+    if (is_valid(tbe)) {
+      assert(tbe.addr == addr);
+      tbe.state := state;
+    }
+  }
+
+  AccessPermission getAccessPermission(Addr addr) {
+    if (respondsTo(addr)) {
+      TBE tbe := TBEs[addr];
+      if (is_valid(tbe)) {
+        DPRINTF(RubySlicc, "%x %s,%s\n", addr, tbe.state, Memory_State_to_permission(tbe.state));
+        return Memory_State_to_permission(tbe.state);
+      } else {
+        DPRINTF(RubySlicc, "%x %s\n", addr, AccessPermission:Backing_Store);
+        return AccessPermission:Backing_Store;
+      }
+    } else {
+      DPRINTF(RubySlicc, "%x %s\n", addr, AccessPermission:NotPresent);
+      return AccessPermission:NotPresent;
+    }
+  }
+
+  void setAccessPermission(Addr addr, State state) {
+  }
+
+  void functionalRead(Addr addr, Packet *pkt, WriteMask &mask) {
+    if (respondsTo(addr)) {
+      DPRINTF(RubySlicc, "functionalRead %x\n", addr);
+      TBE tbe := TBEs[addr];
+
+      if (mask.isEmpty()) {
+        functionalMemoryRead(pkt);
+        mask.fillMask();
+        DPRINTF(RubySlicc, "functionalRead mem %x %s\n", addr, mask);
+      }
+
+      // Update with any transient data
+      //TODO additional handling of partial data ??
+      if (is_valid(tbe)) {
+        WriteMask read_mask;
+        read_mask.setMask(addressOffset(tbe.accAddr, tbe.addr), tbe.accSize);
+        read_mask.andMask(tbe.dataBlkValid);
+        if (read_mask.isEmpty() == false) {
+          testAndReadMask(addr, tbe.dataBlk, read_mask, pkt);
+          DPRINTF(RubySlicc, "functionalRead tbe %x %s %s %s\n", addr, tbe.dataBlk, read_mask, mask);
+          mask.orMask(read_mask);
+        }
+      }
+    }
+  }
+
+  int functionalWrite(Addr addr, Packet *pkt) {
+    if(respondsTo(addr)) {
+      int num_functional_writes := 0;
+      TBE tbe := TBEs[addr];
+      if (is_valid(tbe)) {
+        num_functional_writes := num_functional_writes +
+          testAndWrite(addr, tbe.dataBlk, pkt);
+        DPRINTF(RubySlicc, "functionalWrite tbe %x %s\n", addr, tbe.dataBlk);
+      }
+      num_functional_writes := num_functional_writes + functionalMemoryWrite(pkt);
+      DPRINTF(RubySlicc, "functionalWrite mem %x\n", addr);
+      return num_functional_writes;
+    } else {
+      return 0;
+    }
+  }
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Helper functions
+  ////////////////////////////////////////////////////////////////////////////
+
+  //TODO
+  
+  ////////////////////////////////////////////////////////////////////////////
+  // Input/output port definitions
+  ////////////////////////////////////////////////////////////////////////////
+
+  // Outbound port definitions
+
+  out_port(reqOutPort, CHIRequestMsg, reqOut);
+  out_port(snpOutPort, CHIRequestMsg, snpOut);
+  out_port(rspOutPort, CHIResponseMsg, rspOut);
+  out_port(datOutPort, CHIDataMsg, datOut);
+
+  out_port(memQueue_out, MemoryMsg, requestToMemory);
+
+
+
+
 }
