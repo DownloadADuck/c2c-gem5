@@ -286,5 +286,36 @@ machine(MachineType:Interface, "Interface Controller") :
     }
   }
 
+  ////////////////////////////////////////////////////////////////////////////
+  // Actions
+  ////////////////////////////////////////////////////////////////////////////
+
+  action(forwardToExternal, desc="") {
+
+  }
+
+  action(forwardToNetwork, desc="") {
+
+  }
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Transitions
+  ////////////////////////////////////////////////////////////////////////////
+
+  transition(READY, <event>, FORWARDING_REQ) {
+
+  }
+
+  transition(FORWARDING_REQ, <event>, WAIT_EXTERNAL) {
+
+  }
+
+  transition(WAIT_EXTERNAL, <event>, FORWARDING_RSP) {
+    
+  }
+
+  transition(FORWARDING_RSP, <event>, READY) {
+
+  }
 
 }
