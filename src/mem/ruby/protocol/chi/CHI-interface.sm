@@ -91,29 +91,30 @@ machine(MachineType:Interface, "Interface Controller") :
     }
   }
 
-  CHIRequestMsg convertMemoryMsgToCHIRequestMsg (MemoryMsg memMsg) {
-    CHIRequestMsg chiRequestMsg (
-      curTick(),
-      memMsg.m_addr,
-      memMsg.m_addr, // accAddr same as addr, don't know if that works
-      0,
-      ReadNoSnp,
-      memMsg.m_sender,
-      memMsg.m_OriginalRequestorMachId,
-      false,
-      false,
-      false,
-      mapAddressToDownstreamMachine(memMsg.m_addr),
-      nullptr,
-      false,
-      false,
-      false,
-      false,
-      0,
-      memMsg.m_MessageSize
-    );
-    return chiRequestMsg;
-  }
+  // We cannot do that We keep it as template still
+  //CHIRequestMsg convertMemoryMsgToCHIRequestMsg (MemoryMsg memMsg) {
+  //  CHIRequestMsg chiRequestMsg (
+  //    curTick(),
+  //    memMsg.m_addr,
+  //    memMsg.m_addr, // accAddr same as addr, don't know if that works
+  //    0,
+  //    ReadNoSnp,
+  //    memMsg.m_sender,
+  //    memMsg.m_OriginalRequestorMachId,
+  //    false,
+  //    false,
+  //    false,
+  //    mapAddressToDownstreamMachine(memMsg.m_addr),
+  //    nullptr,
+  //    false,
+  //    false,
+  //    false,
+  //    false,
+  //    0,
+  //    memMsg.m_MessageSize
+  //  );
+  //  return chiRequestMsg;
+  //}
 
   ////////////////////////////////////////////////////////////////////////////
   // Data structures
@@ -413,23 +414,24 @@ machine(MachineType:Interface, "Interface Controller") :
       storTBEs.incrementReserved();
 
       peek(memQueue_in, MemoryMsg) {
-        enqueue(reqRdyOutPort, CHIRequestMsg, 0) {
-          out_msg := convertMemoryMsgToCHIRequestMsg(in_msg);
+        enqueue(reqRdyOutPort, MemoryMsg, 0) {
+          out_msg := in_msg;
         }
       }
 
     } else {
-      peek(reqInPort, CHIRequestMsg) {
-        assert(in_msg.allowRetry);
+      peek(memQueue_in, MemoryMsg) {
+        // MemoryMsg does not have allowRetry
+        //assert(in_msg.allowRetry);
         enqueue(triggerOutPort, TriggerMsg, 0) {
-          out_msg.addr := in_msg.addr;
+          out_msg.addr := in_msg.m_addr;
           out_msg.event := Event:Trigger_SendRetry;
-          out_msg.retryDest := in_msg.requestor;
-          retryQueue.emplace(in_msg.addr,in_msg.requestor);
+          out_msg.retryDest := in_msg.m_sender;
+          retryQueue.emplace(in_msg.m_addr,in_msg.m_sender);
         }
       }
     }
-    reqInPort.dequeue(clockEdge());
+    memQueue_in.dequeue(clockEdge());
   }
 
   action(checkAllocateTBE_withCredit, desc="") {
@@ -582,6 +584,17 @@ machine(MachineType:Interface, "Interface Controller") :
 
   action(wakeUpStalled, "wa", desc="Wake up any requests waiting for this address") {
     wakeUpAllBuffers(address);
+  }
+
+  action(sendRetryAck, desc="") {
+    peek(triggerInPort, TriggerMsg) {
+      enqueue(rspOutPort, CHIResponseMsg, response_latency) {
+        out_msg.addr := in_msg.addr;
+        out_msg.type := CHIResponseType:RetryAck;
+        out_msg.responder := machineID;
+        out_msg.Destination.add(in_msg.retryDest);
+      }
+    }
   }
 
   ////////////////////////////////////////////////////////////////////////////
