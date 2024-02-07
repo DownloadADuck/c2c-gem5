@@ -91,6 +91,30 @@ machine(MachineType:Interface, "Interface Controller") :
     }
   }
 
+  CHIRequestMsg convertMemoryMsgToCHIRequestMsg (MemoryMsg memMsg) {
+    CHIRequestMsg chiRequestMsg (
+      curTick(),
+      memMsg.m_addr,
+      memMsg.m_addr, // accAddr same as addr, don't know if that works
+      0,
+      ReadNoSnp,
+      memMsg.m_sender,
+      memMsg.m_OriginalRequestorMachId,
+      false,
+      false,
+      false,
+      mapAddressToDownstreamMachine(memMsg.m_addr),
+      nullptr,
+      false,
+      false,
+      false,
+      false,
+      0,
+      memMsg.m_MessageSize
+    );
+    return chiRequestMsg;
+  }
+
   ////////////////////////////////////////////////////////////////////////////
   // Data structures
   ////////////////////////////////////////////////////////////////////////////
@@ -319,18 +343,10 @@ machine(MachineType:Interface, "Interface Controller") :
       printResources();
       peek(memQueue_in, MemoryMsg) {
         Addr addr := makeLineAddress(in_msg.addr);
-        if (in_msg.Type == MemoryRequestType:MEMORY_READ) {
-          if (in_msg.allowRetry) {
-            trigger(Event:CheckAllocTBE, addr, TBEs[addr]);
-          } else {
-            trigger(Event:CheckAllocTBE_WithCredit, addr, TBEs[addr]);
-          }
-        // WRITE not implemented yet
-        //} else if (in_msg.Type == MemoryRequestType:MEMORY_WB) {
-        //  trigger(Event:MemoryAck, addr, TBEs[addr]);
-        } else {
-          error("Invalid message");
-        }
+        // WRITE is not implemented yet
+        // in_msg.allowRetry is not carried by the MemoryMsg so we do not
+        // support credited allocation yet.
+        trigger(Event:CheckAllocTBE, in_msg.addr, TBEs[in_msg.addr]);
       }
     }
   }
@@ -396,9 +412,9 @@ machine(MachineType:Interface, "Interface Controller") :
       // reserve a slot for this request
       storTBEs.incrementReserved();
 
-      peek(reqInPort, CHIRequestMsg) {
+      peek(memQueue_in, MemoryMsg) {
         enqueue(reqRdyOutPort, CHIRequestMsg, 0) {
-          out_msg := in_msg;
+          out_msg := convertMemoryMsgToCHIRequestMsg(in_msg);
         }
       }
 
@@ -639,9 +655,10 @@ machine(MachineType:Interface, "Interface Controller") :
     checkAllocateTBE;
   }
 
-  transition({READY, MEMORY_REQUEST, SEND_CTRL_DATA},
-              CheckAllocTBE_WithCredit) {
-    checkAllocateTBE_withCredit;
-  }
+  // Not used yet
+  //transition({READY, MEMORY_REQUEST, SEND_CTRL_DATA},
+  //            CheckAllocTBE_WithCredit) {
+  //  checkAllocateTBE_withCredit;
+  //}
 
 }
