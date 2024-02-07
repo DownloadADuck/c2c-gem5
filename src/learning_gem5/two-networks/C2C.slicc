@@ -1,6 +1,0 @@
-protocol "C2C";
-include "RubySlicc_interfaces.slicc";
-include "C2C-msg.sm";
-include "C2C-cache.sm";
-include "C2C-dir.sm";
-include "C2C-interface-v2.sm";
