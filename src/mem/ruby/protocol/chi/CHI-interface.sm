@@ -262,7 +262,16 @@ machine(MachineType:Interface, "Interface Controller") :
   // Helper functions
   ////////////////////////////////////////////////////////////////////////////
 
-  //TODO
+  void printResources() {
+    DPRINTF(RubySlicc, "Resources(avail/max): TBEs=%d/%d\n",
+                  storTBEs.size(), storTBEs.capacity());
+    DPRINTF(RubySlicc, "Resources(in/out size): rdy=%d req=%d/%d rsp=%d/%d dat=%d/%d snp=%d/%d\n",
+                  reqRdy.getSize(curTick()),
+                  reqIn.getSize(curTick()), reqOut.getSize(curTick()),
+                  rspIn.getSize(curTick()), rspOut.getSize(curTick()),
+                  datIn.getSize(curTick()), datOut.getSize(curTick()),
+                  snpIn.getSize(curTick()), snpOut.getSize(curTick()));
+  }
   
   ////////////////////////////////////////////////////////////////////////////
   // Input/output port definitions
