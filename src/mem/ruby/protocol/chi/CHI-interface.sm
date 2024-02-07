@@ -95,24 +95,33 @@ machine(MachineType:Interface, "Interface Controller") :
   // Data structures
   ////////////////////////////////////////////////////////////////////////////
 
-  structure(FTBE, desc="Forwarding Transaction Buffer Entry") {
-    int storeSlot, desc="Slot in the storage occupied by this entry";
-    Addr addr, desc="Address related to the transaction";
-    State state, desc="Current state of the transaction";
-    MachineID requestor, desc="ID of the requestor to route responses";
-    MachineID destination, desc="Destination for forwarding messages";
-    bool isRequest, desc="Flag for request or response";
+  // Cache block size
+  int blockSize, default="RubySystem::getBlockSizeBytes()";
+
+  // TBE fields
+  structure(TBE, desc="Transaction Buffer Entry") {
+    int storSlot,   desc="Slot in the storage tracker occupied by this entry";
+    Addr addr,      desc="Line address for this TBE";
+    Addr accAddr,   desc="Original access address. Set only for Write*Ptl";
+    int  accSize,   desc="Access size. Set only for Write*Ptl";
+    State state,    desc="Current line state";
+    DataBlock dataBlk, desc="Transaction data";
+    WriteMask dataBlkValid, desc="valid bytes in dataBlk";
+    int rxtxBytes, desc="Bytes sent or received";
+    MachineID requestor, desc="Requestor that originated this request";
+    MachineID destination, desc="Where we are sending data";
+    bool useDataSepResp, desc="Replies with DataSepResp instead of CompData";
   }
 
-  structure(FTBETable, external="yes") {
-    FTBE lookup(Addr);
+  structure(TBETable, external ="yes") {
+    TBE lookup(Addr);
     void allocate(Addr);
     void deallocate(Addr);
     bool isPresent(Addr);
     bool areNSlotsAvailable(int n, Tick curTime);
   }
 
-  structure(FTBEStorage, external="yes") {
+  structure(TBEStorage, external ="yes") {
     int size();
     int capacity();
     int reserved();
@@ -124,12 +133,13 @@ machine(MachineType:Interface, "Interface Controller") :
     void removeEntryFromSlot(int slot);
   }
 
-  FTBETable FTBEs, template="<Forwarding_FTBE>", constructor="m_number_of_FTBEs";
-  FTBEStorage storFTBEs, constructor="this, m_number_of_FTBEs";
+  TBETable TBEs, template="<Memory_TBE>", constructor="m_number_of_TBEs";
+  TBEStorage storTBEs, constructor="this, m_number_of_TBEs";
 
-  int pendingForwards, default="0";
+  // Tracks all pending MemoryAcks (debug purposes only)
+  int pendingWrites, default="0";
 
-  structure(ForwardingMsg, desc="Message structure for forwarding", interface="Message") {
+  structure(TriggerMsg, desc="...", interface="Message") {
     Addr addr;
     Event event;
     MachineID retryDest;
@@ -139,20 +149,20 @@ machine(MachineType:Interface, "Interface Controller") :
     bool functionalWrite(Packet *pkt) { return false; }
   }
 
-  // For managing retries when forwarding is temporarily blocked or delayed
-  structure(RetryForwardQueueEntry) {
-    Addr addr, desc="Address for the retry entry";
-    MachineID retryDest, desc="Destination for the retry";
+  // Tracks a pending credit request from a retry
+  structure(RetryQueueEntry) {
+    Addr addr,           desc="Line address";
+    MachineID retryDest, desc="Retry destination";
   }
 
-  structure(ForwardRetryQueue, external="yes") {
+  structure(TriggerQueue, external ="yes") {
     void pop();
     bool empty();
-    void emplace(Addr, MachineID);
-    RetryForwardQueueEntry next();
+    void emplace(Addr,MachineID);
+    RetryQueueEntry next();
   }
 
-  ForwardRetryQueue retryForwardQueue, template="<Forwarding_RetryQueueEntry>";
+  TriggerQueue retryQueue, template="<Memory_RetryQueueEntry>";
 
   ////////////////////////////////////////////////////////////////////////////
   // External functions
