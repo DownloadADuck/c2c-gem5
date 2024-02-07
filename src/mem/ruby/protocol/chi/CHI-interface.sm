@@ -47,13 +47,48 @@ machine(MachineType:Interface, "Interface Controller") :
   // Events
   ////////////////////////////////////////////////////////////////////////////
   enumeration(Event, desc="Interface events") {
+    // Checks if a request that can allocate a TBE can be mobed to reaRdy
+    CheckAllocTBE, desc="";
+    CheckAllocTBE_WithCredit, desc="";
 
-    receiveReq,       desc="A request is received from the network";
-    receiveRsp,       desc="A response is received from the bridge";
-    externalRspReady, desc="The bridge has a response ready";
-    forwardReq,       desc="Forward a request to the bridge";
-    forwardRsp,       desc="Forward a response back to the network";
+    // Requests
+    ReadNoSnp, desc="";
+    ReadNoSnpSep, desc="";
 
+    // Network side
+    MemoryData, desc="";
+
+    // Internal trigger events
+    Trigger_Send, desc="";
+    Trigger_SendMemoryRead, desc="";
+  }
+
+  Event reqToEvent (CHIRequestType type) {
+    // WRITE not yet implemented
+    //if (type == CHIRequestType:WriteNoSnpPtl) {
+    //  return Event:WriteNoSnpPtl;
+    //} else if (type == CHIRequestType:WriteNoSnp) {
+    //  return Event:WriteNoSnp;
+    //} else if (type == CHIRequestType:ReadNoSnp) {
+    if (type == CHIRequestType:ReadNoSnp) {
+      return Event:ReadNoSnp;
+    } else if (type == CHIRequestType:ReadNoSnpSep) {
+      return Event:ReadNoSnpSep;
+    } else {
+      error("Invalid CHIRequestType");
+    }
+  }
+
+  Event respToEvent (CHIResponseType type) {
+    error("Invalid CHIResponseType");
+  }
+
+  Event dataToEvent (CHIDataType type) {
+    if (type == CHIDataType:NCBWrData) {
+      return Event:WriteData;
+    } else {
+      error("Invalid CHIDataType");
+    }
   }
 
   ////////////////////////////////////////////////////////////////////////////
