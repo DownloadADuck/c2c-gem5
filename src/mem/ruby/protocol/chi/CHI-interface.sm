@@ -564,24 +564,84 @@ machine(MachineType:Interface, "Interface Controller") :
     memQueue_in.dequeue(clockEdge());
   }
 
+  action(wakeUpStalled, "wa", desc="Wake up any requests waiting for this address") {
+    wakeUpAllBuffers(address);
+  }
+
   ////////////////////////////////////////////////////////////////////////////
   // Transitions
   ////////////////////////////////////////////////////////////////////////////
 
-  transition(READY, <event>, FORWARDING_REQ) {
-
+  transition(READY, ReadNoSnp, MEMORY_REQUEST) {
+    allocateTBE;
+    initializeFromReqTBE;
+    triggerSendMemoryRead;
+    popReqInQueue;
   }
 
-  transition(FORWARDING_REQ, <event>, WAIT_EXTERNAL) {
-
+  transition(READY, ReadNoSnpSep, MEMORY_REQUEST) {
+    allocateTBE;
+    initializeFromReqTBE;
+    triggerSendMemoryRead;
+    sendReadReceipt;
+    popReqInQueue;
   }
 
-  transition(WAIT_EXTERNAL, <event>, FORWARDING_RSP) {
-    
+  transition(MEMORY_REQUEST, Trigger_SendMemoryRead) {
+    sendMemoryRead;
+    popTriggerQueue;
   }
 
-  transition(FORWARDING_RSP, <event>, READY) {
+  transition(MEMORY_REQUEST, MemoryData, SEND_CTRL_DATA) {
+    prepareSend;
+    sendDataAndCheck;
+    popMemoryQueue;
+  }
 
+  transition(SEND_CTRL_DATA, Trigger_Send) {
+    sendDataAndCheck;
+    popTriggerQueue;
+  }
+
+  transition(SEND_CTRL_DATA, Trigger_SendDone, READY) {
+    deallocateTBE;
+    wakeUpStalled;
+    popTriggerQueue;
+  }
+  
+  // Just sanity check against counter of pending acks
+  transition({READY, MEMORY_REQUEST, SEND_CTRL_DATA},
+              MemoryAck) {
+    decWritePending;
+    popMemoryQueue;
+  }
+
+  // Notice we only use this here and call wakeUp when leaving this state
+  transition({MEMORY_REQUEST, SEND_CTRL_DATA},
+             {ReadNoSnp, ReadNoSnpSep}) {
+    stallRequestQueue;
+  }
+
+  transition({READY, MEMORY_REQUEST, SEND_CTRL_DATA},
+              Trigger_SendRetry) {
+    sendRetryAck;
+    popTriggerQueue;
+  }
+
+  transition({READY, MEMORY_REQUEST, SEND_CTRL_DATA},
+              Trigger_SendPCrdGrant) {
+    sendPCrdGrant;
+    popTriggerQueue;
+  }
+
+  transition({READY, MEMORY_REQUEST, SEND_CTRL_DATA},
+              CheckAllocTBE) {
+    checkAllocateTBE;
+  }
+
+  transition({READY, MEMORY_REQUEST, SEND_CTRL_DATA},
+              CheckAllocTBE_WithCredit) {
+    checkAllocateTBE_withCredit;
   }
 
 }
