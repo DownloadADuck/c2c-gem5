@@ -1,10 +1,8 @@
 machine(MachineType:Interface, "Interface Controller") :
-
-  // no explicit modeling of allocation latency like the Caches, so add one
-  // cycle to the response enqueue latency as default
   Cycles response_latency := 2;
   Cycles data_latency := 1;
   Cycles to_memory_controller_latency := 1;
+  Cycles request_latency := 1;
 
   int data_channel_size;
 
@@ -19,6 +17,9 @@ machine(MachineType:Interface, "Interface Controller") :
   MessageBuffer * rspIn,   network="From", virtual_network="2", vnet_type="none";
   MessageBuffer * datIn,   network="From", virtual_network="3", vnet_type="response";
 
+  // Requests that can allocate a TBE
+  MessageBuffer * reqRdy;
+
   // Communicate with the Bridge 
   MessageBuffer * requestToMemory;
   MessageBuffer * responseFromMemory;
@@ -31,17 +32,12 @@ machine(MachineType:Interface, "Interface Controller") :
   ////////////////////////////////////////////////////////////////////////////
   // States
   ////////////////////////////////////////////////////////////////////////////
-  state_declaration(State, desc="Transaction states", default="READY") {
-    // Ready to forward messages
-    READY, AccessPermission:None, desc="Ready to forward requests and responses";
+  state_declaration(State, desc="Transaction states", default="Interface_State_READY") {
+    // Ready
+    READY, AccessPermission:Backing_Store, desc="Ready to forward requests and responses";
 
-    // Actively forwarding a request from the network to bridge
-    FORWARDING_REQ, AccessPermission:None, desc="Forwarding request to bridge";
-
-    // Actively forwarding a message from bridge to the network
-    FORWARDING_RSP, AccessPermission:None, desc="Forwarding response to the network";
-
-    WAIT_EXTERNAL, AccessPermission:None, desc="Waiting for a response from the bridge";
+    MEMORY_REQUEST, AccessPermission:Backing_Store_Busy, desc="Sending request to network";
+    SEND_CTRL_DATA, AccessPermission:Backing_Store_Busy, desc="Sending response data to the bridge";
 
     // Null state for debugging
     null, AccessPermission:None, desc="Null state for debugging";
