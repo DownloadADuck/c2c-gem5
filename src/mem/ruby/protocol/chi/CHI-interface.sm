@@ -47,7 +47,7 @@ machine(MachineType:Interface, "Interface Controller") :
   // Events
   ////////////////////////////////////////////////////////////////////////////
   enumeration(Event, desc="Interface events") {
-    // Checks if a request that can allocate a TBE can be mobed to reaRdy
+    // Checks if a request that can allocate a TBE can be moved to reaRdy
     CheckAllocTBE, desc="";
     CheckAllocTBE_WithCredit, desc="";
 
@@ -283,8 +283,10 @@ machine(MachineType:Interface, "Interface Controller") :
   out_port(snpOutPort, CHIRequestMsg, snpOut);
   out_port(rspOutPort, CHIResponseMsg, rspOut);
   out_port(datOutPort, CHIDataMsg, datOut);
-
   out_port(memQueue_out, MemoryMsg, requestToMemory);
+  // Internal
+  out_port(triggerOutPort, TriggerMsg, triggerQueue);
+  out_port(reqRdyOutPort, CHIRequestMsg, reqRdy);
 
   // Inbound port definitions
 
@@ -298,7 +300,52 @@ machine(MachineType:Interface, "Interface Controller") :
     }
   }
 
-  // Snoop 
+  // Data
+  in_port(datInPort, CHIDataMsg, datIn, rank=5) {
+    if (datInPort.isReady(clockEdge())) {
+      printResources();
+      peek(datInPort, CHIDataMsg) {
+        assert((in_msg.bitMask.count() <= data_channel_size)
+                && (in_msg.bitMask.count() > 0));
+        trigger(dataToEvent(in_msg.type), in_msg.addr, TBEs[in_msg.addr]);
+      }
+    }
+  }
+
+  // /!\ CAREFUL of the in_msg, we don't know if this is allowed for MemoryMsg
+  // Requests from the bridge
+  in_port(memQueue_in, MemoryMsg, responseFromMemory, rank=4) {
+    if (memQueue_in.isReady(clockEdge())) {
+      printResources();
+      peek(memQueue_in, MemoryMsg) {
+        Addr addr := makeLineAddress(in_msg.addr);
+        if (in_msg.Type == MemoryRequestType:MEMORY_READ) {
+          if (in_msg.allowRetry) {
+            trigger(Event:CheckAllocTBE, addr, TBEs[addr]);
+          } else {
+            trigger(Event:CheckAllocTBE_WithCredit, addr, TBEs[addr]);
+          }
+        // WRITE not implemented yet
+        //} else if (in_msg.Type == MemoryRequestType:MEMORY_WB) {
+        //  trigger(Event:MemoryAck, addr, TBEs[addr]);
+        } else {
+          error("Invalid message");
+        }
+      }
+    }
+  }
+
+  // Trigger
+  in_port(triggerInPort, TriggerMsg, triggerQueue, rank=3) {
+    if (triggerInPort.isReady(clockEdge())) {
+      printResources();
+      peek(triggerInPort, TriggerMsg) {
+        trigger(in_msg.event, in_msg.addr, TBEs[in_msg.addr]);
+      }
+    }
+  }
+
+  // Snoops
   in_port(snpInPort, CHIRequestMsg, snpIn, rank=2) {
     if (snpInPort.isReady(clockEdge())) {
       printResources();
@@ -308,33 +355,36 @@ machine(MachineType:Interface, "Interface Controller") :
     }
   }
 
-  // Data/Ack from bridge
-  in_port(memQueue_in, MemoryMsg, responseFromMemory, rank=4) {
-    if(memQueue_in.isReady(clockEdge())) {
+  // Requests
+  in_port(reqRdyInPort, CHIRequestMsg, reqRdy, rank=1) {
+    if (reqRdyInPort.isReady(clockEdge())) {
       printResources();
-      peek(memQueue_in, MemoryMsg) {
-        Addr addr := makeLineAddress(in_msg.addr);
-        if (in_msg.Type == MemoryRequestType:MEMORY_READ) {
-          trigger(Event:forwardRsp, in_msg.addr, FTBEs[in_msg.addr]);
-        } else if (in_msg.Type == MemoryRequestType:MEMORY_WB) {
-          // for now we trigger the same event independently of the type
-          trigger(Event:forwardRsp, in_msg.addr, FTBEs[in_msg.addr]);
-        } else {
-          error("Invalid message");
-        }
+      peek(reqRdyInPort, CHIRequestMsg) {
+        trigger(reqToEvent(in_msg.type), in_msg.addr, TBEs[in_msg.addr]);
       }
     }
   }
 
-  // Request
   in_port(reqInPort, CHIRequestMsg, reqIn, rank=0) {
-    if (reqRdyInPort.isReady(clockEdge())) {
+    if (reqInPort.isReady(clockEdge())) {
       printResources();
-      peek(reqRdyInPort, CHIRequestMsg) {
-        trigger(Event:forwardReq, in_msg.addr, FTBEs[in_msg.addr]);
+      peek(reqInPort, CHIRequestMsg, reqIn, rank=0) {
+        error("Unexpected message");
       }
+      // WRITE not implemented yet
+      //peek(reqInPort, CHIRequestMsg) {
+      //  if (in_msg.allowRetry) {
+      //    trigger(Event:CheckAllocTBE, in_msg.addr, TBEs[in_msg.addr]);
+      //  } else {
+      //    // Only expected requests that do not allow retry are the ones that
+      //    // are being retried after receiving credit
+      //    trigger(Event:CheckAllocTBE_WithCredit,
+      //            in_msg.addr, TBEs[in_msg.addr]);
+      //  }
+      //}
     }
   }
+
 
   ////////////////////////////////////////////////////////////////////////////
   // Actions
