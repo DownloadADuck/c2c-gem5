@@ -52,14 +52,25 @@ machine(MachineType:Interface, "Interface Controller") :
     CheckAllocTBE_WithCredit, desc="";
 
     // Requests
+    // write events only for the compiler
+    WriteNoSnpPtl, desc="";
+    WriteNoSnp, desc="";
     ReadNoSnp, desc="";
     ReadNoSnpSep, desc="";
 
+    // Data (for the compiler again)
+    WriteData, desc="";
+
     // Network side
     MemoryData, desc="";
+    MemoryAch, desc="";
 
-    // Internal trigger events
+    // Internal event triggers
     Trigger_Send, desc="";
+    Trigger_SendDone, desc="";
+    Trigger_ReceiveDone, desc="";
+    Trigger_SendRetry, desc="";
+    Trigger_SendPCrdGrant, desc="";
     Trigger_SendMemoryRead, desc="";
   }
 
@@ -104,7 +115,6 @@ machine(MachineType:Interface, "Interface Controller") :
     //MachineID requestor, desc="Requestor that originated this request";
     MachineID destination, desc="Where we are sending data";
     //bool useDataSepResp, desc="Replies with DataSepResp instead of CompData";
-    Type type, desc="original type of the request: MEMORY_READ";
     MachineID Sender, desc="original requestor for this request";
     int size, desc="message size";
   }
@@ -129,7 +139,7 @@ machine(MachineType:Interface, "Interface Controller") :
     void removeEntryFromSlot(int slot);
   }
 
-  TBETable TBEs, template="<Memory_TBE>", constructor="m_number_of_TBEs";
+  TBETable TBEs, template="<Interface_TBE>", constructor="m_number_of_TBEs";
   TBEStorage storTBEs, constructor="this, m_number_of_TBEs";
 
   // Tracks all pending MemoryAcks (debug purposes only)
@@ -420,7 +430,6 @@ machine(MachineType:Interface, "Interface Controller") :
       tbe.Sender := in_msg.Sender;
       tbe.size := in_msg.MessageSize;
       //tbe.destination := in_msg.requestor;
-      tbe.Type := MemoryRequestType:MEMORY_READ;
     }
   }
 
