@@ -415,15 +415,10 @@ machine(MachineType:Interface, "Interface Controller") :
   }
 
   action(initializeFromReqTBE, "itbe", desc="Initialize TBE fields") {
-    peek(reqRdyInPort, CHIRequestMsg) {
-      tbe.requestor := in_msg.requestor;
-      if (in_msg.dataToFwdRequestor) {
-        tbe.destination := in_msg.fwdRequestor;
-      } else {
-        tbe.destination := in_msg.requestor;
-      }
-      tbe.accAddr := in_msg.accAddr;
-      tbe.accSize := in_msg.accSize;
+    peek(reqRdyInPort, MemoryMsg) {
+      tbe.Sender := in_msg.Sender;
+      //tbe.destination := in_msg.requestor;
+      tbe.Type = MemoryMsg:MEMORY_READ;
     }
   }
 
