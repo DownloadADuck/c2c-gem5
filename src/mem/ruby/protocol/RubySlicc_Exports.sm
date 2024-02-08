@@ -259,7 +259,6 @@ enumeration(MachineType, desc="...", default="MachineType_NULL") {
     L2Cache,     desc="L2 Cache Mach";
     L3Cache,     desc="L3 Cache Mach";
     Directory,   desc="Directory Mach";
-    Interface,   desc="Chip-to-Chip Interface";
     DMA,         desc="DMA Mach";
     Collector,   desc="Collector Mach";
     L1Cache_wCC, desc="L1 Cache Mach to track cache-to-cache transfer (used for miss latency profile)";
@@ -273,6 +272,7 @@ enumeration(MachineType, desc="...", default="MachineType_NULL") {
     RegionBuffer, desc="Region buffer for CPU and GPU";
     Cache,       desc="Generic coherent cache controller";
     Memory,      desc="Memory controller interface";
+    Interface,   desc="Chip-to-Chip Interface";
     MiscNode,    desc="CHI protocol Misc Node";
     NULL,        desc="null mach type";
 }

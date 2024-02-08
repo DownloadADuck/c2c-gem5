@@ -63,7 +63,7 @@ machine(MachineType:Interface, "Interface Controller") :
 
     // Network side
     MemoryData, desc="";
-    MemoryAch, desc="";
+    MemoryAck, desc="";
 
     // Internal event triggers
     Trigger_Send, desc="";
@@ -107,16 +107,17 @@ machine(MachineType:Interface, "Interface Controller") :
   structure(TBE, desc="Transaction Buffer Entry") {
     int storSlot,   desc="Slot in the storage tracker occupied by this entry";
     Addr addr,      desc="Line address for this TBE";
-    //Addr accAddr,   desc="Original access address. Set only for Write*Ptl";
-    //int  accSize,   desc="Access size. Set only for Write*Ptl";
+    Addr accAddr,   desc="Original access address. Set only for Write*Ptl";
+    int  accSize,   desc="Access size. Set only for Write*Ptl";
     State state,    desc="Current line state";
     DataBlock dataBlk, desc="Transaction data";
     WriteMask dataBlkValid, desc="valid bytes in dataBlk";
-    //MachineID requestor, desc="Requestor that originated this request";
+    MachineID requestor, desc="Requestor that originated this request";
     MachineID destination, desc="Where we are sending data";
-    //bool useDataSepResp, desc="Replies with DataSepResp instead of CompData";
+    bool useDataSepResp, desc="Replies with DataSepResp instead of CompData";
+    int rxtxBytes, desc="";
     MachineID Sender, desc="original requestor for this request";
-    int size, desc="message size";
+    MessageSizeType size, desc="message size";
   }
 
   structure(TBETable, external ="yes") {
@@ -206,8 +207,8 @@ machine(MachineType:Interface, "Interface Controller") :
     if (respondsTo(addr)) {
       TBE tbe := TBEs[addr];
       if (is_valid(tbe)) {
-        DPRINTF(RubySlicc, "%x %s,%s\n", addr, tbe.state, Memory_State_to_permission(tbe.state));
-        return Memory_State_to_permission(tbe.state);
+        DPRINTF(RubySlicc, "%x %s,%s\n", addr, tbe.state, Interface_State_to_permission(tbe.state));
+        return Interface_State_to_permission(tbe.state);
       } else {
         DPRINTF(RubySlicc, "%x %s\n", addr, AccessPermission:Backing_Store);
         return AccessPermission:Backing_Store;
@@ -391,10 +392,10 @@ machine(MachineType:Interface, "Interface Controller") :
         // MemoryMsg does not have allowRetry
         //assert(in_msg.allowRetry);
         enqueue(triggerOutPort, TriggerMsg, 0) {
-          out_msg.addr := in_msg.m_addr;
+          out_msg.addr := in_msg.addr;
           out_msg.event := Event:Trigger_SendRetry;
-          out_msg.retryDest := in_msg.m_sender;
-          retryQueue.emplace(in_msg.m_addr,in_msg.m_sender);
+          out_msg.retryDest := in_msg.Sender;
+          retryQueue.emplace(in_msg.addr,in_msg.Sender);
         }
       }
     }
@@ -479,15 +480,15 @@ machine(MachineType:Interface, "Interface Controller") :
 
   action(sendMemoryRead, "smr", desc="Send request to memory") {
     assert(is_valid(tbe));
-    enqueue(ReqOutPort, CHIRequestMsg, request_latency) {
+    enqueue(reqOutPort, CHIRequestMsg, request_latency) {
       out_msg.addr := address;
       out_msg.accAddr := address;
-      out_msg.accSize := size;
-      out_msg.Type := CHIRequestType:ReadNoSnp;
+      out_msg.accSize := 0;
+      out_msg.type := CHIRequestType:ReadNoSnp;
       out_msg.requestor := machineID;
       out_msg.fwdRequestor := machineID;
       //out_msg.seqReq := in_msg.getRequestPtr();
-      out_msg.seqReq := nullptr;
+      //out_msg.seqReq := nullptr;
       out_msg.isSeqReqValid := true;
       out_msg.is_local_pf := false;
       out_msg.is_remote_pf := false;
@@ -550,6 +551,15 @@ machine(MachineType:Interface, "Interface Controller") :
     memQueue_in.dequeue(clockEdge());
   }
 
+  // Stall/wake-up only used for requests that arrive when we are on the
+  // WAITING_NET_DATA state. For all other case the line should be either
+  // ready or we can overlap
+  action(stallRequestQueue, "str", desc="Stall and wait on the address") {
+    peek(reqRdyInPort, CHIRequestMsg){
+      stall_and_wait(reqRdyInPort, address);
+    }
+  }
+
   action(wakeUpStalled, "wa", desc="Wake up any requests waiting for this address") {
     wakeUpAllBuffers(address);
   }
@@ -559,6 +569,17 @@ machine(MachineType:Interface, "Interface Controller") :
       enqueue(rspOutPort, CHIResponseMsg, response_latency) {
         out_msg.addr := in_msg.addr;
         out_msg.type := CHIResponseType:RetryAck;
+        out_msg.responder := machineID;
+        out_msg.Destination.add(in_msg.retryDest);
+      }
+    }
+  }
+
+  action(sendPCrdGrant, desc="") {
+    peek(triggerInPort, TriggerMsg) {
+      enqueue(rspOutPort, CHIResponseMsg, response_latency) {
+        out_msg.addr := in_msg.addr;
+        out_msg.type := CHIResponseType:PCrdGrant;
         out_msg.responder := machineID;
         out_msg.Destination.add(in_msg.retryDest);
       }
