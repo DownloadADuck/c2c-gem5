@@ -64,12 +64,6 @@ machine(MachineType:Interface, "Interface Controller") :
   }
 
   Event reqToEvent (CHIRequestType type) {
-    // WRITE not yet implemented
-    //if (type == CHIRequestType:WriteNoSnpPtl) {
-    //  return Event:WriteNoSnpPtl;
-    //} else if (type == CHIRequestType:WriteNoSnp) {
-    //  return Event:WriteNoSnp;
-    //} else if (type == CHIRequestType:ReadNoSnp) {
     if (type == CHIRequestType:ReadNoSnp) {
       return Event:ReadNoSnp;
     } else if (type == CHIRequestType:ReadNoSnpSep) {
@@ -91,31 +85,6 @@ machine(MachineType:Interface, "Interface Controller") :
     }
   }
 
-  // We cannot do that We keep it as template still
-  //CHIRequestMsg convertMemoryMsgToCHIRequestMsg (MemoryMsg memMsg) {
-  //  CHIRequestMsg chiRequestMsg (
-  //    curTick(),
-  //    memMsg.m_addr,
-  //    memMsg.m_addr, // accAddr same as addr, don't know if that works
-  //    0,
-  //    ReadNoSnp,
-  //    memMsg.m_sender,
-  //    memMsg.m_OriginalRequestorMachId,
-  //    false,
-  //    false,
-  //    false,
-  //    mapAddressToDownstreamMachine(memMsg.m_addr),
-  //    nullptr,
-  //    false,
-  //    false,
-  //    false,
-  //    false,
-  //    0,
-  //    memMsg.m_MessageSize
-  //  );
-  //  return chiRequestMsg;
-  //}
-
   ////////////////////////////////////////////////////////////////////////////
   // Data structures
   ////////////////////////////////////////////////////////////////////////////
@@ -127,15 +96,16 @@ machine(MachineType:Interface, "Interface Controller") :
   structure(TBE, desc="Transaction Buffer Entry") {
     int storSlot,   desc="Slot in the storage tracker occupied by this entry";
     Addr addr,      desc="Line address for this TBE";
-    Addr accAddr,   desc="Original access address. Set only for Write*Ptl";
-    int  accSize,   desc="Access size. Set only for Write*Ptl";
+    //Addr accAddr,   desc="Original access address. Set only for Write*Ptl";
+    //int  accSize,   desc="Access size. Set only for Write*Ptl";
     State state,    desc="Current line state";
     DataBlock dataBlk, desc="Transaction data";
     WriteMask dataBlkValid, desc="valid bytes in dataBlk";
-    int rxtxBytes, desc="Bytes sent or received";
-    MachineID requestor, desc="Requestor that originated this request";
+    //MachineID requestor, desc="Requestor that originated this request";
     MachineID destination, desc="Where we are sending data";
-    bool useDataSepResp, desc="Replies with DataSepResp instead of CompData";
+    //bool useDataSepResp, desc="Replies with DataSepResp instead of CompData";
+    Type type, desc="original type of the request: MEMORY_READ";
+    MachineID Sender, desc="original requestor for this request";
   }
 
   structure(TBETable, external ="yes") {
@@ -311,7 +281,7 @@ machine(MachineType:Interface, "Interface Controller") :
   out_port(memQueue_out, MemoryMsg, requestToMemory);
   // Internal
   out_port(triggerOutPort, TriggerMsg, triggerQueue);
-  out_port(reqRdyOutPort, CHIRequestMsg, reqRdy);
+  out_port(reqRdyOutPort, MemoryMsg, reqRdy);
 
   // Inbound port definitions
 
@@ -344,9 +314,6 @@ machine(MachineType:Interface, "Interface Controller") :
       printResources();
       peek(memQueue_in, MemoryMsg) {
         Addr addr := makeLineAddress(in_msg.addr);
-        // WRITE is not implemented yet
-        // in_msg.allowRetry is not carried by the MemoryMsg so we do not
-        // support credited allocation yet.
         trigger(Event:CheckAllocTBE, in_msg.addr, TBEs[in_msg.addr]);
       }
     }
@@ -373,11 +340,11 @@ machine(MachineType:Interface, "Interface Controller") :
   }
 
   // Requests
-  in_port(reqRdyInPort, CHIRequestMsg, reqRdy, rank=1) {
+  in_port(reqRdyInPort, MemoryMsg, reqRdy, rank=1) {
     if (reqRdyInPort.isReady(clockEdge())) {
       printResources();
       peek(reqRdyInPort, CHIRequestMsg) {
-        trigger(reqToEvent(in_msg.type), in_msg.addr, TBEs[in_msg.addr]);
+        trigger(Event:ReadNoSnp, in_msg.addr, TBEs[in_msg.addr]);
       }
     }
   }
@@ -388,17 +355,6 @@ machine(MachineType:Interface, "Interface Controller") :
       peek(reqInPort, CHIRequestMsg, reqIn, rank=0) {
         error("Unexpected message");
       }
-      // WRITE not implemented yet
-      //peek(reqInPort, CHIRequestMsg) {
-      //  if (in_msg.allowRetry) {
-      //    trigger(Event:CheckAllocTBE, in_msg.addr, TBEs[in_msg.addr]);
-      //  } else {
-      //    // Only expected requests that do not allow retry are the ones that
-      //    // are being retried after receiving credit
-      //    trigger(Event:CheckAllocTBE_WithCredit,
-      //            in_msg.addr, TBEs[in_msg.addr]);
-      //  }
-      //}
     }
   }
 
