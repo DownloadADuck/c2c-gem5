@@ -420,7 +420,7 @@ machine(MachineType:Interface, "Interface Controller") :
       tbe.Sender := in_msg.Sender;
       tbe.size := in_msg.MessageSize;
       //tbe.destination := in_msg.requestor;
-      tbe.Type = MemoryRequestType:MEMORY_READ;
+      tbe.Type := MemoryRequestType:MEMORY_READ;
     }
   }
 
