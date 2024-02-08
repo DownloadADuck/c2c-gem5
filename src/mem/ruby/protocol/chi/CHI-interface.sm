@@ -353,7 +353,7 @@ machine(MachineType:Interface, "Interface Controller") :
   in_port(reqInPort, CHIRequestMsg, reqIn, rank=0) {
     if (reqInPort.isReady(clockEdge())) {
       printResources();
-      peek(reqInPort, CHIRequestMsg, reqIn, rank=0) {
+      peek(reqInPort, CHIRequestMsg) {
         error("Unexpected message");
       }
     }
