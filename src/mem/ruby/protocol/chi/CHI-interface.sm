@@ -169,7 +169,7 @@ machine(MachineType:Interface, "Interface Controller") :
     RetryQueueEntry next();
   }
 
-  TriggerQueue retryQueue, template="<Memory_RetryQueueEntry>";
+  TriggerQueue retryQueue, template="<Interface_RetryQueueEntry>";
 
   ////////////////////////////////////////////////////////////////////////////
   // External functions
