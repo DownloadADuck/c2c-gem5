@@ -40,7 +40,7 @@ machine(MachineType:Interface, "Interface Controller") :
     SEND_CTRL_DATA, AccessPermission:Backing_Store_Busy, desc="Sending response data to the bridge";
 
     // Null state for debugging
-    null, AccessPermission:None, desc="Null state for debugging";
+    null, AccessPermission:Backing_Store, desc="Null state for debugging";
   }
 
   ////////////////////////////////////////////////////////////////////////////
