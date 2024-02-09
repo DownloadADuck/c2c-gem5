@@ -7,7 +7,7 @@ from m5.util import addToPath, fatal
 from gem5.isas import ISA
 from gem5.runtime import get_runtime_isa
 
-from slicc_interface import chip_config
+from slicc_interface import chip0_config, chip1_config
 from CHI_config import MemCtrlMessageBuffer
 
 addToPath("../")
