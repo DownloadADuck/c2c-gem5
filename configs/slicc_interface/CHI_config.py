@@ -638,7 +638,7 @@ class CHI_HNF(CHI_Node):
 
 class CHI_Interface(CHI_Node):
 
-    class NoC_Params(CHI_Interface_Node.NoC_Params):
+    class NoC_Params(CHI_Node.NoC_Params):
         pairing = None
 
     _addr_ranges = {}
@@ -674,8 +674,14 @@ class CHI_Interface(CHI_Node):
         # All ranges should have the same interleaving
         assert len(addr_ranges) >= 1
 
-        self._cntrl = CHI_InterfaceController(
-            ruby_system, addr_ranges
+        self._cntrl = Interface_Controller(
+            version=Versions.getVersion(Interface_Controller),
+            ruby_system=ruby_system,
+            triggerQueue=TriggerMessageBuffer(),
+            responseFromMemory=MemCtrlMessageBuffer(),
+            requestToMemory=MemCtrlMessageBuffer(),
+            reqRdy=TriggerMessageBuffer(),
+            transitions_per_cycle=1024,
         )
 
         if parent == None:
