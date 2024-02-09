@@ -159,7 +159,7 @@ def create_system(
     
     # Chip 0
     (cpu_sequencers0, dir_cntrls0, topology0) = \
-        chip_config.create_chip0(
+        chip0_config.create_chip0(
             options, 
             full_system, 
             system, 
@@ -172,7 +172,7 @@ def create_system(
     
     # Chip 1
     (cpu_sequencers1, dir_cntrls1, topology1) = \
-        chip_config.create_chip1(
+        chip1_config.create_chip1(
             options1,
             full_system,
             system,
