@@ -41,29 +41,6 @@ from ruby_config import create_topology
 from slicc_interface import CHI_config as chi_defs
 
 
-#def define_options(parser):
-#    parser.add_argument(
-#        "--chi-config",
-#        action="store",
-#        type=str,
-#        default=None,
-#        help="NoC config. parameters and bindings. "
-#        "Required for CustomMesh topology",
-#    )
-#    parser.add_argument("--enable-dvm", default=False, action="store_true")
-#
-#
-#def read_config_file(file):
-#    """Read file as a module and return it"""
-#    import types
-#    import importlib.machinery
-#
-#    loader = importlib.machinery.SourceFileLoader("chi_configs", file)
-#    chi_configs = types.ModuleType(loader.name)
-#    loader.exec_module(chi_configs)
-#    return chi_configs
-
-
 def create_chip0(
     options,
     full_system,
