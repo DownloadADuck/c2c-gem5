@@ -277,8 +277,6 @@ def create_chip0(
     else:
         m5.fatal("%s not supported!" % options.topology)
 
-    print("chip0 mem_ctrl -> ", mem_cntrls)
-
     return (cpu_sequencers, mem_cntrls, topology)
 
 def create_chip1(

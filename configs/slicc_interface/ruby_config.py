@@ -63,7 +63,7 @@ def setup_memory_controllers(
         if crossbar != None:
             mem_ctrl.port = crossbar.mem_side_ports
         else:
-            print("chip0")
+            # /!\ VERY HACKY
             if i == 0:
                 print("NOT connecting ", mem_ctrl.port, " to ", dir_cntrl.memory_out_port)
             else:
@@ -207,21 +207,9 @@ def create_system(
 
     # C2C forwarding interface setup
 
-    # Create the bridge object and connect it to both interfaces
-    system.bridge = InterfaceBridge()
-    #for interface in system.ruby.interface0:
-    #    interface.cntrl.toBridge = MemCtrlMessageBuffer()
-    #    interface.cntrl.fromBridge = MemCtrlMessageBuffer()
-
-    #    # Trying to use the RubyController mem_out_port
-    #    interface.cntrl.memory_out_port = system.bridge.chip0Response
-
     for interface in system.ruby.interface1:
-        interface.cntrl.toBridge = MemCtrlMessageBuffer()
-        interface.cntrl.fromBridge = MemCtrlMessageBuffer()
-
-        # Trying to use the RubyController mem_out_port
-        interface.cntrl.memory_out_port = system.bridge.chip0Request
+        for snf3 in system.ruby.snf3:
+            interface.cntrl.memory_out_port = snf3.cntrl.memory_out_port
 
     # In SE register the ropology elements with fake filesystem
     if not full_system:
