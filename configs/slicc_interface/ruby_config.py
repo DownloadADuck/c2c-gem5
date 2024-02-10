@@ -38,7 +38,7 @@ def setup_memory_controllers(
 
     intlv_size = options0.cacheline_size
 
-    for dir_cntrl in dir_cntrls0:
+    for i, dir_cntrl in enumerate(dir_cntrls0):
         crossbar = None
         
         dir_ranges = []
@@ -64,8 +64,11 @@ def setup_memory_controllers(
             mem_ctrl.port = crossbar.mem_side_ports
         else:
             print("chip0")
-            print("connecting ", mem_ctrl.port, " to ", dir_cntrl.memory_out_port)
-            mem_ctrl.port = dir_cntrl.memory_out_port
+            if i == 0:
+                print("NOT connecting ", mem_ctrl.port, " to ", dir_cntrl.memory_out_port)
+            else:
+                print("connecting ", mem_ctrl.port, " to ", dir_cntrl.memory_out_port)
+                mem_ctrl.port = dir_cntrl.memory_out_port
         # Enable low-power DRAM states if option is enabled
         if issubclass(mem_type, DRAMInterface):
             mem_ctrl.dram.enable_dram_powerdown = (
@@ -99,8 +102,6 @@ def setup_memory_controllers(
         if crossbar != None:
             mem_ctrl.port = crossbar.mem_side_ports
         else:
-            print("chip1")
-            print("connecting ", mem_ctrl.port, " to ", dir_cntrl.memory_out_port)
             mem_ctrl.port = dir_cntrl.memory_out_port
         # Enable low-power DRAM states if option is enabled
         if issubclass(mem_type, DRAMInterface):

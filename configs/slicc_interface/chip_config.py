@@ -187,6 +187,16 @@ def create_chip0(
     # Notice we don't define a Directory_Controller type so we don't use
     # create_directories shared by other protocols.
 
+    # Setup dummy SNF for the interface
+    ruby_system.snf3 = [CHI_SNF_MainMem(ruby_system, None, network, None)]
+    snf3 = ruby_system.snf3[0]
+    network_nodes.append(snf3)
+    network_cntrls.extend(snf3.getNetworkSideControllers())
+    assert snf3.getAllControllers() == snf3.getNetworkSideControllers()
+    mem_cntrls.extend(snf3.getAllControllers())
+    all_cntrls.extend(snf3.getAllControllers())
+    mem_dests.extend(snf3.getAllControllers())
+
     ruby_system.snf = [
         CHI_SNF_MainMem(ruby_system, None, network, None)
         for i in range(options.num_dirs)
@@ -266,6 +276,8 @@ def create_chip0(
         topology = create_topology(network_cntrls, options)
     else:
         m5.fatal("%s not supported!" % options.topology)
+
+    print("chip0 mem_ctrl -> ", mem_cntrls)
 
     return (cpu_sequencers, mem_cntrls, topology)
 
