@@ -191,6 +191,7 @@ def create_chip0(
         CHI_SNF_MainMem(ruby_system, None, network, None)
         for i in range(options.num_dirs)
     ]
+
     for snf in ruby_system.snf:
         network_nodes.append(snf)
         network_cntrls.extend(snf.getNetworkSideControllers())
@@ -345,24 +346,6 @@ def create_chip1(
 
     # Creates on RNF per cpu with priv l2 caches
     assert len(cpus) == options.num_cpus
-#    ruby_system.rnf1 = [
-#        CHI_RNF(
-#            [cpu],
-#            ruby_system,
-#            L1ICache,
-#            L1DCache,
-#            system.cache_line_size.value,
-#            network,
-#        )
-#        for cpu in cpus
-#    ]
-#
-#    for rnf in ruby_system.rnf1:
-#        rnf.addPrivL2Cache(L2Cache)
-#        cpu_sequencers.extend(rnf.getSequencers())
-#        all_cntrls.extend(rnf.getAllControllers())
-#        network_nodes.append(rnf)
-#        network_cntrls.extend(rnf.getNetworkSideControllers())
 
     # Creates one Misc Node
     ruby_system.mn1 = [CHI_MN(ruby_system, [cpu.l1d for cpu in cpus], network)]
