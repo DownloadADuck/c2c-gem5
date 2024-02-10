@@ -7,7 +7,7 @@ from m5.util import addToPath, fatal
 from gem5.isas import ISA
 from gem5.runtime import get_runtime_isa
 
-from slicc_interface import chip0_config, chip1_config
+from slicc_interface import chip_config
 from CHI_config import MemCtrlMessageBuffer
 
 addToPath("../")
@@ -159,7 +159,7 @@ def create_system(
     
     # Chip 0
     (cpu_sequencers0, dir_cntrls0, topology0) = \
-        chip0_config.create_chip0(
+        chip_config.create_chip0(
             options, 
             full_system, 
             system, 
@@ -172,7 +172,7 @@ def create_system(
     
     # Chip 1
     (cpu_sequencers1, dir_cntrls1, topology1) = \
-        chip1_config.create_chip1(
+        chip_config.create_chip1(
             options1,
             full_system,
             system,
@@ -201,9 +201,6 @@ def create_system(
     )
 
     # C2C forwarding interface setup
-    ## Connecting one interface to one unique network
-    #ruby.interface0 = Interface(ruby, network0, network0)
-    #ruby.interface1 = Interface(ruby, network1, network1)
 
     # Create the bridge object and connect it to both interfaces
     system.bridge = InterfaceBridge()
