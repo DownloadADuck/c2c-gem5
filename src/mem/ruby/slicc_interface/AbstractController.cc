@@ -63,6 +63,7 @@ AbstractController::AbstractController(const Params &p)
       m_mandatory_queue_latency(p.mandatory_queue_latency),
       m_waiting_mem_retry(false),
       memoryPort(csprintf("%s.memory", name()), this),
+      memoryInPort(csprintf("%s.memoryIn", name()), this),
       addrRanges(p.addr_ranges.begin(), p.addr_ranges.end()),
       stats(this)
 {
