@@ -391,6 +391,25 @@ class AbstractController : public ClockedObject, public Consumer
     /* Request port to the memory controller. */
     MemoryPort memoryPort;
 
+    class MemoryInPort : public ResponsePort
+    {
+      private:
+        AbstractController *controller;
+
+      public:
+        // Constructor. Just calls the supercalss constructor
+        MemoryInPort(const std::stroing &_name, AbstractController *_controller) :
+          ResponsePort(name, controller), controller(controller) { }
+
+      protected:
+        bool recvTimingResp(PacketPtr pkt) override;
+        // void recvReqRetry() override;
+        // void recvRangeChange() override;
+    };
+
+    /* Response port to the CHI-mem controller. */
+    MemoryInPort memoryInPort;
+
     // State that is stored in packets sent to the memory controller.
     struct SenderState : public Packet::SenderState
     {
