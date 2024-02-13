@@ -458,10 +458,6 @@ const
         for (const auto &i : downstreamAddrMap) {
             const auto mapping = i.second.contains(addr);
 
-            //std::cout << this->getMachineID() << " sends to downstream --> " << \
-            //mapping->second << " for address: " << addr << " of mem region: " << \
-            //addr / (2*1024*1024) << std::endl;
-
             if (mapping != i.second.end())
                 return mapping->second;
         }
@@ -478,7 +474,7 @@ const
         name(), addr, mtype);
 }
 
-
+// Classic memory port
 bool
 AbstractController::MemoryPort::recvTimingResp(PacketPtr pkt)
 {
@@ -500,6 +496,7 @@ AbstractController::MemoryPort::MemoryPort(const std::string &_name,
 {
 }
 
+// Responder or memory in port 
 bool
 AbstractController::MemoryInPort::recvTimingReq(PacketPtr pkt)
 {
