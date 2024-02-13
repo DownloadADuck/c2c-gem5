@@ -398,11 +398,29 @@ class AbstractController : public ClockedObject, public Consumer
 
       public:
         // Constructor. Just calls the supercalss constructor
-        MemoryInPort(const std::stroing &_name, AbstractController *_controller) :
-          ResponsePort(name, controller), controller(controller) { }
+        MemoryInPort(const std::stroing &_name, AbstractController *_controller,
+                      PortId id = InvalidPortID);
+
+        /**
+         * Get a list of the non-overlapping address ranges the owner is
+         * responsible for. All response ports must override this function
+         * and return a populated list with at least one item.
+         *
+         * @return a list of ranges responded to
+         */
+        AddrRangeList getAddrRanges() const override;
 
       protected:
-        bool recvTimingResp(PacketPtr pkt) override;
+        /**
+         * Receive a timing request from the request port.
+         *
+         * @param the packet that the requestor sent
+         * @return whether this object can consume the packet. If false, we
+         *         will call sendRetry() when we can try to receive this
+         *         request again.
+         */
+        bool recvTimingReq(PacketPtr pkt) override;
+
         // void recvReqRetry() override;
         // void recvRangeChange() override;
     };

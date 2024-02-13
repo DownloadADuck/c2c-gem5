@@ -468,6 +468,27 @@ AbstractController::MemoryPort::MemoryPort(const std::string &_name,
 {
 }
 
+bool
+AbstractController::MemoryInPort::recvTimingReq(PacketPtr pkt)
+{
+    controller->recvTimingReq(pkt);
+    return true;
+}
+
+AddrRangeList
+AbstractController::MemoryInPort::getAddrRanges() const
+{
+    return owner->getAddrRanges();
+}
+
+void
+AbstractController::MemoryInPort::MemoryInPort(const std::string &_name,
+                                                AbstractController *_controller,
+                                                PortID id)
+    : ResponsePort(_name, _controller, id), controller(_controller)
+{
+}
+
 AbstractController::
 ControllerStats::ControllerStats(statistics::Group *parent)
     : statistics::Group(parent),
