@@ -52,22 +52,27 @@ def setup_memory_controllers(
             intlv_size,
             options0.xor_low_bit,
         )
+
         if issubclass(mem_type, DRAMInterface):
             mem_ctrl = m5.objects.MemCtrl(dram=dram_intf)
         else: 
             mem_ctrl = dram_intf
             
-        mem_ctrls0.append(mem_ctrl)
-        dir_ranges.append(dram_intf.range)
+        # /!\ VERY HACKY
+        if i == 0:
+            print("we enter the loop")
+        else:
+            print("we enter the loop after one exec")
+            mem_ctrls0.append(mem_ctrl)
+            dir_ranges.append(dram_intf.range)
 
         if crossbar != None:
             mem_ctrl.port = crossbar.mem_side_ports
         else:
             # /!\ VERY HACKY
             if i == 0:
-                print("NOT connecting ", mem_ctrl.port, " to ", dir_cntrl.memory_out_port)
+                print("yes")
             else:
-                print("connecting ", mem_ctrl.port, " to ", dir_cntrl.memory_out_port)
                 mem_ctrl.port = dir_cntrl.memory_out_port
         # Enable low-power DRAM states if option is enabled
         if issubclass(mem_type, DRAMInterface):
@@ -209,15 +214,15 @@ def create_system(
 
     #system.bridge = InterfaceBridge()
     for interface in system.ruby.interface1:
-        interface.cntrl.requestToMemory = MessageBuffer()
-        interface.cntrl.responseFromMemory = MessageBuffer()
-        #interface.cntrl.memory_out_port = system.bridge.chip0Request
+        #interface.cntrl.requestToMemory = MessageBuffer()
+        #interface.cntrl.responseFromMemory = MessageBuffer()
         for snf3 in system.ruby.snf3:
-            snf3.cntrl.requestToMemory = MessageBuffer()
-            snf3.cntrl.responseFromMemory = MessageBuffer()
+            #snf3.cntrl.requestToMemory = MessageBuffer()
+            #snf3.cntrl.responseFromMemory = MessageBuffer()
             #snf3.cntrl.memory_out_port = system.bridge.chip0Response
-            snf3.cntrl.requestToMemory = interface.cntrl.responseFromMemory
-            snf3.cntrl.responseFromMemory = interface.cntrl.requestToMemory
+            #snf3.cntrl.requestToMemory = interface.cntrl.responseFromMemory
+            #snf3.cntrl.responseFromMemory = interface.cntrl.requestToMemory
+            snf3.cntrl.memory_out_port = interface.cntrl.memory_in_port
 
     # In SE register the ropology elements with fake filesystem
     if not full_system:
