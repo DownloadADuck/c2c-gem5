@@ -211,17 +211,8 @@ def create_system(
     )
 
     # C2C forwarding interface setup
-
-    #system.bridge = InterfaceBridge()
     for interface in system.ruby.interface1:
-        #interface.cntrl.requestToMemory = MessageBuffer()
-        #interface.cntrl.responseFromMemory = MessageBuffer()
         for snf3 in system.ruby.snf3:
-            #snf3.cntrl.requestToMemory = MessageBuffer()
-            #snf3.cntrl.responseFromMemory = MessageBuffer()
-            #snf3.cntrl.memory_out_port = system.bridge.chip0Response
-            #snf3.cntrl.requestToMemory = interface.cntrl.responseFromMemory
-            #snf3.cntrl.responseFromMemory = interface.cntrl.requestToMemory
             snf3.cntrl.memory_out_port = interface.cntrl.memory_in_port
 
     # In SE register the ropology elements with fake filesystem
