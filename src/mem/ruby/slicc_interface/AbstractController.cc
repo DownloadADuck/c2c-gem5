@@ -398,41 +398,42 @@ AbstractController::recvTimingResp(PacketPtr pkt)
     } else {
         panic("Incorrect packet type received from memory controller!");
     }
-
     getMemRespQueue()->enqueue(msg, clockEdge(), cyclesToTicks(Cycles(1)));
     delete pkt;
 }
 
+// MemoryInPort recvTimingReq method
 void
 AbstractController::recvTimingReq(PacketPtr pkt)
 {
-    assert(getMemReqQueue());
-    assert(pkt->isRequest());
+    //assert(getMemReqQueue());
+    //assert(pkt->isRequest());
 
-    std::shared_ptr<MemoryMsg> msg = std::make_shared<MemoryMsg>(clockEdge());
-    (*msg).m_addr = pkt->getAddr();
-    (*msg).m_Sender = m_machineID;
+    //std::shared_ptr<MemoryMsg> msg = std::make_shared<MemoryMsg>(clockEdge());
+    //(*msg).m_addr = pkt->getAddr();
+    //(*msg).m_Sender = m_machineID;
 
-    SenderState *s = dynamic_cast<SenderState *>(pkt->senderState);
-    (*msg).m_OriginalRequestorMachId = s->id;
-    delete s;
+    //SenderState *s = dynamic_cast<SenderState *>(pkt->senderState);
+    //(*msg).m_OriginalRequestorMachId = s->id;
+    //delete s;
 
-    if (pkt->isRead()) {
-        (*msg).m_Type = MemoryRequestType_MEMORY_READ;
-        (*msg).m_MessageSize = MessageSizeType_Request_Control;
+    //if (pkt->isRead()) {
+    //    (*msg).m_Type = MemoryRequestType_MEMORY_READ;
+    //    (*msg).m_MessageSize = MessageSizeType_Request_Control;
 
-        // Copy data from the packet
-        (*msg).m_DataBlk.setData(pkt->getPtr<uint8_t>(), 0,
-                                 RubySystem::getBlockSizeBytes());
-    } else if (pkt->isWrite()) {
-        (*msg).m_Type = MemoryRequestType_MEMORY_WB;
-        (*msg).m_MessageSize = MessageSizeType_Writeback_Control;
-    } else {
-        panic("Incorrect packet type received from the network-side!");
-    }
+    //    // Copy data from the packet
+    //    (*msg).m_DataBlk.setData(pkt->getPtr<uint8_t>(), 0,
+    //                             RubySystem::getBlockSizeBytes());
+    //} else if (pkt->isWrite()) {
+    //    (*msg).m_Type = MemoryRequestType_MEMORY_WB;
+    //    (*msg).m_MessageSize = MessageSizeType_Writeback_Control;
+    //} else {
+    //    panic("Incorrect packet type received from the network-side!");
+    //}
 
-    getMemReqQueue()->enqueue(msg, clockEdge(), cyclesToTicks(Cycles(1)));
-    delete pkt;
+    //getMemReqQueue()->enqueue(msg, clockEdge(), cyclesToTicks(Cycles(1)));
+    //delete pkt;
+
 }
 
 Tick
@@ -497,17 +498,25 @@ AbstractController::MemoryPort::MemoryPort(const std::string &_name,
 }
 
 // Responder or memory in port 
-bool
-AbstractController::MemoryInPort::recvTimingReq(PacketPtr pkt)
-{
-    controller->recvTimingReq(pkt);
-    return true;
-}
 
 AddrRangeList
 AbstractController::MemoryInPort::getAddrRanges() const
 {
-    return owner->getAddrRanges();
+    return controller->getAddrRanges();
+}
+
+void
+AbstractController::MemoryInPort::recvFunctional(PacketPtr pkt)
+{
+    // No implementation for Functionnal
+}
+
+bool
+AbstractController::MemoryInPort::recvTimingReq(PacketPtr pkt)
+{
+    // Pass it to the controller
+    controller->recvTimingReq(pkt);
+    return true;
 }
 
 void
@@ -516,6 +525,17 @@ AbstractController::MemoryInPort::MemoryInPort(const std::string &_name,
                                                 PortID id)
     : ResponsePort(_name, _controller, id), controller(_controller)
 {
+}
+
+void
+AbstractController::MemoryInPort::recvRespRetry()
+{
+    assert(blockedPacket != nullptr)
+
+    PacketPtr pkt = blockedPacket;
+    blockedPacket = nullptr;
+
+    //sendPacket(pkt);
 }
 
 AbstractController::
