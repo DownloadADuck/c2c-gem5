@@ -62,7 +62,7 @@ def setup_memory_controllers(
         if i == 0:
             print("we enter the loop")
         else:
-            print("we enter the loop after one exec")
+            print("we enter the loop after one execution")
             mem_ctrls0.append(mem_ctrl)
             dir_ranges.append(dram_intf.range)
 
