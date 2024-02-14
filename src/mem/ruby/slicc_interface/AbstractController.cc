@@ -349,7 +349,13 @@ AbstractController::isBlocked(Addr addr)
 Port &
 AbstractController::getPort(const std::string &if_name, PortID idx)
 {
-    return memoryPort;
+    if (if_name == "memory_out_port") {
+        return memoryPort;
+    } else if (if_name == "memory_in_port") {
+        return memoryInPort;
+    } else {
+        fatal("Unknown port: %s", if_name);
+    }
 }
 
 void
