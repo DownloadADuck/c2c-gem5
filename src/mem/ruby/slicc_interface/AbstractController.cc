@@ -406,33 +406,33 @@ AbstractController::recvTimingResp(PacketPtr pkt)
 void
 AbstractController::recvTimingReq(PacketPtr pkt)
 {
-    //assert(getMemReqQueue());
-    //assert(pkt->isRequest());
+    assert(getMemReqQueue());
+    assert(pkt->isRequest());
 
-    //std::shared_ptr<MemoryMsg> msg = std::make_shared<MemoryMsg>(clockEdge());
-    //(*msg).m_addr = pkt->getAddr();
-    //(*msg).m_Sender = m_machineID;
+    std::shared_ptr<MemoryMsg> msg = std::make_shared<MemoryMsg>(clockEdge());
+    (*msg).m_addr = pkt->getAddr();
+    (*msg).m_Sender = m_machineID;
 
-    //SenderState *s = dynamic_cast<SenderState *>(pkt->senderState);
-    //(*msg).m_OriginalRequestorMachId = s->id;
-    //delete s;
+    SenderState *s = dynamic_cast<SenderState *>(pkt->senderState);
+    (*msg).m_OriginalRequestorMachId = s->id;
+    delete s;
 
-    //if (pkt->isRead()) {
-    //    (*msg).m_Type = MemoryRequestType_MEMORY_READ;
-    //    (*msg).m_MessageSize = MessageSizeType_Request_Control;
+    if (pkt->isRead()) {
+        (*msg).m_Type = MemoryRequestType_MEMORY_READ;
+        (*msg).m_MessageSize = MessageSizeType_Request_Control;
 
-    //    // Copy data from the packet
-    //    (*msg).m_DataBlk.setData(pkt->getPtr<uint8_t>(), 0,
-    //                             RubySystem::getBlockSizeBytes());
-    //} else if (pkt->isWrite()) {
-    //    (*msg).m_Type = MemoryRequestType_MEMORY_WB;
-    //    (*msg).m_MessageSize = MessageSizeType_Writeback_Control;
-    //} else {
-    //    panic("Incorrect packet type received from the network-side!");
-    //}
+        // Copy data from the packet
+        (*msg).m_DataBlk.setData(pkt->getPtr<uint8_t>(), 0,
+                                 RubySystem::getBlockSizeBytes());
+    } else if (pkt->isWrite()) {
+        (*msg).m_Type = MemoryRequestType_MEMORY_WB;
+        (*msg).m_MessageSize = MessageSizeType_Writeback_Control;
+    } else {
+        panic("Incorrect packet type received from the network-side!");
+    }
 
-    //getMemReqQueue()->enqueue(msg, clockEdge(), cyclesToTicks(Cycles(1)));
-    //delete pkt;
+    getMemReqQueue()->enqueue(msg, clockEdge(), cyclesToTicks(Cycles(1)));
+    delete pkt;
 
 }
 
@@ -519,7 +519,6 @@ AbstractController::MemoryInPort::recvTimingReq(PacketPtr pkt)
     return true;
 }
 
-void
 AbstractController::MemoryInPort::MemoryInPort(const std::string &_name,
                                                 AbstractController *_controller,
                                                 PortID id)
@@ -530,12 +529,7 @@ AbstractController::MemoryInPort::MemoryInPort(const std::string &_name,
 void
 AbstractController::MemoryInPort::recvRespRetry()
 {
-    assert(blockedPacket != nullptr)
-
-    PacketPtr pkt = blockedPacket;
-    blockedPacket = nullptr;
-
-    //sendPacket(pkt);
+    // Not implemented yet
 }
 
 AbstractController::
