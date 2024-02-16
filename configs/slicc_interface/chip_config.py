@@ -183,10 +183,6 @@ def create_chip0(
         all_cntrls.extend(hnf.getAllControllers())
         hnf_dests.extend(hnf.getAllControllers())
 
-    # Create the memory controllers
-    # Notice we don't define a Directory_Controller type so we don't use
-    # create_directories shared by other protocols.
-
     # Setup dummy SNF for the interface
     ruby_system.snf3 = [CHI_SNF_MainMem(ruby_system, None, network, None)]
     snf3 = ruby_system.snf3[0]
@@ -231,25 +227,19 @@ def create_chip0(
             network_cntrls.extend(rni.getNetworkSideControllers())
             all_cntrls.extend(rni.getAllControllers())
 
-    #if full_system:
-    #    ruby_system.io_rni = CHI_RNI_IO(ruby_system, None)
-    #    network_nodes.append(ruby_system.io_rni)
-    #    network_cntrls.extend(ruby_system.io_rni.getNetworkSideControllers())
-    #    all_cntrls.extend(ruby_system.io_rni.getAllControllers())
-
     # Assign downstream destinations
     for rnf in ruby_system.rnf:
-        #print(rnf, " sets ", hnf_dests, " as downstream destination")
+        print(rnf, " sets ", hnf_dests, " as downstream destination")
         rnf.setDownstream(hnf_dests)
 
     if len(dma_ports) > 0:
         for rni in ruby_system.dma_rni:
             rni.setDownstream(hnf_dests)
-    #if full_system:
-    #    ruby_system.io_rni.setDownstream(hnf_dests)
+
+    print("mem_dests chip0 -> ", mem_dests)
     for hnf in ruby_system.hnf:
-        #print(hnf, " set ", mem_dests, " as downstream destination")
-        hnf.setDownstream(mem_dests)
+        for i in range(len(mem_dests)):
+            hnf.setDownstream(mem_dests[i])
 
     # Setup data message size for all controllers
     for cntrl in all_cntrls:
@@ -468,10 +458,9 @@ def create_chip1(
     if len(dma_ports) > 0:
         for rni in ruby_system.dma_rni1:
             rni.setDownstream(hnf_dests)
-    #if full_system:
-    #    ruby_system.io_rni.setDownstream(hnf_dests)
+
+    print("mem_dests chip1 -> ", mem_dests)
     for hnf in ruby_system.hnf1:
-        #print(hnf, " set ", mem_dests, " as downstream destination")
         hnf.setDownstream(mem_dests)
     
     ruby_system.interface1[0].setDownstream(hnf_dests)
