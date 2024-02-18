@@ -192,6 +192,7 @@ def create_chip0(
     mem_cntrls.extend(snf3.getAllControllers())
     all_cntrls.extend(snf3.getAllControllers())
     mem_dests.extend(snf3.getAllControllers())
+    print(mem_dests)
 
     ruby_system.snf = [
         CHI_SNF_MainMem(ruby_system, None, network, None)
@@ -205,6 +206,7 @@ def create_chip0(
         mem_cntrls.extend(snf.getAllControllers())
         all_cntrls.extend(snf.getAllControllers())
         mem_dests.extend(snf.getAllControllers())
+        print(mem_dests)
 
     if len(other_memories) > 0:
         ruby_system.rom_snf = [
@@ -227,6 +229,7 @@ def create_chip0(
             network_cntrls.extend(rni.getNetworkSideControllers())
             all_cntrls.extend(rni.getAllControllers())
 
+    print("chip0")
     # Assign downstream destinations
     for rnf in ruby_system.rnf:
         print(rnf, " sets ", hnf_dests, " as downstream destination")
@@ -234,12 +237,13 @@ def create_chip0(
 
     if len(dma_ports) > 0:
         for rni in ruby_system.dma_rni:
+            print(rni, " sets ", hnf_dests, " as downstream destination")
             rni.setDownstream(hnf_dests)
 
     print("mem_dests chip0 -> ", mem_dests)
     for hnf in ruby_system.hnf:
-        for i in range(len(mem_dests)):
-            hnf.setDownstream(mem_dests[i])
+        print(hnf, " sets ", mem_dests, " as downstream destination")
+        hnf.setDownstream(mem_dests)
 
     # Setup data message size for all controllers
     for cntrl in all_cntrls:
@@ -455,12 +459,14 @@ def create_chip1(
 
     #for rnf_tgen in ruby_system.rnf_tgen:
     #    rnf_tgen.setDownstream(hnf_dests)
+    print("chip1")
     if len(dma_ports) > 0:
         for rni in ruby_system.dma_rni1:
+            print(rni, " sets ", hnf_dests, " as downstream destination")
             rni.setDownstream(hnf_dests)
 
-    print("mem_dests chip1 -> ", mem_dests)
     for hnf in ruby_system.hnf1:
+        print(hnf, " sets ", mem_dests, " as downstream destination")
         hnf.setDownstream(mem_dests)
     
     ruby_system.interface1[0].setDownstream(hnf_dests)

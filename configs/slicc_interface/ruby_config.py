@@ -57,12 +57,12 @@ def setup_memory_controllers(
             mem_ctrl = m5.objects.MemCtrl(dram=dram_intf)
         else: 
             mem_ctrl = dram_intf
-            
         # /!\ VERY HACKY
         if i == 0:
             print("we enter the loop")
         else:
-            print("we enter the loop after one execution")
+            #print("we enter the loop after one execution")
+            print(mem_ctrls0, " append ", mem_ctrl)
             mem_ctrls0.append(mem_ctrl)
             dir_ranges.append(dram_intf.range)
 
@@ -71,7 +71,7 @@ def setup_memory_controllers(
         else:
             # /!\ VERY HACKY
             if i == 0:
-                print("yes")
+                print("we enter the loop")
             else:
                 mem_ctrl.port = dir_cntrl.memory_out_port
         # Enable low-power DRAM states if option is enabled
