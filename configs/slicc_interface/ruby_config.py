@@ -38,30 +38,51 @@ def setup_memory_controllers(
 
     intlv_size = options0.cacheline_size
 
+    print("mem_ranges0 --> ", mem_ranges0)
+
     for i, dir_cntrl in enumerate(dir_cntrls0):
         crossbar = None
         
         dir_ranges = []
         #for mem_range in mem_ranges0:
-        mem_type = ObjectList.mem_list.get(options0.mem_type)
-        dram_intf = MemConfig.create_mem_intf(
-            mem_type,
-            mem_ranges0,
-            index,
-            int(math.log(options0.num_dirs, 2)),
-            intlv_size,
-            options0.xor_low_bit,
-        )
-
-        if issubclass(mem_type, DRAMInterface):
-            mem_ctrl = m5.objects.MemCtrl(dram=dram_intf)
-        else: 
-            mem_ctrl = dram_intf
-        # /!\ VERY HACKY
         if i == 0:
-            print("we enter the loop")
+            # SNF3 C2C
+            mem_type = ObjectList.mem_list.get(options0.mem_type)
+            # We don't want a memory controller for the snf3
+            #dram_intf = MemConfig.create_mem_intf(
+            #    mem_type,
+            #    mem_ranges1,
+            #    i,
+            #    int(math.log(options0.num_dirs, 2)),
+            #    intlv_size,
+            #    options0.xor_low_bit,
+            #)
+
+            #if issubclass(mem_type, DRAMInterface):
+            #    mem_ctrl = m5.objects.MemCtrl(dram=dram_intf)
+            #else: 
+            #    mem_ctrl = dram_intf
+
+            #print(mem_ctrls0, " append ", mem_ctrl)
+            #mem_ctrls0.append(mem_ctrl)
+            #dir_ranges.append(dram_intf.range)
         else:
-            #print("we enter the loop after one execution")
+            # classic SN
+            mem_type = ObjectList.mem_list.get(options0.mem_type)
+            dram_intf = MemConfig.create_mem_intf(
+                mem_type,
+                mem_ranges0,
+                i,
+                int(math.log(options0.num_dirs, 2)),
+                intlv_size,
+                options0.xor_low_bit,
+            )
+
+            if issubclass(mem_type, DRAMInterface):
+                mem_ctrl = m5.objects.MemCtrl(dram=dram_intf)
+            else: 
+                mem_ctrl = dram_intf
+
             print(mem_ctrls0, " append ", mem_ctrl)
             mem_ctrls0.append(mem_ctrl)
             dir_ranges.append(dram_intf.range)
@@ -69,22 +90,27 @@ def setup_memory_controllers(
         if crossbar != None:
             mem_ctrl.port = crossbar.mem_side_ports
         else:
-            # /!\ VERY HACKY
             if i == 0:
-                print("we enter the loop")
-            else:
+                # SNF3 C2C
+                print("we do not connect the snf3")
+            else: 
+                # classic SN
                 mem_ctrl.port = dir_cntrl.memory_out_port
-        # Enable low-power DRAM states if option is enabled
-        if issubclass(mem_type, DRAMInterface):
-            mem_ctrl.dram.enable_dram_powerdown = (
-                options0.enable_dram_powerdown
-            )
+
+                # Enable low-power DRAM states if option is enabled
+                if issubclass(mem_type, DRAMInterface):
+                    mem_ctrl.dram.enable_dram_powerdown = (
+                        options0.enable_dram_powerdown
+                    )
         index += 1
         dir_cntrl.addr_ranges = dir_ranges
+
+    index = 0
 
     for dir_cntrl in dir_cntrls1:
         crossbar = None
         
+        print("index = ", index, " i = ", i)
         dir_ranges = []
         #for mem_range in mem_ranges1:
         mem_type = ObjectList.mem_list.get(options1.mem_type)
@@ -117,7 +143,6 @@ def setup_memory_controllers(
         dir_cntrl.addr_ranges = dir_ranges
     system.mem_ctrls0 = mem_ctrls0
     system.mem_ctrls1 = mem_ctrls1
-
     
     if len(crossbars) > 0:
         ruby.crossbars = crossbars

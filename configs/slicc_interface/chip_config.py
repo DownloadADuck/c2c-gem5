@@ -192,7 +192,6 @@ def create_chip0(
     mem_cntrls.extend(snf3.getAllControllers())
     all_cntrls.extend(snf3.getAllControllers())
     mem_dests.extend(snf3.getAllControllers())
-    print(mem_dests)
 
     ruby_system.snf = [
         CHI_SNF_MainMem(ruby_system, None, network, None)
@@ -206,7 +205,6 @@ def create_chip0(
         mem_cntrls.extend(snf.getAllControllers())
         all_cntrls.extend(snf.getAllControllers())
         mem_dests.extend(snf.getAllControllers())
-        print(mem_dests)
 
     if len(other_memories) > 0:
         ruby_system.rom_snf = [
@@ -228,7 +226,7 @@ def create_chip0(
             network_nodes.append(rni)
             network_cntrls.extend(rni.getNetworkSideControllers())
             all_cntrls.extend(rni.getAllControllers())
-
+    print("\n\n-----------------------------------------------------------------\n\n")
     print("chip0")
     # Assign downstream destinations
     for rnf in ruby_system.rnf:
