@@ -321,6 +321,7 @@ AbstractController::serviceMemoryQueue()
 bool
 AbstractController::serviceInputQueue()
 {
+    // Modified for In queue
     auto mem_queue = getMemReqQueue();
     assert(mem_queue);
     if (m_waiting_mem_retry || !mem_queue->isReady(clockEdge())) {
@@ -361,8 +362,10 @@ AbstractController::serviceInputQueue()
         // Since the queue was popped the controller may be able
         // to make more progress. Make sure it wakes up
         scheduleEvent(Cycles(1));
+
+        // Not sure about this one 
         recvTimingResp(pkt);
-    } else if (memoryPort.sendTimingReq(pkt)) {
+    } else if (memoryInPort.sendTimingResp(pkt)) {
         mem_queue->dequeue(clockEdge());
         // Since the queue was popped the controller may be able
         // to make more progress. Make sure it wakes up
