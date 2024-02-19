@@ -109,6 +109,43 @@ def create_mem_intf(intf, r, i, intlv_bits, intlv_size, xor_low_bit):
     )
     return interface
 
+def create_mem_intf_snf3(intf, r, i, intlv_bits, intlv_size, xor_low_bit):
+    import math
+    #intlv_low_bit = int(math.log(intlv_size, 2))
+    intlv_low_bit = 7
+    if xor_low_bit:
+        xor_high_bit = xor_low_bit + intlv_bits - 1
+    else:
+        xor_high_bit = 0
+
+    # Create an instance so we can figure out the address
+    # mapping and row-buffer size
+    interface = intf()
+
+    ## Only do this for DRAMs
+    #if issubclass(intf, m5.objects.DRAMInterface):
+    #    if interface.addr_mapping.value == "RoRaBaChCo":
+    #        rowbuffer_size = (
+    #            interface.device_rowbuffer_size.value
+    #            * interface.devices_per_rank.value
+    #        )
+
+    #        intlv_low_bit = int(math.log(rowbuffer_size, 2))
+
+    #if issubclass(intf, m5.objects.NVMInterface):
+    #    if interface.addr_mapping.value == "RoRaBaChCo":
+    #        buffer_size = interface.per_bank_buffer_size.value
+
+    #        intlv_low_bit = int(math.log(buffer_size, 2))
+
+    # We got all we need to configure the appropriate address
+    # range
+    interface.range = m5.objects.AddrRange(
+        r.start,
+        size=r.size(),
+    )
+    return interface
+
 
 def config_mem(options, system):
     """

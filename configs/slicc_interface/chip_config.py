@@ -170,7 +170,8 @@ def create_chip0(
         sysranges.append(m.range)
 
     hnf_list = [i for i in range(options.num_l3caches)]
-    CHI_HNF.createAddrRanges([sysranges[0]], system.cache_line_size.value, hnf_list)
+    for i in range(options.num_l3caches):
+        CHI_HNF.createAddrRanges([sysranges[i]], system.cache_line_size.value, [hnf_list[i]])
     ruby_system.hnf = [
         CHI_HNF(i, ruby_system, HNFCache, None, network)
         for i in range(options.num_l3caches)
@@ -238,10 +239,9 @@ def create_chip0(
             print(rni, " sets ", hnf_dests, " as downstream destination")
             rni.setDownstream(hnf_dests)
 
-    print("mem_dests chip0 -> ", mem_dests)
-    for hnf in ruby_system.hnf:
-        print(hnf, " sets ", mem_dests, " as downstream destination")
-        hnf.setDownstream(mem_dests)
+    for i, hnf in enumerate(ruby_system.hnf):
+        print(hnf, " sets ", mem_dests[i], " as downstream destination")
+        hnf.setDownstream(mem_dests[i])
 
     # Setup data message size for all controllers
     for cntrl in all_cntrls:
@@ -375,12 +375,12 @@ def create_chip1(
 
     hnf_list1 = [i for i in range(options.num_l3caches)]
     CHI_HNF.createAddrRanges(sysranges, system.cache_line_size.value, hnf_list1)
-    ruby_system.hnf1 = [
+    ruby_system.hnf2 = [
         CHI_HNF(i, ruby_system, HNFCache, None, network)
         for i in range(options.num_l3caches)
     ]
 
-    for hnf in ruby_system.hnf1:
+    for hnf in ruby_system.hnf2:
         network_nodes.append(hnf)
         network_cntrls.extend(hnf.getNetworkSideControllers())
         assert hnf.getAllControllers() == hnf.getNetworkSideControllers()
@@ -463,7 +463,7 @@ def create_chip1(
             print(rni, " sets ", hnf_dests, " as downstream destination")
             rni.setDownstream(hnf_dests)
 
-    for hnf in ruby_system.hnf1:
+    for hnf in ruby_system.hnf2:
         print(hnf, " sets ", mem_dests, " as downstream destination")
         hnf.setDownstream(mem_dests)
     

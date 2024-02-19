@@ -38,8 +38,6 @@ def setup_memory_controllers(
 
     intlv_size = options0.cacheline_size
 
-    print("mem_ranges0 --> ", mem_ranges0)
-
     for i, dir_cntrl in enumerate(dir_cntrls0):
         crossbar = None
         
@@ -57,15 +55,12 @@ def setup_memory_controllers(
             #    intlv_size,
             #    options0.xor_low_bit,
             #)
+            range = m5.objects.AddrRange(
+                mem_ranges1.start,
+                size=mem_ranges1.size(),
+            )
 
-            #if issubclass(mem_type, DRAMInterface):
-            #    mem_ctrl = m5.objects.MemCtrl(dram=dram_intf)
-            #else: 
-            #    mem_ctrl = dram_intf
-
-            #print(mem_ctrls0, " append ", mem_ctrl)
-            #mem_ctrls0.append(mem_ctrl)
-            #dir_ranges.append(dram_intf.range)
+            dir_ranges.append(range)
         else:
             # classic SN
             mem_type = ObjectList.mem_list.get(options0.mem_type)
@@ -83,7 +78,6 @@ def setup_memory_controllers(
             else: 
                 mem_ctrl = dram_intf
 
-            print(mem_ctrls0, " append ", mem_ctrl)
             mem_ctrls0.append(mem_ctrl)
             dir_ranges.append(dram_intf.range)
 
@@ -110,7 +104,6 @@ def setup_memory_controllers(
     for dir_cntrl in dir_cntrls1:
         crossbar = None
         
-        print("index = ", index, " i = ", i)
         dir_ranges = []
         #for mem_range in mem_ranges1:
         mem_type = ObjectList.mem_list.get(options1.mem_type)
