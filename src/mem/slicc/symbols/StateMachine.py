@@ -1399,8 +1399,40 @@ $c_ident::functionalReadBuffers(PacketPtr& pkt, WriteMask &mask)
             code('#include "${{include_path}}"')
 
         port_to_buf_map, in_msg_bufs, msg_bufs = self.getBufferMaps(ident)
+        if self.ident == "Interface":
+            code(
+            """
+namespace gem5
+{
 
-        code(
+namespace ruby
+{
+
+void
+${ident}_Controller::wakeup()
+{
+    if (getMemReqQueue() && getMemReqQueue()->isReady(clockEdge())) {
+        serviceInputQueue();
+    }
+
+    int counter = 0;
+    while (true) {
+        unsigned char rejected[${{len(msg_bufs)}}];
+        memset(rejected, 0, sizeof(unsigned char)*${{len(msg_bufs)}});
+        // Some cases will put us into an infinite loop without this limit
+        assert(counter <= m_transitions_per_cycle);
+        if (counter == m_transitions_per_cycle) {
+            // Count how often we are fully utilized
+            stats.fullyBusyCycles++;
+
+            // Wakeup in another cycle and try again
+            scheduleEvent(Cycles(1));
+            break;
+        }
+"""
+            )
+        else:
+            code(
             """
 namespace gem5
 {
@@ -1430,7 +1462,7 @@ ${ident}_Controller::wakeup()
             break;
         }
 """
-        )
+            )
 
         code.indent()
         code.indent()
