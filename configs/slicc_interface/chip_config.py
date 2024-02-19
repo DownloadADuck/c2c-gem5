@@ -227,20 +227,16 @@ def create_chip0(
             network_nodes.append(rni)
             network_cntrls.extend(rni.getNetworkSideControllers())
             all_cntrls.extend(rni.getAllControllers())
-    print("\n\n-----------------------------------------------------------------\n\n")
-    print("chip0")
+
     # Assign downstream destinations
     for rnf in ruby_system.rnf:
-        print(rnf, " sets ", hnf_dests, " as downstream destination")
         rnf.setDownstream(hnf_dests)
 
     if len(dma_ports) > 0:
         for rni in ruby_system.dma_rni:
-            print(rni, " sets ", hnf_dests, " as downstream destination")
             rni.setDownstream(hnf_dests)
 
     for i, hnf in enumerate(ruby_system.hnf):
-        print(hnf, " sets ", mem_dests[i], " as downstream destination")
         hnf.setDownstream(mem_dests[i])
 
     # Setup data message size for all controllers
@@ -457,14 +453,11 @@ def create_chip1(
 
     #for rnf_tgen in ruby_system.rnf_tgen:
     #    rnf_tgen.setDownstream(hnf_dests)
-    print("chip1")
     if len(dma_ports) > 0:
         for rni in ruby_system.dma_rni1:
-            print(rni, " sets ", hnf_dests, " as downstream destination")
             rni.setDownstream(hnf_dests)
 
     for hnf in ruby_system.hnf2:
-        print(hnf, " sets ", mem_dests, " as downstream destination")
         hnf.setDownstream(mem_dests)
     
     ruby_system.interface1[0].setDownstream(hnf_dests)
