@@ -43,7 +43,7 @@ def setup_memory_controllers(
         
         dir_ranges = []
         #for mem_range in mem_ranges0:
-        if i == 0:
+        if i != 0:
             # SNF3 C2C
             mem_type = ObjectList.mem_list.get(options0.mem_type)
             # We don't want a memory controller for the snf3
@@ -84,7 +84,7 @@ def setup_memory_controllers(
         if crossbar != None:
             mem_ctrl.port = crossbar.mem_side_ports
         else:
-            if i == 0:
+            if i != 0:
                 # SNF3 C2C
                 print("we do not connect the snf3")
             else: 

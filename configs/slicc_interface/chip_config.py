@@ -184,16 +184,6 @@ def create_chip0(
         all_cntrls.extend(hnf.getAllControllers())
         hnf_dests.extend(hnf.getAllControllers())
 
-    # Setup dummy SNF for the interface
-    ruby_system.snf3 = [CHI_SNF_MainMem(ruby_system, None, network, None)]
-    snf3 = ruby_system.snf3[0]
-    network_nodes.append(snf3)
-    network_cntrls.extend(snf3.getNetworkSideControllers())
-    assert snf3.getAllControllers() == snf3.getNetworkSideControllers()
-    mem_cntrls.extend(snf3.getAllControllers())
-    all_cntrls.extend(snf3.getAllControllers())
-    mem_dests.extend(snf3.getAllControllers())
-
     ruby_system.snf = [
         CHI_SNF_MainMem(ruby_system, None, network, None)
         for i in range(options.num_dirs)
@@ -206,6 +196,16 @@ def create_chip0(
         mem_cntrls.extend(snf.getAllControllers())
         all_cntrls.extend(snf.getAllControllers())
         mem_dests.extend(snf.getAllControllers())
+
+    # Setup dummy SNF for the interface
+    ruby_system.snf3 = [CHI_SNF_MainMem(ruby_system, None, network, None)]
+    snf3 = ruby_system.snf3[0]
+    network_nodes.append(snf3)
+    network_cntrls.extend(snf3.getNetworkSideControllers())
+    assert snf3.getAllControllers() == snf3.getNetworkSideControllers()
+    mem_cntrls.extend(snf3.getAllControllers())
+    all_cntrls.extend(snf3.getAllControllers())
+    mem_dests.extend(snf3.getAllControllers())
 
     if len(other_memories) > 0:
         ruby_system.rom_snf = [
