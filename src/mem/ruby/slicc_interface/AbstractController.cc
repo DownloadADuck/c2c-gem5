@@ -321,8 +321,8 @@ AbstractController::serviceMemoryQueue()
 bool
 AbstractController::serviceResponseQueue()
 {
-    // Modified for In queue
-    auto mem_queue = getMemReqQueue();
+    // Get the response queue
+    auto mem_queue = getMemRespQueue();
     assert(mem_queue);
     if (m_waiting_mem_retry || !mem_queue->isReady(clockEdge())) {
         return false;
@@ -335,19 +335,19 @@ AbstractController::serviceResponseQueue()
     }
 
     RequestPtr req
-        = std::make_shared<Request>(mem_msg->m_addr, req_size, 0, m_id);
+        = std::make_shared<Response>(mem_msg->m_addr, req_size, 0, m_id);
     PacketPtr pkt;
-    if (mem_msg->getType() == MemoryRequestType_MEMORY_WB) {
-        pkt = Packet::createWrite(req);
+    if (mem_msg->getType() == MemoryRequestType_MEMORY_DATA) {
+        pkt = Packet::makeTimingResponse();
         pkt->allocate();
         pkt->setData(mem_msg->m_DataBlk.getData(getOffset(mem_msg->m_addr),
             req_size));
-    } else if (mem_msg->getType() == MemoryRequestType_MEMORY_READ) {
-        pkt = Packet::createRead(req);
+    } else if (mem_msg->getType() == MemoryRequestType_MEMORY_ACK) {
+        pkt = Packet::makeTimingResponse();
         uint8_t *newData = new uint8_t[req_size];
         pkt->dataDynamic(newData);
     } else {
-        panic("Unknown memory request type (%s) for addr %p",
+        panic("Unknown memory response type (%s) for addr %p",
               MemoryRequestType_to_string(mem_msg->getType()),
               mem_msg->m_addr);
     }
@@ -358,7 +358,7 @@ AbstractController::serviceResponseQueue()
     if (RubySystem::getWarmupEnabled()) {
         // Use functional rather than timing accesses during warmup
         mem_queue->dequeue(clockEdge());
-        memoryPort.sendFunctional(pkt);
+        memoryInPort.sendFunctional(pkt);
         // Since the queue was popped the controller may be able
         // to make more progress. Make sure it wakes up
         scheduleEvent(Cycles(1));
