@@ -339,7 +339,7 @@ class AbstractController : public ClockedObject, public Consumer
     void wakeUpAllBuffers(Addr addr);
     void wakeUpAllBuffers();
     bool serviceMemoryQueue();
-    bool serviceInputQueue();
+    bool serviceResponseQueue();
 
   protected:
     const NodeID m_version;

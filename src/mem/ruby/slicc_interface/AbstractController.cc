@@ -319,7 +319,7 @@ AbstractController::serviceMemoryQueue()
 }
 
 bool
-AbstractController::serviceInputQueue()
+AbstractController::serviceResponseQueue()
 {
     // Modified for In queue
     auto mem_queue = getMemReqQueue();

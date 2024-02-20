@@ -1412,7 +1412,7 @@ void
 ${ident}_Controller::wakeup()
 {
     if (getMemReqQueue() && getMemReqQueue()->isReady(clockEdge())) {
-        serviceInputQueue();
+        serviceResponseQueue();
     }
 
     int counter = 0;
