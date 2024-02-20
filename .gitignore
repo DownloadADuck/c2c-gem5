@@ -1,11 +1,11 @@
 # Gem5 gitignore
 **/__pycache__/
-/logs
 /build
 /.vscode
 /m5out/*
 /util/m5/build
 *.swp
+*.log
 
 # Adding the lat_mem traces in m5out/
 !m5out/lat_mem*
