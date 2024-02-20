@@ -1,5 +1,0 @@
-Global frequency set at 1000000000000 ticks per second
-Machine ID: Cache-2 allocated to mem range: [0:0xffffffffffffffff] this controller: Cache-1
-Machine ID: Cache-2 allocated to mem range: [0:0xffffffffffffffff] this controller: Cache-0
-Machine ID: Cache-3 allocated to mem range: [0:0x3fffff] a[6]^=0 this controller: Cache-2
-Machine ID: Cache-4 allocated to mem range: [0:0x3fffff] a[6]^=1 this controller: Cache-2
