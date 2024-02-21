@@ -321,10 +321,16 @@ AbstractController::serviceMemoryQueue()
 bool
 AbstractController::serviceResponseQueue()
 {
+    std::cout << "We are calling serviceResponseQueue" << std::endl;
     // Get the response queue
     auto mem_queue = getMemRespQueue();
     assert(mem_queue);
+
+    std::cout << "m_waiting_mem_retry : " << m_waiting_mem_retry << std::endl;
+    std::cout << "mem_queue->isReady : " << mem_queue->isReady(clockEdge()) << std::endl;
+
     if (m_waiting_mem_retry || !mem_queue->isReady(clockEdge())) {
+        std::cout << "return false" << std::endl;
         return false;
     }
 
@@ -334,18 +340,25 @@ AbstractController::serviceResponseQueue()
         req_size = mem_msg->m_Len;
     }
 
+    std::cout << "serviceResponseQueue message type -> " << mem_msg->getType() << std::endl;
+    std::cout << "serviceResponseQueue message address -> " << mem_msg->m_addr << std::endl;
+
     RequestPtr req
-        = std::make_shared<Response>(mem_msg->m_addr, req_size, 0, m_id);
+        = std::make_shared<Request>(mem_msg->m_addr, req_size, 0, m_id);
     PacketPtr pkt;
     if (mem_msg->getType() == MemoryRequestType_MEMORY_DATA) {
-        pkt = Packet::makeTimingResponse();
-        pkt->allocate();
-        pkt->setData(mem_msg->m_DataBlk.getData(getOffset(mem_msg->m_addr),
-            req_size));
+        std::cout << "MEMORY_DATA" << std::endl;
+        //pkt = Packet::createRead(req);
+        //pkt->makeResponse();
+        //pkt->allocate();
+        //pkt->setData(mem_msg->m_DataBlk.getData(getOffset(mem_msg->m_addr),
+        //    req_size));
     } else if (mem_msg->getType() == MemoryRequestType_MEMORY_ACK) {
-        pkt = Packet::makeTimingResponse();
-        uint8_t *newData = new uint8_t[req_size];
-        pkt->dataDynamic(newData);
+        std::cout << "MEMORY_ACK" << std::endl;
+        //pkt = Packet::createWrite(req);
+        //pkt->makeResponse();
+        //uint8_t *newData = new uint8_t[req_size];
+        //pkt->dataDynamic(newData);
     } else {
         panic("Unknown memory response type (%s) for addr %p",
               MemoryRequestType_to_string(mem_msg->getType()),
@@ -358,7 +371,8 @@ AbstractController::serviceResponseQueue()
     if (RubySystem::getWarmupEnabled()) {
         // Use functional rather than timing accesses during warmup
         mem_queue->dequeue(clockEdge());
-        memoryInPort.sendFunctional(pkt);
+        // COMMENTED RECVFUNCTIONAL BECAUSE PROTECTED IN CONTEXT
+        //memoryInPort.recvFunctional(pkt);
         // Since the queue was popped the controller may be able
         // to make more progress. Make sure it wakes up
         scheduleEvent(Cycles(1));
