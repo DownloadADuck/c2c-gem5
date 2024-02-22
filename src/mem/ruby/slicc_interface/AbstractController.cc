@@ -323,18 +323,18 @@ AbstractController::serviceResponseQueue()
 {
     std::cout << "We are calling serviceResponseQueue" << std::endl;
     // Get the response queue
-    auto mem_queue = getMemRespQueue();
-    assert(mem_queue);
+    auto resp_queue = getMemRespQueue();
+    assert(resp_queue);
 
     std::cout << "m_waiting_mem_retry : " << m_waiting_mem_retry << std::endl;
-    std::cout << "mem_queue->isReady : " << mem_queue->isReady(clockEdge()) << std::endl;
+    std::cout << "resp_queue->isReady : " << resp_queue->isReady(clockEdge()) << std::endl;
 
-    if (m_waiting_mem_retry || !mem_queue->isReady(clockEdge())) {
+    if (m_waiting_mem_retry || !resp_queue->isReady(clockEdge())) {
         std::cout << "return false" << std::endl;
         return false;
     }
 
-    const MemoryMsg *mem_msg = (const MemoryMsg*)mem_queue->peek();
+    const MemoryMsg *mem_msg = (const MemoryMsg*)resp_queue->peek();
     unsigned int req_size = RubySystem::getBlockSizeBytes();
     if (mem_msg->m_Len > 0) {
         req_size = mem_msg->m_Len;
@@ -370,7 +370,7 @@ AbstractController::serviceResponseQueue()
 
     if (RubySystem::getWarmupEnabled()) {
         // Use functional rather than timing accesses during warmup
-        mem_queue->dequeue(clockEdge());
+        resp_queue->dequeue(clockEdge());
         // COMMENTED RECVFUNCTIONAL BECAUSE PROTECTED IN CONTEXT
         //memoryInPort.recvFunctional(pkt);
         // Since the queue was popped the controller may be able
@@ -380,7 +380,7 @@ AbstractController::serviceResponseQueue()
         // Not sure about this one 
         recvTimingResp(pkt);
     } else if (memoryInPort.sendTimingResp(pkt)) {
-        mem_queue->dequeue(clockEdge());
+        resp_queue->dequeue(clockEdge());
         // Since the queue was popped the controller may be able
         // to make more progress. Make sure it wakes up
         scheduleEvent(Cycles(1));
@@ -513,6 +513,9 @@ AbstractController::recvTimingReq(PacketPtr pkt)
         panic("Incorrect packet type received from the network-side!");
     }
 
+    std::cout << "we enqueue the read message from sender -> " << (*msg).m_Sender << std::endl;
+    std::cout << "original requestor id -> " << (*msg).m_OriginalRequestorMachId << std::endl;
+    std::cout << "message address -> " << (*msg).m_addr << std::endl;
     getMemReqQueue()->enqueue(msg, clockEdge(), cyclesToTicks(Cycles(1)));
     delete pkt;
 
