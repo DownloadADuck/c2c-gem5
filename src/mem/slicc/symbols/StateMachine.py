@@ -1411,7 +1411,7 @@ namespace ruby
 void
 ${ident}_Controller::wakeup()
 {
-    if (getMemReqQueue() && getMemReqQueue()->isReady(clockEdge())) {
+    if (getMemRespQueue() && getMemRespQueue()->isReady(clockEdge())) {
         serviceResponseQueue();
     }
 
