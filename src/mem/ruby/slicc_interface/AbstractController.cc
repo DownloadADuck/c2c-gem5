@@ -321,16 +321,12 @@ AbstractController::serviceMemoryQueue()
 bool
 AbstractController::serviceResponseQueue()
 {
-    std::cout << "We are calling serviceResponseQueue" << std::endl;
     // Get the response queue
     auto resp_queue = getMemRespQueue();
     assert(resp_queue);
 
-    std::cout << "m_waiting_mem_retry : " << m_waiting_mem_retry << std::endl;
-    std::cout << "resp_queue->isReady : " << resp_queue->isReady(clockEdge()) << std::endl;
-
     if (m_waiting_mem_retry || !resp_queue->isReady(clockEdge())) {
-        std::cout << "return false" << std::endl;
+        std::cout << "serviceResponseQueue return false" << std::endl;
         return false;
     }
 
