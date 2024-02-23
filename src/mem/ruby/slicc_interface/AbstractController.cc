@@ -484,7 +484,7 @@ AbstractController::recvTimingResp(PacketPtr pkt)
 void
 AbstractController::recvTimingReq(PacketPtr pkt)
 {
-    assert(getMemReqQueue());
+    assert(getMemRespQueue());
     assert(pkt->isRequest());
 
     std::shared_ptr<MemoryMsg> msg = std::make_shared<MemoryMsg>(clockEdge());
@@ -512,7 +512,7 @@ AbstractController::recvTimingReq(PacketPtr pkt)
     std::cout << "we enqueue the read message from sender -> " << (*msg).m_Sender << std::endl;
     std::cout << "original requestor id -> " << (*msg).m_OriginalRequestorMachId << std::endl;
     std::cout << "message address -> " << (*msg).m_addr << std::endl;
-    getMemReqQueue()->enqueue(msg, clockEdge(), cyclesToTicks(Cycles(1)));
+    getMemRespQueue()->enqueue(msg, clockEdge(), cyclesToTicks(Cycles(1)));
     delete pkt;
 
 }
