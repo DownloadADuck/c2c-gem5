@@ -322,7 +322,7 @@ bool
 AbstractController::serviceResponseQueue()
 {
     // Get the request queue which is the output queue 
-    auto resp_queue = getMemRespQueue();
+    auto resp_queue = getMemReqQueue();
     assert(resp_queue);
 
     if (m_waiting_mem_retry || !resp_queue->isReady(clockEdge())) {

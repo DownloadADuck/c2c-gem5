@@ -182,6 +182,7 @@ machine(MachineType:Interface, "Interface Controller") :
   void unset_tbe();
   void wakeUpAllBuffers(Addr a);
   bool respondsTo(Addr addr);
+  MachineID mapAddressToDownstreamMachine(Addr addr);
 
   ////////////////////////////////////////////////////////////////////////////
   // Interface functions required by SLICC
@@ -484,7 +485,9 @@ machine(MachineType:Interface, "Interface Controller") :
       out_msg.addr := address;
       out_msg.accAddr := address;
       out_msg.accSize := 0;
-      out_msg.type := CHIRequestType:ReadNoSnp;
+      //out_msg.type := CHIRequestType:ReadNoSnp;
+      // using ReadShared since the HN does not respond to ReadNoSnp requests type
+      out_msg.type := CHIRequestType:ReadShared;
       out_msg.requestor := machineID;
       out_msg.fwdRequestor := machineID;
       //out_msg.seqReq := in_msg.getRequestPtr();
@@ -492,6 +495,7 @@ machine(MachineType:Interface, "Interface Controller") :
       out_msg.isSeqReqValid := true;
       out_msg.is_local_pf := false;
       out_msg.is_remote_pf := false;
+      out_msg.Destination.add(mapAddressToDownstreamMachine(address));
     }
   }
 
