@@ -321,7 +321,7 @@ AbstractController::serviceMemoryQueue()
 bool
 AbstractController::serviceResponseQueue()
 {
-    // Get the response queue
+    // Get the request queue which is the output queue 
     auto resp_queue = getMemRespQueue();
     assert(resp_queue);
 
@@ -514,7 +514,6 @@ AbstractController::recvTimingReq(PacketPtr pkt)
     std::cout << "message address -> " << (*msg).m_addr << std::endl;
     getMemRespQueue()->enqueue(msg, clockEdge(), cyclesToTicks(Cycles(1)));
     delete pkt;
-
 }
 
 Tick
