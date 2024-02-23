@@ -355,7 +355,7 @@ machine(MachineType:Interface, "Interface Controller") :
   in_port(reqRdyInPort, MemoryMsg, reqRdy, rank=1) {
     if (reqRdyInPort.isReady(clockEdge())) {
       printResources();
-      peek(reqRdyInPort, CHIRequestMsg) {
+      peek(reqRdyInPort, MemoryMsg) {
         trigger(Event:ReadNoSnp, in_msg.addr, TBEs[in_msg.addr]);
       }
     }
