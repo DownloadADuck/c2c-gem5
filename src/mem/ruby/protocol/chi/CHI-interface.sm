@@ -494,6 +494,7 @@ machine(MachineType:Interface, "Interface Controller") :
       //out_msg.seqReq := nullptr;
       out_msg.isSeqReqValid := true;
       out_msg.is_local_pf := false;
+      out_msg.allowRetry := true;
       out_msg.is_remote_pf := false;
       out_msg.Destination.add(mapAddressToDownstreamMachine(address));
     }
