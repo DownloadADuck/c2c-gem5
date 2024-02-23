@@ -89,7 +89,7 @@ machine(MachineType:Interface, "Interface Controller") :
   }
 
   Event dataToEvent (CHIDataType type) {
-    if (type == CHIDataType:NCBWrData) {
+    if (type == CHIDataType:CompData_UC) {
       return Event:WriteData;
     } else {
       error("Invalid CHIDataType");
