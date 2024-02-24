@@ -331,24 +331,23 @@ AbstractController::serviceResponseQueue()
     }
 
     const MemoryMsg *mem_msg = (const MemoryMsg*)resp_queue->peek();
-    unsigned int req_size = RubySystem::getBlockSizeBytes();
+    unsigned int resp_size = RubySystem::getBlockSizeBytes();
     if (mem_msg->m_Len > 0) {
-        req_size = mem_msg->m_Len;
+        resp_size = mem_msg->m_Len;
     }
 
     std::cout << "serviceResponseQueue message type -> " << mem_msg->getType() << std::endl;
     std::cout << "serviceResponseQueue message address -> " << mem_msg->m_addr << std::endl;
 
     RequestPtr req
-        = std::make_shared<Request>(mem_msg->m_addr, req_size, 0, m_id);
+        = std::make_shared<Request>(mem_msg->m_addr, resp_size, 0, m_id);
     PacketPtr pkt;
     if (mem_msg->getType() == MemoryRequestType_MEMORY_READ) {
-        panic("MEMORY_DATA");
-        //pkt = Packet::createRead(req);
-        //pkt->makeResponse();
+        pkt = Packet::createRead(req);
+        pkt->cmd == MemCmd::ReadResp;
         //pkt->allocate();
-        //pkt->setData(mem_msg->m_DataBlk.getData(getOffset(mem_msg->m_addr),
-        //    req_size));
+        pkt->setData(mem_msg->m_DataBlk.getData(getOffset(mem_msg->m_addr), 
+                    resp_size));
     } else if (mem_msg->getType() == MemoryRequestType_MEMORY_WB) {
         panic("MEMORY_WRITE");
         //pkt = Packet::createWrite(req);
