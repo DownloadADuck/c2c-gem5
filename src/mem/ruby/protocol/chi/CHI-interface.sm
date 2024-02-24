@@ -516,9 +516,9 @@ machine(MachineType:Interface, "Interface Controller") :
       out_msg.addr := tbe.addr;
       if (tbe.useDataSepResp) {
         // Which type for the MemoryMsg -> Check MemCtrl
-        out_msg.Type := MemoryRequestType:MEMORY_WB;
+        out_msg.Type := MemoryRequestType:MEMORY_READ;
       } else {
-        out_msg.Type := MemoryRequestType:MEMORY_WB;
+        out_msg.Type := MemoryRequestType:MEMORY_READ;
       }
       out_msg.DataBlk := tbe.dataBlk;
       // Called in order for the whole block so use rxtxBytes as offset

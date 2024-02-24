@@ -342,15 +342,15 @@ AbstractController::serviceResponseQueue()
     RequestPtr req
         = std::make_shared<Request>(mem_msg->m_addr, req_size, 0, m_id);
     PacketPtr pkt;
-    if (mem_msg->getType() == MemoryRequestType_MEMORY_DATA) {
-        std::cout << "MEMORY_DATA" << std::endl;
+    if (mem_msg->getType() == MemoryRequestType_MEMORY_READ) {
+        panic("MEMORY_DATA");
         //pkt = Packet::createRead(req);
         //pkt->makeResponse();
         //pkt->allocate();
         //pkt->setData(mem_msg->m_DataBlk.getData(getOffset(mem_msg->m_addr),
         //    req_size));
-    } else if (mem_msg->getType() == MemoryRequestType_MEMORY_ACK) {
-        std::cout << "MEMORY_ACK" << std::endl;
+    } else if (mem_msg->getType() == MemoryRequestType_MEMORY_WB) {
+        panic("MEMORY_WRITE");
         //pkt = Packet::createWrite(req);
         //pkt->makeResponse();
         //uint8_t *newData = new uint8_t[req_size];
