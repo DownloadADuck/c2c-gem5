@@ -554,7 +554,7 @@ machine(MachineType:Interface, "Interface Controller") :
   }
 
   action(popMemoryQueue, "pmem", desc="Pop memory queue.") {
-    memQueue_in.dequeue(clockEdge());
+    datInPort.dequeue(clockEdge());
   }
 
   // Stall/wake-up only used for requests that arrive when we are on the
