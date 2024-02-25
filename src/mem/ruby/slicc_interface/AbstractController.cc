@@ -342,12 +342,17 @@ AbstractController::serviceResponseQueue()
     RequestPtr req
         = std::make_shared<Request>(mem_msg->m_addr, resp_size, 0, m_id);
     PacketPtr pkt;
+
     if (mem_msg->getType() == MemoryRequestType_MEMORY_READ) {
         pkt = Packet::createRead(req);
-        pkt->cmd == MemCmd::ReadResp;
-        //pkt->allocate();
+        //pkt->cmd == MemCmd::ReadResp;
+        //pkt->cmd.responseCommand();
+        //pkt->cmd == MemCmd::ReadResp;
+        pkt->makeResponse();
+        pkt->allocate();
         pkt->setData(mem_msg->m_DataBlk.getData(getOffset(mem_msg->m_addr), 
                     resp_size));
+        std::cout << "response packet created. Is response ? -> " << pkt->isResponse() << std::endl;
     } else if (mem_msg->getType() == MemoryRequestType_MEMORY_WB) {
         panic("MEMORY_WRITE");
         //pkt = Packet::createWrite(req);
@@ -375,6 +380,7 @@ AbstractController::serviceResponseQueue()
         // Not sure about this one 
         recvTimingResp(pkt);
     } else if (memoryInPort.sendTimingResp(pkt)) {
+        std::cout << "sendTimingResp is ok" << std::endl;
         resp_queue->dequeue(clockEdge());
         // Since the queue was popped the controller may be able
         // to make more progress. Make sure it wakes up
