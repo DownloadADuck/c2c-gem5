@@ -563,6 +563,19 @@ machine(MachineType:Interface, "Interface Controller") :
     }
   }
 
+  action(sendReadResponse, "srr", desc="Send read response to chip0") {
+    assert(is_valid(tbe));
+    enqueue(memQueue_out, MemoryMsg, to_memory_controller_latency) {
+      out_msg.addr := tbe.accAddr;
+      out_msg.Type := MemoryRequestType:MEMORY_READ;
+      out_msg.Sender := tbe.requestor;
+      out_msg.MessageSize := MessageSizeType:Response_Data;
+      out_msg.DataBlk := tbe.dataBlk;
+      out_msg.Len := tbe.accSize;
+    }
+    tbe.dataBlkValid.clear();
+  }
+
   action(popReqInQueue, "preq", desc="Pop request queue.") {
     reqRdyInPort.dequeue(clockEdge());
   }
@@ -644,10 +657,11 @@ machine(MachineType:Interface, "Interface Controller") :
     popDataInQueue;
   }
 
-  transition(MEMORY_REQUEST, Trigger_ReceiveDone, SEND_CTRL_DATA) {
-    prepareSend;
-    sendDataAndCheck;
-    popMemoryQueue;
+  transition(MEMORY_REQUEST, Trigger_ReceiveDone, READY) {
+    sendReadResponse;
+    deallocateTBE;
+    wakeUpStalled;
+    popTriggerQueue;
   }
 
   transition(SEND_CTRL_DATA, Trigger_Send) {
@@ -665,7 +679,7 @@ machine(MachineType:Interface, "Interface Controller") :
   transition({READY, MEMORY_REQUEST, SEND_CTRL_DATA},
               MemoryAck) {
     decWritePending;
-    popMemoryQueue;
+    popDataInQueue;
   }
 
   // Notice we only use this here and call wakeUp when leaving this state
