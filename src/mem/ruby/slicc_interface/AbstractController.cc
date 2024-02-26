@@ -386,6 +386,7 @@ AbstractController::serviceResponseQueue()
         // to make more progress. Make sure it wakes up
         scheduleEvent(Cycles(1));
     } else {
+        panic("AbstractController sendTimingResp failed.");
         scheduleEvent(Cycles(1));
         m_waiting_mem_retry = true;
         delete pkt;

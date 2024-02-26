@@ -515,7 +515,6 @@ machine(MachineType:Interface, "Interface Controller") :
     enqueue(memQueue_out, MemoryMsg, data_latency) {
       out_msg.addr := tbe.addr;
       if (tbe.useDataSepResp) {
-        // Which type for the MemoryMsg -> Check MemCtrl
         out_msg.Type := MemoryRequestType:MEMORY_READ;
       } else {
         out_msg.Type := MemoryRequestType:MEMORY_READ;
