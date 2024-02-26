@@ -540,6 +540,15 @@ machine(MachineType:Interface, "Interface Controller") :
     }
   }
 
+  action(copyReadDataToTBE, "cpRDat", desc="Copies received net data to TBE") {
+    peek(datInPort, CHIDataMsg) {
+      assert(is_valid(tbe));
+      tbe.dataBlk.copyPartial(in_msg.dataBlk, in_msg.bitMask);
+      tbe.dataBlkValid.orMask(in_msg.bitMask);
+      tbe.rxtxBytes := tbe.rxtxBytes + in_msg.bitMask.count();
+    }
+  }
+
   action(popReqInQueue, "preq", desc="Pop request queue.") {
     reqRdyInPort.dequeue(clockEdge());
   }
@@ -615,7 +624,13 @@ machine(MachineType:Interface, "Interface Controller") :
     popTriggerQueue;
   }
 
-  transition(MEMORY_REQUEST, MemoryData, SEND_CTRL_DATA) {
+  transition(MEMORY_REQUEST, MemoryData) {
+    copyReadDataToTBE;
+    checkForReceiveCompletion;
+    popDataInQueue;
+  }
+
+  transition(MEMORY_REQUEST, Trigger_ReceiveDone, SEND_CTRL_DATA) {
     prepareSend;
     sendDataAndCheck;
     popMemoryQueue;
