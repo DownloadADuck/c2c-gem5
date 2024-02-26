@@ -549,6 +549,20 @@ machine(MachineType:Interface, "Interface Controller") :
     }
   }
 
+  action(checkForReceiveCompletion, "cRc", desc="Check if all data is received") {
+    assert(is_valid(tbe));
+    DPRINTF(RubySlicc, "rxtxBytes=%d\n", tbe.rxtxBytes);
+    assert((tbe.rxtxBytes <= tbe.accSize) && (tbe.rxtxBytes > 0));
+    if (tbe.rxtxBytes == tbe.accSize) {
+      enqueue(triggerOutPort, TriggerMsg, 0) {
+        out_msg.addr := address;
+        out_msg.event := Event:Trigger_ReceiveDone;
+      }
+      tbe.rxtxBytes := 0;
+      assert(tbe.dataBlkValid.getMask(addressOffset(tbe.accAddr, tbe.addr), tbe.accSize));
+    }
+  }
+
   action(popReqInQueue, "preq", desc="Pop request queue.") {
     reqRdyInPort.dequeue(clockEdge());
   }
