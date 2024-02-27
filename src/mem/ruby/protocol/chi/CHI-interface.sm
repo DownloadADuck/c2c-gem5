@@ -140,6 +140,23 @@ machine(MachineType:Interface, "Interface Controller") :
     void removeEntryFromSlot(int slot);
   }
 
+  structure(ExpectedMap, external ="yes") {
+    void clear(int dataChunks);
+    void addExpectedRespType(CHIResponseType);
+    void addExpectedDataType(CHIDataType);
+    void setExpectedCount(int val);
+    void addExpectedCount(int val);
+    bool hasExpected();
+    bool hasReceivedResp();
+    bool hasReceivedData();
+    int expected();
+    int received();
+    bool receiveResp(CHIResponseType);
+    bool receiveData(CHIDataType);
+    bool receivedDataType(CHIDataType);
+    bool receivedRespType(CHIResponseType);
+  }
+
   TBETable TBEs, template="<Interface_TBE>", constructor="m_number_of_TBEs";
   TBEStorage storTBEs, constructor="this, m_number_of_TBEs";
 

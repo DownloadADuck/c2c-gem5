@@ -345,7 +345,6 @@ AbstractController::serviceResponseQueue()
 
     if (mem_msg->getType() == MemoryRequestType_MEMORY_READ) {
         pkt = Packet::createRead(req);
-        //pkt->cmd == MemCmd::ReadResp;
         //pkt->cmd.responseCommand();
         //pkt->cmd == MemCmd::ReadResp;
         pkt->makeResponse();
