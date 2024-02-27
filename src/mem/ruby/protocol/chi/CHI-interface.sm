@@ -103,6 +103,25 @@ machine(MachineType:Interface, "Interface Controller") :
   // Cache block size
   int blockSize, default="RubySystem::getBlockSizeBytes()";
 
+  // Keeps track of the multiple pending data messages
+  structure(ExpectedMap, external ="yes") {
+    void clear(int dataChunks);
+    void addExpectedRespType(CHIResponseType);
+    void addExpectedDataType(CHIDataType);
+    void setExpectedCount(int val);
+    void addExpectedCount(int val);
+    bool hasExpected();
+    bool hasReceivedResp();
+    bool hasReceivedData();
+    int expected();
+    int received();
+    bool receiveResp(CHIResponseType);
+    bool receiveData(CHIDataType);
+    bool receivedDataType(CHIDataType);
+    bool receivedRespType(CHIResponseType);
+  }
+
+
   // TBE fields
   structure(TBE, desc="Transaction Buffer Entry") {
     int storSlot,   desc="Slot in the storage tracker occupied by this entry";
@@ -115,6 +134,11 @@ machine(MachineType:Interface, "Interface Controller") :
     MachineID requestor, desc="Requestor that originated this request";
     MachineID destination, desc="Where we are sending data";
     bool useDataSepResp, desc="Replies with DataSepResp instead of CompData";
+
+    // List of expected responses and data. Checks the type of data against the
+    // expected ones for debugging purposes
+    ExpectedMap expected_req_resp, template="<CHIResponseType,CHIDataType>";
+
     int rxtxBytes, desc="";
     MachineID Sender, desc="original requestor for this request";
     MessageSizeType size, desc="message size";
@@ -140,28 +164,8 @@ machine(MachineType:Interface, "Interface Controller") :
     void removeEntryFromSlot(int slot);
   }
 
-  structure(ExpectedMap, external ="yes") {
-    void clear(int dataChunks);
-    void addExpectedRespType(CHIResponseType);
-    void addExpectedDataType(CHIDataType);
-    void setExpectedCount(int val);
-    void addExpectedCount(int val);
-    bool hasExpected();
-    bool hasReceivedResp();
-    bool hasReceivedData();
-    int expected();
-    int received();
-    bool receiveResp(CHIResponseType);
-    bool receiveData(CHIDataType);
-    bool receivedDataType(CHIDataType);
-    bool receivedRespType(CHIResponseType);
-  }
-
   TBETable TBEs, template="<Interface_TBE>", constructor="m_number_of_TBEs";
   TBEStorage storTBEs, constructor="this, m_number_of_TBEs";
-
-  // Tracks number of data messages
-  ExpectedMap expected_req_resp, template="<CHIResponseType,CHIDataType>";
 
   // Tracks all pending MemoryAcks (debug purposes only)
   int pendingWrites, default="0";
@@ -447,6 +451,9 @@ machine(MachineType:Interface, "Interface Controller") :
 
     TBEs.allocate(address);
     set_tbe(TBEs[address]);
+
+    clearExpectedReqResp(tbe);
+
     tbe.storSlot := storTBEs.addEntryToNewSlot();
     tbe.addr := address;
     tbe.rxtxBytes := 0;
@@ -507,6 +514,8 @@ machine(MachineType:Interface, "Interface Controller") :
 
   action(sendMemoryRead, "smr", desc="Send request to memory") {
     assert(is_valid(tbe));
+    tbe.expected_req_resp.addExpectedRespType(CHIDataType:CompData_UC);
+    tbe.expected_req_resp.addExpectedCount(1);
     enqueue(reqOutPort, CHIRequestMsg, request_latency) {
       out_msg.addr := address;
       out_msg.accAddr := address;
@@ -578,14 +587,24 @@ machine(MachineType:Interface, "Interface Controller") :
   action(checkForReceiveCompletion, "cRc", desc="Check if all data is received") {
     assert(is_valid(tbe));
     DPRINTF(RubySlicc, "rxtxBytes=%d\n", tbe.rxtxBytes);
-    assert((tbe.rxtxBytes <= tbe.accSize) && (tbe.rxtxBytes > 0));
-    if (tbe.rxtxBytes == tbe.accSize) {
-      enqueue(triggerOutPort, TriggerMsg, 0) {
-        out_msg.addr := address;
-        out_msg.event := Event:Trigger_ReceiveDone;
+    assert(tbe.expected_req_resp.hasExpected());
+
+    peek(datInPort, CHIDataMsg) {
+      // Decrement pending
+      if (tbe.expected_req_resp.receiveData(in_msg.type) == false) {
+        error("Received unexpected message");
       }
-      tbe.rxtxBytes := 0;
-      assert(tbe.dataBlkValid.getMask(addressOffset(tbe.accAddr, tbe.addr), tbe.accSize));
+      if (tbe.dataBlkValid.isFull() == false) {
+        // clear mask if started to receive new data
+        if(tbe.dataBlkValid.isFull()){
+          tbe.dataBlkValid.clear();
+        }
+      } else {
+        enqueue(triggerOutPort, TriggerMsg, 0) {
+          out_msg.addr := address;
+          out_msg.event := Event:Trigger_ReceiveDone;
+        }
+      }
     }
   }
 
