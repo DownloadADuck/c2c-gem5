@@ -160,6 +160,9 @@ machine(MachineType:Interface, "Interface Controller") :
   TBETable TBEs, template="<Interface_TBE>", constructor="m_number_of_TBEs";
   TBEStorage storTBEs, constructor="this, m_number_of_TBEs";
 
+  // Tracks number of data messages
+  ExpectedMap expected_req_resp, template="<CHIResponseType,CHIDataType>";
+
   // Tracks all pending MemoryAcks (debug purposes only)
   int pendingWrites, default="0";
 
@@ -281,6 +284,12 @@ machine(MachineType:Interface, "Interface Controller") :
     } else {
       return 0;
     }
+  }
+
+  void clearExpectedReqResp(TBE tbe) {
+    assert(blockSize >= data_channel_size);
+    assert((blockSize % data_channel_size) == 0);
+    tbe.expected_req_resp.clear(blockSize / data_channel_size);
   }
 
   ////////////////////////////////////////////////////////////////////////////
