@@ -138,6 +138,8 @@ machine(MachineType:Interface, "Interface Controller") :
     // List of expected responses and data. Checks the type of data against the
     // expected ones for debugging purposes
     ExpectedMap expected_req_resp, template="<CHIResponseType,CHIDataType>";
+    CHIResponseType slicchack1; // fix compiler not including headers
+    CHIDataType slicchack2; // fix compiler not including headers
 
     int rxtxBytes, desc="";
     MachineID Sender, desc="original requestor for this request";
@@ -514,7 +516,7 @@ machine(MachineType:Interface, "Interface Controller") :
 
   action(sendMemoryRead, "smr", desc="Send request to memory") {
     assert(is_valid(tbe));
-    tbe.expected_req_resp.addExpectedRespType(CHIDataType:CompData_UC);
+    tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_UC);
     tbe.expected_req_resp.addExpectedCount(1);
     enqueue(reqOutPort, CHIRequestMsg, request_latency) {
       out_msg.addr := address;
