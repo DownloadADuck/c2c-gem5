@@ -34,13 +34,13 @@ machine(MachineType:Interface, "Interface Controller") :
   ////////////////////////////////////////////////////////////////////////////
   state_declaration(State, desc="Transaction states", default="Interface_State_READY") {
     // Ready
-    READY, AccessPermission:Backing_Store, desc="Ready to forward requests and responses";
+    READY, AccessPermission:Invalid, desc="Ready to forward requests and responses";
 
-    MEMORY_REQUEST, AccessPermission:Backing_Store_Busy, desc="Sending request to network";
-    SEND_CTRL_DATA, AccessPermission:Backing_Store_Busy, desc="Sending response data to the bridge";
+    MEMORY_REQUEST, AccessPermission:Invalid, desc="Sending request to network";
+    SEND_CTRL_DATA, AccessPermission:Invalid, desc="Sending response data to the bridge";
 
     // Null state for debugging
-    null, AccessPermission:Backing_Store, desc="Null state for debugging";
+    null, AccessPermission:Invalid, desc="Null state for debugging";
   }
 
   ////////////////////////////////////////////////////////////////////////////
@@ -237,8 +237,8 @@ machine(MachineType:Interface, "Interface Controller") :
         DPRINTF(RubySlicc, "%x %s,%s\n", addr, tbe.state, Interface_State_to_permission(tbe.state));
         return Interface_State_to_permission(tbe.state);
       } else {
-        DPRINTF(RubySlicc, "%x %s\n", addr, AccessPermission:Backing_Store);
-        return AccessPermission:Backing_Store;
+        DPRINTF(RubySlicc, "%x %s\n", addr, AccessPermission:Invalid);
+        return AccessPermission:Invalid;
       }
     } else {
       DPRINTF(RubySlicc, "%x %s\n", addr, AccessPermission:NotPresent);
