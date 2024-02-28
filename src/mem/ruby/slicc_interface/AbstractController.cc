@@ -368,6 +368,7 @@ AbstractController::serviceResponseQueue()
     pkt->pushSenderState(s);
 
     if (RubySystem::getWarmupEnabled()) {
+        panic("serviceResponseQueue getWarmupEnabled");
         // Use functional rather than timing accesses during warmup
         resp_queue->dequeue(clockEdge());
         // COMMENTED RECVFUNCTIONAL BECAUSE PROTECTED IN CONTEXT
