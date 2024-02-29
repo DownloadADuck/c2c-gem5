@@ -105,7 +105,7 @@ AbstractController::init()
             }
             downstreamAddrMap[mid.getType()].insert(addr_range, mid);
             for (const auto &i : downstreamAddrMap) {
-                std::cout << "Machine ID: " << mid << " allocated to mem range: " << addr_range.to_string() << " this controller: " << this->getMachineID() << std::endl; //" address map first member: " << i.first << std::endl;
+                //std::cout << "Machine ID: " << mid << " allocated to mem range: " << addr_range.to_string() << " this controller: " << this->getMachineID() << std::endl; //" address map first member: " << i.first << std::endl;
             }
         }
         downstreamDestinations.add(mid);
@@ -326,7 +326,6 @@ AbstractController::serviceResponseQueue()
     assert(resp_queue);
 
     if (m_waiting_mem_retry || !resp_queue->isReady(clockEdge())) {
-        std::cout << "serviceResponseQueue return false" << std::endl;
         return false;
     }
 
@@ -335,9 +334,6 @@ AbstractController::serviceResponseQueue()
     if (mem_msg->m_Len > 0) {
         resp_size = mem_msg->m_Len;
     }
-
-    std::cout << "serviceResponseQueue message type -> " << mem_msg->getType() << std::endl;
-    std::cout << "serviceResponseQueue message address -> " << mem_msg->m_addr << std::endl;
 
     RequestPtr req
         = std::make_shared<Request>(mem_msg->m_addr, resp_size, 0, m_id);
@@ -351,7 +347,6 @@ AbstractController::serviceResponseQueue()
         pkt->allocate();
         pkt->setData(mem_msg->m_DataBlk.getData(getOffset(mem_msg->m_addr), 
                     resp_size));
-        std::cout << "response packet created. Is response ? -> " << pkt->isResponse() << std::endl;
     } else if (mem_msg->getType() == MemoryRequestType_MEMORY_WB) {
         panic("MEMORY_WRITE");
         //pkt = Packet::createWrite(req);
@@ -380,7 +375,6 @@ AbstractController::serviceResponseQueue()
         // Not sure about this one 
         recvTimingResp(pkt);
     } else if (memoryInPort.sendTimingResp(pkt)) {
-        std::cout << "sendTimingResp is ok" << std::endl;
         resp_queue->dequeue(clockEdge());
         // Since the queue was popped the controller may be able
         // to make more progress. Make sure it wakes up
@@ -515,9 +509,6 @@ AbstractController::recvTimingReq(PacketPtr pkt)
         panic("Incorrect packet type received from the network-side!");
     }
 
-    std::cout << "we enqueue the read message from sender -> " << (*msg).m_Sender << std::endl;
-    std::cout << "original requestor id -> " << (*msg).m_OriginalRequestorMachId << std::endl;
-    std::cout << "message address -> " << (*msg).m_addr << std::endl;
     getMemRespQueue()->enqueue(msg, clockEdge(), cyclesToTicks(Cycles(1)));
     delete pkt;
 }
