@@ -623,6 +623,16 @@ machine(MachineType:Interface, "Interface Controller") :
     tbe.dataBlkValid.clear();
   }
 
+  action(sendCompAck, "sca", desc="Send comp ack to hnf") {
+    assert(is_valid(tbe));
+    enqueue(rspOutPort, CHIResponseMsg, response_latency) {
+      out_msg.addr := address;
+      out_msg.type := CHIResponseType:CompAck;
+      out_msg.responder := machineID;
+      out_msg.Destination.add(mapAddressToDownstreamMachine(tbe.addr));
+    }
+  }
+
   action(popReqInQueue, "preq", desc="Pop request queue.") {
     reqRdyInPort.dequeue(clockEdge());
   }
@@ -706,6 +716,7 @@ machine(MachineType:Interface, "Interface Controller") :
 
   transition(MEMORY_REQUEST, Trigger_ReceiveDone, READY) {
     sendReadResponse;
+    sendCompAck;
     deallocateTBE;
     wakeUpStalled;
     popTriggerQueue;
