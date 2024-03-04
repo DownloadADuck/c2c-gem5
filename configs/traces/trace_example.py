@@ -211,6 +211,7 @@ def create_trace(filename, max_addr, burst_size, itt):
     # create a packet we can re-use for all the addresses
     packet = packet_pb2.Packet()
     # ReadReq is 1 in src/mem/packet.hh Command enum
+    # WriteReq is 4 in src/mem/packet.hh Command enum
     packet.cmd = 1
     packet.size = int(burst_size)
     
