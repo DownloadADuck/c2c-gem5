@@ -340,6 +340,8 @@ class AbstractController : public ClockedObject, public Consumer
     void wakeUpAllBuffers();
     bool serviceMemoryQueue();
     bool serviceResponseQueue();
+    bool serviceReqToC2cQueue();
+    bool serviceReqFromC2cQueue();
 
   protected:
     const NodeID m_version;
