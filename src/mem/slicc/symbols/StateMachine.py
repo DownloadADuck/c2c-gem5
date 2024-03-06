@@ -1468,8 +1468,11 @@ namespace ruby
 void
 ${ident}_Controller::wakeup()
 {
-    if (getMemReqQueue() && getMemReqQueue()->isReady(clockEdge())) {
-        serviceResponseQueue();
+    if (getReqToC2cQueue() && getReqToC2cQueue()->isReady(clockEdge())) {
+        serviceReqToC2cQueue();
+    }
+    if (getReqFromC2cQueue() && getReqFromC2cQueue()->isReady(clockEdge())) {
+        serviceReqFromC2cQueue();
     }
 
     int counter = 0;
