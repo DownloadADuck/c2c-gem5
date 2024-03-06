@@ -1109,7 +1109,39 @@ $c_ident::getMandatoryQueue() const
 {
     return $mq_ident;
 }
+            """
+        )
+        if ident == "Interface":
+            code(
+                """
+MessageBuffer*
+$c_ident::getReqToC2cQueue() const
+{
+    return $reqTo_ident;
+}
 
+MessageBuffer*
+$c_ident::getRespFromC2cQueue() const
+{
+    return $respFrom_ident;
+}
+
+MessageBuffer*
+$c_ident::getRespToC2cQueue() const
+{
+    return $respTo_ident;
+}
+
+MessageBuffer*
+$c_ident::getReqFromC2cQueue() const
+{
+    return $reqFrom_ident;
+}
+                """ 
+            )
+        else:
+            code(
+                """
 MessageBuffer*
 $c_ident::getMemReqQueue() const
 {
@@ -1121,6 +1153,10 @@ $c_ident::getMemRespQueue() const
 {
     return $memq_ident;
 }
+"""
+            )
+        code(
+            """
 
 void
 $c_ident::print(std::ostream& out) const
