@@ -346,8 +346,26 @@ class $c_ident : public AbstractController
     void init();
 
     MessageBuffer *getMandatoryQueue() const;
+"""
+        )
+        if ident == "Interface":
+            code(
+"""
+    MessageBuffer *getReqToC2cQueue() const;
+    MessageBuffer *getRespFromC2cQueue() const;
+    MessageBuffer *getRespToC2cQueue() const;
+    MessageBuffer *getReqFromC2cQueue() const;
+"""
+            )
+        else:
+            code(
+"""
     MessageBuffer *getMemReqQueue() const;
     MessageBuffer *getMemRespQueue() const;
+"""
+            )
+        code(
+"""
     void initNetQueues();
 
     void print(std::ostream& out) const;
