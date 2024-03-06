@@ -814,6 +814,27 @@ $c_ident::init()
         for port in self.in_ports:
             if port.code.find("responseFromMemory_ptr") >= 0:
                 memq_ident = "m_responseFromMemory_ptr"
+        
+        # interface classic port queues
+        # c2c_out_port
+        reqTo_ident = "NULL"
+        for param in self.config_parameters:
+            if port.ident.find("requestToC2c_ptr") >= 0:
+                reqTo_ident = "m_requestToC2c_ptr"
+        respFrom_ident = "NULL"
+        for port in self.in_ports:
+            if port.code.find("responseFromC2c_ptr") >= 0:
+                respFrom_ident = "m_responseFromC2c_ptr"
+        # c2c_in_port
+
+        reqFrom_iden = "NULL"
+        for param in self.config_parameters:
+            if port.ident.find("requestFromC2c_ptr") >= 0:
+                reqFrom_ident = "m_requestFromC2c_ptr"
+        respTo_ident = "NULL"
+        for port in self.in_ports:
+            if port.code.find("responseToC2c_ptr") >= 0:
+                respTo_ident = "m_responseToC2c_ptr"
 
         seq_ident = "NULL"
         for param in self.config_parameters:
