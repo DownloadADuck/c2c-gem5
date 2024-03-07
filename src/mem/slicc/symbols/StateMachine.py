@@ -831,8 +831,8 @@ $c_ident::init()
         for port in self.in_ports:
             if port.code.find("responseFromC2c_ptr") >= 0:
                 respFrom_ident = "m_responseFromC2c_ptr"
-        # c2c_in_port
 
+        # c2c_in_port
         reqFrom_ident = "NULL"
         for param in self.config_parameters:
             if port.ident.find("requestFromC2c_ptr") >= 0:

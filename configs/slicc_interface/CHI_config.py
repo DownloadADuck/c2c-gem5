@@ -678,8 +678,8 @@ class CHI_Interface(CHI_Node):
             version=Versions.getVersion(Interface_Controller),
             ruby_system=ruby_system,
             triggerQueue=TriggerMessageBuffer(),
-            responseFromMemory=MemCtrlMessageBuffer(),
-            requestToMemory=MemCtrlMessageBuffer(),
+            responseToC2c=MemCtrlMessageBuffer(),
+            requestFromC2c=MemCtrlMessageBuffer(),
             reqRdy=TriggerMessageBuffer(),
             transitions_per_cycle=1024,
         )
