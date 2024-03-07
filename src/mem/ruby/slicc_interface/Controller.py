@@ -73,7 +73,10 @@ class RubyController(ClockedObject):
     )
 
     memory_out_port = RequestPort("Port for attaching a memory controller")
-    memory_in_port = ResponsePort("Port for attaching a network-side controller")
+    # interface ports
+    c2c_out_port = RequestPort("C2C requestor port")
+    c2c_in_port = ResponsePort("C2C responder port")
+
     memory = DeprecatedParam(
         memory_out_port,
         "The request port for Ruby "
