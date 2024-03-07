@@ -21,8 +21,8 @@ machine(MachineType:Interface, "Interface Controller") :
   MessageBuffer * reqRdy;
 
   // Communicate with the Bridge 
-  MessageBuffer * requestToMemory;
-  MessageBuffer * responseFromMemory;
+  MessageBuffer * responseToC2c;
+  MessageBuffer * requestFromC2c;
 
   // Trigger queue for internal events
   MessageBuffer * triggerQueue;
@@ -323,7 +323,7 @@ machine(MachineType:Interface, "Interface Controller") :
   out_port(snpOutPort, CHIRequestMsg, snpOut);
   out_port(rspOutPort, CHIResponseMsg, rspOut);
   out_port(datOutPort, CHIDataMsg, datOut);
-  out_port(memQueue_out, MemoryMsg, requestToMemory);
+  out_port(memQueue_out, MemoryMsg, responseToC2c);
   // Internal
   out_port(triggerOutPort, TriggerMsg, triggerQueue);
   out_port(reqRdyOutPort, MemoryMsg, reqRdy);
@@ -354,7 +354,7 @@ machine(MachineType:Interface, "Interface Controller") :
 
   // /!\ CAREFUL of the in_msg, we don't know if this is allowed for MemoryMsg
   // Requests from the bridge
-  in_port(memQueue_in, MemoryMsg, responseFromMemory, rank=4) {
+  in_port(memQueue_in, MemoryMsg, requestFromC2c, rank=4) {
     if (memQueue_in.isReady(clockEdge())) {
       printResources();
       peek(memQueue_in, MemoryMsg) {

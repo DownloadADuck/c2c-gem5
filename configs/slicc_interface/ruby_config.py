@@ -231,7 +231,7 @@ def create_system(
     # C2C forwarding interface setup
     for interface in system.ruby.interface1:
         for snf3 in system.ruby.snf3:
-            snf3.cntrl.memory_out_port = interface.cntrl.memory_in_port
+            snf3.cntrl.memory_out_port = interface.cntrl.c2c_in_port
 
     # In SE register the ropology elements with fake filesystem
     if not full_system:
