@@ -348,7 +348,6 @@ class AbstractController : public ClockedObject, public Consumer
     void wakeUpAllBuffers(Addr addr);
     void wakeUpAllBuffers();
     bool serviceMemoryQueue();
-    bool serviceResponseQueue();
     // interface service methods
     bool serviceReqToC2cQueue();
     bool serviceReqFromC2cQueue();

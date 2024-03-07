@@ -346,26 +346,14 @@ class $c_ident : public AbstractController
     void init();
 
     MessageBuffer *getMandatoryQueue() const;
-"""
-        )
-        if ident == "Interface":
-            code(
-"""
+
+    MessageBuffer *getMemReqQueue() const;
+    MessageBuffer *getMemRespQueue() const;
+    // interface get methods
     MessageBuffer *getReqToC2cQueue() const;
     MessageBuffer *getRespFromC2cQueue() const;
     MessageBuffer *getRespToC2cQueue() const;
     MessageBuffer *getReqFromC2cQueue() const;
-"""
-            )
-        else:
-            code(
-"""
-    MessageBuffer *getMemReqQueue() const;
-    MessageBuffer *getMemRespQueue() const;
-"""
-            )
-        code(
-"""
     void initNetQueues();
 
     void print(std::ostream& out) const;
@@ -1127,11 +1115,8 @@ $c_ident::getMandatoryQueue() const
 {
     return $mq_ident;
 }
-            """
-        )
-        if ident == "Interface":
-            code(
-                """
+
+// interface get methods
 MessageBuffer*
 $c_ident::getReqToC2cQueue() const
 {
@@ -1155,11 +1140,7 @@ $c_ident::getReqFromC2cQueue() const
 {
     return $reqFrom_ident;
 }
-                """ 
-            )
-        else:
-            code(
-                """
+
 MessageBuffer*
 $c_ident::getMemReqQueue() const
 {
@@ -1171,10 +1152,6 @@ $c_ident::getMemRespQueue() const
 {
     return $memq_ident;
 }
-"""
-            )
-        code(
-            """
 
 void
 $c_ident::print(std::ostream& out) const
