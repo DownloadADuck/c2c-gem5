@@ -100,6 +100,12 @@ class AbstractController : public ClockedObject, public Consumer
     virtual MessageBuffer* getMandatoryQueue() const = 0;
     virtual MessageBuffer* getMemReqQueue() const = 0;
     virtual MessageBuffer* getMemRespQueue() const = 0;
+    // interface get queue methods
+    virtual MessageBuffer* getReqToC2cQueue() const = 0;
+    virtual MessageBuffer* getRespFromC2cQueue() const = 0;
+    virtual MessageBuffer* getRespToC2cQueue() const = 0;
+    virtual MessageBuffer* getReqFromC2cQueue() const = 0;
+
     virtual AccessPermission getAccessPermission(const Addr &addr) = 0;
 
     virtual void print(std::ostream & out) const = 0;
@@ -340,6 +346,7 @@ class AbstractController : public ClockedObject, public Consumer
     void wakeUpAllBuffers();
     bool serviceMemoryQueue();
     bool serviceResponseQueue();
+    // interface service methods
     bool serviceReqToC2cQueue();
     bool serviceReqFromC2cQueue();
 
@@ -395,14 +402,37 @@ class AbstractController : public ClockedObject, public Consumer
     /* Request port to the memory controller. */
     MemoryPort memoryPort;
 
-    class MemoryInPort : public ResponsePort
+    /* Request port for the C2C interface */
+    class C2cOutPort : public RequestPort
+    {
+      private:
+        // Controller that operates this port.
+        AbstractController *controller;
+
+      public:
+        C2cOutPort(const std::string &_name, AbstractController *_controller,
+                   PortID id = InvalidPortID);
+
+      protected:
+        // Function for receiving a timing response from the peer port.
+        // Currently the pkt is handed to the coherence controller
+        // associated with this port.
+        bool recvTimingResp(PacketPtr pkt);
+
+        void recvReqRetry();
+    };
+    /* Request port to the memory controller. */
+    C2cOutPort c2cOutPort;
+
+    /* Response port for the C2C interface */
+    class C2cInPort: public ResponsePort
     {
       private:
         AbstractController *controller;
 
       public:
         // Constructor. Just calls the supercalss constructor
-        MemoryInPort(const std::string &_name, AbstractController *_controller,
+        C2cInPort(const std::string &_name, AbstractController *_controller,
                       PortID id = InvalidPortID);
 
         AddrRangeList getAddrRanges() const override;
@@ -419,7 +449,7 @@ class AbstractController : public ClockedObject, public Consumer
     };
 
     /* Response port to the CHI-mem controller. */
-    MemoryInPort memoryInPort;
+    C2cInPort c2cInPort;
 
     // State that is stored in packets sent to the memory controller.
     struct SenderState : public Packet::SenderState
