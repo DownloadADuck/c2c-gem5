@@ -821,30 +821,19 @@ $c_ident::init()
             if port.code.find("responseFromMemory_ptr") >= 0:
                 memq_ident = "m_responseFromMemory_ptr"
         
-        ## interface classic port queues
-        ## c2c_out_port
-        ## OUT
-        #reqTo_ident = "NULL"
-        #for param in self.config_parameters:
-        #    if port.ident.find("requestToC2c_ptr") >= 0:
-        #        reqTo_ident = "m_requestToC2c_ptr"
-        ## IN
-        #respFrom_ident = "NULL"
-        #for port in self.in_ports:
-        #    if port.code.find("responseFromC2c_ptr") >= 0:
-        #        respFrom_ident = "m_responseFromC2c_ptr"
+        # interface classic port queues
+        # c2c_out_port
+        requestToC2c_ident = "NULL"
+        responseFromC2c_ident = "NULL"
+        # c2c_in_port
+        requestFromC2c_ident = "NULL"
+        responseToC2c_ident = "NULL"
 
-        ## c2c_in_port
-        ## IN
-        #reqFrom_ident = "NULL"
-        #for port in self.in_ports:
-        #    if port.code.find("requestFromC2c_ptr") >= 0:
-        #        reqFrom_ident = "m_requestFromC2c_ptr"
-        ## OUT
-        #respTo_ident = "NULL"
-        #for param in self.config_parameters:
-        #    if port.ident.find("responseToC2c_ptr") >= 0:
-        #        respTo_ident = "m_responseToC2c_ptr"
+        if ident == "Interface":
+            #requestToC2c_ident = "m_requestToC2c_ptr"
+            #responseFromC2c_ident = "m_responseFromC2c_ptr"
+            requestFromC2c_ident = "m_requestFromC2c_ptr"
+            responseToC2c_ident = "m_responseToC2c_ptr"
 
         seq_ident = "NULL"
         for param in self.config_parameters:
@@ -1119,41 +1108,32 @@ $c_ident::getMandatoryQueue() const
 {
     return $mq_ident;
 }
-""")
-        if ident == "Interface":
-            code(
-"""
 
 // interface get methods
 MessageBuffer*
 $c_ident::getReqToC2cQueue() const
 {
-    //return m_requestToC2c_ptr;
-    return NULL;
+    return $requestToC2c_ident;
 }
 
 MessageBuffer*
 $c_ident::getRespFromC2cQueue() const
 {
-    //return m_responseFromC2c_ptr;
-    return NULL;
+    return $responseFromC2c_ident;
 }
 
 MessageBuffer*
 $c_ident::getReqFromC2cQueue() const
 {
-    return m_requestFromC2c_ptr;
+    return $requestFromC2c_ident;
 }
 
 MessageBuffer*
 $c_ident::getRespToC2cQueue() const
 {
-    return m_responseToC2c_ptr;
+    return $responseToC2c_ident;
 }
-"""     
-        )
-        code(
-"""
+
 MessageBuffer*
 $c_ident::getMemReqQueue() const
 {

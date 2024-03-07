@@ -88,6 +88,9 @@ AbstractController::init()
     if (getMemReqQueue()) {
         getMemReqQueue()->setConsumer(this);
     }
+    if (getRespToC2cQueue()) {
+        getRespToC2cQueue()->setConsumer(this);
+    }
 
     // Initialize the addr->downstream machine mappings. Multiple machines
     // in downstream_destinations can have the same address range if they have
