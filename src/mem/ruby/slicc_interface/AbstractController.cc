@@ -319,11 +319,71 @@ AbstractController::serviceMemoryQueue()
     return true;
 }
 
+// c2cOutPort serviceReqToC2cQueue
 bool
-AbstractController::serviceResponseQueue()
+AbstractController::serviceReqToC2cQueue()
 {
-    // Get the request queue which is the output queue 
-    auto resp_queue = getMemReqQueue();
+    auto mem_queue = getReqToC2cQueue();
+    assert(mem_queue);
+    if (m_waiting_mem_retry || !mem_queue->isReady(clockEdge())) {
+        return false;
+    }
+
+    const MemoryMsg *mem_msg = (const MemoryMsg*)mem_queue->peek();
+    unsigned int req_size = RubySystem::getBlockSizeBytes();
+    if (mem_msg->m_Len > 0) {
+        req_size = mem_msg->m_Len;
+    }
+
+    RequestPtr req
+        = std::make_shared<Request>(mem_msg->m_addr, req_size, 0, m_id);
+    PacketPtr pkt;
+    if (mem_msg->getType() == MemoryRequestType_MEMORY_WB) {
+        pkt = Packet::createWrite(req);
+        pkt->allocate();
+        pkt->setData(mem_msg->m_DataBlk.getData(getOffset(mem_msg->m_addr),
+            req_size));
+    } else if (mem_msg->getType() == MemoryRequestType_MEMORY_READ) {
+        pkt = Packet::createRead(req);
+        uint8_t *newData = new uint8_t[req_size];
+        pkt->dataDynamic(newData);
+    } else {
+        panic("Unknown memory request type (%s) for addr %p",
+              MemoryRequestType_to_string(mem_msg->getType()),
+              mem_msg->m_addr);
+    }
+
+    SenderState *s = new SenderState(mem_msg->m_Sender);
+    pkt->pushSenderState(s);
+
+    if (RubySystem::getWarmupEnabled()) {
+        // Use functional rather than timing accesses during warmup
+        mem_queue->dequeue(clockEdge());
+        memoryPort.sendFunctional(pkt);
+        // Since the queue was popped the controller may be able
+        // to make more progress. Make sure it wakes up
+        scheduleEvent(Cycles(1));
+        recvTimingResp(pkt);
+    } else if (c2cOutPort.sendTimingReq(pkt)) {
+        mem_queue->dequeue(clockEdge());
+        // Since the queue was popped the controller may be able
+        // to make more progress. Make sure it wakes up
+        scheduleEvent(Cycles(1));
+    } else {
+        scheduleEvent(Cycles(1));
+        m_waiting_mem_retry = true;
+        delete pkt;
+        delete s;
+    }
+
+    return true;
+}
+
+// c2cInPort serviceReqFromC2cQueue
+bool
+AbstractController::serviceReqFromC2cQueue()
+{
+    auto resp_queue = getReqFromC2cQueue();
     assert(resp_queue);
 
     if (m_waiting_mem_retry || !resp_queue->isReady(clockEdge())) {
@@ -375,7 +435,7 @@ AbstractController::serviceResponseQueue()
 
         // Not sure about this one 
         recvTimingResp(pkt);
-    } else if (memoryInPort.sendTimingResp(pkt)) {
+    } else if (c2cInPort.sendTimingResp(pkt)) {
         resp_queue->dequeue(clockEdge());
         // Since the queue was popped the controller may be able
         // to make more progress. Make sure it wakes up
