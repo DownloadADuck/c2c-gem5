@@ -823,23 +823,27 @@ $c_ident::init()
         
         # interface classic port queues
         # c2c_out_port
+        # OUT
         reqTo_ident = "NULL"
         for param in self.config_parameters:
             if port.ident.find("requestToC2c_ptr") >= 0:
                 reqTo_ident = "m_requestToC2c_ptr"
+        # IN
         respFrom_ident = "NULL"
         for port in self.in_ports:
             if port.code.find("responseFromC2c_ptr") >= 0:
                 respFrom_ident = "m_responseFromC2c_ptr"
 
         # c2c_in_port
+        # IN
         reqFrom_ident = "NULL"
-        for param in self.config_parameters:
-            if port.ident.find("requestFromC2c_ptr") >= 0:
-                reqFrom_ident = "m_requestFromC2c_ptr"
-        respTo_ident = "NULL"
         for port in self.in_ports:
-            if port.code.find("responseToC2c_ptr") >= 0:
+            if port.code.find("requestFromC2c_ptr") >= 0:
+                reqFrom_ident = "m_requestFromC2c_ptr"
+        # OUT
+        respTo_ident = "NULL"
+        for param in self.config_parameters:
+            if port.ident.find("responseToC2c_ptr") >= 0:
                 respTo_ident = "m_responseToC2c_ptr"
 
         seq_ident = "NULL"
@@ -1466,8 +1470,8 @@ ${ident}_Controller::wakeup()
     if (getReqToC2cQueue() && getReqToC2cQueue()->isReady(clockEdge())) {
         serviceReqToC2cQueue();
     }
-    if (getReqFromC2cQueue() && getReqFromC2cQueue()->isReady(clockEdge())) {
-        serviceReqFromC2cQueue();
+    if (getRespToC2cQueue() && getRespToC2cQueue()->isReady(clockEdge())) {
+        serviceRespToC2cQueue();
     }
 
     int counter = 0;

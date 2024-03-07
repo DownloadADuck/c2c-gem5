@@ -350,7 +350,7 @@ class AbstractController : public ClockedObject, public Consumer
     bool serviceMemoryQueue();
     // interface service methods
     bool serviceReqToC2cQueue();
-    bool serviceReqFromC2cQueue();
+    bool serviceRespToC2cQueue();
 
   protected:
     const NodeID m_version;

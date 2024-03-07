@@ -381,9 +381,9 @@ AbstractController::serviceReqToC2cQueue()
 
 // c2cInPort serviceReqFromC2cQueue
 bool
-AbstractController::serviceReqFromC2cQueue()
+AbstractController::serviceRespToC2cQueue()
 {
-    auto resp_queue = getReqFromC2cQueue();
+    auto resp_queue = getRespToC2cQueue();
     assert(resp_queue);
 
     if (m_waiting_mem_retry || !resp_queue->isReady(clockEdge())) {
@@ -580,7 +580,7 @@ AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
 void
 AbstractController::recvTimingReq(PacketPtr pkt)
 {
-    assert(getRespToC2cQueue());
+    assert(getReqFromC2cQueue());
     assert(pkt->isRequest());
 
     std::shared_ptr<MemoryMsg> msg = std::make_shared<MemoryMsg>(clockEdge());
@@ -605,7 +605,7 @@ AbstractController::recvTimingReq(PacketPtr pkt)
         panic("Incorrect packet type received from the network-side!");
     }
 
-    getRespToC2cQueue()->enqueue(msg, clockEdge(), cyclesToTicks(Cycles(1)));
+    getReqFromC2cQueue()->enqueue(msg, clockEdge(), cyclesToTicks(Cycles(1)));
     delete pkt;
 }
 
