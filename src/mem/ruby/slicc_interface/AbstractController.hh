@@ -172,6 +172,9 @@ class AbstractController : public ClockedObject, public Consumer
                   PortID idx=InvalidPortID);
 
     void recvTimingResp(PacketPtr pkt);
+
+    // interface specific methods
+    void c2cOutRecvTimingResp(PacketPtr pkt);
     void recvTimingReq(PacketPtr pkt);
     Tick recvAtomic(PacketPtr pkt);
 

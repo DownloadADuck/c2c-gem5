@@ -451,6 +451,7 @@ AbstractController::functionalMemoryWrite(PacketPtr pkt)
     return num_functional_writes + 1;
 }
 
+// memory_out_port classic recvTimingResp
 void
 AbstractController::recvTimingResp(PacketPtr pkt)
 {
@@ -482,11 +483,43 @@ AbstractController::recvTimingResp(PacketPtr pkt)
     delete pkt;
 }
 
-// MemoryInPort recvTimingReq method
+// C2cOutPort c2cOutRecvTimingResp
+void
+AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
+{
+    assert(getReqFromC2cQueue());
+    assert(pkt->isResponse());
+
+    std::shared_ptr<MemoryMsg> msg = std::make_shared<MemoryMsg>(clockEdge());
+    (*msg).m_addr = pkt->getAddr();
+    (*msg).m_Sender = m_machineID;
+
+    SenderState *s = dynamic_cast<SenderState *>(pkt->senderState);
+    (*msg).m_OriginalRequestorMachId = s->id;
+    delete s;
+
+    if (pkt->isRead()) {
+        (*msg).m_Type = MemoryRequestType_MEMORY_READ;
+        (*msg).m_MessageSize = MessageSizeType_Response_Data;
+
+        // Copy data from the packet
+        (*msg).m_DataBlk.setData(pkt->getPtr<uint8_t>(), 0,
+                                 RubySystem::getBlockSizeBytes());
+    } else if (pkt->isWrite()) {
+        (*msg).m_Type = MemoryRequestType_MEMORY_WB;
+        (*msg).m_MessageSize = MessageSizeType_Writeback_Control;
+    } else {
+        panic("Incorrect packet type received from memory controller!");
+    }
+    getReqFromC2cQueue()->enqueue(msg, clockEdge(), cyclesToTicks(Cycles(1)));
+    delete pkt;
+}
+
+// C2cInPort recvTimingReq method
 void
 AbstractController::recvTimingReq(PacketPtr pkt)
 {
-    assert(getMemRespQueue());
+    assert(getRespToC2cQueue());
     assert(pkt->isRequest());
 
     std::shared_ptr<MemoryMsg> msg = std::make_shared<MemoryMsg>(clockEdge());
@@ -511,7 +544,7 @@ AbstractController::recvTimingReq(PacketPtr pkt)
         panic("Incorrect packet type received from the network-side!");
     }
 
-    getMemRespQueue()->enqueue(msg, clockEdge(), cyclesToTicks(Cycles(1)));
+    getRespToC2cQueue()->enqueue(msg, clockEdge(), cyclesToTicks(Cycles(1)));
     delete pkt;
 }
 
@@ -576,29 +609,51 @@ AbstractController::MemoryPort::MemoryPort(const std::string &_name,
 {
 }
 
-// Responder or memory in port 
+// c2c_out_port
+bool
+AbstractController::C2cOutPort::recvTimingResp(PacketPtr pkt)
+{
+    controller->c2cOutRecvTimingResp(pkt);
+    return true;
+}
+
+void
+AbstractController::C2cOutPort::recvReqRetry()
+{
+    controller->m_waiting_mem_retry = false;
+    controller->serviceReqToC2cQueue();
+}
+
+AbstractController::C2cOutPort::C2cOutPort(const std::string &_name,
+                                           AbstractController *_controller,
+                                           PortID id)
+    : RequestPort(_name, _controller, id), controller(_controller)
+{
+}
+
+// c2c_in_port 
 
 AddrRangeList
-AbstractController::MemoryInPort::getAddrRanges() const
+AbstractController::C2cInPort::getAddrRanges() const
 {
     return controller->getAddrRanges();
 }
 
 void
-AbstractController::MemoryInPort::recvFunctional(PacketPtr pkt)
+AbstractController::C2cInPort::recvFunctional(PacketPtr pkt)
 {
     // No implementation for Functionnal
 }
 
 bool
-AbstractController::MemoryInPort::recvTimingReq(PacketPtr pkt)
+AbstractController::C2cInPort::recvTimingReq(PacketPtr pkt)
 {
     // Pass it to the controller
     controller->recvTimingReq(pkt);
     return true;
 }
 
-AbstractController::MemoryInPort::MemoryInPort(const std::string &_name,
+AbstractController::C2cInPort::C2cInPort(const std::string &_name,
                                                 AbstractController *_controller,
                                                 PortID id)
     : ResponsePort(_name, _controller, id), controller(_controller)
@@ -606,7 +661,7 @@ AbstractController::MemoryInPort::MemoryInPort(const std::string &_name,
 }
 
 void
-AbstractController::MemoryInPort::recvRespRetry()
+AbstractController::C2cInPort::recvRespRetry()
 {
     // Not implemented yet
 }
