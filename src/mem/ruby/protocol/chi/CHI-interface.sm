@@ -548,6 +548,22 @@ machine(MachineType:Memory, "Memory controller interface") :
     tbe.useDataSepResp := false;
   }
 
+  action(c2cReqAllocateTBE, "c2catbe", desc="") {
+    // We must have reserved resource for this allocation
+    storTBEs.decrementReserved();
+    assert(storTBEs.areNSlotsAvailable(1));
+
+    TBEs.allocate(address);
+    set_tbe(TBEs[address]);
+
+    clearRexpectedReqResp(tbe);
+
+    tbe.storSlot := storTBEs.addEntryToNewSlot();
+    tbe.addr := address;
+    tbe.rxtxBytes := 0;
+    tbe.useDataSepResp := false;
+  }
+
   action(initializeFromReqTBE, "itbe", desc="Initialize TBE fields") {
     peek(reqRdyInPort, CHIRequestMsg) {
       tbe.requestor := in_msg.requestor;
@@ -558,6 +574,13 @@ machine(MachineType:Memory, "Memory controller interface") :
       }
       tbe.accAddr := in_msg.accAddr;
       tbe.accSize := in_msg.accSize;
+    }
+  }
+
+  action(initializeFromC2cReqTBE, "ic2ctbe", desc="Initialize TBE fields from C2C request") {
+    peek(c2cReqRdyInPort, MemoryMsg) {
+      tbe.Sender := in_msg.Sender;
+      tbe.size := in_msg.MessageSize;
     }
   }
 
