@@ -821,6 +821,8 @@ $c_ident::init()
             if port.code.find("responseFromMemory_ptr") >= 0:
                 memq_ident = "m_responseFromMemory_ptr"
         
+        # TEMPORARY HACK
+        # If time, change this to the same method used on other Message buffers
         # interface classic port queues
         # c2c_out_port
         requestToC2c_ident = "NULL"
