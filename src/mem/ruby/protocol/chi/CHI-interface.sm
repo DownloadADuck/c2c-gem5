@@ -20,6 +20,7 @@ machine(MachineType:Memory, "Memory controller interface") :
 
   // Requests that can allocate a TBE
   MessageBuffer * reqRdy;
+  MessageBuffer * c2cReqRdy;
 
   // C2c out port
   MessageBuffer * requestToMemory;
@@ -84,9 +85,10 @@ machine(MachineType:Memory, "Memory controller interface") :
     WriteData, desc="";
     RespData, desc="Response data from chip1";
 
+    // we don't need these anymore since we do not use a memory
     // Memory side
-    MemoryData, desc="";
-    MemoryAck, desc="";
+    //MemoryData, desc="";
+    //MemoryAck, desc="";
 
     // C2c chip0 side trigger events
 
@@ -364,8 +366,10 @@ machine(MachineType:Memory, "Memory controller interface") :
   // Internal queues
   out_port(triggerOutPort, TriggerMsg, triggerQueue);
   out_port(reqRdyOutPort, CHIRequestMsg, reqRdy);
+  out_port(c2cReqRdyOutPort, MemoryMsg, c2cReqRdy);
   // C2c responder c2c_in_port
   out_port(responseToC2c_out, MemoryMsg, responseToC2c);
+
   // Inbound port definitions
 
   // Response
@@ -399,6 +403,7 @@ machine(MachineType:Memory, "Memory controller interface") :
         if (in_msg.Type == MemoryRequestType:MEMORY_READ) {
           trigger(Event:CheckC2cReqAllocTBE, addr, TBEs[addr]);
         } else if (in_msg.Type == MemoryRequestType:MEMORY_WB) {
+          error("MemoryRequestType:MEMORY_WB not supported yet");
           trigger(Event:MemoryAck, addr, TBEs[addr]);
         } else {
           error("Invalid message");
@@ -422,7 +427,7 @@ machine(MachineType:Memory, "Memory controller interface") :
     if (snpInPort.isReady(clockEdge())) {
       printResources();
       peek(snpInPort, CHIRequestMsg) {
-        error("Unexpected message");
+        error("Snoops not supported yet");
       }
     }
   }
@@ -433,6 +438,16 @@ machine(MachineType:Memory, "Memory controller interface") :
       printResources();
       peek(reqRdyInPort, CHIRequestMsg) {
         trigger(reqToEvent(in_msg.type), in_msg.addr, TBEs[in_msg.addr]);
+      }
+    }
+  }
+
+  // Carefull about the ranks. Same ranks might cause an issue
+  in_port(c2cReqRdyInPort, MemoryMsg, reqRdy, rank=1) {
+    if(c2cReqRdyInPort.isRead(clockEdge())) {
+      printResources();
+      peek(c2cReqRdyInPort, MemoryMsg) {
+        trigger(Event:ReqReadNoSnp, in_msg.addr, TBEs[in_msg.addr]);
       }
     }
   }
