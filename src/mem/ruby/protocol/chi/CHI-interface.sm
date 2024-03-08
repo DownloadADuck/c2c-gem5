@@ -123,6 +123,8 @@ machine(MachineType:Memory, "Memory controller interface") :
   Event dataToEvent (CHIDataType type) {
     if (type == CHIDataType:NCBWrData) {
       return Event:WriteData;
+    } else if (type == CHIDataType:CompData_UC) {
+      return Event:RespData;
     } else {
       error("Invalid CHIDataType");
     }
@@ -363,7 +365,7 @@ machine(MachineType:Memory, "Memory controller interface") :
   out_port(triggerOutPort, TriggerMsg, triggerQueue);
   out_port(reqRdyOutPort, CHIRequestMsg, reqRdy);
   // C2c responder c2c_in_port
-
+  out_port(responseToC2c_out, MemoryMsg, responseToC2c);
   // Inbound port definitions
 
   // Response
