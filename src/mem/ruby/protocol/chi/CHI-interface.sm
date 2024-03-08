@@ -500,6 +500,30 @@ machine(MachineType:Memory, "Memory controller interface") :
     reqInPort.dequeue(clockEdge());
   }
 
+  action(checkC2cReqAllocateTBE, desc="Check if we have resources, moves to c2cReqRdy") {
+    if (storTBEs.areNSlotsAvailable(1)) {
+      storTBEs.incrementReserved();
+
+      peek(requestFromC2c_in, MemoryMsg) {
+        enqueue(c2cReqRdyOutPort, MemoryMsg, 0) {
+          out_msg := in_msg;
+        }
+      }
+
+    } else {
+      error("No retry yet implemented")
+      peek(requestFromC2c_in, MemoryMsg) {
+        enqueue(triggerOutPort, TriggerMsg, 0) {
+          out_msg.addr := in_msg.addr;
+          out_msg.event := Event:Trigger_SendRetry;
+          out_msg.retryDest := in_msg.Sender;
+          retryQueue.emplace(in_msg.addr,in_msg.sender);
+        }
+      }
+    }
+    requestFromC2c_in.dequeue(clockEdge());
+  }
+
   action(checkAllocateTBE_withCredit, desc="") {
     // We must have reserved resources for this request
     peek(reqInPort, CHIRequestMsg) {
