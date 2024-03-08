@@ -378,7 +378,7 @@ machine(MachineType:Memory, "Memory controller interface") :
     }
   }
 
-  // Data
+  // Data from requestor if write request or from SNF if read
   in_port(datInPort, CHIDataMsg, datIn, rank=5) {
     if (datInPort.isReady(clockEdge())) {
       printResources();
@@ -390,15 +390,14 @@ machine(MachineType:Memory, "Memory controller interface") :
     }
   }
 
-  // Data/Ack from memory
-
-  in_port(memQueue_in, MemoryMsg, responseFromMemory, rank=4) {
-    if (memQueue_in.isReady(clockEdge())) {
+  // Request from the C2C requestor
+  in_port(requestFromC2c_in, MemoryMsg, requestFromC2c, rank=4) {
+    if (requestFromC2c_in.isReady(clockEdge())) {
       printResources();
       peek(memQueue_in, MemoryMsg) {
         Addr addr := makeLineAddress(in_msg.addr);
         if (in_msg.Type == MemoryRequestType:MEMORY_READ) {
-          trigger(Event:MemoryData, addr, TBEs[addr]);
+          trigger(Event:CheckC2cReqAllocTBE, addr, TBEs[addr]);
         } else if (in_msg.Type == MemoryRequestType:MEMORY_WB) {
           trigger(Event:MemoryAck, addr, TBEs[addr]);
         } else {
