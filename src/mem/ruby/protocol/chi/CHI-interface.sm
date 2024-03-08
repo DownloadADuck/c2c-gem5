@@ -240,6 +240,8 @@ machine(MachineType:Memory, "Memory controller interface") :
   void unset_tbe();
   void wakeUpAllBuffers(Addr a);
   bool respondsTo(Addr addr);
+  // Used by the requestor side
+  MachineID mapAddressToDownstreamMachine(Addr addr);
 
   ////////////////////////////////////////////////////////////////////////////
   // Interface functions required by SLICC
@@ -265,11 +267,12 @@ machine(MachineType:Memory, "Memory controller interface") :
     if (respondsTo(addr)) {
       TBE tbe := TBEs[addr];
       if (is_valid(tbe)) {
-        DPRINTF(RubySlicc, "%x %s,%s\n", addr, tbe.state, Memory_State_to_permission(tbe.state));
-        return Memory_State_to_permission(tbe.state);
+        DPRINTF(RubySlicc, "%x %s,%s\n", addr, tbe.state, Interface_State_to_permission(tbe.state));
+        return Interface_State_to_permission(tbe.state);
       } else {
-        DPRINTF(RubySlicc, "%x %s\n", addr, AccessPermission:Backing_Store);
-        return AccessPermission:Backing_Store;
+        // This might not work
+        DPRINTF(RubySlicc, "%x %s\n", addr, AccessPermission:Invalid);
+        return AccessPermission:Invalid;
       }
     } else {
       DPRINTF(RubySlicc, "%x %s\n", addr, AccessPermission:NotPresent);
@@ -323,6 +326,11 @@ machine(MachineType:Memory, "Memory controller interface") :
     }
   }
 
+  void clearRexpectedReqResp(TBE tbe) {
+    assert(blockSize >= data_channel_size);
+    assert((blockSize % data_channel_size) == 0);
+    tbe.expected_req_resp.clear(blockSize / data_channel_size);
+  }
 
   ////////////////////////////////////////////////////////////////////////////
   // Helper functions
@@ -349,9 +357,12 @@ machine(MachineType:Memory, "Memory controller interface") :
   out_port(snpOutPort, CHIRequestMsg, snpOut);
   out_port(rspOutPort, CHIResponseMsg, rspOut);
   out_port(datOutPort, CHIDataMsg, datOut);
-  out_port(triggerOutPort, TriggerMsg, triggerQueue);
+  // SNF memory_out_port
   out_port(memQueue_out, MemoryMsg, requestToMemory);
+  // Internal queues
+  out_port(triggerOutPort, TriggerMsg, triggerQueue);
   out_port(reqRdyOutPort, CHIRequestMsg, reqRdy);
+  // C2c responder c2c_in_port
 
   // Inbound port definitions
 
