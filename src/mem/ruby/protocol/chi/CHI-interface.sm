@@ -807,6 +807,10 @@ machine(MachineType:Memory, "Memory controller interface") :
     reqRdyInPort.dequeue(clockEdge());
   }
 
+  action(popC2cReqRdyInQueue, "pcreq", decs="Pop c2c request queue.") {
+    c2cReqRdyInPort.dequeue(clockEdge());
+  }
+
   action(popDataInQueue, "pdata", desc="Pop data queue.") {
     datInPort.dequeue(clockEdge());
   }
@@ -861,6 +865,7 @@ machine(MachineType:Memory, "Memory controller interface") :
   // Transitions
   ////////////////////////////////////////////////////////////////////////////
 
+  // requestor side
   transition(READY, ReadNoSnp, READING_MEM) {
     allocateTBE;
     initializeFromReqTBE;
@@ -925,6 +930,34 @@ machine(MachineType:Memory, "Memory controller interface") :
     popTriggerQueue;
   }
 
+  // responder side side
+  transition(READY, ReqReadNoSnp, MEMORY_REQUEST){
+    allocateTBE;
+    initializeFromC2cReqTBE;
+    triggerSendReadRequest;
+    popC2cReqRdyInQueue;
+  }
+
+  transition(MEMORY_REQUEST, Trigger_SendReadRequest) {
+    sendReadRequest;
+    popTriggerQueue;
+  }
+
+  transition(MEMORY_REQUEST, RespData) {
+    copyReadDataToTBE;
+    checkForReceiveCompletion;
+    popDataInQueue;
+  }
+
+  transition(MEMORY_REQUEST, Trigger_ReceiveDone, READY) {
+    sendReadResponse;
+    sendCompAck;
+    deallocateTBE;
+    wakeUpStalled;
+    popTriggerQueue;
+  }
+
+
   // Just sanity check against counter of pending acks
   transition({READING_MEM,WAITING_NET_DATA,SENDING_NET_DATA,READY},
               MemoryAck) {
@@ -950,9 +983,14 @@ machine(MachineType:Memory, "Memory controller interface") :
     popTriggerQueue;
   }
 
-  transition({READING_MEM,WAITING_NET_DATA,SENDING_NET_DATA,READY},
+  transition({READING_MEM,WAITING_NET_DATA,SENDING_NET_DATA,MEMORY_REQUEST,READY},
               CheckAllocTBE) {
     checkAllocateTBE;
+  }
+
+  transition({READING_MEM,WAITING_NET_DATA,SENDING_NET_DATA,MEMORY_REQUEST,READY},
+              CheckC2cReqAllocTBE) {
+    checkC2cReqAllocateTBE;
   }
 
   transition({READING_MEM,WAITING_NET_DATA,SENDING_NET_DATA,READY},
