@@ -45,7 +45,7 @@ machine(MachineType:Memory, "Memory controller interface") :
     // SNF states
     WAITING_NET_DATA, AccessPermission:Backing_Store_Busy, desc="Waiting data from the network";
     SENDING_NET_DATA, AccessPermission:Backing_Store_Busy, desc="Sending data to the network";
-    READING_MEM, AccessPermission:Backing_Store_Busy, desc="Waiting data from memory";
+    READING_MEM, AccessPermission:Backing_Store_Busy, desc="Waiting data from c2c interface";
 
     // Interface states 
     MEMORY_REQUEST, AccessPermission:Invalid, desc="Sending request to chip1 s network";
@@ -65,6 +65,15 @@ machine(MachineType:Memory, "Memory controller interface") :
     CheckAllocTBE, desc="";
     CheckAllocTBE_WithCredit, desc="";
 
+    // Checks if there is a request in the requestFromC2c
+    CheckC2cReqAllocTBE, desc="";
+
+    // C2C requests
+    ReqWriteNoSnpPtl, desc="Write no snp ptl request from chip0";
+    ReqWriteNoSnp, desc="Write no snp request from chip0";
+    ReqReadNoSnp, desc="Read no snp request from chip0";
+    ReqReadNoSnpSep, desc="Read no snp sep request from chip0";
+
     // Requests
     WriteNoSnpPtl, desc="";
     WriteNoSnp, desc="";
@@ -73,10 +82,13 @@ machine(MachineType:Memory, "Memory controller interface") :
 
     // Data
     WriteData, desc="";
+    RespData, desc="Response data from chip1";
 
     // Memory side
     MemoryData, desc="";
     MemoryAck, desc="";
+
+    // C2c chip0 side trigger events
 
     // Internal event triggers
     Trigger_Send, desc="";
@@ -124,6 +136,24 @@ machine(MachineType:Memory, "Memory controller interface") :
   // Cache block size
   int blockSize, default="RubySystem::getBlockSizeBytes()";
 
+  // Keeps track of the number of response data messages expected
+  structure(ExpectedMap, external ="yes") {
+    void clear(int dataChunks);
+    void addExpectedRespType(CHIResponseType);
+    void addExpectedDataType(CHIDataType);
+    void setExpectedCount(int val);
+    void addExpectedCount(int val);
+    bool hasExpected();
+    bool hasReceivedResp();
+    bool hasReceivedData();
+    int expected();
+    int received();
+    bool receiveResp(CHIResponseType);
+    bool receiveData(CHIDataType);
+    bool receivedDataType(CHIDataType);
+    bool receivedRespType(CHIResponseType);
+  }
+
   // TBE fields
   structure(TBE, desc="...") {
     int storSlot,   desc="Slot in the storage tracker occupied by this entry";
@@ -137,6 +167,15 @@ machine(MachineType:Memory, "Memory controller interface") :
     MachineID requestor, desc="Requestor that originated this request";
     MachineID destination, desc="Where we are sending data";
     bool useDataSepResp, desc="Replies with DataSepResp instead of CompData";
+
+    // List of expected response and data. Checks the type of data against the
+    // expected ones for debugging purposes
+    ExpectedMap expected_req_resp, template="<CHIResponseType,CHIDataType>";
+    CHIResponseType slicchack1; // fix compiler not including headers
+    CHIDataType slicchack2; // fix compiler not including headers
+
+    MachineID Sender, desc="Original request for this request";
+    MessageSizeType size, desc="Message size";
   }
 
   structure(TBETable, external ="yes") {
@@ -159,7 +198,7 @@ machine(MachineType:Memory, "Memory controller interface") :
     void removeEntryFromSlot(int slot);
   }
 
-  TBETable TBEs, template="<Memory_TBE>", constructor="m_number_of_TBEs";
+  TBETable TBEs, template="<Interface_TBE>", constructor="m_number_of_TBEs";
   TBEStorage storTBEs, constructor="this, m_number_of_TBEs";
 
   // Tracks all pending MemoryAcks (debug purposes only)
@@ -188,7 +227,7 @@ machine(MachineType:Memory, "Memory controller interface") :
     RetryQueueEntry next();
   }
 
-  TriggerQueue retryQueue, template="<Memory_RetryQueueEntry>";
+  TriggerQueue retryQueue, template="<Interface_RetryQueueEntry>";
 
   ////////////////////////////////////////////////////////////////////////////
   // External functions
