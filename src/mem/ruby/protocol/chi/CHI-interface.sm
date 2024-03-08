@@ -21,9 +21,13 @@ machine(MachineType:Memory, "Memory controller interface") :
   // Requests that can allocate a TBE
   MessageBuffer * reqRdy;
 
-  // Data/ack to/from memory
+  // C2c out port
   MessageBuffer * requestToMemory;
   MessageBuffer * responseFromMemory;
+
+  // C2c in port
+  MessageBuffer * requestFromC2c;
+  MessageBuffer * responseToC2c;
 
   // Trigger queue for internal events
   MessageBuffer * triggerQueue;
@@ -38,9 +42,14 @@ machine(MachineType:Memory, "Memory controller interface") :
     // We don't know if the line is cached, so the memory copy is maybe stable
     READY, AccessPermission:Backing_Store, desc="Ready to transfer the line";
 
+    // SNF states
     WAITING_NET_DATA, AccessPermission:Backing_Store_Busy, desc="Waiting data from the network";
     SENDING_NET_DATA, AccessPermission:Backing_Store_Busy, desc="Sending data to the network";
     READING_MEM, AccessPermission:Backing_Store_Busy, desc="Waiting data from memory";
+
+    // Interface states 
+    MEMORY_REQUEST, AccessPermission:Invalid, desc="Sending request to chip1 s network";
+    SEND_CTRL_DATA, AccessPermission:Invalid, desc="Sending response data to chip0";
 
     // Null state for debugging; allow writes
     null, AccessPermission:Backing_Store, desc="Null state";
