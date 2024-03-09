@@ -555,7 +555,7 @@ AbstractController::recvTimingResp(PacketPtr pkt)
 void
 AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
 {
-    assert(getReqFromC2cQueue());
+    assert(getRespFromC2cQueue());
     assert(pkt->isResponse());
 
     std::shared_ptr<MemoryMsg> msg = std::make_shared<MemoryMsg>(clockEdge());
@@ -579,7 +579,7 @@ AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
     } else {
         panic("Incorrect packet type received from memory controller!");
     }
-    getReqFromC2cQueue()->enqueue(msg, clockEdge(), cyclesToTicks(Cycles(1)));
+    getRespFromC2cQueue()->enqueue(msg, clockEdge(), cyclesToTicks(Cycles(1)));
     delete pkt;
 }
 
