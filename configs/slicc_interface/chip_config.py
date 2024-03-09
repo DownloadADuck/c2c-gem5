@@ -198,14 +198,29 @@ def create_chip0(
         mem_dests.extend(snf.getAllControllers())
 
     # Setup dummy SNF for the interface
-    ruby_system.snf3 = [CHI_SNF_MainMem(ruby_system, None, network, None)]
-    snf3 = ruby_system.snf3[0]
-    network_nodes.append(snf3)
-    network_cntrls.extend(snf3.getNetworkSideControllers())
-    assert snf3.getAllControllers() == snf3.getNetworkSideControllers()
-    mem_cntrls.extend(snf3.getAllControllers())
-    all_cntrls.extend(snf3.getAllControllers())
-    mem_dests.extend(snf3.getAllControllers())
+    #ruby_system.snf3 = [CHI_SNF_MainMem(ruby_system, None, network, None)]
+    #snf3 = ruby_system.snf3[0]
+    #network_nodes.append(snf3)
+    #network_cntrls.extend(snf3.getNetworkSideControllers())
+    #assert snf3.getAllControllers() == snf3.getNetworkSideControllers()
+    #mem_cntrls.extend(snf3.getAllControllers())
+    #all_cntrls.extend(snf3.getAllControllers())
+    #mem_dests.extend(snf3.getAllControllers())
+
+    # We use an interface in place of the SNF
+    # HACK This is supposed to use the options and num_interface
+    interface_list = [i for i in range(1)]
+    CHI_Interface.createAddrRanges([sysranges[1]], system.cache_line_size.value, \
+        interface_list)
+    # Fixing the idx ourself. Need to try without. 
+    ruby_system.interface3 = [CHI_Interface(0, ruby_system, None, network)]
+    interface3 = ruby_system.interface3[0]
+    network_nodes.append(interface3)
+    network_cntrls.extend(interface3.getNetworkSideControllers())
+    assert interface3.getAllControllers() == interface3.getNetworkSideControllers()
+    mem_cntrls.extend(interface3.getAllControllers())
+    all_cntrls.extend(interface3.getAllControllers())
+    mem_dests.extend(interface3.getAllControllers())
 
     if len(other_memories) > 0:
         ruby_system.rom_snf = [
