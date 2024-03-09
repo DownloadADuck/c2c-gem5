@@ -1,4 +1,4 @@
-machine(MachineType:Memory, "Memory controller interface") :
+machine(MachineType:Interface, "C2C interface controller") :
 
   Cycles request_latency := 1;
   Cycles response_latency := 2;
@@ -39,7 +39,7 @@ machine(MachineType:Memory, "Memory controller interface") :
   // States
   ////////////////////////////////////////////////////////////////////////////
 
-  state_declaration(State, desc="Transaction states", default="Memory_State_READY") {
+  state_declaration(State, desc="Transaction states", default="Interface_State_READY") {
     // We don't know if the line is cached, so the memory copy is maybe stable
     READY, AccessPermission:Backing_Store, desc="Ready to transfer the line";
 
@@ -87,8 +87,8 @@ machine(MachineType:Memory, "Memory controller interface") :
 
     // we don't need these anymore since we do not use a memory
     // Memory side
-    //MemoryData, desc="";
-    //MemoryAck, desc="";
+    MemoryData, desc="";
+    MemoryAck, desc="";
 
     // C2c chip0 side trigger events
 
@@ -96,9 +96,11 @@ machine(MachineType:Memory, "Memory controller interface") :
     Trigger_Send, desc="";
     Trigger_SendDone, desc="";
     Trigger_ReceiveDone, desc="";
+    Trigger_ReceiveReadDataDone, desc="Received all read data";
     Trigger_SendRetry, desc="";
     Trigger_SendPCrdGrant, desc="";
     Trigger_SendMemoryRead, desc="";
+    Trigger_SendReadRequest, desc="Trigger the sending of read req in chip1";
   }
 
 
@@ -394,11 +396,28 @@ machine(MachineType:Memory, "Memory controller interface") :
     }
   }
 
+  // Data/Ack from the repsonder
+  in_port(memQueue_in, MemoryMsg, responseFromMemory, rank=4) {
+    if (memQueue_in.isReady(clockEdge())) {
+      printResources();
+      peek(memQueue_in, MemoryMsg) {
+        Addr addr := makeLineAddress(in_msg.addr);
+        if (in_msg.Type == MemoryRequestType:MEMORY_READ) {
+          trigger(Event:MemoryData, addr, TBEs[addr]);
+        } else if (in_msg.Type == MemoryRequestType:MEMORY_WB) {
+          trigger(Event:MemoryAck, addr, TBEs[addr]);
+        } else {
+          error("Invalid message");
+        }
+      }
+    }
+  }
+
   // Request from the C2C requestor
   in_port(requestFromC2c_in, MemoryMsg, requestFromC2c, rank=4) {
     if (requestFromC2c_in.isReady(clockEdge())) {
       printResources();
-      peek(memQueue_in, MemoryMsg) {
+      peek(requestFromC2c_in, MemoryMsg) {
         Addr addr := makeLineAddress(in_msg.addr);
         if (in_msg.Type == MemoryRequestType:MEMORY_READ) {
           trigger(Event:CheckC2cReqAllocTBE, addr, TBEs[addr]);
@@ -443,8 +462,8 @@ machine(MachineType:Memory, "Memory controller interface") :
   }
 
   // Carefull about the ranks. Same ranks might cause an issue
-  in_port(c2cReqRdyInPort, MemoryMsg, reqRdy, rank=1) {
-    if(c2cReqRdyInPort.isRead(clockEdge())) {
+  in_port(c2cReqRdyInPort, MemoryMsg, c2cReqRdy, rank=1) {
+    if(c2cReqRdyInPort.isReady(clockEdge())) {
       printResources();
       peek(c2cReqRdyInPort, MemoryMsg) {
         trigger(Event:ReqReadNoSnp, in_msg.addr, TBEs[in_msg.addr]);
@@ -511,13 +530,13 @@ machine(MachineType:Memory, "Memory controller interface") :
       }
 
     } else {
-      error("No retry yet implemented")
+      error("No retry yet implemented");
       peek(requestFromC2c_in, MemoryMsg) {
         enqueue(triggerOutPort, TriggerMsg, 0) {
           out_msg.addr := in_msg.addr;
           out_msg.event := Event:Trigger_SendRetry;
           out_msg.retryDest := in_msg.Sender;
-          retryQueue.emplace(in_msg.addr,in_msg.sender);
+          retryQueue.emplace(in_msg.addr,in_msg.Sender);
         }
       }
     }
@@ -709,6 +728,16 @@ machine(MachineType:Memory, "Memory controller interface") :
     }
   }
 
+  // Different action in case we need different TBE in the future 
+  action(copyReadDataToTBE, "cpRDat", decs="Copies the received read data to TBE") {
+    peek(datInPort, CHIDataMsg) {
+      assert(is_valid(tbe));
+      tbe.dataBlk.copyPartial(in_msg.dataBlk, in_msg.bitMask);
+      tbe.dataBlkValid.orMask(in_msg.bitMask);
+      tbe.rxtxBytes := tbe.rxtxBytes + in_msg.bitMask.count();
+    }
+  }
+
   action(sendDataAndCheck, "sd", desc="Send received data to requestor") {
     assert(is_valid(tbe));
     assert(tbe.rxtxBytes < blockSize);
@@ -780,7 +809,7 @@ machine(MachineType:Memory, "Memory controller interface") :
     }
   }
 
-  action(sendReadResponse, "srr", desc="Send read response to chip0") {
+  action(sendReadResponse, "srresp", desc="Send read response to chip0") {
     assert(is_valid(tbe));
     enqueue(responseToC2c_out, MemoryMsg, to_memory_controller_latency) {
       out_msg.addr := address;
@@ -824,7 +853,7 @@ machine(MachineType:Memory, "Memory controller interface") :
   }
 
   action(popRequestFromC2cQeueue, "prfc2c", desc="Pop request from c2c queue.") {
-    requestFromC2c.dequeue(clockEdge());
+    requestFromC2c_in.dequeue(clockEdge());
   }
 
   // Stall/wake-up only used for requests that arrive when we are on the
@@ -932,7 +961,7 @@ machine(MachineType:Memory, "Memory controller interface") :
 
   // responder side side
   transition(READY, ReqReadNoSnp, MEMORY_REQUEST){
-    allocateTBE;
+    c2cReqAllocateTBE;
     initializeFromC2cReqTBE;
     triggerSendReadRequest;
     popC2cReqRdyInQueue;
@@ -945,11 +974,11 @@ machine(MachineType:Memory, "Memory controller interface") :
 
   transition(MEMORY_REQUEST, RespData) {
     copyReadDataToTBE;
-    checkForReceiveCompletion;
+    checkForReadReceiveCompletion;
     popDataInQueue;
   }
 
-  transition(MEMORY_REQUEST, Trigger_ReceiveDone, READY) {
+  transition(MEMORY_REQUEST, Trigger_ReceiveReadDataDone, READY) {
     sendReadResponse;
     sendCompAck;
     deallocateTBE;
