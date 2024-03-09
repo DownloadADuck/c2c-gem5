@@ -23,8 +23,8 @@ machine(MachineType:Interface, "C2C interface controller") :
   MessageBuffer * c2cReqRdy;
 
   // C2c out port
-  MessageBuffer * requestToMemory;
-  MessageBuffer * responseFromMemory;
+  MessageBuffer * requestToC2c;
+  MessageBuffer * responseFromC2c;
 
   // C2c in port
   MessageBuffer * requestFromC2c;
@@ -363,12 +363,12 @@ machine(MachineType:Interface, "C2C interface controller") :
   out_port(snpOutPort, CHIRequestMsg, snpOut);
   out_port(rspOutPort, CHIResponseMsg, rspOut);
   out_port(datOutPort, CHIDataMsg, datOut);
-  // SNF memory_out_port
-  out_port(memQueue_out, MemoryMsg, requestToMemory);
   // Internal queues
   out_port(triggerOutPort, TriggerMsg, triggerQueue);
   out_port(reqRdyOutPort, CHIRequestMsg, reqRdy);
   out_port(c2cReqRdyOutPort, MemoryMsg, c2cReqRdy);
+  // C2c requestor c2c_out_port
+  out_port(requestToC2c_out, MemoryMsg, requestToC2c);
   // C2c responder c2c_in_port
   out_port(responseToC2c_out, MemoryMsg, responseToC2c);
 
@@ -397,10 +397,10 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // Data/Ack from the repsonder
-  in_port(memQueue_in, MemoryMsg, responseFromMemory, rank=4) {
-    if (memQueue_in.isReady(clockEdge())) {
+  in_port(responseFromC2c_in, MemoryMsg, responseFromC2c, rank=4) {
+    if (responseFromC2c_in.isReady(clockEdge())) {
       printResources();
-      peek(memQueue_in, MemoryMsg) {
+      peek(responseFromC2c_in, MemoryMsg) {
         Addr addr := makeLineAddress(in_msg.addr);
         if (in_msg.Type == MemoryRequestType:MEMORY_READ) {
           trigger(Event:MemoryData, addr, TBEs[addr]);
@@ -667,7 +667,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   action(sendMemoryRead, "smr", desc="Send request to memory") {
     assert(is_valid(tbe));
-    enqueue(memQueue_out, MemoryMsg, to_memory_controller_latency) {
+    enqueue(requestToC2c_out, MemoryMsg, to_memory_controller_latency) {
       out_msg.addr := address;
       out_msg.Type := MemoryRequestType:MEMORY_READ;
       out_msg.Sender := tbe.requestor;
@@ -698,7 +698,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   action(sendMemoryWrite, "smw", desc="Send request to memory") {
     assert(is_valid(tbe));
-    enqueue(memQueue_out, MemoryMsg, to_memory_controller_latency) {
+    enqueue(requestToC2c_out, MemoryMsg, to_memory_controller_latency) {
       out_msg.addr := tbe.accAddr;
       out_msg.Type := MemoryRequestType:MEMORY_WB;
       out_msg.Sender := tbe.requestor;
@@ -712,7 +712,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   action(prepareSend, "ps", desc="Copies received memory data to TBE") {
     assert(is_valid(tbe));
-    peek(memQueue_in, MemoryMsg) {
+    peek(responseFromC2c_in, MemoryMsg) {
       tbe.dataBlk := in_msg.DataBlk;
     }
     tbe.rxtxBytes := 0;
@@ -849,7 +849,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   action(popMemoryQueue, "pmem", desc="Pop memory queue.") {
-    memQueue_in.dequeue(clockEdge());
+    responseFromC2c_in.dequeue(clockEdge());
   }
 
   action(popRequestFromC2cQeueue, "prfc2c", desc="Pop request from c2c queue.") {

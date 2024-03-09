@@ -832,10 +832,12 @@ $c_ident::init()
         responseToC2c_ident = "NULL"
 
         if ident == "Interface":
-            #requestToC2c_ident = "m_requestToC2c_ptr"
-            #responseFromC2c_ident = "m_responseFromC2c_ptr"
+            requestToC2c_ident = "m_requestToC2c_ptr"
+            responseFromC2c_ident = "m_responseFromC2c_ptr"
             requestFromC2c_ident = "m_requestFromC2c_ptr"
             responseToC2c_ident = "m_responseToC2c_ptr"
+            memq_ident = "NULL"
+            memoutq_ident = "NULL"
 
         seq_ident = "NULL"
         for param in self.config_parameters:
