@@ -1017,8 +1017,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     checkAllocateTBE;
   }
 
-  transition({READING_MEM,WAITING_NET_DATA,SENDING_NET_DATA,MEMORY_REQUEST,READY},
-              CheckC2cReqAllocTBE) {
+  transition({MEMORY_REQUEST,READY}, CheckC2cReqAllocTBE) {
     checkC2cReqAllocateTBE;
   }
 
