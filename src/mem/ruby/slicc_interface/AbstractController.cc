@@ -43,6 +43,7 @@
 #include "debug/RubyQueue.hh"
 #include "mem/ruby/network/Network.hh"
 #include "mem/ruby/protocol/MemoryMsg.hh"
+#include "mem/ruby/protocol/C2cMsg.hh"
 #include "mem/ruby/system/RubySystem.hh"
 #include "mem/ruby/system/Sequencer.hh"
 #include "sim/system.hh"
@@ -336,7 +337,7 @@ AbstractController::serviceReqToC2cQueue()
         return false;
     }
 
-    const MemoryMsg *mem_msg = (const MemoryMsg*)mem_queue->peek();
+    const C2cMsg *mem_msg = (const C2cMsg*)mem_queue->peek();
     unsigned int req_size = RubySystem::getBlockSizeBytes();
     if (mem_msg->m_Len > 0) {
         req_size = mem_msg->m_Len;
@@ -397,7 +398,7 @@ AbstractController::serviceRespToC2cQueue()
         return false;
     }
 
-    const MemoryMsg *mem_msg = (const MemoryMsg*)resp_queue->peek();
+    const C2cMsg *mem_msg = (const C2cMsg*)resp_queue->peek();
     unsigned int resp_size = RubySystem::getBlockSizeBytes();
     if (mem_msg->m_Len > 0) {
         resp_size = mem_msg->m_Len;
@@ -558,7 +559,7 @@ AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
     assert(getRespFromC2cQueue());
     assert(pkt->isResponse());
 
-    std::shared_ptr<MemoryMsg> msg = std::make_shared<MemoryMsg>(clockEdge());
+    std::shared_ptr<C2cMsg> msg = std::make_shared<C2cMsg>(clockEdge());
     (*msg).m_addr = pkt->getAddr();
     (*msg).m_Sender = m_machineID;
 
@@ -590,7 +591,7 @@ AbstractController::recvTimingReq(PacketPtr pkt)
     assert(getReqFromC2cQueue());
     assert(pkt->isRequest());
 
-    std::shared_ptr<MemoryMsg> msg = std::make_shared<MemoryMsg>(clockEdge());
+    std::shared_ptr<C2cMsg> msg = std::make_shared<C2cMsg>(clockEdge());
     (*msg).m_addr = pkt->getAddr();
     (*msg).m_Sender = m_machineID;
 
