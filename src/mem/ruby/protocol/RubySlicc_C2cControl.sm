@@ -1,0 +1,62 @@
+
+// C2cRequestType used in C2cMsg
+
+enumeration(MemoryRequestType, desc="...") {
+
+  // Southbound request: from directory to memory cache
+  // or directory to memory or memory cache to memory
+  MEMORY_READ,     desc="Read request to memory";
+  MEMORY_WB,       desc="Write back data to memory";
+
+  // response from memory to directory
+  // (These are currently unused!)
+  MEMORY_DATA, desc="Data read from memory";
+  MEMORY_ACK,  desc="Write to memory acknowledgement";
+}
+
+
+// Message to and from C2C interface
+
+structure(C2cMsg, desc="...", interface="Message") {
+  Addr addr,                    desc="Physical address for this request";
+  MemoryRequestType Type,       desc="Type of memory request (MEMORY_READ or MEMORY_WB)";
+  MachineID Sender,             desc="What component sent the data";
+  MachineID OriginalRequestorMachId, desc="What component originally requested";
+  DataBlock DataBlk,            desc="Data to writeback";
+  MessageSizeType MessageSize,  desc="size category of the message";
+  int Len,                      desc="size of the memory/dma request";
+  // Not all fields used by all protocols:
+  PrefetchBit Prefetch,         desc="Is this a prefetch request";
+  bool ReadX,                   desc="Exclusive";
+  int Acks,                     desc="How many acks to expect";
+
+  bool functionalRead(Packet *pkt) {
+    if ((MessageSize == MessageSizeType:Response_Data) ||
+        (MessageSize == MessageSizeType:Writeback_Data))  {
+      return testAndRead(addr, DataBlk, pkt);
+    }
+    return false;
+  }
+
+  bool functionalRead(Packet *pkt, WriteMask &mask) {
+    if ((MessageSize == MessageSizeType:Response_Data) ||
+        (MessageSize == MessageSizeType:Writeback_Data))  {
+      WriteMask read_mask;
+      read_mask.setMask(addressOffset(addr, makeLineAddress(addr)), Len, true);
+      if (MessageSize != MessageSizeType:Writeback_Data) {
+        read_mask.setInvertedMask(mask);
+      }
+      if (read_mask.isEmpty()) {
+        return false;
+      } else if (testAndReadMask(addr, DataBlk, read_mask, pkt)) {
+        mask.orMask(read_mask);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool functionalWrite(Packet *pkt) {
+    return testAndWrite(addr, DataBlk, pkt);
+  }
+}
