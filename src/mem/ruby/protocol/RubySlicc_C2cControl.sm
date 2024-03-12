@@ -1,7 +1,7 @@
 
 // C2cRequestType used in C2cMsg
 
-enumeration(MemoryRequestType, desc="...") {
+enumeration(C2cRequestType, desc="...") {
 
   // Southbound request: from directory to memory cache
   // or directory to memory or memory cache to memory
