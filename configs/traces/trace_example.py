@@ -148,7 +148,7 @@ def is_pow2(num):
 
 # assume we start every range at 0
 #max_range = int(mem_range.end)
-max_range = 1024*2
+max_range = 1024 * 4
 # start at a size of 4 kByte, and go up till we hit the max, increase
 # the step every time we hit a power of two
 min_range = 1024
@@ -166,7 +166,7 @@ iterations = 0
 
 # 150 ns in ticks, this is choosen to be high enough that transactions
 # do not pile up in the system, adjust if needed
-itt = 150 * 1000
+itt = 150 * 10000
 
 # for every data point, we create a trace containing a random address
 # sequence, so that we can play back the same sequence for warming and
@@ -191,8 +191,10 @@ def create_trace(filename, max_addr, burst_size, itt):
     protolib.encodeMessage(proto_out, header)
 
     # reaching chip1
-    start_addr = 1000000
-    end_addr = 4 * 1024 * 1024 # 4MB
+    #start_addr = 1000000
+    #end_addr = 4 * 1024 * 1024 # 4MB
+    start_addr = 1024
+    end_addr = 1025
 
     # staying in chip0
     #start_addr = 0
