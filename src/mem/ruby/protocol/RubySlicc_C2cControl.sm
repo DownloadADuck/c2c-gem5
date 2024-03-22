@@ -19,7 +19,7 @@ enumeration(C2cRequestType, desc="...") {
 
 structure(C2cMsg, desc="...", interface="Message") {
   Addr addr,                    desc="Physical address for this request";
-  MemoryRequestType Type,       desc="Type of memory request (MEMORY_READ or MEMORY_WB)";
+  C2cRequestType Type,       desc="Type of memory request (MEMORY_READ or MEMORY_WB)";
   MachineID Sender,             desc="What component sent the data";
   MachineID OriginalRequestorMachId, desc="What component originally requested";
   DataBlock DataBlk,            desc="Data to writeback";
