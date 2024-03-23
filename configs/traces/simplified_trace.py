@@ -1,0 +1,353 @@
+# Copyright (c) 2015-2016 ARM Limited
+# All rights reserved.
+#
+# The license below extends only to copyright in the software and shall
+# not be construed as granting a license to any other intellectual
+# property including but not limited to intellectual property relating
+# to a hardware implementation of the functionality of the software
+# licensed hereunder.  You may use the software subject to the license
+# terms below provided that you ensure that this notice is replicated
+# unmodified and in its entirety in all distributions of the software,
+# modified or unmodified, in source code or in binary form.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met: redistributions of source code must retain the above copyright
+# notice, this list of conditions and the following disclaimer;
+# redistributions in binary form must reproduce the above copyright
+# notice, this list of conditions and the following disclaimer in the
+# documentation and/or other materials provided with the distribution;
+# neither the name of the copyright holders nor the names of its
+# contributors may be used to endorse or promote products derived from
+# this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+import gzip
+import argparse
+import os
+
+import m5
+from m5.objects import *
+from m5.util import addToPath
+from m5.stats import periodicStatDump
+
+addToPath("../")
+from common import ObjectList
+from common import MemConfig
+
+addToPath("../../util")
+import protolib
+
+from ruby import Ruby
+# this script is helpful to observe the memory latency for various
+# levels in a cache hierarchy, and various cache and memory
+# configurations, in essence replicating the lmbench lat_mem_rd thrash
+# behaviour
+
+# import the packet proto definitions, and if they are not found,
+# attempt to generate them automatically
+try:
+    import packet_pb2
+except:
+    print("Did not find packet proto definitions, attempting to generate")
+    from subprocess import call
+
+    error = call(
+        [
+            "protoc",
+            "--python_out=configs/traces",
+            "--proto_path=src/proto",
+            "src/proto/packet.proto",
+        ]
+    )
+    if not error:
+        print("Generated packet proto definitionss")
+        try:
+            
+            import google.protobuf
+        except:
+            print("Please install the Python protobuf module")
+            exit(-1)
+        import packet_pb2
+    else:
+        print("Failed to import packet proto definitions")
+        exit(-1)
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument(
+    "--mem-type",
+    default="DDR3_1600_8x8",
+    choices=ObjectList.mem_list.get_names(),
+    help="type of memory to use",
+)
+parser.add_argument(
+    "--mem-size",
+    action="store",
+    type=str,
+    default="16MB",
+    help="Specify the memory size",
+)
+parser.add_argument(
+    "--reuse-trace",
+    action="store_true",
+    help="Prevent generation of traces and reuse existing",
+)
+
+args = parser.parse_args()
+
+# start by creating the system itself, using a multi-layer 2.0 GHz
+# crossbar, delivering 64 bytes / 3 cycles (one header cycle) which
+# amounts to 42.7 GByte/s per layer and thus per port
+system = System(membus=SystemXBar(width=32))
+system.clk_domain = SrcClockDomain(
+    clock="2.0GHz", voltage_domain=VoltageDomain(voltage="1V")
+)
+
+mem_range = AddrRange(args.mem_size)
+system.mem_ranges = [mem_range]
+
+# do not worry about reserving space for the backing store
+system.mmap_using_noreserve = True
+
+# currently not exposed as command-line args, set here for now
+args.mem_channels = 1
+args.mem_ranks = 1
+args.external_memory_system = 0
+args.tlm_memory = 0
+args.elastic_trace_en = 0
+
+
+MemConfig.config_mem(args, system)
+
+# there is no point slowing things down by saving any data
+# use the same concept as the utilisation sweep, and print the config
+# so that we can later read it in
+cfg_file_name = os.path.join(m5.options.outdir, "lat_mem_rd.cfg")
+cfg_file = open(cfg_file_name, "w")
+
+# set an appropriate burst length in bytes
+burst_size = 64
+system.cache_line_size = burst_size
+
+# lazy version to check if an integer is a power of two
+def is_pow2(num):
+    return num != 0 and ((num & (num - 1)) == 0)
+
+
+# assume we start every range at 0
+#max_range = int(mem_range.end)
+max_range = 1024*2
+# start at a size of 4 kByte, and go up till we hit the max, increase
+# the step every time we hit a power of two
+min_range = 1024
+ranges = [min_range]
+step = 1024
+
+while ranges[-1] < max_range:
+    new_range = ranges[-1] + step
+    if is_pow2(new_range):
+        step *= 2
+    ranges.append(new_range)
+print(ranges)
+# how many times to repeat the measurement for each data point
+iterations = 0
+
+# 150 ns in ticks, this is choosen to be high enough that transactions
+# do not pile up in the system, adjust if needed
+itt = 150 * 1000
+
+# for every data point, we create a trace containing a random address
+# sequence, so that we can play back the same sequence for warming and
+# the actual measurement
+def create_trace(filename, max_addr, burst_size, itt):
+    try:
+        proto_out = gzip.open(filename, "wb")
+    except IOError:
+        print("Failed to open ", filename, " for writing")
+        exit(-1)
+
+    # write the magic number in 4-byte Little Endian, similar to what
+    # is done in src/proto/protoio.cc
+    _b=sys.version_info[0]<3 and (lambda x:x) or (lambda x:x.encode('latin1'))
+    proto_out.write(_b('gem5'))
+
+    # add the packet header
+    header = packet_pb2.PacketHeader()
+    header.obj_id = "lat_mem_rd for range 0:" + str(max_addr)
+    # assume the default tick rate (1 ps)
+    header.tick_freq = 1000000000000
+    protolib.encodeMessage(proto_out, header)
+
+    # reaching chip1
+    start_addr = 1000000
+    end_addr = 2 * 1024 * 1024 # 4MB
+
+    # staying in chip0
+    #start_addr = 0
+    #end_addr = 2*1024
+    
+
+    # create a list of every single address to touch
+    addrs = list(range(start_addr, end_addr, burst_size))
+
+    import random
+
+    random.shuffle(addrs)
+
+    tick = 500
+
+    # create a packet we can re-use for all the addresses
+    packet = packet_pb2.Packet()
+    # ReadReq is 1 in src/mem/packet.hh Command enum
+    #    0:   InvalidCmd,
+    #    1:   ReadReq,
+    #    2:   ReadResp,
+    #    3:   ReadRespWithInvalidate,
+    #    4:   WriteReq,
+    #    5:   WriteResp,
+    #    6:   WriteCompleteResp,
+    #    7:   WritebackDirty,
+    #    8:   WritebackClean,
+    #    9:   WriteClean,            // writes dirty data below without evicting
+    #   10:   CleanEvict,
+    
+    
+    addrs = [711936, 1760512, 2809088]
+    packet.size = int(burst_size)
+    #import pdb; pdb.set_trace()
+    for addr in addrs:
+        packet.tick = int(tick)
+        packet.addr = int(addr)
+        packet.cmd = 1  # 1: read, 4: write
+        protolib.encodeMessage(proto_out, packet)
+        print("Tick: " + str(packet.tick) + " Addr: " + str(f"{packet.addr:06x}") + " Size: " + str(packet.size) + " Cmd: " + str(packet.cmd) )
+        packet.tick = int(tick + 2000)
+        packet.addr = int(addr)
+        packet.cmd = 4  # 1: read, 4: write
+        protolib.encodeMessage(proto_out, packet)
+        print("Tick: " + str(packet.tick) + " Addr: " + str(f"{packet.addr:06x}") + " Size: " + str(packet.size) + " Cmd: " + str(packet.cmd) )
+        tick = tick + itt
+        
+    proto_out.close()
+
+
+# this will take a while, so keep the user informed
+print("Generating traces, please wait...")
+
+nxt_range = 0
+nxt_state = 0
+period = int(itt * (max_range / burst_size))
+
+# now we create the states for each range
+for r in ranges:
+    filename = os.path.join(
+        m5.options.outdir, "lat_mem_rd%d.trc.gz" % nxt_range
+    )
+    print(filename)
+
+    if not args.reuse_trace:
+        # create the actual random trace for this range
+        create_trace(filename, r, burst_size, itt)
+
+    # the warming state
+    cfg_file.write("STATE %d %d TRACE %s 0\n" % (nxt_state, period, filename))
+    nxt_state = nxt_state + 1
+
+    # the measuring states
+    for i in range(iterations):
+        cfg_file.write(
+            "STATE %d %d TRACE %s 0\n" % (nxt_state, period, filename)
+        )
+        nxt_state = nxt_state + 1
+
+    nxt_range = nxt_range + 1
+
+cfg_file.write("INIT 0\n")
+
+# go through the states one by one
+for state in range(1, nxt_state):
+    cfg_file.write("TRANSITION %d %d 1\n" % (state - 1, state))
+
+cfg_file.write("TRANSITION %d %d 1\n" % (nxt_state - 1, nxt_state - 1))
+
+cfg_file.close()
+
+# create a traffic generator, and point it to the file we just created
+system.tgen = TrafficGen(config_file=cfg_file_name, progress_check="10s")
+
+# add a communication monitor
+#system.monitor = CommMonitor()
+#system.monitor.footprint = MemFootprintProbe()
+
+# connect the traffic generator to the system
+#system.tgen.port = system.monitor.cpu_side_port
+
+#args.network = "simple"
+#args.topology = "Pt2Pt"
+
+#Ruby.create_system(args, False, system)
+
+
+# create the actual cache hierarchy, for now just go with something
+# basic to explore some of the options
+from common.Caches import *
+
+# a starting point for an L3 cache
+class L3Cache(Cache):
+    assoc = 16
+    tag_latency = 20
+    data_latency = 20
+    sequential_access = True
+    response_latency = 40
+    mshrs = 32
+    tgts_per_mshr = 12
+    write_buffers = 16
+
+
+# note that everything is in the same clock domain, 2.0 GHz as
+# specified above
+system.l1cache = L1_DCache(size="64kB")
+system.tgen.port = system.l1cache.cpu_side
+
+system.l2cache = L2Cache(size="512kB", writeback_clean=True)
+system.l2cache.xbar = L2XBar()
+system.l1cache.mem_side = system.l2cache.xbar.cpu_side_ports
+system.l2cache.cpu_side = system.l2cache.xbar.mem_side_ports
+
+# make the L3 mostly exclusive, and correspondingly ensure that the L2
+# writes back also clean lines to the L3
+system.l3cache = L3Cache(size="4MB", clusivity="mostly_excl")
+system.l3cache.xbar = L2XBar()
+system.l2cache.mem_side = system.l3cache.xbar.cpu_side_ports
+system.l3cache.cpu_side = system.l3cache.xbar.mem_side_ports
+system.l3cache.mem_side = system.membus.cpu_side_ports
+
+# connect the system port even if it is not used in this example
+system.system_port = system.membus.cpu_side_ports
+
+# every period, dump and reset all stats
+periodicStatDump(period)
+
+# run Forrest, run!
+root = Root(full_system=False, system=system)
+root.system.mem_mode = "timing"
+
+m5.instantiate()
+m5.simulate(nxt_state * period)
+
+# print all we need to make sense of the stats output
+print("lat_mem_rd with %d iterations, ranges:" % iterations)
+for r in ranges:
+    print(r)
