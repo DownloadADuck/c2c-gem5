@@ -206,7 +206,7 @@ def create_trace(filename, max_addr, burst_size, itt):
 
     random.shuffle(addrs)
 
-    tick = 500
+    tick = 2000
 
     # create a packet we can re-use for all the addresses
     packet = packet_pb2.Packet()
@@ -224,7 +224,7 @@ def create_trace(filename, max_addr, burst_size, itt):
     #   10:   CleanEvict,
     
     
-    addrs = [711936, 1760512, 2809088]
+    addrs = [711936]
     packet.size = int(burst_size)
     #import pdb; pdb.set_trace()
     for addr in addrs:
@@ -253,7 +253,7 @@ period = int(itt * (max_range / burst_size))
 # now we create the states for each range
 for r in ranges:
     filename = os.path.join(
-        m5.options.outdir, "lat_mem_rd%d.trc.gz" % nxt_range
+        m5.options.outdir, "lat_mem_rd1%d.trc.gz" % nxt_range
     )
     print(filename)
 

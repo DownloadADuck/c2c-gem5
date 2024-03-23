@@ -149,11 +149,11 @@ mp0_path = multiprocesses[0].executable
 system = System(
     tgens=[
         TrafficGen(
-            config_file="./m5out/lat_mem_rd.cfg",
+            config_file="./m5out/lat_mem_rd0.cfg",
             progress_check="10s",
         ),
         TrafficGen(
-            config_file="./m5out/lat_mem_rd.cfg",
+            config_file="./m5out/lat_mem_rd1.cfg",
             progress_check="10s",
         )
     ],
