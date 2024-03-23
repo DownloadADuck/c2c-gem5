@@ -159,7 +159,7 @@ system = System(
     ],
     cpus=[CPUClass(cpu_id=i) for i in range(np)],
     mem_mode="timing",
-    mem_ranges=[AddrRange('512MB')],
+    mem_ranges=[AddrRange('4MB')],
     cache_line_size=64
 )
 
