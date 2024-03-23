@@ -150,15 +150,20 @@ system = System(
     tgens=[
         TrafficGen(
             config_file="./m5out/lat_mem_rd.cfg",
-            progress_check="1s",
-        ) for i in range(np)
+            progress_check="10s",
+        ),
+        TrafficGen(
+            config_file="./m5out/lat_mem_rd.cfg",
+            progress_check="10s",
+        )
     ],
-    #cpus=[AtomicSimpleCPU(cpu_id=i) for i in range(np)],
     cpus=[CPUClass(cpu_id=i) for i in range(np)],
     mem_mode="timing",
     mem_ranges=[AddrRange('512MB')],
     cache_line_size=64
 )
+
+print(system.tgens)
 
 if numThreads > 1:
     system.multi_tread = True
