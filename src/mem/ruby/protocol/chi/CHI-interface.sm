@@ -72,13 +72,13 @@ machine(MachineType:Interface, "C2C interface controller") :
     // C2C requests
     ReqWriteNoSnpPtl, desc="Write no snp ptl request from chip0";
     ReqWriteNoSnp, desc="Write no snp request from chip0";
-    ReqReadNoSnp, desc="Read no snp request from chip0";
+    ReqReadShared, desc="Read no snp request from chip0";
     ReqReadNoSnpSep, desc="Read no snp sep request from chip0";
 
     // Requests
     WriteNoSnpPtl, desc="";
     WriteNoSnp, desc="";
-    ReadNoSnp, desc="";
+    ReadShared, desc="";
     ReadNoSnpSep, desc="";
 
     // Data
@@ -111,8 +111,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:WriteNoSnpPtl;
     } else if (type == CHIRequestType:WriteNoSnp) {
       return Event:WriteNoSnp;
-    } else if (type == CHIRequestType:ReadNoSnp) {
-      return Event:ReadNoSnp;
+    } else if (type == CHIRequestType:ReadShared) {
+      return Event:ReadShared;
     } else if (type == CHIRequestType:ReadNoSnpSep) {
       return Event:ReadNoSnpSep;
     } else {
@@ -466,7 +466,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     if(c2cReqRdyInPort.isReady(clockEdge())) {
       printResources();
       peek(c2cReqRdyInPort, C2cMsg) {
-        trigger(Event:ReqReadNoSnp, in_msg.addr, TBEs[in_msg.addr]);
+        trigger(Event:ReqReadShared, in_msg.addr, TBEs[in_msg.addr]);
       }
     }
   }
@@ -895,7 +895,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   ////////////////////////////////////////////////////////////////////////////
 
   // requestor side
-  transition(READY, ReadNoSnp, READING_MEM) {
+  transition(READY, ReadShared, READING_MEM) {
     allocateTBE;
     initializeFromReqTBE;
     triggerSendMemoryRead;
@@ -960,7 +960,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // responder side side
-  transition(READY, ReqReadNoSnp, MEMORY_REQUEST){
+  transition(READY, ReqReadShared, MEMORY_REQUEST){
     c2cReqAllocateTBE;
     initializeFromC2cReqTBE;
     triggerSendReadRequest;
