@@ -220,7 +220,7 @@ def create_chip0(
     assert interface3.getAllControllers() == interface3.getNetworkSideControllers()
     mem_cntrls.extend(interface3.getAllControllers())
     all_cntrls.extend(interface3.getAllControllers())
-    mem_dests.extend(interface3.getAllControllers())
+    hnf_dests.extend(interface3.getAllControllers())
 
     if len(other_memories) > 0:
         ruby_system.rom_snf = [
