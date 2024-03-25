@@ -830,7 +830,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   action(sendCompAckToResponder, "sca", desc="Send ComAck to interface1") {
     assert(is_valid(tbe));
-    peek(respInPort, CHIResponseMsg) {
+    peek(rspInPort, CHIResponseMsg) {
       enqueue(responseToC2c_out, C2cMsg, response_latency) {
         out_msg.addr := address;
         out_msg.Type := C2cResponseType:CompAck;
