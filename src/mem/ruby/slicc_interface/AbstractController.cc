@@ -574,12 +574,17 @@ AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
     delete s;
 
     if (pkt->isRead()) {
-        (*msg).m_Type = C2cRequestType_MEMORY_READ;
-        (*msg).m_MessageSize = MessageSizeType_Response_Data;
+        if(pkt->cmd == MemCmd::ReadResp) {
+            (*msg).m_Type = C2cRequestType_MEMORY_READ;
+            (*msg).m_MessageSize = MessageSizeType_Response_Data;
 
-        // Copy data from the packet
-        (*msg).m_DataBlk.setData(pkt->getPtr<uint8_t>(), 0,
-                                 RubySystem::getBlockSizeBytes());
+            // Copy data from the packet
+            (*msg).m_DataBlk.setData(pkt->getPtr<uint8_t>(), 0,
+                                     RubySystem::getBlockSizeBytes());
+        } else if (pkt->cmd == MemCmd::CompAck) {
+            (*msg).m_Type = C2cResponseType_CompAck;
+            (*msg).m_MessageSize = MessageSizeType_Response_Control;
+        }
     } else if (pkt->isWrite()) {
         (*msg).m_Type = C2cRequestType_MEMORY_WB;
         (*msg).m_MessageSize = MessageSizeType_Writeback_Control;
