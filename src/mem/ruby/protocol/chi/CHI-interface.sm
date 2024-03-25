@@ -379,7 +379,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     if (rspInPort.isReady(clockEdge())) {
       printResources();
       peek(rspInPort, CHIResponseMsg) {
-        error("Unexpected message");
+        trigger(respToEvent(in_msg.type), in_msg.addr, TBEs[in_msg.addr]);
       }
     }
   }
@@ -980,7 +980,8 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   transition(MEMORY_REQUEST, Trigger_ReceiveReadDataDone, READY) {
     sendReadResponse;
-    sendCompAck;
+    // We don't send CompAcks now. We forward them. 
+    //sendCompAck;
     deallocateTBE;
     wakeUpStalled;
     popTriggerQueue;
@@ -996,7 +997,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   // Notice we only use this here and call wakeUp when leaving this state
   transition({READING_MEM,WAITING_NET_DATA,SENDING_NET_DATA},
-             {ReadNoSnp, ReadNoSnpSep, WriteNoSnpPtl, WriteNoSnp}) {
+             {ReadShared, ReadNoSnpSep, WriteNoSnpPtl, WriteNoSnp}) {
     stallRequestQueue;
   }
 
