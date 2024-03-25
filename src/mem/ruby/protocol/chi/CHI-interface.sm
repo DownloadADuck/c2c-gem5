@@ -51,6 +51,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     // Interface states 
     MEMORY_REQUEST, AccessPermission:Invalid, desc="Sending request to chip1 s network";
     SEND_CTRL_DATA, AccessPermission:Invalid, desc="Sending response data to chip0";
+    WAIT_ACK, AccessPermission:Invalid,       desc="Waiting for a response CompAck after sending read data";
 
     // Null state for debugging; allow writes
     null, AccessPermission:Backing_Store, desc="Null state";
@@ -849,6 +850,10 @@ machine(MachineType:Interface, "C2C interface controller") :
     datInPort.dequeue(clockEdge());
   }
 
+  action(popRespInQueue, "presp", desc="Pop resp queue.") {
+    respInPort.dequeue(clockEdge());
+  }
+
   action(popTriggerQueue, "ptrigger", desc="Pop trigger queue.") {
     triggerInPort.dequeue(clockEdge());
   }
@@ -958,10 +963,15 @@ machine(MachineType:Interface, "C2C interface controller") :
     popTriggerQueue;
   }
 
-  transition(SENDING_NET_DATA, Trigger_SendDone, READY) {
+  transition(SENDING_NET_DATA, Trigger_SendDone, WAIT_ACK) {
     deallocateTBE;
     wakeUpStalled;
     popTriggerQueue;
+  }
+
+  transition(WAIT_ACK, CompAck, READY) {
+    sendCompAckToResponder;
+    popRespInQueue;
   }
 
   // responder side side
