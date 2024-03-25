@@ -16,9 +16,6 @@ enumeration(C2cRequestType, desc="...") {
   CompAck,    desc="CompAck message";
 }
 
-enumeration(C2cResponseType, desc="...") {
-}
-
 // Message to and from C2C interface
 
 structure(C2cMsg, desc="...", interface="Message") {
