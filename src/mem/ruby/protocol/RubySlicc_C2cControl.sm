@@ -14,6 +14,9 @@ enumeration(C2cRequestType, desc="...") {
   MEMORY_ACK,  desc="Write to memory acknowledgement";
 }
 
+enumeration(C2cResponseType, desc="...") {
+  CompAck,    desc="CompAck message";
+}
 
 // Message to and from C2C interface
 

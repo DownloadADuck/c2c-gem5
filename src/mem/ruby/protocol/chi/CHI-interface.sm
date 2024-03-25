@@ -828,13 +828,15 @@ machine(MachineType:Interface, "C2C interface controller") :
     tbe.dataBlkValid.clear();
   }
 
-  action(sendCompAck, "sca", desc="Send comp ack to hnf") {
+  action(sendCompAckToResponder, "sca", desc="Send ComAck to interface1") {
     assert(is_valid(tbe));
-    enqueue(rspOutPort, CHIResponseMsg, response_latency) {
-      out_msg.addr := address;
-      out_msg.type := CHIResponseType:CompAck;
-      out_msg.responder := machineID;
-      out_msg.Destination.add(mapAddressToDownstreamMachine(tbe.addr));
+    peek(respInPort, CHIResponseMsg) {
+      enqueue(responseToC2c_out, C2cMsg, response_latency) {
+        out_msg.addr := address;
+        out_msg.Type := C2cResponseType:CompAck;
+        out_msg.Sender := in_msg.requestor;
+        out_msg.MessageSize := MessageSizeType:Response_Control;
+      }
     }
   }
 
