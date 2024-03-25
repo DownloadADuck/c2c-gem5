@@ -90,7 +90,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     MemoryData, desc="";
     MemoryAck, desc="";
 
-    // C2c chip0 side trigger events
+    // Responses
+    CompAck, desc="";
 
     // Internal event triggers
     Trigger_Send, desc="";
@@ -121,7 +122,11 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   Event respToEvent (CHIResponseType type) {
-    error("Invalid CHIResponseType");
+    if (type == CHIResponseType:CompAck) {
+      return Event:CompAck;
+    } else {
+      error("Invalid CHIResponseType");
+    }
   }
 
   Event dataToEvent (CHIDataType type) {
