@@ -833,8 +833,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     peek(rspInPort, CHIResponseMsg) {
       enqueue(responseToC2c_out, C2cMsg, response_latency) {
         out_msg.addr := address;
-        out_msg.Type := C2cResponseType:CompAck;
-        out_msg.Sender := in_msg.requestor;
+        out_msg.Type := C2cRequestType:CompAck;
         out_msg.MessageSize := MessageSizeType:Response_Control;
       }
     }
@@ -852,8 +851,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     datInPort.dequeue(clockEdge());
   }
 
-  action(popRespInQueue, "presp", desc="Pop resp queue.") {
-    respInPort.dequeue(clockEdge());
+  action(popRspInQueue, "presp", desc="Pop resp queue.") {
+    rspInPort.dequeue(clockEdge());
   }
 
   action(popTriggerQueue, "ptrigger", desc="Pop trigger queue.") {
@@ -973,7 +972,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   transition(WAIT_ACK, CompAck, READY) {
     sendCompAckToResponder;
-    popRespInQueue;
+    popRspInQueue;
   }
 
   // responder side side

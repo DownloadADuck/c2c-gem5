@@ -416,7 +416,7 @@ AbstractController::serviceRespToC2cQueue()
         pkt->allocate();
         pkt->setData(mem_msg->m_DataBlk.getData(getOffset(mem_msg->m_addr), 
                     resp_size));
-    } else if (mem_msg->getType() == C2cResponseType_CompAck) {
+    } else if (mem_msg->getType() == C2cRequestType_CompAck) {
         pkt = Packet::createRead(req);
         pkt->makeResponse();
         pkt->allocate();
@@ -582,7 +582,7 @@ AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
             (*msg).m_DataBlk.setData(pkt->getPtr<uint8_t>(), 0,
                                      RubySystem::getBlockSizeBytes());
         } else if (pkt->cmd == MemCmd::CompAck) {
-            (*msg).m_Type = C2cResponseType_CompAck;
+            (*msg).m_Type = C2cRequestType_CompAck;
             (*msg).m_MessageSize = MessageSizeType_Response_Control;
         }
     } else if (pkt->isWrite()) {

@@ -12,10 +12,11 @@ enumeration(C2cRequestType, desc="...") {
   // (These are currently unused!)
   MEMORY_DATA, desc="Data read from memory";
   MEMORY_ACK,  desc="Write to memory acknowledgement";
+  
+  CompAck,    desc="CompAck message";
 }
 
 enumeration(C2cResponseType, desc="...") {
-  CompAck,    desc="CompAck message";
 }
 
 // Message to and from C2C interface
