@@ -234,6 +234,7 @@ def create_system(
         #    snf3.cntrl.memory_out_port = interface.cntrl.c2c_in_port
         for interface3 in system.ruby.interface3:
             interface3.cntrl.c2c_out_port = interface.cntrl.c2c_in_port
+            interface3.cntrl.c2c_in_port = interface.cntrl.c2c_out_port
 
     # In SE register the ropology elements with fake filesystem
     if not full_system:

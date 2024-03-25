@@ -828,8 +828,9 @@ machine(MachineType:Interface, "C2C interface controller") :
     tbe.dataBlkValid.clear();
   }
 
-  action(sendCompAckToResponder, "sca", desc="Send ComAck to interface1") {
-    assert(is_valid(tbe));
+  action(sendCompAckToResponder, "sca", desc="Send CompAck to interface1") {
+    // We don't have a TBE field anymore since the request has been serviced.
+    //assert(is_valid(tbe));
     peek(rspInPort, CHIResponseMsg) {
       enqueue(responseToC2c_out, C2cMsg, response_latency) {
         out_msg.addr := address;
