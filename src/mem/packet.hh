@@ -148,7 +148,9 @@ class MemCmd
         HTMAbort,
         // Tlb shootdown
         TlbiExtSync,
-        NUM_MEM_CMDS
+        NUM_MEM_CMDS,
+        // c2c commands
+        CompAck
     };
 
   private:

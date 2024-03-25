@@ -416,6 +416,12 @@ AbstractController::serviceRespToC2cQueue()
         pkt->allocate();
         pkt->setData(mem_msg->m_DataBlk.getData(getOffset(mem_msg->m_addr), 
                     resp_size));
+    } else if (mem_msg->getType() == C2cResponseType_CompAck) {
+        pkt = Packet::createRead(req);
+        pkt->makeResponse();
+        pkt->allocate();
+        pkt->cmd == MemCmd::CompAck;
+
     } else if (mem_msg->getType() == C2cRequestType_MEMORY_WB) {
         panic("MEMORY_WRITE");
         //pkt = Packet::createWrite(req);
