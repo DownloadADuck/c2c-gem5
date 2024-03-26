@@ -140,6 +140,17 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
+  Event c2cRespToEvent (C2cRequestType type) {
+    if (type == C2cRequestType:MEMORY_READ) {
+      return Event:MemoryData;
+    } else if (type == C2cRequestType:CompAck) {
+      return Event:ResponseCompAck;
+    } else {
+      error("Invalid C2cResponseType");
+    }
+
+  }
+
 
   ////////////////////////////////////////////////////////////////////////////
   // Data structures
@@ -408,12 +419,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       printResources();
       peek(responseFromC2c_in, C2cMsg) {
         Addr addr := makeLineAddress(in_msg.addr);
-        if (in_msg.Type == C2cRequestType:MEMORY_READ) {
-          trigger(Event:MemoryData, addr, TBEs[addr]);
-        } else if (in_msg.Type == C2cRequestType:MEMORY_WB) {
-          trigger(Event:MemoryAck, addr, TBEs[addr]);
-        } else {
-          error("Invalid message");
+          trigger(C2cRespToEvent(in_msg.Type), in_msg.addr, TBEs[in_msg.addr]);
         }
       }
     }
