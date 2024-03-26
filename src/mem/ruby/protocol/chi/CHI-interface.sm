@@ -92,7 +92,10 @@ machine(MachineType:Interface, "C2C interface controller") :
     MemoryAck, desc="";
 
     // Responses
+    // We transmit the comp ack to the other interface
     CompAck, desc="";
+    // We receive a comp ack an need to sent it to the network 
+    ResponseCompAck, desc="";
 
     // Internal event triggers
     Trigger_Send, desc="";
@@ -420,7 +423,6 @@ machine(MachineType:Interface, "C2C interface controller") :
       peek(responseFromC2c_in, C2cMsg) {
         Addr addr := makeLineAddress(in_msg.addr);
           trigger(C2cRespToEvent(in_msg.Type), in_msg.addr, TBEs[in_msg.addr]);
-        }
       }
     }
   }
@@ -837,12 +839,18 @@ machine(MachineType:Interface, "C2C interface controller") :
   action(sendCompAckToResponder, "sca", desc="Send CompAck to interface1") {
     // We don't have a TBE field anymore since the request has been serviced.
     //assert(is_valid(tbe));
-    peek(rspInPort, CHIResponseMsg) {
-      enqueue(responseToC2c_out, C2cMsg, response_latency) {
-        out_msg.addr := address;
-        out_msg.Type := C2cRequestType:CompAck;
-        out_msg.MessageSize := MessageSizeType:Response_Control;
-      }
+    enqueue(responseToC2c_out, C2cMsg, response_latency) {
+      out_msg.addr := address;
+      out_msg.Type := C2cRequestType:CompAck;
+      out_msg.MessageSize := MessageSizeType:Response_Control;
+    }
+  }
+  
+  action(sendCompAckToNetwork, "scan", desc="Send back CompAck to network") {
+    enqueue(rspOut, CHIResponseMsg, response_latency) {
+      out_msg.addr := address;
+      out_msg.type := CHIResponseType:CompAck;
+      out_msg.MessageSize := MessageSizeType:Response_Control;
     }
   }
 
@@ -980,6 +988,11 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition(READY, CompAck) {
     sendCompAckToResponder;
     popRspInQueue;
+  }
+
+  transition(READY, ResponseCompAck) {
+    sendCompAckToNetwork;
+    popMemoryQueue;
   }
 
   // responder side side
