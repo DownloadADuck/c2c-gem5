@@ -112,10 +112,10 @@ AbstractController::init()
                     name(), addr_range.to_string());
             }
             downstreamAddrMap[mid.getType()].insert(addr_range, mid);
-            for (const auto &i : downstreamAddrMap) {
-                std::cout << "Machine ID: " << mid << " allocated to mem range: " << addr_range.to_string() << " this controller: " << this->getMachineID() << std::endl; 
-                //" address map first member: " << i.first << std::endl;
-            }
+            //for (const auto &i : downstreamAddrMap) {
+            //    std::cout << " Machine ID: " << mid << " allocated to mem range: " << addr_range.to_string() << " this controller: " << this->getMachineID() << std::endl; 
+            //    //" address map first member: " << i.first << std::endl;
+            //}
         }
         downstreamDestinations.add(mid);
     }
@@ -417,10 +417,11 @@ AbstractController::serviceRespToC2cQueue()
         pkt->setData(mem_msg->m_DataBlk.getData(getOffset(mem_msg->m_addr), 
                     resp_size));
     } else if (mem_msg->getType() == C2cRequestType_CompAck) {
+        std::cout << "We are sending a CompAck" << std::endl;
         pkt = Packet::createRead(req);
+        pkt->cmd == MemCmd::CompAck;
         pkt->makeResponse();
         pkt->allocate();
-        pkt->cmd == MemCmd::CompAck;
 
     } else if (mem_msg->getType() == C2cRequestType_MEMORY_WB) {
         panic("MEMORY_WRITE");
@@ -575,6 +576,7 @@ AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
 
     if (pkt->isRead()) {
         if(pkt->cmd == MemCmd::ReadResp) {
+            std::cout << "We have a ReadResp command" << std::endl;
             (*msg).m_Type = C2cRequestType_MEMORY_READ;
             (*msg).m_MessageSize = MessageSizeType_Response_Data;
 
@@ -582,6 +584,7 @@ AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
             (*msg).m_DataBlk.setData(pkt->getPtr<uint8_t>(), 0,
                                      RubySystem::getBlockSizeBytes());
         } else if (pkt->cmd == MemCmd::CompAck) {
+            std::cout << "We have a CompAck command" << std::endl;
             (*msg).m_Type = C2cRequestType_CompAck;
             (*msg).m_MessageSize = MessageSizeType_Response_Control;
         }
