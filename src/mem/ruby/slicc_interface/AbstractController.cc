@@ -419,9 +419,9 @@ AbstractController::serviceRespToC2cQueue()
     } else if (mem_msg->getType() == C2cRequestType_CompAck) {
         std::cout << "We are sending a CompAck" << std::endl;
         pkt = Packet::createRead(req);
-        pkt->cmd == MemCmd::CompAck;
         pkt->makeResponse();
         pkt->allocate();
+        pkt->cmd = MemCmd::CompAck;
 
     } else if (mem_msg->getType() == C2cRequestType_MEMORY_WB) {
         panic("MEMORY_WRITE");
