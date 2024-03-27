@@ -237,7 +237,7 @@ MemCmd::commandInfo[] =
     { {IsRead, IsResponse}, InvalidCmd, "HTMReqResp" },
     { {IsRead, IsRequest}, InvalidCmd, "HTMAbort" },
     { {IsRequest}, InvalidCmd, "TlbiExtSync" },
-    { {IsResponse}, CompAck, "CompAck"},
+    { {IsRead, IsResponse}, CompAck, "CompAck" },
 };
 
 AddrRange

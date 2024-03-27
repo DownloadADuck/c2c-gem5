@@ -421,7 +421,7 @@ AbstractController::serviceRespToC2cQueue()
         pkt = Packet::createRead(req);
         pkt->makeResponse();
         pkt->allocate();
-        pkt->cmd = MemCmd::CompAck;
+        pkt->cmd = MemCmd::ReadRespWithInvalidate;
 
     } else if (mem_msg->getType() == C2cRequestType_MEMORY_WB) {
         panic("MEMORY_WRITE");
@@ -583,7 +583,7 @@ AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
             // Copy data from the packet
             (*msg).m_DataBlk.setData(pkt->getPtr<uint8_t>(), 0,
                                      RubySystem::getBlockSizeBytes());
-        } else if (pkt->cmd == MemCmd::CompAck) {
+        } else if (pkt->cmd == MemCmd::ReadRespWithInvalidate) {
             std::cout << "We have a CompAck command" << std::endl;
             (*msg).m_Type = C2cRequestType_CompAck;
             (*msg).m_MessageSize = MessageSizeType_Response_Control;
