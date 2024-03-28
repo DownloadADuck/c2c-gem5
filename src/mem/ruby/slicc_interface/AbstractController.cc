@@ -351,6 +351,10 @@ AbstractController::serviceReqToC2cQueue()
         pkt->allocate();
         pkt->setData(mem_msg->m_DataBlk.getData(getOffset(mem_msg->m_addr),
             req_size));
+    } else if (mem_msg->getType() == C2cRequestType_WriteEvictFull) {
+        pkt = Packet::createWrite(req);
+        pkt->allocate();
+        pkt->cmd = MemCmd:CHIWriteEvictFull;
     } else if (mem_msg->getType() == C2cRequestType_MEMORY_READ) {
         pkt = Packet::createRead(req);
         uint8_t *newData = new uint8_t[req_size];
@@ -421,8 +425,7 @@ AbstractController::serviceRespToC2cQueue()
         pkt = Packet::createRead(req);
         pkt->makeResponse();
         pkt->allocate();
-        pkt->cmd = MemCmd::ReadRespWithInvalidate;
-
+        pkt->cmd = MemCmd::CHICompAck;
     } else if (mem_msg->getType() == C2cRequestType_MEMORY_WB) {
         panic("MEMORY_WRITE");
         //pkt = Packet::createWrite(req);
@@ -583,7 +586,7 @@ AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
             // Copy data from the packet
             (*msg).m_DataBlk.setData(pkt->getPtr<uint8_t>(), 0,
                                      RubySystem::getBlockSizeBytes());
-        } else if (pkt->cmd == MemCmd::ReadRespWithInvalidate) {
+        } else if (pkt->cmd == MemCmd::CHICompAck) {
             std::cout << "We have a CompAck command" << std::endl;
             (*msg).m_Type = C2cRequestType_CompAck;
             (*msg).m_MessageSize = MessageSizeType_Response_Control;
@@ -614,12 +617,17 @@ AbstractController::recvTimingReq(PacketPtr pkt)
     delete s;
 
     if (pkt->isRead()) {
-        (*msg).m_Type = C2cRequestType_MEMORY_READ;
-        (*msg).m_MessageSize = MessageSizeType_Request_Control;
+        if (pkt->cmd == MemCmd:ReadReq) {
+            (*msg).m_Type = C2cRequestType_MEMORY_READ;
+            (*msg).m_MessageSize = MessageSizeType_Request_Control;
 
-        // Copy data from the packet
-        (*msg).m_DataBlk.setData(pkt->getPtr<uint8_t>(), 0,
-                                 RubySystem::getBlockSizeBytes());
+            // Copy data from the packet
+            (*msg).m_DataBlk.setData(pkt->getPtr<uint8_t>(), 0,
+                                     RubySystem::getBlockSizeBytes());
+        } else if (pkt->cmd == MemCmd:CHIWriteEvictFull) {
+            (*msg).m_Type = C2cRequestType_WriteEvictFull;
+            (*msg).m_MessageSize = MessageSizeType_Request_Control;
+        }
     } else if (pkt->isWrite()) {
         (*msg).m_Type = C2cRequestType_MEMORY_WB;
         (*msg).m_MessageSize = MessageSizeType_Writeback_Control;

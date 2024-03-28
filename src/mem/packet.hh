@@ -150,7 +150,8 @@ class MemCmd
         TlbiExtSync,
         NUM_MEM_CMDS,
         // c2c commands
-        CompAck
+        CHICompAck,
+        CHIWriteEvictFull
     };
 
   private:
