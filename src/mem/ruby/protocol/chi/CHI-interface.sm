@@ -81,6 +81,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     WriteNoSnp, desc="";
     ReadShared, desc="";
     ReadNoSnpSep, desc="";
+    WriteEvictFull, desc="";
 
     // Data
     WriteData, desc="";
@@ -120,6 +121,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:ReadShared;
     } else if (type == CHIRequestType:ReadNoSnpSep) {
       return Event:ReadNoSnpSep;
+    } else if (type == CHIRequestType:WriteEvictFull) {
+      return Event:WriteEvictFull;
     } else {
       error("Invalid CHIRequestType");
     }
@@ -140,6 +143,16 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:RespData;
     } else {
       error("Invalid CHIDataType");
+    }
+  }
+
+  Event c2cReqToEvent (C2cRequestType type) {
+    if (type == C2cRequestType:ReadShared) {
+      return Event:ReqReadShared;
+    } else if (type == C2cRequestType:WriteEvictFull) {
+      return Event:C2cWriteEvictFull;
+    } else {
+      error("Invalid C2c request type");
     }
   }
 
@@ -373,7 +386,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   ////////////////////////////////////////////////////////////////////////////
-  // Input/output port definitions
+  // Input/output ports definitions
   ////////////////////////////////////////////////////////////////////////////
 
   // Outbound port definitions
@@ -432,14 +445,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       printResources();
       peek(requestFromC2c_in, C2cMsg) {
         Addr addr := makeLineAddress(in_msg.addr);
-        if (in_msg.Type == C2cRequestType:MEMORY_READ) {
-          trigger(Event:CheckC2cReqAllocTBE, addr, TBEs[addr]);
-        } else if (in_msg.Type == C2cRequestType:MEMORY_WB) {
-          error("MemoryRequestType:MEMORY_WB not supported yet");
-          trigger(Event:MemoryAck, addr, TBEs[addr]);
-        } else {
-          error("Invalid message");
-        }
+        trigger(Event:CheckC2cReqAllocTBE, addr, TBEs[addr]);
       }
     }
   }
@@ -479,7 +485,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     if(c2cReqRdyInPort.isReady(clockEdge())) {
       printResources();
       peek(c2cReqRdyInPort, C2cMsg) {
-        trigger(Event:ReqReadShared, in_msg.addr, TBEs[in_msg.addr]);
+        trigger(c2cReqToEvent(in_msg.Type), in_msg.addr, TBEs[in_msg.addr]);
       }
     }
   }
@@ -854,6 +860,28 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
+  action(SendToC2c_WriteEvictFull, "s2cwef", desc="Send WriteEvictFull to C2C") {
+    enqueue(requestToC2c_out, C2cMsg, request_latency) {
+      out_msg.addr := address;
+      out_msg.Type := C2cRequestType:WriteEvictFull;
+      out_msg.MessageSize := MessageSizeType:Request_Control;
+    }
+  }
+
+  action(SendToNet_WriteEvictFull, "s2nwef", desc="Send WriteEvictFull to Network") {
+    enqueue(reqOutPort, CHIRequestMsg, request_latency) {
+      out_msg.addr := address;
+      out_msg.accAddr := address;
+      out_msg.accSize := blockSize;
+      out_msg.type := CHIRequestType:WriteEvictFull;
+      out_msg.requestor := machineID;
+      out_msg.fwdRequestor := machineID;
+      out_msg.allowRetry := false;
+      out_msg.is_local_pf := false;
+      out_msg.Destination.add(mapAddressToDownstreamMachine(address));
+    }
+  }
+
   action(popReqInQueue, "preq", desc="Pop request queue.") {
     reqRdyInPort.dequeue(clockEdge());
   }
@@ -993,6 +1021,16 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition(READY, ResponseCompAck) {
     sendCompAckToNetwork;
     popMemoryQueue;
+  }
+
+  transition(READY, WriteEvictFull) {
+    SendToC2c_WriteEvictFull;
+    popReqInQueue;
+  }
+
+  transition(READY, c2cWriteEvictFull) {
+    SendToNet_WriteEvictFull;
+    popC2cReqRdyInQueue;
   }
 
   // responder side side
