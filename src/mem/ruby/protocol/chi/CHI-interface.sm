@@ -82,6 +82,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     ReadShared, desc="";
     ReadNoSnpSep, desc="";
     WriteEvictFull, desc="";
+    C2cWriteEvictFull, desc="";
 
     // Data
     WriteData, desc="";
@@ -147,7 +148,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   Event c2cReqToEvent (C2cRequestType type) {
-    if (type == C2cRequestType:ReadShared) {
+    if (type == C2cRequestType:MEMORY_READ) {
       return Event:ReqReadShared;
     } else if (type == C2cRequestType:WriteEvictFull) {
       return Event:C2cWriteEvictFull;
@@ -1028,7 +1029,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popReqInQueue;
   }
 
-  transition(READY, c2cWriteEvictFull) {
+  transition(READY, C2cWriteEvictFull) {
     SendToNet_WriteEvictFull;
     popC2cReqRdyInQueue;
   }

@@ -617,14 +617,14 @@ AbstractController::recvTimingReq(PacketPtr pkt)
     delete s;
 
     if (pkt->isRead()) {
-        if (pkt->cmd == MemCmd:ReadReq) {
+        if (pkt->cmd == MemCmd::ReadReq) {
             (*msg).m_Type = C2cRequestType_MEMORY_READ;
             (*msg).m_MessageSize = MessageSizeType_Request_Control;
 
             // Copy data from the packet
             (*msg).m_DataBlk.setData(pkt->getPtr<uint8_t>(), 0,
                                      RubySystem::getBlockSizeBytes());
-        } else if (pkt->cmd == MemCmd:CHIWriteEvictFull) {
+        } else if (pkt->cmd == MemCmd::CHIWriteEvictFull) {
             (*msg).m_Type = C2cRequestType_WriteEvictFull;
             (*msg).m_MessageSize = MessageSizeType_Request_Control;
         }
