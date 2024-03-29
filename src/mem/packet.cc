@@ -237,8 +237,8 @@ MemCmd::commandInfo[] =
     { {IsRead, IsResponse}, InvalidCmd, "HTMReqResp" },
     { {IsRead, IsRequest}, InvalidCmd, "HTMAbort" },
     { {IsRequest}, InvalidCmd, "TlbiExtSync" },
-    { {IsRead, IsResponse}, CHICompAck, "CompAck" },
-    { {IsRead, IsRequest}, CHIWriteEvictFull, "WriteEvictFull" },
+    { {IsRead, IsResponse}, CHICompAck, "CHICompAck" },
+    { {IsRead, IsRequest}, CHIWriteEvictFull, "CHIWriteEvictFull" },
 };
 
 AddrRange

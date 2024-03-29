@@ -354,7 +354,7 @@ AbstractController::serviceReqToC2cQueue()
     } else if (mem_msg->getType() == C2cRequestType_WriteEvictFull) {
         pkt = Packet::createWrite(req);
         pkt->allocate();
-        pkt->cmd = MemCmd:CHIWriteEvictFull;
+        pkt->cmd = MemCmd::CHIWriteEvictFull;
     } else if (mem_msg->getType() == C2cRequestType_MEMORY_READ) {
         pkt = Packet::createRead(req);
         uint8_t *newData = new uint8_t[req_size];
@@ -422,10 +422,8 @@ AbstractController::serviceRespToC2cQueue()
                     resp_size));
     } else if (mem_msg->getType() == C2cRequestType_CompAck) {
         std::cout << "We are sending a CompAck" << std::endl;
-        pkt = Packet::createRead(req);
-        pkt->makeResponse();
-        pkt->allocate();
-        pkt->cmd = MemCmd::CHICompAck;
+        pkt = new Packet(req, MemCmd::CHICompAck);
+        //pkt->allocate();
     } else if (mem_msg->getType() == C2cRequestType_MEMORY_WB) {
         panic("MEMORY_WRITE");
         //pkt = Packet::createWrite(req);

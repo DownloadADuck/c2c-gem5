@@ -148,10 +148,10 @@ class MemCmd
         HTMAbort,
         // Tlb shootdown
         TlbiExtSync,
-        NUM_MEM_CMDS,
         // c2c commands
         CHICompAck,
-        CHIWriteEvictFull
+        CHIWriteEvictFull,
+        NUM_MEM_CMDS
     };
 
   private:
