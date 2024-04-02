@@ -99,6 +99,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     Net_CompDBIDResp, desc="";
     // We receive a comp ack an need to sent it to the network 
     C2c_CompAck, desc="";
+    C2c_CompDBIDResp, desc="";
 
     // Internal event triggers
     Trigger_Send, desc="";
