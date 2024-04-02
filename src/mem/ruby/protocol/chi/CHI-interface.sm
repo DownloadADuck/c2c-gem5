@@ -612,11 +612,13 @@ machine(MachineType:Interface, "C2C interface controller") :
   action(initializeFromReqTBE, "itbe", desc="Initialize TBE fields") {
     peek(reqRdyInPort, CHIRequestMsg) {
       tbe.requestor := in_msg.requestor;
-      if (in_msg.dataToFwdRequestor) {
-        tbe.destination := in_msg.fwdRequestor;
-      } else {
-        tbe.destination := in_msg.requestor;
-      }
+      //if (in_msg.dataToFwdRequestor) {
+      //  tbe.destination := in_msg.fwdRequestor;
+      //} else {
+      //  tbe.destination := in_msg.requestor;
+      //}
+      // hack
+      tbe.destination := in_msg.requestor;
       tbe.accAddr := in_msg.accAddr;
       tbe.accSize := in_msg.accSize;
     }
@@ -870,11 +872,9 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   action(SendToC2c_CompDBIDResp, "s2ccdr", desc="Send CompDBIDResp to C2c") {
-    // We should have a tbe 
-    //assert(is_valid(tbe));
     enqueue(responseToC2c_out, C2cMsg, response_latency) {
       out_msg.addr := address;
-      out_msg.Type := C2cRequestType:CompAck;
+      out_msg.Type := C2cRequestType:CompDBIDResp;
       out_msg.MessageSize := MessageSizeType:Response_Control;
     }
   }
@@ -1064,6 +1064,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition(READY, Net_WriteEvictFull) {
+    allocateTBE;
     initializeFromReqTBE;
     SendToC2c_WriteEvictFull;
     popReqInQueue;
