@@ -151,6 +151,7 @@ class MemCmd
         // c2c commands
         CHICompAck,
         CHIWriteEvictFull,
+        CHICompDBIDResp,
         NUM_MEM_CMDS
     };
 
