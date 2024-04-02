@@ -30,7 +30,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   MessageBuffer * requestFromC2c;
   MessageBuffer * responseToC2c;
 
-  // Trigger queue for internal events
+  // Trigger queue for internal event
   MessageBuffer * triggerQueue;
 
 {
@@ -95,9 +95,10 @@ machine(MachineType:Interface, "C2C interface controller") :
 
     // Responses
     // We transmit the comp ack to the other interface
-    CompAck, desc="";
+    Net_CompAck, desc="";
+    Net_CompDBIDResp, desc="";
     // We receive a comp ack an need to sent it to the network 
-    ResponseCompAck, desc="";
+    C2c_CompAck, desc="";
 
     // Internal event triggers
     Trigger_Send, desc="";
@@ -131,7 +132,9 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   Event respToEvent (CHIResponseType type) {
     if (type == CHIResponseType:CompAck) {
-      return Event:CompAck;
+      return Event:Net_CompAck;
+    } else if (type == CHIResponseType:CompDBIDResp) {
+      return Event:Net_CompDBIDResp;
     } else {
       error("Invalid CHIResponseType");
     }
@@ -161,7 +164,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     if (type == C2cRequestType:MEMORY_READ) {
       return Event:MemoryData;
     } else if (type == C2cRequestType:CompAck) {
-      return Event:ResponseCompAck;
+      return Event:C2c_CompAck;
     } else {
       error("Invalid C2cResponseType");
     }
@@ -842,7 +845,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     tbe.dataBlkValid.clear();
   }
 
-  action(sendCompAckToResponder, "sca", desc="Send CompAck to interface1") {
+  action(SendToC2c_CompAck, "sca", desc="Send CompAck to interface1") {
     // We don't have a TBE field anymore since the request has been serviced.
     //assert(is_valid(tbe));
     enqueue(responseToC2c_out, C2cMsg, response_latency) {
@@ -852,7 +855,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
   
-  action(sendCompAckToNetwork, "scan", desc="Send back CompAck to network") {
+  action(SendToNet_CompAck, "scan", desc="Send back CompAck to network") {
     enqueue(rspOutPort, CHIResponseMsg, response_latency) {
       out_msg.addr := address;
       out_msg.type := CHIResponseType:CompAck;
@@ -903,7 +906,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     triggerInPort.dequeue(clockEdge());
   }
 
-  action(popMemoryQueue, "pmem", desc="Pop memory queue.") {
+  action(popResponseFRomC2cQueue, "pmem", desc="Pop memory queue.") {
     responseFromC2c_in.dequeue(clockEdge());
   }
 
@@ -973,7 +976,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition(READING_MEM, MemoryData, SENDING_NET_DATA) {
     prepareSend;
     sendDataAndCheck;
-    popMemoryQueue;
+    popResponseFRomC2cQueue;
   }
 
   transition(SENDING_NET_DATA, Trigger_Send) {
@@ -1014,14 +1017,24 @@ machine(MachineType:Interface, "C2C interface controller") :
     popTriggerQueue;
   }
 
-  transition(READY, CompAck) {
-    sendCompAckToResponder;
+  transition(READY, Net_CompAck) {
+    SendToC2c_CompAck;
     popRspInQueue;
   }
 
-  transition(READY, ResponseCompAck) {
-    sendCompAckToNetwork;
-    popMemoryQueue;
+  transition(READY, C2c_CompAck) {
+    SendToNet_CompAck;
+    popResponseFRomC2cQueue;
+  }
+
+  transition(READY, Net_CompDBIDResp) {
+    SendToC2c_CompDBID;
+    popRspInQueue;
+  }
+
+  transition(READY, C2c_CompDBIDResp) {
+    SendToNet_CompDBIDResp;
+    popResponseFRomC2cQueue;
   }
 
   transition(READY, WriteEvictFull) {
@@ -1055,8 +1068,6 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   transition(MEMORY_REQUEST, Trigger_ReceiveReadDataDone, READY) {
     sendReadResponse;
-    // We don't send CompAcks now. We forward them. 
-    //sendCompAck;
     deallocateTBE;
     wakeUpStalled;
     popTriggerQueue;
@@ -1067,7 +1078,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition({READING_MEM,WAITING_NET_DATA,SENDING_NET_DATA,READY},
               MemoryAck) {
     decWritePending;
-    popMemoryQueue;
+    popResponseFRomC2cQueue;
   }
 
   // Notice we only use this here and call wakeUp when leaving this state
