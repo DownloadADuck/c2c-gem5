@@ -884,7 +884,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.addr := tbe.addr;
       out_msg.type := CHIResponseType:CompDBIDResp;
       out_msg.responder := machineID;
-      out_msg.Destination := tbe.requestor;
+      out_msg.Destination.add(tbe.requestor);
     }
   }
 
@@ -1036,11 +1036,11 @@ machine(MachineType:Interface, "C2C interface controller") :
   //  popTriggerQueue;
   //}
 
-  //transition(SENDING_NET_DATA, Trigger_SendDone, READY) {
-  //  deallocateTBE;
-  //  wakeUpStalled;
-  //  popTriggerQueue;
-  //}
+  transition(SENDING_NET_DATA, Trigger_SendDone, READY) {
+    deallocateTBE;
+    wakeUpStalled;
+    popTriggerQueue;
+  }
 
   transition(READY, Net_CompAck) {
     SendToC2c_CompAck;
