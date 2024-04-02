@@ -422,13 +422,8 @@ AbstractController::serviceRespToC2cQueue()
                     resp_size));
     } else if (mem_msg->getType() == C2cRequestType_CompAck) {
         pkt = new Packet(req, MemCmd::CHICompAck);
-        //pkt->allocate();
-    } else if (mem_msg->getType() == C2cRequestType_MEMORY_WB) {
-        panic("MEMORY_WRITE");
-        //pkt = Packet::createWrite(req);
-        //pkt->makeResponse();
-        //uint8_t *newData = new uint8_t[req_size];
-        //pkt->dataDynamic(newData);
+    } else if (mem_msg->getType() == C2cRequestType_CompDBIDResp) {
+        pkt = new Packet(req, MemCmd::CHICompDBIDResp);
     } else {
         panic("Unknown memory response type (%s) for addr %p",
               C2cRequestType_to_string(mem_msg->getType()),
@@ -584,6 +579,9 @@ AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
                                      RubySystem::getBlockSizeBytes());
         } else if (pkt->cmd == MemCmd::CHICompAck) {
             (*msg).m_Type = C2cRequestType_CompAck;
+            (*msg).m_MessageSize = MessageSizeType_Response_Control;
+        } else if (pkt->cmd == MemCmd::CHICompDBIDResp) {
+            (*msg).m_Type = C2cRequestType_CompDBIDResp;
             (*msg).m_MessageSize = MessageSizeType_Response_Control;
         }
     } else if (pkt->isWrite()) {
