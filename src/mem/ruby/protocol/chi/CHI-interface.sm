@@ -877,7 +877,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.type := CHIRequestType:WriteEvictFull;
       out_msg.requestor := machineID;
       out_msg.fwdRequestor := machineID;
-      out_msg.allowRetry := false;
+      out_msg.allowRetry := true;
       out_msg.is_local_pf := false;
       out_msg.Destination.add(mapAddressToDownstreamMachine(address));
     }

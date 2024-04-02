@@ -421,7 +421,6 @@ AbstractController::serviceRespToC2cQueue()
         pkt->setData(mem_msg->m_DataBlk.getData(getOffset(mem_msg->m_addr), 
                     resp_size));
     } else if (mem_msg->getType() == C2cRequestType_CompAck) {
-        std::cout << "We are sending a CompAck" << std::endl;
         pkt = new Packet(req, MemCmd::CHICompAck);
         //pkt->allocate();
     } else if (mem_msg->getType() == C2cRequestType_MEMORY_WB) {
@@ -577,7 +576,6 @@ AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
 
     if (pkt->isRead()) {
         if(pkt->cmd == MemCmd::ReadResp) {
-            std::cout << "We have a ReadResp command" << std::endl;
             (*msg).m_Type = C2cRequestType_MEMORY_READ;
             (*msg).m_MessageSize = MessageSizeType_Response_Data;
 
@@ -585,7 +583,6 @@ AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
             (*msg).m_DataBlk.setData(pkt->getPtr<uint8_t>(), 0,
                                      RubySystem::getBlockSizeBytes());
         } else if (pkt->cmd == MemCmd::CHICompAck) {
-            std::cout << "We have a CompAck command" << std::endl;
             (*msg).m_Type = C2cRequestType_CompAck;
             (*msg).m_MessageSize = MessageSizeType_Response_Control;
         }
