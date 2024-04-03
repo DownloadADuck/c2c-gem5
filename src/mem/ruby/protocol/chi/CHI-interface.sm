@@ -165,8 +165,8 @@ machine(MachineType:Interface, "C2C interface controller") :
 
     if (type == CHIDataType:CompData_UC) {
       return Event:Net_RespData;
-    } else if (type == CHIDataType:NCBWrData) {
-      return Event:Net_NCBWrData;
+    } else if (type == CHIDataType:CBWrData_UC) {
+      return Event:Net_CBWrData_UC;
     } else {
       error("Invalid CHIDataType");
     }
@@ -189,8 +189,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:C2c_CompAck;
     } else if (type == C2cRequestType:CompDBIDResp) {
       return Event:C2c_CompDBIDResp;
-    } else if (type == C2cRequestType:NCBWrData) {
-      return Event:C2c_NCBWrData;
+    } else if (type == C2cRequestType:CBWrData_UC) {
+      return Event:C2c_CBWrData_UC;
     } else {
       error("Invalid C2cResponseType");
     }
@@ -805,8 +805,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       }
       //} else if (tbe.type == CHIDataType:CompData_UC) {
       //  out_msg.type := CHIDataType:CompData_UC;
-      //} else if (tbe.type == CHIDataType:NCBWrData) {
-      //  out_msg.type := CHIDataType:NCBWrData;
+      //} else if (tbe.type == CHIDataType:CBWrData_UC) {
+      //  out_msg.type := CHIDataType:CBWrData_UC;
       //}
       out_msg.dataBlk := tbe.dataBlk;
       // Called in order for the whole block so use rxtxBytes as offset
@@ -940,11 +940,11 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  action(SendToC2c_NCBWrData, "s2cnwd", desc="Sending the WBData to C2C") {
+  action(SendToC2c_CBWrData_UC, "s2cnwd", desc="Sending the WBData to C2C") {
     assert(is_valid(tbe));
     enqueue(responseToC2c_out, C2cMsg, to_memory_controller_latency) {
       out_msg.addr := tbe.addr;
-      out_msg.Type := C2cRequestType:NCBWrData;
+      out_msg.Type := C2cRequestType:CBWrData_UC;
       out_msg.Sender := tbe.requestor;
       out_msg.MessageSize := MessageSizeType:Response_Data;
       out_msg.DataBlk := tbe.dataBlk;
@@ -1120,19 +1120,19 @@ machine(MachineType:Interface, "C2C interface controller") :
     popResponseFromC2cQueue;
   }
 
-  transition(WAIT_WBDATA, Net_NCBWrData) {
+  transition(WAIT_WBDATA, Net_CBWrData_UC) {
     copyReadDataToTBE;
     checkForReadReceiveCompletion;
     popDataInQueue;
   }
 
-  transition(WAIT_WBDATA, Net_NCBWrData_ReceiveDone, READY) {
-    SendToC2c_NCBWrData;
+  transition(WAIT_WBDATA, Net_CBWrData_UC_ReceiveDone, READY) {
+    SendToC2c_CBWrData_UC;
     deallocateTBE;
     popTriggerQueue;
   }
 
-  transition(READY, C2c_NCBWrData, SENDING_WBDATA) {
+  transition(READY, C2c_CBWrData_UC, SENDING_WBDATA) {
     prepareSend;
     sendDataAndCheck;
     popResponseFromC2cQueue;
