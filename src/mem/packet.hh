@@ -152,6 +152,7 @@ class MemCmd
         CHICompAck,
         CHIWriteEvictFull,
         CHICompDBIDResp,
+        CHIWBData,
         NUM_MEM_CMDS
     };
 
