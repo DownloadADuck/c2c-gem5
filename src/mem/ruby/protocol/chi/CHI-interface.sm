@@ -52,6 +52,10 @@ machine(MachineType:Interface, "C2C interface controller") :
     MEMORY_REQUEST, AccessPermission:Invalid, desc="Sending request to chip1 s network";
     SEND_CTRL_DATA, AccessPermission:Invalid, desc="Sending response data to chip0";
     WAIT_ACK, AccessPermission:Backing_Store_Busy,       desc="Waiting for a response CompAck after sending read data";
+    WAIT_WBDATA, AccessPermission:Invalid, desc="Waiting for WBData from Net";
+    WAIT_COMPDBID, AccessPermission:Invalid, desc="Waiting for CompDBID from Net";
+    SENDING_WBDATA, AccessPermission:Invalid, desc="Sending WBData to Net";
+
 
     // Null state for debugging; allow writes
     null, AccessPermission:Backing_Store, desc="Null state";
@@ -86,7 +90,10 @@ machine(MachineType:Interface, "C2C interface controller") :
 
     // Data
     WriteData, desc="";
-    RespData, desc="Response data from chip1";
+    Net_RespData, desc="Response data from net";
+    Net_WBData, desc="Response from an evict";
+    Net_WBData_ReceiveDone, desc="Received all WBData messages";
+    C2c_WBData, desc="";
 
     // we don't need these anymore since we do not use a memory
     // Memory side
@@ -145,7 +152,9 @@ machine(MachineType:Interface, "C2C interface controller") :
     if (type == CHIDataType:NCBWrData) {
       return Event:WriteData;
     } else if (type == CHIDataType:CompData_UC) {
-      return Event:RespData;
+      return Event:Net_RespData;
+    } else if (type == CHIDataType:Net_WBData) {
+      return Event:Net_WBData;
     } else {
       error("Invalid CHIDataType");
     }
@@ -168,6 +177,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:C2c_CompAck;
     } else if (type == C2cRequestType:CompDBIDResp) {
       return Event:C2c_CompDBIDResp;
+    } else if (type == C2cRequestType:WBData) {
+      return Event:C2c_WBData;
     } else {
       error("Invalid C2cResponseType");
     }
@@ -612,13 +623,11 @@ machine(MachineType:Interface, "C2C interface controller") :
   action(initializeFromReqTBE, "itbe", desc="Initialize TBE fields") {
     peek(reqRdyInPort, CHIRequestMsg) {
       tbe.requestor := in_msg.requestor;
-      //if (in_msg.dataToFwdRequestor) {
-      //  tbe.destination := in_msg.fwdRequestor;
-      //} else {
-      //  tbe.destination := in_msg.requestor;
-      //}
-      // hack
-      tbe.destination := in_msg.requestor;
+      if (in_msg.dataToFwdRequestor) {
+        tbe.destination := in_msg.fwdRequestor;
+      } else {
+        tbe.destination := in_msg.requestor;
+      }
       tbe.accAddr := in_msg.accAddr;
       tbe.accSize := in_msg.accSize;
     }
@@ -628,6 +637,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     peek(c2cReqRdyInPort, C2cMsg) {
       tbe.Sender := in_msg.Sender;
       tbe.size := in_msg.MessageSize;
+      tbe.type := in_msg.Type;
     }
   }
 
@@ -775,8 +785,10 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.addr := tbe.addr;
       if (tbe.useDataSepResp) {
         out_msg.type := CHIDataType:DataSepResp_UC;
-      } else {
+      } else if (tbe.type == CHIDataType:CompData_UC) {
         out_msg.type := CHIDataType:CompData_UC;
+      } else if (tbe.type == CHIDataType:WBData) {
+        out_msg.type := CHIDataType:WBData;
       }
       out_msg.dataBlk := tbe.dataBlk;
       // Called in order for the whole block so use rxtxBytes as offset
@@ -930,7 +942,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     triggerInPort.dequeue(clockEdge());
   }
 
-  action(popResponseFRomC2cQueue, "pmem", desc="Pop memory queue.") {
+  action(popResponseFromC2cQueue, "pmem", desc="Pop memory queue.") {
     responseFromC2c_in.dequeue(clockEdge());
   }
 
@@ -1000,7 +1012,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition(READING_MEM, MemoryData, SENDING_NET_DATA) {
     prepareSend;
     sendDataAndCheck;
-    popResponseFRomC2cQueue;
+    popResponseFromC2cQueue;
   }
 
   transition(SENDING_NET_DATA, Trigger_Send) {
@@ -1049,21 +1061,11 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   transition(READY, C2c_CompAck) {
     SendToNet_CompAck;
-    popResponseFRomC2cQueue;
+    popResponseFromC2cQueue;
   }
 
-  transition(READY, Net_CompDBIDResp) {
-    SendToC2c_CompDBIDResp;
-    popRspInQueue;
-  }
-
-  transition(READY, C2c_CompDBIDResp) {
-    SendToNet_CompDBIDResp;
-    deallocateTBE;
-    popResponseFRomC2cQueue;
-  }
-
-  transition(READY, Net_WriteEvictFull) {
+  // WriteEvictFull
+  transition(READY, Net_WriteEvictFull, WAIT_COMPDBID) {
     allocateTBE;
     initializeFromReqTBE;
     SendToC2c_WriteEvictFull;
@@ -1071,8 +1073,49 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition(READY, C2c_WriteEvictFull) {
+    c2cReqAllocateTBE;
+    initializeFromC2cReaTBE;
     SendToNet_WriteEvictFull;
     popC2cReqRdyInQueue;
+  }
+
+  transition(READY, Net_CompDBIDResp) {
+    SendToC2c_CompDBIDResp;
+    popRspInQueue;
+  }
+
+  transition(WAIT_COMPDBID, C2c_CompDBIDResp, WAIT_WBDATA) {
+    SendToNet_CompDBIDResp;
+    popResponseFromC2cQueue;
+  }
+
+  transition(WAIT_WBDATA, Net_WBData) {
+    copyReadDataToTBE;
+    checkForReadReceiveCompletion;
+    popDataInQueue;
+  }
+
+  transition(WAIT_WBDATA, Net_WBData_ReceiveDone, READY) {
+    SendToC2c_WBData;
+    deallocateTBE;
+    popTriggerQueue;
+  }
+
+  transition(READY, C2c_WBData, SENDING_WBDATA) {
+    prepareSend;
+    sendDataAndCheck;
+    popResponseFromC2cQueue;
+  }
+
+  transition(SENDING_WBDATA, Trigger_Send) {
+    sendDataAndCheck;
+    popTriggerQueue;
+  }
+
+  transition(SENDING_WBDATA, Trigger_SendDone, READY) {
+    deallocateTBE;
+    wakeUpStalled;
+    popTriggerQueue;
   }
 
   // responder side side
@@ -1088,7 +1131,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popTriggerQueue;
   }
 
-  transition(MEMORY_REQUEST, RespData) {
+  transition(MEMORY_REQUEST, Net_RespData) {
     copyReadDataToTBE;
     checkForReadReceiveCompletion;
     popDataInQueue;
@@ -1101,12 +1144,11 @@ machine(MachineType:Interface, "C2C interface controller") :
     popTriggerQueue;
   }
 
-
   // Just sanity check against counter of pending acks
   transition({READING_MEM,WAITING_NET_DATA,SENDING_NET_DATA,READY},
               MemoryAck) {
     decWritePending;
-    popResponseFRomC2cQueue;
+    popResponseFromC2cQueue;
   }
 
   // Notice we only use this here and call wakeUp when leaving this state
