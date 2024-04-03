@@ -153,7 +153,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:WriteData;
     } else if (type == CHIDataType:CompData_UC) {
       return Event:Net_RespData;
-    } else if (type == CHIDataType:Net_WBData) {
+    } else if (type == CHIDataType:WBData) {
       return Event:Net_WBData;
     } else {
       error("Invalid CHIDataType");
