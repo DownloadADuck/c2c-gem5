@@ -52,9 +52,9 @@ machine(MachineType:Interface, "C2C interface controller") :
     MEMORY_REQUEST, AccessPermission:Invalid, desc="Sending request to chip1 s network";
     SEND_CTRL_DATA, AccessPermission:Invalid, desc="Sending response data to chip0";
     WAIT_ACK, AccessPermission:Backing_Store_Busy,       desc="Waiting for a response CompAck after sending read data";
-    WAIT_WBDATA, AccessPermission:Invalid, desc="Waiting for NCBWrData from Net";
+    WAIT_WBDATA, AccessPermission:Invalid, desc="Waiting for CBWrData_UC from Net";
     WAIT_COMPDBID, AccessPermission:Invalid, desc="Waiting for CompDBID from Net";
-    SENDING_WBDATA, AccessPermission:Invalid, desc="Sending NCBWrData to Net";
+    SENDING_WBDATA, AccessPermission:Invalid, desc="Sending CBWrData_UC to Net";
 
 
     // Null state for debugging; allow writes
@@ -91,9 +91,9 @@ machine(MachineType:Interface, "C2C interface controller") :
     // Data
     WriteData, desc="";
     Net_RespData, desc="Response data from net";
-    Net_NCBWrData, desc="Response from an evict";
-    Net_NCBWrData_ReceiveDone, desc="Received all NCBWrData messages";
-    C2c_NCBWrData, desc="";
+    Net_CBWrData_UC, desc="Response from an evict";
+    Net_CBWrData_UC_ReceiveDone, desc="Received all CBWrData_UC messages";
+    C2c_CBWrData_UC, desc="";
 
     // we don't need these anymore since we do not use a memory
     // Memory side
