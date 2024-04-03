@@ -149,9 +149,21 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   Event dataToEvent (CHIDataType type) {
-    if (type == CHIDataType:NCBWrData) {
-      return Event:WriteData;
-    } else if (type == CHIDataType:CompData_UC) {
+    //if (type == CHIDataType:NCBWrData) {
+    //  error("NCBWrData");
+    //} else if (type == CHIDataType:CBWrData_I) {
+    //  error("CBWrData_I");
+    //} else if (type == CHIDataType:CBWrData_UC) {
+    //  error("CBWrData_UC");
+    //} else if (type == CHIDataType:CBWrData_SC) {
+    //  error("CBWrData_SC");
+    //} else if (type == CHIDataType:CBWrData_UD_PD) {
+    //  error("CBWrData_UD_PD");
+    //} else if (type == CHIDataType:CBWrData_SD_PD) {
+    //  error("CBWrData_SD_PD");
+    //}
+
+    if (type == CHIDataType:CompData_UC) {
       return Event:Net_RespData;
     } else if (type == CHIDataType:NCBWrData) {
       return Event:Net_NCBWrData;
