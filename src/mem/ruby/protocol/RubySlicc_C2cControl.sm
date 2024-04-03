@@ -16,7 +16,8 @@ enumeration(C2cRequestType, desc="...") {
   CompAck,    desc="CompAck message";
   WriteEvictFull, desc="WriteEvictFull";
   CompDBIDResp, desc="CompDBIDResp";
-  WBData, desc="WBData";
+  NCBWrData, desc="WBData";
+  CompData_UC, desc="CompData_UC";
 }
 
 // Message to and from C2C interface
