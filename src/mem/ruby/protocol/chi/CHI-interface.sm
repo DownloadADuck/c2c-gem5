@@ -836,6 +836,7 @@ machine(MachineType:Interface, "C2C interface controller") :
         out_msg.bitMask.setMask(tbe.rxtxBytes, data_channel_size);
         // using map for the dest instead of the tbe
         out_msg.Destination.add(mapAddressToDownstreamMachine(tbe.addr));
+        out_msg.responder := machineID;
       }
       tbe.rxtxBytes := tbe.rxtxBytes + data_channel_size;
 
