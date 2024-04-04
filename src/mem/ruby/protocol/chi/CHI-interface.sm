@@ -1157,7 +1157,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popTriggerQueue;
   }
 
-  // responder side side
+  // ReadShared
   transition(READY, ReqReadShared, MEMORY_REQUEST){
     c2cReqAllocateTBE;
     initializeFromC2cReqTBE;

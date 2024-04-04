@@ -240,7 +240,7 @@ MemCmd::commandInfo[] =
     { {IsRead, IsResponse}, CHICompAck, "CHICompAck" },
     { {IsRead, IsRequest}, CHIWriteEvictFull, "CHIWriteEvictFull" },
     { {IsRead, IsResponse}, CHICompDBIDResp, "CHICompDBIDResp"},
-    { {IsRead, IsResponse}, CHICBWrData_UC, "CHICBWrData_UC"},
+    { {IsRead, IsResponse, HasData}, InvalidCmd, "CHICBWrData_UC"},
 };
 
 AddrRange

@@ -404,6 +404,7 @@ AbstractController::serviceRespToC2cQueue()
 
     const C2cMsg *mem_msg = (const C2cMsg*)resp_queue->peek();
     unsigned int resp_size = RubySystem::getBlockSizeBytes();
+    std::cout << "Msg Len: " << mem_msg->m_Len << std::endl;
     if (mem_msg->m_Len > 0) {
         resp_size = mem_msg->m_Len;
     }
@@ -426,6 +427,7 @@ AbstractController::serviceRespToC2cQueue()
         pkt = new Packet(req, MemCmd::CHICompDBIDResp);
     } else if (mem_msg->getType() == C2cRequestType_CBWrData_UC) {
         pkt = new Packet(req, MemCmd::CHICBWrData_UC);
+        pkt->allocate();
         pkt->setData(mem_msg->m_DataBlk.getData(getOffset(mem_msg->m_addr),
                     resp_size));
     } else {
