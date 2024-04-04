@@ -426,6 +426,8 @@ AbstractController::serviceRespToC2cQueue()
         pkt = new Packet(req, MemCmd::CHICompDBIDResp);
     } else if (mem_msg->getType() == C2cRequestType_CBWrData_UC) {
         pkt = new Packet(req, MemCmd::CHICBWrData_UC);
+        pkt->setData(mem_msg->m_DataBlk.getData(getOffset(mem_msg->m_addr),
+                    resp_size));
     } else {
         panic("Unknown memory response type (%s) for addr %p",
               C2cRequestType_to_string(mem_msg->getType()),
