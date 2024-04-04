@@ -863,7 +863,11 @@ machine(MachineType:Interface, "C2C interface controller") :
       } else {
         enqueue(triggerOutPort, TriggerMsg, 0) {
           out_msg.addr := address;
-          out_msg.event := Event:Trigger_ReceiveReadDataDone;
+          if (in_msg.type == CHIDataType:CompData_UC) {
+            out_msg.event := Event:Trigger_ReceiveReadDataDone;
+          } else if (in_msg.type == CHIDataType:CBWrData_UC) {
+            out_msg.event := Event:Net_CBWrData_UC_ReceiveDone;
+          }
         }
       }
     }
@@ -910,6 +914,10 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   action(SendToNet_CompDBIDResp, "s2ncdr", desc="Send CompDBID to network") {
+    assert(is_valid(tbe));
+    clearRexpectedReqResp(tbe);
+    tbe.expected_req_resp.addExpectedDataType(CHIDataType:CBWrData_UC);
+    tbe.expected_req_resp.addExpectedCount(1);
     enqueue(rspOutPort, CHIResponseMsg, response_latency) {
       out_msg.addr := tbe.addr;
       out_msg.type := CHIResponseType:CompDBIDResp;
