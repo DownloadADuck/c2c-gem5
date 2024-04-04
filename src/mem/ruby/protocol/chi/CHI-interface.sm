@@ -803,11 +803,6 @@ machine(MachineType:Interface, "C2C interface controller") :
       } else {
         out_msg.type := CHIDataType:CompData_UC;
       }
-      //} else if (tbe.type == CHIDataType:CompData_UC) {
-      //  out_msg.type := CHIDataType:CompData_UC;
-      //} else if (tbe.type == CHIDataType:CBWrData_UC) {
-      //  out_msg.type := CHIDataType:CBWrData_UC;
-      //}
       out_msg.dataBlk := tbe.dataBlk;
       // Called in order for the whole block so use rxtxBytes as offset
       out_msg.bitMask.setMask(tbe.rxtxBytes, data_channel_size);
@@ -830,6 +825,31 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.event := next;
     }
   }
+
+    action(SendToNet_CBWrData_UC, "s2ncwuc", desc="Send CBWrData to network") {
+      assert(is_valid(tbe));
+      assert(tbe.rxtxBytes < blockSize);
+      enqueue(datOutPort, CHIDataMsg, data_latency) {
+        out_msg.addr := tbe.addr;
+        out_msg.type := CHIDataType:CBWrData_UC;
+        out_msg.dataBlk := tbe.dataBlk;
+        out_msg.bitMask.setMask(tbe.rxtxBytes, data_channel_size);
+        // using map for the dest instead of the tbe
+        out_msg.Destination := mapAddressToDownstreamMachine(tbe.addr);
+      }
+      tbe.rxtxBytes := tbe.rxtxBytes + data_channel_size;
+
+      Event next := Event:Trigger_SendDone;
+      Cycles delay := intToCycles(0);
+      if (tbe.rxtxBytes < blockSize) {
+        next := Event:Trigger_Send;
+        delay := intToCycles(2);
+      }
+      enqueue(triggerOutPort, TriggerMsg, delay) {
+        out_msg.addr := address;
+        out_msg.event := next;
+      }
+    }
 
   action(checkForReceiveCompletion, "cWc", desc="Check if all data is received") {
     assert(is_valid(tbe));
@@ -1142,12 +1162,12 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   transition(READY, C2c_CBWrData_UC, SENDING_WBDATA) {
     prepareSend;
-    sendDataAndCheck;
+    SendToNet_CBWrData_UC;
     popResponseFromC2cQueue;
   }
 
   transition(SENDING_WBDATA, Trigger_Send) {
-    sendDataAndCheck;
+    SendToNet_CBWrData_UC;
     popTriggerQueue;
   }
 
