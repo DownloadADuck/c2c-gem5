@@ -770,7 +770,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       tbe.dataBlk := in_msg.DataBlk;
     }
     tbe.rxtxBytes := 0;
-    tbe.dataBlkValid.setMask(addressOffset(tbe.accAddr, tbe.addr), tbe.accSize);
+    //tbe.dataBlkValid.setMask(addressOffset(tbe.accAddr, tbe.addr), tbe.accSize);
   }
 
   action(copyWriteDataToTBE, "cpWDat", desc="Copies received net data to TBE") {
