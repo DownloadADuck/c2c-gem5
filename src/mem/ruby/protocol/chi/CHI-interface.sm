@@ -772,15 +772,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     //tbe.dataBlkValid.setMask(addressOffset(tbe.accAddr, tbe.addr), tbe.accSize);
   }
 
-  action(copyWriteDataToTBE, "cpWDat", desc="Copies received net data to TBE") {
-    peek(datInPort, CHIDataMsg) {
-      assert(is_valid(tbe));
-      tbe.dataBlk.copyPartial(in_msg.dataBlk, in_msg.bitMask);
-      tbe.dataBlkValid.orMask(in_msg.bitMask);
-      tbe.rxtxBytes := tbe.rxtxBytes + in_msg.bitMask.count();
-    }
-  }
-
   // Different action in case we need different TBE in the future 
   action(copyReadDataToTBE, "cpRDat", decs="Copies the received read data to TBE") {
     peek(datInPort, CHIDataMsg) {
@@ -850,20 +841,6 @@ machine(MachineType:Interface, "C2C interface controller") :
         out_msg.event := next;
       }
     }
-
-  action(checkForReceiveCompletion, "cWc", desc="Check if all data is received") {
-    assert(is_valid(tbe));
-    DPRINTF(RubySlicc, "rxtxBytes=%d\n", tbe.rxtxBytes);
-    assert((tbe.rxtxBytes <= tbe.accSize) && (tbe.rxtxBytes > 0));
-    if (tbe.rxtxBytes == tbe.accSize) {
-      enqueue(triggerOutPort, TriggerMsg, 0) {
-        out_msg.addr := address;
-        out_msg.event := Event:Trigger_ReceiveDone;
-      }
-      tbe.rxtxBytes := 0;
-      assert(tbe.dataBlkValid.getMask(addressOffset(tbe.accAddr, tbe.addr), tbe.accSize));
-    }
-  }
 
   action(checkForReadReceiveCompletion, "crrc", desc="Check if all read data is received") {
     assert(is_valid(tbe));
@@ -1003,7 +980,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     responseFromC2c_in.dequeue(clockEdge());
   }
 
-  action(popRequestFromC2cQeueue, "prfc2c", desc="Pop request from c2c queue.") {
+  action(popRequestFromC2cQueue, "prfc2c", desc="Pop request from c2c queue.") {
     requestFromC2c_in.dequeue(clockEdge());
   }
 
@@ -1090,12 +1067,6 @@ machine(MachineType:Interface, "C2C interface controller") :
   //  initializeFromReqTBE;
   //  sendCompDBIDResp;
   //  popReqInQueue;
-  //}
-
-  //transition(WAITING_NET_DATA, WriteData) {
-  //  copyWriteDataToTBE;
-  //  checkForReceiveCompletion;
-  //  popDataInQueue;
   //}
 
   //transition(WAITING_NET_DATA, Trigger_ReceiveDone, READY) {
