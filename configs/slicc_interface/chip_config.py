@@ -213,14 +213,14 @@ def create_chip0(
     CHI_Interface.createAddrRanges([sysranges[1]], system.cache_line_size.value, \
         interface_list)
     # Fixing the idx ourself. Need to try without. 
-    ruby_system.interface3 = [CHI_Interface(0, ruby_system, None, network)]
-    interface3 = ruby_system.interface3[0]
-    network_nodes.append(interface3)
-    network_cntrls.extend(interface3.getNetworkSideControllers())
-    assert interface3.getAllControllers() == interface3.getNetworkSideControllers()
-    mem_cntrls.extend(interface3.getAllControllers())
-    all_cntrls.extend(interface3.getAllControllers())
-    hnf_dests.extend(interface3.getAllControllers())
+    ruby_system.interface0 = [CHI_Interface(0, ruby_system, None, network)]
+    interface0 = ruby_system.interface0[0]
+    network_nodes.append(interface0)
+    network_cntrls.extend(interface0.getNetworkSideControllers())
+    assert interface0.getAllControllers() == interface0.getNetworkSideControllers()
+    mem_cntrls.extend(interface0.getAllControllers())
+    all_cntrls.extend(interface0.getAllControllers())
+    hnf_dests.extend(interface0.getAllControllers())
 
     if len(other_memories) > 0:
         ruby_system.rom_snf = [
