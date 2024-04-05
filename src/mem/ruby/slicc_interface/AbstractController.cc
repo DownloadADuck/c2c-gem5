@@ -404,7 +404,6 @@ AbstractController::serviceRespToC2cQueue()
 
     const C2cMsg *mem_msg = (const C2cMsg*)resp_queue->peek();
     unsigned int resp_size = RubySystem::getBlockSizeBytes();
-    std::cout << "Msg Len: " << mem_msg->m_Len << std::endl;
     if (mem_msg->m_Len > 0) {
         resp_size = mem_msg->m_Len;
     }
