@@ -97,7 +97,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
     // we don't need these anymore since we do not use a memory
     // Memory side
-    MemoryData, desc="";
+    C2c_Data, desc="";
     MemoryAck, desc="";
 
     // Responses
@@ -184,7 +184,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   Event c2cRespToEvent (C2cRequestType type) {
     if (type == C2cRequestType:MEMORY_READ) {
-      return Event:MemoryData;
+      return Event:C2c_Data;
     } else if (type == C2cRequestType:CompAck) {
       return Event:C2c_CompAck;
     } else if (type == C2cRequestType:CompDBIDResp) {
@@ -749,21 +749,6 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   }
 
-  // Deprecated SNF feature
-  //action(sendMemoryWrite, "smw", desc="Send request to memory") {
-  //  assert(is_valid(tbe));
-  //  enqueue(requestToC2c_out, C2cMsg, to_memory_controller_latency) {
-  //    out_msg.addr := tbe.accAddr;
-  //    out_msg.Type := C2cRequestType:MEMORY_WB;
-  //    out_msg.Sender := tbe.requestor;
-  //    out_msg.MessageSize := MessageSizeType:Writeback_Data;
-  //    out_msg.DataBlk := tbe.dataBlk;
-  //    out_msg.Len := tbe.accSize;
-  //  }
-  //  tbe.dataBlkValid.clear();
-  //  pendingWrites := pendingWrites + 1;
-  //}
-
   action(prepareSend, "ps", desc="Copies received memory data to TBE") {
     assert(is_valid(tbe));
     peek(responseFromC2c_in, C2cMsg) {
@@ -908,8 +893,6 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   action(SendToC2c_CompAck, "s2cca", desc="Send CompAck to C2c") {
-    // We don't have a TBE field anymore since the request has been serviced.
-    //assert(is_valid(tbe));
     enqueue(responseToC2c_out, C2cMsg, response_latency) {
       out_msg.addr := address;
       out_msg.Type := C2cRequestType:CompAck;
@@ -1069,7 +1052,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popTriggerQueue;
   }
 
-  transition(READING_MEM, MemoryData, SENDING_NET_DATA) {
+  transition(READING_MEM, C2c_Data, SENDING_NET_DATA) {
     prepareSend;
     sendDataAndCheck;
     popResponseFromC2cQueue;
