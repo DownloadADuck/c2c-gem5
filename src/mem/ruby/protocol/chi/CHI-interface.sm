@@ -197,7 +197,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   CHIDataType c2cMsgToCHIData(C2cRequestType type) {
-    if (type == C2cRequestType:CompData_UC) {
+    if (type == C2cRequestType:MEMORY_READ) {
       return CHIDataType:CompData_UC;
     } else if (type == C2cRequestType:CBWrData_UC) {
       return CHIDataType:CBWrData_UC;
