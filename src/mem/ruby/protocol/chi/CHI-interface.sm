@@ -196,6 +196,16 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
+  CHIDataType c2cMsgToCHIData(C2cRequestType type) {
+    if (type == C2cRequestType:CompData_UC) {
+      return CHIDataType:CompData_UC;
+    } else if (type == C2cRequestType:CBWrData_UC) {
+      return CHIDataType:CBWrData_UC;
+    } else {
+      error("Unexpected C2cMsg data type");
+    }
+  }
+
 
   ////////////////////////////////////////////////////////////////////////////
   // Data structures
@@ -235,8 +245,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     MachineID requestor, desc="Requestor that originated this request";
     MachineID destination, desc="Where we are sending data";
     bool useDataSepResp, desc="Replies with DataSepResp instead of CompData";
-    C2cRequestType Type, desc="used to temporarily store the type when sending data";
-    CHIDataType type, desc="used to send the right response data type";
+    CHIDataType snd_msgType, desc="used to send the right response data type";
 
     // List of expected response and data. Checks the type of data against the
     // expected ones for debugging purposes
@@ -753,6 +762,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     assert(is_valid(tbe));
     peek(responseFromC2c_in, C2cMsg) {
       tbe.dataBlk := in_msg.DataBlk;
+      tbe.snd_msgType := c2cMsgToCHIData(in_msg.Type);
     }
     tbe.rxtxBytes := 0;
     //tbe.dataBlkValid.setMask(addressOffset(tbe.accAddr, tbe.addr), tbe.accSize);
