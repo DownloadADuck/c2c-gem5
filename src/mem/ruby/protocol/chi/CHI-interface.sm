@@ -1137,12 +1137,12 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   transition(READY, C2c_CBWrData_UC, SENDING_WBDATA) {
     prepareSend;
-    SendToNet_CBWrData_UC;
+    SendToNet_Data;
     popResponseFromC2cQueue;
   }
 
   transition(SENDING_WBDATA, Trigger_Send) {
-    SendToNet_CBWrData_UC;
+    SendToNet_Data;
     popTriggerQueue;
   }
 
