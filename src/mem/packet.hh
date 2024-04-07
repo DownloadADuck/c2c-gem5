@@ -149,8 +149,10 @@ class MemCmd
         // Tlb shootdown
         TlbiExtSync,
         // c2c commands
-        CHICompAck,
+        //Requests
+        CHIReadShared,
         CHIWriteEvictFull,
+        CHICompAck,
         CHICompDBIDResp,
         CHICBWrData_UC,
         NUM_MEM_CMDS

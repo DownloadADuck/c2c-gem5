@@ -237,8 +237,10 @@ MemCmd::commandInfo[] =
     { {IsRead, IsResponse}, InvalidCmd, "HTMReqResp" },
     { {IsRead, IsRequest}, InvalidCmd, "HTMAbort" },
     { {IsRequest}, InvalidCmd, "TlbiExtSync" },
-    { {IsRead, IsResponse}, CHICompAck, "CHICompAck" },
+    // Requests
+    { {IsRead, IsRequest}, CHIReadShared, "CHIReadShared"}, 
     { {IsRead, IsRequest}, CHIWriteEvictFull, "CHIWriteEvictFull" },
+    { {IsRead, IsResponse}, CHICompAck, "CHICompAck" },
     { {IsRead, IsResponse}, CHICompDBIDResp, "CHICompDBIDResp"},
     { {IsRead, IsResponse, HasData}, InvalidCmd, "CHICBWrData_UC"},
 };
