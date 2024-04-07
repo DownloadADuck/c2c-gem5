@@ -783,7 +783,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  action(sendDataAndCheck, "sd", desc="Send received data to requestor") {
+  action(SendToNet_Data, "sd", desc="Send received data to requestor") {
     assert(is_valid(tbe));
     assert(tbe.rxtxBytes < blockSize);
     enqueue(datOutPort, CHIDataMsg, data_latency) {
@@ -1042,12 +1042,12 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   transition(READING_MEM, C2c_Data, SENDING_NET_DATA) {
     prepareSend;
-    sendDataAndCheck;
+    SendToNet_Data;
     popResponseFromC2cQueue;
   }
 
   transition(SENDING_NET_DATA, Trigger_Send) {
-    sendDataAndCheck;
+    SendToNet_Data;
     popTriggerQueue;
   }
 
