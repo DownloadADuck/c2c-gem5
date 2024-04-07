@@ -793,6 +793,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       // Called in order for the whole block so use rxtxBytes as offset
       out_msg.bitMask.setMask(tbe.rxtxBytes, data_channel_size);
       out_msg.Destination.add(tbe.destination);
+      out_msg.responder := machineID;
     }
 
     //DPRINTF(RubySlicc, "rxtxBytes=%d\n", tbe.rxtxBytes);
@@ -952,6 +953,13 @@ machine(MachineType:Interface, "C2C interface controller") :
     tbe.dataBlkValid.clear();
   }
 
+  action(UpdateTBE_FromResp, "utbefr", desc="Updates the TBE with response info") {
+    assert(is_valid(tbe));
+    peek(rspInPort, CHIResponseMsg) {
+      tbe.destination := in_msg.responder;
+    }
+  }
+
   action(popReqInQueue, "preq", desc="Pop request queue.") {
     reqRdyInPort.dequeue(clockEdge());
   }
@@ -1105,6 +1113,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition(READY, Net_CompDBIDResp) {
+    UpdateTBE_FromResp;
     SendToC2c_CompDBIDResp;
     popRspInQueue;
   }
