@@ -240,8 +240,11 @@ MemCmd::commandInfo[] =
     // Requests
     { {IsRead, IsRequest}, CHIReadShared, "CHIReadShared"}, 
     { {IsRead, IsRequest}, CHIWriteEvictFull, "CHIWriteEvictFull" },
+    // Responses
     { {IsRead, IsResponse}, CHICompAck, "CHICompAck" },
     { {IsRead, IsResponse}, CHICompDBIDResp, "CHICompDBIDResp"},
+    // Data
+    { {IsRead, IsResponse, HasData}, InvalidCmd, "CHICompData_UC"},
     { {IsRead, IsResponse, HasData}, InvalidCmd, "CHICBWrData_UC"},
 };
 

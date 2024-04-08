@@ -149,11 +149,14 @@ class MemCmd
         // Tlb shootdown
         TlbiExtSync,
         // c2c commands
-        //Requests
+        // Requests
         CHIReadShared,
         CHIWriteEvictFull,
+        // Responses
         CHICompAck,
         CHICompDBIDResp,
+        // Data
+        CHICompData_UC,
         CHICBWrData_UC,
         NUM_MEM_CMDS
     };

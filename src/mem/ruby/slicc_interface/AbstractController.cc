@@ -346,16 +346,11 @@ AbstractController::serviceReqToC2cQueue()
     RequestPtr req
         = std::make_shared<Request>(mem_msg->m_addr, req_size, 0, m_id);
     PacketPtr pkt;
-    if (mem_msg->getType() == C2cRequestType_MEMORY_WB) {
-        pkt = Packet::createWrite(req);
-        pkt->allocate();
-        pkt->setData(mem_msg->m_DataBlk.getData(getOffset(mem_msg->m_addr),
-            req_size));
-    } else if (mem_msg->getType() == C2cRequestType_WriteEvictFull) {
+    if (mem_msg->getType() == C2cRequestType_WriteEvictFull) {
         pkt = Packet::createWrite(req);
         pkt->allocate();
         pkt->cmd = MemCmd::CHIWriteEvictFull;
-    } else if (mem_msg->getType() == C2cRequestType_MEMORY_READ) {
+    } else if (mem_msg->getType() == C2cRequestType_ReadShared) {
         pkt = Packet::createRead(req);
         uint8_t *newData = new uint8_t[req_size];
         pkt->dataDynamic(newData);
@@ -412,11 +407,8 @@ AbstractController::serviceRespToC2cQueue()
         = std::make_shared<Request>(mem_msg->m_addr, resp_size, 0, m_id);
     PacketPtr pkt;
 
-    if (mem_msg->getType() == C2cRequestType_MEMORY_READ) {
-        pkt = Packet::createRead(req);
-        //pkt->cmd.responseCommand();
-        //pkt->cmd == MemCmd::ReadResp;
-        pkt->makeResponse();
+    if (mem_msg->getType() == C2cRequestType_CompDataUC) {
+        pkt = new Packet(req, MemCmd::CHICompData_UC);
         pkt->allocate();
         pkt->setData(mem_msg->m_DataBlk.getData(getOffset(mem_msg->m_addr), 
                     resp_size));
@@ -575,11 +567,9 @@ AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
     delete s;
 
     if (pkt->isRead()) {
-        if(pkt->cmd == MemCmd::ReadResp) {
-            (*msg).m_Type = C2cRequestType_MEMORY_READ;
+        if(pkt->cmd == MemCmd::CHICompData_UC) {
+            (*msg).m_Type = C2cRequestType_CompData_UC;
             (*msg).m_MessageSize = MessageSizeType_Response_Data;
-
-            // Copy data from the packet
             (*msg).m_DataBlk.setData(pkt->getPtr<uint8_t>(), 0,
                                      RubySystem::getBlockSizeBytes());
         } else if (pkt->cmd == MemCmd::CHICompAck) {
@@ -594,11 +584,8 @@ AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
             (*msg).m_DataBlk.setData(pkt->getPtr<uint8_t>(), 0,
                                     RubySystem::getBlockSizeBytes());
         }
-    } else if (pkt->isWrite()) {
-        (*msg).m_Type = C2cRequestType_MEMORY_WB;
-        (*msg).m_MessageSize = MessageSizeType_Writeback_Control;
     } else {
-        panic("Incorrect packet type received from memory controller!");
+        panic("Incorrect packet type received in the c2c_out_port!");
     }
     getRespFromC2cQueue()->enqueue(msg, clockEdge(), cyclesToTicks(Cycles(1)));
     delete pkt;
@@ -620,22 +607,17 @@ AbstractController::recvTimingReq(PacketPtr pkt)
     delete s;
 
     if (pkt->isRead()) {
-        if (pkt->cmd == MemCmd::ReadReq) {
-            (*msg).m_Type = C2cRequestType_MEMORY_READ;
+        if (pkt->cmd == MemCmd::CHIReadShared) {
+            (*msg).m_Type = C2cRequestType_ReadShared;
             (*msg).m_MessageSize = MessageSizeType_Request_Control;
-
-            // Copy data from the packet
             (*msg).m_DataBlk.setData(pkt->getPtr<uint8_t>(), 0,
                                      RubySystem::getBlockSizeBytes());
         } else if (pkt->cmd == MemCmd::CHIWriteEvictFull) {
             (*msg).m_Type = C2cRequestType_WriteEvictFull;
             (*msg).m_MessageSize = MessageSizeType_Request_Control;
         }
-    } else if (pkt->isWrite()) {
-        (*msg).m_Type = C2cRequestType_MEMORY_WB;
-        (*msg).m_MessageSize = MessageSizeType_Writeback_Control;
     } else {
-        panic("Incorrect packet type received from the network-side!");
+        panic("Incorrect packet type received in the c2c_in_port!");
     }
 
     getReqFromC2cQueue()->enqueue(msg, clockEdge(), cyclesToTicks(Cycles(1)));

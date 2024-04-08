@@ -13,11 +13,12 @@ enumeration(C2cRequestType, desc="...") {
   MEMORY_ACK,  desc="Write to memory acknowledgement";
   
   // Requests
-  ReadShared, desc="";
+  ReadShared, desc="ReadShared";
   WriteEvictFull, desc="WriteEvictFull";
-
+  // Responses
   CompAck,    desc="CompAck message";
   CompDBIDResp, desc="CompDBIDResp";
+  //Data
   CBWrData_UC, desc="CBWrData_UC";
   CompData_UC, desc="CompData_UC";
 }
