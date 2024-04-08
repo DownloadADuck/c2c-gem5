@@ -347,13 +347,10 @@ AbstractController::serviceReqToC2cQueue()
         = std::make_shared<Request>(mem_msg->m_addr, req_size, 0, m_id);
     PacketPtr pkt;
     if (mem_msg->getType() == C2cRequestType_WriteEvictFull) {
-        pkt = Packet::createWrite(req);
-        pkt->allocate();
-        pkt->cmd = MemCmd::CHIWriteEvictFull;
+        pkt = new Packet(req, MemCmd::CHIWriteEvictFull);
+        //pkt->allocate();
     } else if (mem_msg->getType() == C2cRequestType_ReadShared) {
-        pkt = Packet::createRead(req);
-        uint8_t *newData = new uint8_t[req_size];
-        pkt->dataDynamic(newData);
+        pkt = new Packet(req, MemCmd::CHIReadShared);
     } else {
         panic("Unknown memory request type (%s) for addr %p",
               C2cRequestType_to_string(mem_msg->getType()),
@@ -407,7 +404,7 @@ AbstractController::serviceRespToC2cQueue()
         = std::make_shared<Request>(mem_msg->m_addr, resp_size, 0, m_id);
     PacketPtr pkt;
 
-    if (mem_msg->getType() == C2cRequestType_CompDataUC) {
+    if (mem_msg->getType() == C2cRequestType_CompData_UC) {
         pkt = new Packet(req, MemCmd::CHICompData_UC);
         pkt->allocate();
         pkt->setData(mem_msg->m_DataBlk.getData(getOffset(mem_msg->m_addr), 
@@ -610,8 +607,6 @@ AbstractController::recvTimingReq(PacketPtr pkt)
         if (pkt->cmd == MemCmd::CHIReadShared) {
             (*msg).m_Type = C2cRequestType_ReadShared;
             (*msg).m_MessageSize = MessageSizeType_Request_Control;
-            (*msg).m_DataBlk.setData(pkt->getPtr<uint8_t>(), 0,
-                                     RubySystem::getBlockSizeBytes());
         } else if (pkt->cmd == MemCmd::CHIWriteEvictFull) {
             (*msg).m_Type = C2cRequestType_WriteEvictFull;
             (*msg).m_MessageSize = MessageSizeType_Request_Control;
