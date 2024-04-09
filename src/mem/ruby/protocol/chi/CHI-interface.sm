@@ -1002,9 +1002,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition(READY, Net_WriteEvictFull, WAIT_COMPDBID) {
     allocateTBE;
     initializeFromReqTBE;
-    //sendToC2c_WriteEvictFull;
     trigger_SendToC2c_Request;
-    //sendToC2c_Request;
     popReqInQueue;
   }
 
