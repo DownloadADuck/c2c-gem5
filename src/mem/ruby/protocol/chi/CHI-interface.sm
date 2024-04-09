@@ -105,9 +105,9 @@ machine(MachineType:Interface, "C2C interface controller") :
     Trigger_SendRetry, desc="";
     Trigger_SendPCrdGrant, desc="";
     Trigger_SendToNet_ReadShared, desc="Trigger the sending of ReadShared to net";
-    Trigger_SendToC2c_ReadShared, desc="Trigger the sending of ReadShared to c2c";
 
     Trigger_SendToC2c_Request, desc="Trigger the sending of requests to c2c";
+    Trigger_SendToNet_Request, desc="Trigger the sending of requests to net";
   }
 
 
@@ -164,6 +164,16 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:C2c_CBWrData_UC;
     } else {
       error("Invalid C2cResponseType");
+    }
+  }
+
+  CHIRequestType c2cMsgToCHIReq(C2cRequestType type){
+    if (type == C2cRequestType:ReadShared) {
+      return CHIRequestType:ReadShared;
+    } else if (type == C2cRequestType:WriteEvictFull) {
+      return CHIRequestType:WriteEvictFull;
+    } else {
+      error("Unexpected C2cMsg request type");
     }
   }
 
@@ -680,11 +690,11 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  action(trigger_SendToNet_ReadShared, "tsrr", desc="Trigger SentToNet_ReadShared") {
+  action(trigger_SendToNet_Request, "tsrr", desc="Trigger SentToNet_ReadShared") {
     assert(is_valid(tbe));
     enqueue(triggerOutPort, TriggerMsg, 0) {
       out_msg.addr := address;
-      out_msg.event := Event:Trigger_SendToNet_ReadShared;
+      out_msg.event := Event:Trigger_SendToNet_Request;
     }
   }
 
@@ -699,15 +709,16 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  action(sentToNet_ReadShared, "srr", desc="sends a read request in chip1") {
+  action(sentToNet_Request, "srr", desc="sends a request to the network") {
     assert(is_valid(tbe));
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_UC);
+    tbe.expected_req_resp.addExpectedDataType(CHIDataType:CBWrData_UC);
     tbe.expected_req_resp.addExpectedCount(1);
     enqueue(reqOutPort, CHIRequestMsg, request_latency) {
       out_msg.addr := address;
       out_msg.accAddr := address;
-      out_msg.accSize := 0;
-      out_msg.type := CHIRequestType:ReadShared;
+      out_msg.accSize := blockSize;
+      out_msg.type := c2cMsgToCHIReq(tbe.to_net_req_type);
       out_msg.requestor := machineID;
       out_msg.fwdRequestor := machineID;
       out_msg.isSeqReqValid := true;
@@ -1009,7 +1020,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition(READY, C2c_WriteEvictFull) {
     c2cReqAllocateTBE;
     initializeFromC2cReqTBE;
-    sendToNet_WriteEvictFull;
+    trigger_SendToNet_Request;
     popC2cReqRdyInQueue;
   }
 
@@ -1057,12 +1068,12 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition(READY, C2c_ReadShared, MEMORY_REQUEST){
     c2cReqAllocateTBE;
     initializeFromC2cReqTBE;
-    trigger_SendToNet_ReadShared;
+    trigger_SendToNet_Request;
     popC2cReqRdyInQueue;
   }
 
-  transition(MEMORY_REQUEST, Trigger_SendToNet_ReadShared) {
-    sentToNet_ReadShared;
+  transition({MEMORY_REQUEST, READY}, Trigger_SendToNet_Request) {
+    sentToNet_Request;
     popTriggerQueue;
   }
 
