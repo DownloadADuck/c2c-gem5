@@ -230,6 +230,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     // Storing types
     CHIRequestType to_c2c_req_type, desc="Temporarily store the request type";
     C2cRequestType to_net_req_type, desc="Temporarily store the c2c request type";
+
     CHIDataType snd_msgType, desc="used to send the right response data type";
     CHIDataType net_dat_type, desc="Temporatily store the net data type";
 
@@ -648,7 +649,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     peek(c2cReqRdyInPort, C2cMsg) {
       tbe.Sender := in_msg.Sender;
       tbe.size := in_msg.MessageSize;
-      tbe.to_c2c_req_type := in_msg.Type;
+      tbe.to_net_req_type := in_msg.Type;
     }
   }
 
@@ -671,13 +672,11 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  //action(trigger_SendToC2c_ReadShared, "tsmr", desc="Trigger SendToC2c_ReadShared") {
   action(trigger_SendToC2c_Request, "ts2cr", desc="Trigger sendToC2c_Request") {
     assert(is_valid(tbe));
     enqueue(triggerOutPort, TriggerMsg, 0) {
       out_msg.addr := address;
-      //out_msg.event := Event:Trigger_SendToC2c_ReadShared;
-      out_msg.evemt := Event:Trigger_SendToC2c_Request;
+      out_msg.event := Event:Trigger_SendToC2c_Request;
     }
   }
 
@@ -689,11 +688,10 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  action(sendToC2c_ReadShared, "smr", desc="Send request to memory") {
+  action(sendToC2c_Request, "stc2cr", desc="Send request to c2c") {
     assert(is_valid(tbe));
     enqueue(requestToC2c_out, C2cMsg, to_memory_controller_latency) {
       out_msg.addr := address;
-      //out_msg.Type := C2cRequestType:ReadShared;
       out_msg.Type := CHIReqToC2cMsg(tbe.to_c2c_req_type);
       out_msg.Sender := tbe.requestor;
       out_msg.MessageSize := MessageSizeType:Request_Control;
@@ -964,14 +962,11 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition(READY, Net_ReadShared, READING_MEM) {
     allocateTBE;
     initializeFromReqTBE;
-    //trigger_SendToC2c_ReadShared;
     trigger_SendToC2c_Request;
     popReqInQueue;
   }
 
-  //transition(READING_MEM, Trigger_SendToC2c_ReadShared) {
   transition(READING_MEM, Trigger_SendToC2c_Request) {
-    //sendToC2c_ReadShared;
     sendToC2c_Request;
     popTriggerQueue;
   }
