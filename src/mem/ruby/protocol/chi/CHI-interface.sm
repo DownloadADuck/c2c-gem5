@@ -627,6 +627,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       }
       tbe.accAddr := in_msg.accAddr;
       tbe.accSize := in_msg.accSize;
+      tbe.net_req_type := in_msg.type;
     }
   }
 
@@ -657,15 +658,16 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  action(Trigger_SendToC2c_ReadShared, "tsmr", desc="Trigger SendToC2c_ReadShared") {
+  action(trigger_SendToC2c_ReadShared, "tsmr", desc="Trigger SendToC2c_ReadShared") {
     assert(is_valid(tbe));
     enqueue(triggerOutPort, TriggerMsg, 0) {
       out_msg.addr := address;
-      out_msg.event := Event:Trigger_SendToC2c_ReadShared;
+      //out_msg.event := Event:Trigger_SendToC2c_ReadShared;
+      out_msg.evemt := Event:Trigger_SendToC2c_Request;
     }
   }
 
-  action(Trigger_SendToNet_ReadShared, "tsrr", desc="Trigger SentToNet_ReadShared") {
+  action(trigger_SendToNet_ReadShared, "tsrr", desc="Trigger SentToNet_ReadShared") {
     assert(is_valid(tbe));
     enqueue(triggerOutPort, TriggerMsg, 0) {
       out_msg.addr := address;
@@ -673,7 +675,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  action(SendToC2c_ReadShared, "smr", desc="Send request to memory") {
+  action(sendToC2c_ReadShared, "smr", desc="Send request to memory") {
     assert(is_valid(tbe));
     enqueue(requestToC2c_out, C2cMsg, to_memory_controller_latency) {
       out_msg.addr := address;
@@ -684,7 +686,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  action(SentToNet_ReadShared, "srr", desc="sends a read request in chip1") {
+  action(sentToNet_ReadShared, "srr", desc="sends a read request in chip1") {
     assert(is_valid(tbe));
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_UC);
     tbe.expected_req_resp.addExpectedCount(1);
@@ -725,7 +727,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  action(SendToNet_Data, "sd", desc="Send received data to requestor") {
+  action(sendToNet_Data, "sd", desc="Send received data to requestor") {
     assert(is_valid(tbe));
     assert(tbe.rxtxBytes < blockSize);
     enqueue(datOutPort, CHIDataMsg, data_latency) {
@@ -783,7 +785,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  action(SendToC2c_CompData_UC, "srresp", desc="Send read response to chip0") {
+  action(sendToC2c_CompData_UC, "srresp", desc="Send read response to chip0") {
     assert(is_valid(tbe));
     enqueue(responseToC2c_out, C2cMsg, to_memory_controller_latency) {
       out_msg.addr := address;
@@ -796,7 +798,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     tbe.dataBlkValid.clear();
   }
 
-  action(SendToC2c_CompAck, "s2cca", desc="Send CompAck to C2c") {
+  action(sendToC2c_CompAck, "s2cca", desc="Send CompAck to C2c") {
     enqueue(responseToC2c_out, C2cMsg, response_latency) {
       out_msg.addr := address;
       out_msg.Type := C2cRequestType:CompAck;
@@ -804,7 +806,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
   
-  action(SendToNet_CompAck, "s2nca", desc="Send back CompAck to network") {
+  action(sendToNet_CompAck, "s2nca", desc="Send back CompAck to network") {
     enqueue(rspOutPort, CHIResponseMsg, response_latency) {
       out_msg.addr := address;
       out_msg.type := CHIResponseType:CompAck;
@@ -813,7 +815,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  action(SendToC2c_CompDBIDResp, "s2ccdr", desc="Send CompDBIDResp to C2c") {
+  action(sendToC2c_CompDBIDResp, "s2ccdr", desc="Send CompDBIDResp to C2c") {
     enqueue(responseToC2c_out, C2cMsg, response_latency) {
       out_msg.addr := address;
       out_msg.Type := C2cRequestType:CompDBIDResp;
@@ -821,7 +823,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  action(SendToNet_CompDBIDResp, "s2ncdr", desc="Send CompDBID to network") {
+  action(sendToNet_CompDBIDResp, "s2ncdr", desc="Send CompDBID to network") {
     assert(is_valid(tbe));
     clearRexpectedReqResp(tbe);
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CBWrData_UC);
@@ -834,7 +836,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  action(SendToC2c_WriteEvictFull, "s2cwef", desc="Send WriteEvictFull to C2C") {
+  action(sendToC2c_WriteEvictFull, "s2cwef", desc="Send WriteEvictFull to C2C") {
     enqueue(requestToC2c_out, C2cMsg, request_latency) {
       out_msg.addr := address;
       out_msg.Type := C2cRequestType:WriteEvictFull;
@@ -842,7 +844,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  action(SendToNet_WriteEvictFull, "s2nwef", desc="Send WriteEvictFull to Network") {
+  action(sendToNet_WriteEvictFull, "s2nwef", desc="Send WriteEvictFull to Network") {
     enqueue(reqOutPort, CHIRequestMsg, request_latency) {
       out_msg.addr := address;
       out_msg.accAddr := address;
@@ -856,7 +858,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  action(SendToC2c_CBWrData_UC, "s2cnwd", desc="Sending the WBData to C2C") {
+  action(sendToC2c_CBWrData_UC, "s2cnwd", desc="Sending the WBData to C2C") {
     assert(is_valid(tbe));
     enqueue(responseToC2c_out, C2cMsg, to_memory_controller_latency) {
       out_msg.addr := tbe.addr;
@@ -869,7 +871,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     tbe.dataBlkValid.clear();
   }
 
-  action(UpdateTBE_FromResp, "utbefr", desc="Updates the TBE with response info") {
+  action(updateTBE_FromResp, "utbefr", desc="Updates the TBE with response info") {
     assert(is_valid(tbe));
     peek(rspInPort, CHIResponseMsg) {
       tbe.destination := in_msg.responder;
@@ -947,23 +949,23 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition(READY, Net_ReadShared, READING_MEM) {
     allocateTBE;
     initializeFromReqTBE;
-    Trigger_SendToC2c_ReadShared;
+    trigger_SendToC2c_ReadShared;
     popReqInQueue;
   }
 
   transition(READING_MEM, Trigger_SendToC2c_ReadShared) {
-    SendToC2c_ReadShared;
+    sendToC2c_ReadShared;
     popTriggerQueue;
   }
 
   transition(READING_MEM, C2c_CompData_UC, SENDING_NET_DATA) {
     prepareSend;
-    SendToNet_Data;
+    sendToNet_Data;
     popResponseFromC2cQueue;
   }
 
   transition(SENDING_NET_DATA, Trigger_Send) {
-    SendToNet_Data;
+    sendToNet_Data;
     popTriggerQueue;
   }
 
@@ -974,12 +976,12 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition(READY, Net_CompAck) {
-    SendToC2c_CompAck;
+    sendToC2c_CompAck;
     popRspInQueue;
   }
 
   transition(READY, C2c_CompAck) {
-    SendToNet_CompAck;
+    sendToNet_CompAck;
     popResponseFromC2cQueue;
   }
 
@@ -987,25 +989,25 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition(READY, Net_WriteEvictFull, WAIT_COMPDBID) {
     allocateTBE;
     initializeFromReqTBE;
-    SendToC2c_WriteEvictFull;
+    sendToC2c_WriteEvictFull;
     popReqInQueue;
   }
 
   transition(READY, C2c_WriteEvictFull) {
     c2cReqAllocateTBE;
     initializeFromC2cReqTBE;
-    SendToNet_WriteEvictFull;
+    sendToNet_WriteEvictFull;
     popC2cReqRdyInQueue;
   }
 
   transition(READY, Net_CompDBIDResp) {
-    UpdateTBE_FromResp;
-    SendToC2c_CompDBIDResp;
+    updateTBE_FromResp;
+    sendToC2c_CompDBIDResp;
     popRspInQueue;
   }
 
   transition(WAIT_COMPDBID, C2c_CompDBIDResp, WAIT_WBDATA) {
-    SendToNet_CompDBIDResp;
+    sendToNet_CompDBIDResp;
     popResponseFromC2cQueue;
   }
 
@@ -1016,19 +1018,19 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition(WAIT_WBDATA, Net_CBWrData_UC_ReceiveDone, READY) {
-    SendToC2c_CBWrData_UC;
+    sendToC2c_CBWrData_UC;
     deallocateTBE;
     popTriggerQueue;
   }
 
   transition(READY, C2c_CBWrData_UC, SENDING_WBDATA) {
     prepareSend;
-    SendToNet_Data;
+    sendToNet_Data;
     popResponseFromC2cQueue;
   }
 
   transition(SENDING_WBDATA, Trigger_Send) {
-    SendToNet_Data;
+    sendToNet_Data;
     popTriggerQueue;
   }
 
@@ -1042,12 +1044,12 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition(READY, C2c_ReadShared, MEMORY_REQUEST){
     c2cReqAllocateTBE;
     initializeFromC2cReqTBE;
-    Trigger_SendToNet_ReadShared;
+    trigger_SendToNet_ReadShared;
     popC2cReqRdyInQueue;
   }
 
   transition(MEMORY_REQUEST, Trigger_SendToNet_ReadShared) {
-    SentToNet_ReadShared;
+    sentToNet_ReadShared;
     popTriggerQueue;
   }
 
@@ -1058,7 +1060,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition(MEMORY_REQUEST, Trigger_ReceiveDataDone, READY) {
-    SendToC2c_CompData_UC;
+    sendToC2c_CompData_UC;
     deallocateTBE;
     wakeUpStalled;
     popTriggerQueue;
