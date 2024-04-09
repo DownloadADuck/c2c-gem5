@@ -966,7 +966,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popReqInQueue;
   }
 
-  transition(READING_MEM, Trigger_SendToC2c_Request) {
+  transition({READING_MEM, WAIT_COMPDBID}, Trigger_SendToC2c_Request) {
     sendToC2c_Request;
     popTriggerQueue;
   }
@@ -1002,7 +1002,9 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition(READY, Net_WriteEvictFull, WAIT_COMPDBID) {
     allocateTBE;
     initializeFromReqTBE;
-    sendToC2c_WriteEvictFull;
+    //sendToC2c_WriteEvictFull;
+    trigger_SendToC2c_Request;
+    //sendToC2c_Request;
     popReqInQueue;
   }
 
