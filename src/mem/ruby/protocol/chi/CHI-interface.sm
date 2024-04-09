@@ -638,12 +638,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  // Not needed anymore 
-  //action(decWritePending, "dwp", desc="Decrement pending writes") {
-  //  assert(pendingWrites >= 1);
-  //  pendingWrites := pendingWrites - 1;
-  //}
-
   action(deallocateTBE, "dtbe", desc="Deallocate TBEs") {
     assert(is_valid(tbe));
     storTBEs.removeEntryFromSlot(tbe.storSlot);
@@ -663,30 +657,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  // Deprecated SNF feature
-  //action(sendReadReceipt, "sRR", desc="Send receipt to requestor") {
-  //  assert(is_valid(tbe));
-  //  enqueue(rspOutPort, CHIResponseMsg, response_latency) {
-  //    out_msg.addr := address;
-  //    out_msg.type := CHIResponseType:ReadReceipt;
-  //    out_msg.responder := machineID;
-  //    out_msg.Destination.add(tbe.requestor);
-  //  }
-  //  // also send different type of data when ready
-  //  tbe.useDataSepResp := true;
-  //}
-
-  // Deprecated SNF feature
-  //action(sendCompDBIDResp, "sCbid", desc="Send ack to requestor") {
-  //  assert(is_valid(tbe));
-  //  enqueue(rspOutPort, CHIResponseMsg, response_latency) {
-  //    out_msg.addr := address;
-  //    out_msg.type := CHIResponseType:CompDBIDResp;
-  //    out_msg.responder := machineID;
-  //    out_msg.Destination.add(tbe.requestor);
-  //  }
-  //}
-
   action(Trigger_SendToC2c_ReadShared, "tsmr", desc="Trigger SendToC2c_ReadShared") {
     assert(is_valid(tbe));
     enqueue(triggerOutPort, TriggerMsg, 0) {
@@ -695,7 +665,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  action(triggerSendReadRequest, "tsrr", desc="Trigger SentToNet_ReadShared") {
+  action(Trigger_SendToNet_ReadShared, "tsrr", desc="Trigger SentToNet_ReadShared") {
     assert(is_valid(tbe));
     enqueue(triggerOutPort, TriggerMsg, 0) {
       out_msg.addr := address;
@@ -784,33 +754,6 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.event := next;
     }
   }
-
-    // Don't need this anymore, using SendToNet_Data
-    //action(SendToNet_CBWrData_UC, "s2ncwuc", desc="Send CBWrData to network") {
-    //  assert(is_valid(tbe));
-    //  assert(tbe.rxtxBytes < blockSize);
-    //  enqueue(datOutPort, CHIDataMsg, data_latency) {
-    //    out_msg.addr := tbe.addr;
-    //    out_msg.type := CHIDataType:CBWrData_UC;
-    //    out_msg.dataBlk := tbe.dataBlk;
-    //    out_msg.bitMask.setMask(tbe.rxtxBytes, data_channel_size);
-    //    // using map for the dest instead of the tbe
-    //    out_msg.Destination.add(mapAddressToDownstreamMachine(tbe.addr));
-    //    out_msg.responder := machineID;
-    //  }
-    //  tbe.rxtxBytes := tbe.rxtxBytes + data_channel_size;
-
-    //  Event next := Event:Trigger_SendDone;
-    //  Cycles delay := intToCycles(0);
-    //  if (tbe.rxtxBytes < blockSize) {
-    //    next := Event:Trigger_Send;
-    //    delay := intToCycles(2);
-    //  }
-    //  enqueue(triggerOutPort, TriggerMsg, delay) {
-    //    out_msg.addr := address;
-    //    out_msg.event := next;
-    //  }
-    //}
 
   action(checkForReceiveCompletion, "crrc", desc="Check if all read data is received") {
     assert(is_valid(tbe));
@@ -1008,15 +951,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     popReqInQueue;
   }
 
-  // Deprecated SNF feature
-  //transition(READY, ReadNoSnpSep, READING_MEM) {
-  //  allocateTBE;
-  //  initializeFromReqTBE;
-  //  triggerSendMemoryRead;
-  //  sendReadReceipt;
-  //  popReqInQueue;
-  //}
-
   transition(READING_MEM, Trigger_SendToC2c_ReadShared) {
     SendToC2c_ReadShared;
     popTriggerQueue;
@@ -1108,7 +1042,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition(READY, C2c_ReadShared, MEMORY_REQUEST){
     c2cReqAllocateTBE;
     initializeFromC2cReqTBE;
-    triggerSendReadRequest;
+    Trigger_SendToNet_ReadShared;
     popC2cReqRdyInQueue;
   }
 
@@ -1129,13 +1063,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     wakeUpStalled;
     popTriggerQueue;
   }
-
-  // Just sanity check against counter of pending acks
-  //transition({READING_MEM,WAITING_NET_DATA,SENDING_NET_DATA,READY},
-  //            MemoryAck) {
-  //  decWritePending;
-  //  popResponseFromC2cQueue;
-  //}
 
   // Notice we only use this here and call wakeUp when leaving this state
   transition({READING_MEM,WAITING_NET_DATA,SENDING_NET_DATA},
