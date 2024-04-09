@@ -228,7 +228,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     bool useDataSepResp, desc="Replies with DataSepResp instead of CompData";
 
     // Storing types
-    C2cRequestType net_req_type, desc="Temporarily store the c2c request type";
+    CHIRequestType to_c2c_req_type, desc="Temporarily store the request type";
+    C2cRequestType to_net_req_type, desc="Temporarily store the c2c request type";
     CHIDataType snd_msgType, desc="used to send the right response data type";
     CHIDataType net_dat_type, desc="Temporatily store the net data type";
 
@@ -639,7 +640,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       }
       tbe.accAddr := in_msg.accAddr;
       tbe.accSize := in_msg.accSize;
-      tbe.net_req_type := in_msg.type;
+      tbe.to_c2c_req_type := in_msg.type;
     }
   }
 
@@ -647,7 +648,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     peek(c2cReqRdyInPort, C2cMsg) {
       tbe.Sender := in_msg.Sender;
       tbe.size := in_msg.MessageSize;
-      tbe.net_req_type := in_msg.Type;
+      tbe.to_c2c_req_type := in_msg.Type;
     }
   }
 
@@ -693,7 +694,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     enqueue(requestToC2c_out, C2cMsg, to_memory_controller_latency) {
       out_msg.addr := address;
       //out_msg.Type := C2cRequestType:ReadShared;
-      out_msg.Type := CHIReqToC2cMsg(tbe.net_req_type);
+      out_msg.Type := CHIReqToC2cMsg(tbe.to_c2c_req_type);
       out_msg.Sender := tbe.requestor;
       out_msg.MessageSize := MessageSizeType:Request_Control;
       out_msg.Len := 0;
