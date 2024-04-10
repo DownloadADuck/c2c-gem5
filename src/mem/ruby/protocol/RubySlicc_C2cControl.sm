@@ -30,6 +30,10 @@ structure(C2cMsg, desc="...", interface="Message") {
   C2cRequestType Type,       desc="Type of memory request (MEMORY_READ or MEMORY_WB)";
   MachineID Sender,             desc="What component sent the data";
   MachineID OriginalRequestorMachId, desc="What component originally requested";
+
+  // C2c sharer field
+  MachineID C2c_sharer,         desc="Off-chip sharer";
+
   DataBlock DataBlk,            desc="Data to writeback";
   MessageSizeType MessageSize,  desc="size category of the message";
   int Len,                      desc="size of the memory/dma request";

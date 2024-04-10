@@ -823,10 +823,13 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   action(sendToC2c_CompAck, "s2cca", desc="Send CompAck to C2c") {
-    enqueue(responseToC2c_out, C2cMsg, response_latency) {
-      out_msg.addr := address;
-      out_msg.Type := C2cRequestType:CompAck;
-      out_msg.MessageSize := MessageSizeType:Response_Control;
+    peek(rspInPort, CHIResponseMsg) {
+      enqueue(responseToC2c_out, C2cMsg, response_latency) {
+        out_msg.addr := address;
+        out_msg.Type := C2cRequestType:CompAck;
+        out_msg.MessageSize := MessageSizeType:Response_Control;
+        out_msg.C2c_sharer := in_msg.responder;
+      }
     }
   }
   
