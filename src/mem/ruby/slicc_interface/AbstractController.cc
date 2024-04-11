@@ -346,21 +346,15 @@ AbstractController::serviceReqToC2cQueue()
     RequestPtr req
         = std::make_shared<Request>(mem_msg->m_addr, req_size, 0, m_id);
     PacketPtr pkt;
-    if (mem_msg->getType() == C2cRequestType_WriteEvictFull) {
-        pkt = new Packet(req, MemCmd::CHIWriteEvictFull);
-    } else if (mem_msg->getType() == C2cRequestType_ReadShared) {
-        pkt = new Packet(req, MemCmd::CHIReadShared);
-        pkt->c2c_msg = mem_msg;
-    } else {
-        panic("Unknown memory request type (%s) for addr %p",
-              C2cRequestType_to_string(mem_msg->getType()),
-              mem_msg->m_addr);
-    }
+    
+    pkt = new Packet(req, MemCmd::c2c_packet);
+    pkt->c2c_msg = mem_msg;
 
     SenderState *s = new SenderState(mem_msg->m_Sender);
     pkt->pushSenderState(s);
 
     if (RubySystem::getWarmupEnabled()) {
+        panic("serviceReqToC2cQueue Warmup Enabled"); 
         // Use functional rather than timing accesses during warmup
         mem_queue->dequeue(clockEdge());
         memoryPort.sendFunctional(pkt);
@@ -404,25 +398,28 @@ AbstractController::serviceRespToC2cQueue()
         = std::make_shared<Request>(mem_msg->m_addr, resp_size, 0, m_id);
     PacketPtr pkt;
 
-    if (mem_msg->getType() == C2cRequestType_CompData_UC) {
-        pkt = new Packet(req, MemCmd::CHICompData_UC);
-        pkt->allocate();
-        pkt->setData(mem_msg->m_DataBlk.getData(getOffset(mem_msg->m_addr), 
-                    resp_size));
-    } else if (mem_msg->getType() == C2cRequestType_CompAck) {
-        pkt = new Packet(req, MemCmd::CHICompAck);
-    } else if (mem_msg->getType() == C2cRequestType_CompDBIDResp) {
-        pkt = new Packet(req, MemCmd::CHICompDBIDResp);
-    } else if (mem_msg->getType() == C2cRequestType_CBWrData_UC) {
-        pkt = new Packet(req, MemCmd::CHICBWrData_UC);
-        pkt->allocate();
-        pkt->setData(mem_msg->m_DataBlk.getData(getOffset(mem_msg->m_addr),
-                    resp_size));
-    } else {
-        panic("Unknown memory response type (%s) for addr %p",
-              C2cRequestType_to_string(mem_msg->getType()),
-              mem_msg->m_addr);
-    }
+    pkt = new Packet(req, MemCmd::c2c_packet);
+    pkt->c2c_msg = mem_msg;
+
+    //if (mem_msg->getType() == C2cRequestType_CompData_UC) {
+    //    pkt = new Packet(req, MemCmd::CHICompData_UC);
+    //    pkt->allocate();
+    //    pkt->setData(mem_msg->m_DataBlk.getData(getOffset(mem_msg->m_addr), 
+    //                resp_size));
+    //} else if (mem_msg->getType() == C2cRequestType_CompAck) {
+    //    pkt = new Packet(req, MemCmd::CHICompAck);
+    //} else if (mem_msg->getType() == C2cRequestType_CompDBIDResp) {
+    //    pkt = new Packet(req, MemCmd::CHICompDBIDResp);
+    //} else if (mem_msg->getType() == C2cRequestType_CBWrData_UC) {
+    //    pkt = new Packet(req, MemCmd::CHICBWrData_UC);
+    //    pkt->allocate();
+    //    pkt->setData(mem_msg->m_DataBlk.getData(getOffset(mem_msg->m_addr),
+    //                resp_size));
+    //} else {
+    //    panic("Unknown memory response type (%s) for addr %p",
+    //          C2cRequestType_to_string(mem_msg->getType()),
+    //          mem_msg->m_addr);
+    //}
 
     SenderState *s = new SenderState(mem_msg->m_Sender);
     pkt->pushSenderState(s);
@@ -564,22 +561,11 @@ AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
     delete s;
 
     if (pkt->isRead()) {
-        if(pkt->cmd == MemCmd::CHICompData_UC) {
-            (*msg).m_Type = C2cRequestType_CompData_UC;
-            (*msg).m_MessageSize = MessageSizeType_Response_Data;
-            (*msg).m_DataBlk.setData(pkt->getPtr<uint8_t>(), 0,
-                                     RubySystem::getBlockSizeBytes());
-        } else if (pkt->cmd == MemCmd::CHICompAck) {
-            (*msg).m_Type = C2cRequestType_CompAck;
-            (*msg).m_MessageSize = MessageSizeType_Response_Control;
-        } else if (pkt->cmd == MemCmd::CHICompDBIDResp) {
-            (*msg).m_Type = C2cRequestType_CompDBIDResp;
-            (*msg).m_MessageSize = MessageSizeType_Response_Control;
-        } else if (pkt->cmd == MemCmd::CHICBWrData_UC) {
-            (*msg).m_Type = C2cRequestType_CBWrData_UC;
-            (*msg).m_MessageSize = MessageSizeType_Response_Data;
-            (*msg).m_DataBlk.setData(pkt->getPtr<uint8_t>(), 0,
-                                    RubySystem::getBlockSizeBytes());
+        (*msg).m_Type = (*(pkt->c2c_msg)).m_Type;
+        (*msg).m_DataBlk = (*(pkt->c2c_msg)).m_DataBlk;
+
+        if ((*(pkt->c2c_msg)).m_Type == C2cRequestType_CompAck) {
+            (*msg).m_C2c_sharer = (*(pkt->c2c_msg)).m_C2c_sharer;
         }
     } else {
         panic("Incorrect packet type received in the c2c_out_port!");
@@ -604,13 +590,12 @@ AbstractController::recvTimingReq(PacketPtr pkt)
     delete s;
 
     if (pkt->isRead()) {
-        if (pkt->cmd == MemCmd::CHIReadShared) {
-            //(*msg).m_Type = C2cRequestType_ReadShared;
-            //(*msg).m_MessageSize = MessageSizeType_Request_Control;
+        // build the new C2cMsg fields from the packet 
+        if ((*(pkt->c2c_msg)).m_Type == C2cRequestType_ReadShared){
             (*msg).m_Type = (*(pkt->c2c_msg)).m_Type;
-        } else if (pkt->cmd == MemCmd::CHIWriteEvictFull) {
-            (*msg).m_Type = C2cRequestType_WriteEvictFull;
-            (*msg).m_MessageSize = MessageSizeType_Request_Control;
+            (*msg).m_C2c_sharer = (*(pkt->c2c_msg)).m_C2c_sharer;
+        } else {
+            (*msg).m_Type = (*(pkt->c2c_msg)).m_Type;
         }
     } else {
         panic("Incorrect packet type received in the c2c_in_port!");

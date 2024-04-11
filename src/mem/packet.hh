@@ -154,16 +154,8 @@ class MemCmd
         HTMAbort,
         // Tlb shootdown
         TlbiExtSync,
-        // c2c commands
-        // Requests
-        CHIReadShared,
-        CHIWriteEvictFull,
-        // Responses
-        CHICompAck,
-        CHICompDBIDResp,
-        // Data
-        CHICompData_UC,
-        CHICBWrData_UC,
+        // c2c command
+        c2c_packet,
         NUM_MEM_CMDS
     };
 
