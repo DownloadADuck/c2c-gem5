@@ -605,9 +605,9 @@ AbstractController::recvTimingReq(PacketPtr pkt)
 
     if (pkt->isRead()) {
         if (pkt->cmd == MemCmd::CHIReadShared) {
-            //std::shared_ptr<C2cMsg> msg = pkt->c2c_msg;
-            (*msg).m_Type = C2cRequestType_ReadShared;
-            (*msg).m_MessageSize = MessageSizeType_Request_Control;
+            //(*msg).m_Type = C2cRequestType_ReadShared;
+            //(*msg).m_MessageSize = MessageSizeType_Request_Control;
+            (*msg).m_Type = (*(pkt->c2c_msg)).m_Type;
         } else if (pkt->cmd == MemCmd::CHIWriteEvictFull) {
             (*msg).m_Type = C2cRequestType_WriteEvictFull;
             (*msg).m_MessageSize = MessageSizeType_Request_Control;
