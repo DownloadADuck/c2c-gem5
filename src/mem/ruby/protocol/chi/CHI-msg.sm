@@ -158,6 +158,9 @@ structure(CHIResponseMsg, desc="", interface="Message") {
   Addr txnId,           desc="Transaction ID", default="0";
   //NOTE: not in CHI and for debuging only
 
+  // c2c off-chip sharer field
+  MachineID c2c_sharer, desc="off-chip sharer";
+
   MessageSizeType MessageSize, default="MessageSizeType_Control";
 
   // No data for functional access

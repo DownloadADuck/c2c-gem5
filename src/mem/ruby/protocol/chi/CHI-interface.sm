@@ -834,11 +834,15 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
   
   action(sendToNet_CompAck, "s2nca", desc="Send back CompAck to network") {
-    enqueue(rspOutPort, CHIResponseMsg, response_latency) {
-      out_msg.addr := address;
-      out_msg.type := CHIResponseType:CompAck;
-      out_msg.responder := machineID;
-      out_msg.Destination.add(mapAddressToDownstreamMachine(address));
+    peek(responseFromC2c_in, C2cMsg) {
+      enqueue(rspOutPort, CHIResponseMsg, response_latency) {
+        out_msg.addr := address;
+        out_msg.type := CHIResponseType:CompAck;
+        out_msg.responder := machineID;
+        // adding the c2c_sharer 
+        out_msg.c2c_sharer := in_msg.C2c_sharer;
+        out_msg.Destination.add(mapAddressToDownstreamMachine(address));
+      }
     }
   }
 
