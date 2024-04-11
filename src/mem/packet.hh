@@ -63,8 +63,14 @@
 #include "mem/request.hh"
 #include "sim/byteswap.hh"
 
+// for std::unique_ptr
+#include "memory"
+
 namespace gem5
 {
+namespace ruby {
+    class C2cMsg; // Forward declaration
+}
 
 class Packet;
 typedef Packet *PacketPtr;
@@ -305,6 +311,8 @@ class Packet : public Printable
   public:
     typedef uint32_t FlagsType;
     typedef gem5::Flags<FlagsType> Flags;
+
+    const ruby::C2cMsg* c2c_msg;
 
   private:
     enum : FlagsType

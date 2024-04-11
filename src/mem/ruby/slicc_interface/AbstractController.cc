@@ -348,9 +348,9 @@ AbstractController::serviceReqToC2cQueue()
     PacketPtr pkt;
     if (mem_msg->getType() == C2cRequestType_WriteEvictFull) {
         pkt = new Packet(req, MemCmd::CHIWriteEvictFull);
-        //pkt->allocate();
     } else if (mem_msg->getType() == C2cRequestType_ReadShared) {
         pkt = new Packet(req, MemCmd::CHIReadShared);
+        pkt->c2c_msg = mem_msg;
     } else {
         panic("Unknown memory request type (%s) for addr %p",
               C2cRequestType_to_string(mem_msg->getType()),
@@ -605,6 +605,7 @@ AbstractController::recvTimingReq(PacketPtr pkt)
 
     if (pkt->isRead()) {
         if (pkt->cmd == MemCmd::CHIReadShared) {
+            //std::shared_ptr<C2cMsg> msg = pkt->c2c_msg;
             (*msg).m_Type = C2cRequestType_ReadShared;
             (*msg).m_MessageSize = MessageSizeType_Request_Control;
         } else if (pkt->cmd == MemCmd::CHIWriteEvictFull) {
