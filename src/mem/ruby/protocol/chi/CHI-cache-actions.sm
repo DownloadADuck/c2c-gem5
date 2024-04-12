@@ -251,6 +251,10 @@ action(Initiate_Request, desc="") {
   DirEntry dir_entry := getDirEntry(address);
   copyCacheAndDir(cache_entry, dir_entry, tbe, initial);
 
+  DPRINTF(RubyGenerated, "C2C sharer for addr: %d is %s\n", tbe.addr, 
+  tbe.c2c_sharers);
+
+
   tbe.use_DMT := is_HN && enable_DMT;
   tbe.use_DCT := enable_DCT;
 
@@ -2023,8 +2027,7 @@ action(UpdateDirState_FromReqResp, desc="") {
       assert(tbe.requestor == in_msg.responder);
 
       tbe.dir_sharers.add(in_msg.responder);
-      DPRINTF(RubyGenerated, "C2C sharer for addr: %d is %s\n", in_msg.addr, 
-      in_msg.c2c_sharer);
+      tbe.c2c_sharers := in_msg.c2c_sharer;
 
       if (tbe.requestorToBeOwner) {
         assert(tbe.dataMaybeDirtyUpstream);
@@ -2756,6 +2759,7 @@ action(Finalize_UpdateDirectoryFromTBE, desc="") {
     dir_entry.ownerIsExcl := tbe.dir_ownerIsExcl;
     dir_entry.owner := tbe.dir_owner;
     dir_entry.sharers := tbe.dir_sharers;
+    dir_entry.c2c_sharers := tbe.c2c_sharers;
   } else {
     assert((tbe.dir_ownerExists == false) && tbe.dir_sharers.isEmpty());
     if(directory.isTagPresent(address)) {
