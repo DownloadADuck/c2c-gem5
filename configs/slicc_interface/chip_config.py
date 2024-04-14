@@ -197,16 +197,6 @@ def create_chip0(
         all_cntrls.extend(snf.getAllControllers())
         mem_dests.extend(snf.getAllControllers())
 
-    # Setup dummy SNF for the interface
-    #ruby_system.snf3 = [CHI_SNF_MainMem(ruby_system, None, network, None)]
-    #snf3 = ruby_system.snf3[0]
-    #network_nodes.append(snf3)
-    #network_cntrls.extend(snf3.getNetworkSideControllers())
-    #assert snf3.getAllControllers() == snf3.getNetworkSideControllers()
-    #mem_cntrls.extend(snf3.getAllControllers())
-    #all_cntrls.extend(snf3.getAllControllers())
-    #mem_dests.extend(snf3.getAllControllers())
-
     # We use an interface in place of the SNF
     # HACK This is supposed to use the options and num_interface
     interface_list = [i for i in range(1)]
@@ -359,6 +349,24 @@ def create_chip1(
 
     # Creates on RNF per cpu with priv l2 caches
     assert len(cpus) == options.num_cpus
+    ruby_system.rnf1 = [
+        CHI_RNF(
+            [cpu],
+            ruby_system,
+            L1ICache,
+            L1DCache,
+            system.cache_line_size.value,
+            network,
+        )
+        for cpu in cpus
+    ]
+
+    for rnf in ruby_system.rnf1:
+        rnf.addPrivL2Cache(L2Cache)
+        cpu_sequencers.extend(rnf.getSequencers())
+        all_cntrls.extend(rnf.getAllControllers())
+        network_nodes.append(rnf)
+        network_cntrls.extend(rnf.getNetworkSideControllers())
 
     # Creates one Misc Node
     ruby_system.mn1 = [CHI_MN(ruby_system, [cpu.l1d for cpu in cpus], network)]
@@ -383,44 +391,23 @@ def create_chip1(
 
     for m in other_memories:
         sysranges.append(m.range)
+    # We want only one of the ranges for the HNF  
+    sysranges.pop(0)
 
     hnf_list1 = [i for i in range(options.num_l3caches)]
     CHI_HNF.createAddrRanges(sysranges, system.cache_line_size.value, hnf_list1)
-    ruby_system.hnf2 = [
+    ruby_system.hnf1 = [
         CHI_HNF(i, ruby_system, HNFCache, None, network)
         for i in range(options.num_l3caches)
     ]
 
-    for hnf in ruby_system.hnf2:
+    for hnf in ruby_system.hnf1:
         network_nodes.append(hnf)
         network_cntrls.extend(hnf.getNetworkSideControllers())
         assert hnf.getAllControllers() == hnf.getNetworkSideControllers()
         all_cntrls.extend(hnf.getAllControllers())
         hnf_dests.extend(hnf.getAllControllers())
-
-    # C2C Interface
-    interface_list = [i for i in range(options.num_interfaces)]
-    CHI_Interface.createAddrRanges([sysranges[1]], system.cache_line_size.value, \
-        interface_list)
-    ruby_system.interface1 = [
-        CHI_Interface(i, ruby_system, None, network)
-        for i in range(options.num_interfaces)
-    ]
-
-    # Registers the Interface controller in the network_cntrls
-    for interface in ruby_system.interface1:
-        #network_cntrls.extend([interface])
-        network_nodes.append(interface)
-        network_cntrls.extend(interface.getNetworkSideControllers())
-        assert interface.getAllControllers() == interface.getNetworkSideControllers()
-        all_cntrls.extend(interface.getAllControllers())
-        # we donnot want the interface as a destination in this chip
-        #hnf_dests.extend(interface.getAllControllers())
-
-    # Create the memory controllers
-    # Notice we don't define a Directory_Controller type so we don't use
-    # create_directories shared by other protocols.
-
+    
     ruby_system.snf1 = [
         CHI_SNF_MainMem(ruby_system, None, network, None)
         for i in range(options.num_dirs)
@@ -432,6 +419,19 @@ def create_chip1(
         mem_cntrls.extend(snf.getAllControllers())
         all_cntrls.extend(snf.getAllControllers())
         mem_dests.extend(snf.getAllControllers())
+
+    # C2C Interface
+    interface_list = [i for i in range(options.num_interfaces)]
+    CHI_Interface.createAddrRanges([sysranges[0]], system.cache_line_size.value, \
+        interface_list)
+    ruby_system.interface1 = [CHI_Interface(0, ruby_system, None, network)]
+    interface1 = ruby_system.interface1[0]
+    network_nodes.append(interface1)
+    network_cntrls.extend(interface1.getNetworkSideControllers())
+    assert interface1.getAllControllers() == interface1.getNetworkSideControllers()
+    mem_cntrls.extend(interface1.getAllControllers())
+    all_cntrls.extend(interface1.getAllControllers())
+    hnf_dests.extend(interface1.getAllControllers())
 
     if len(other_memories) > 0:
         ruby_system.rom_snf1 = [
@@ -461,21 +461,17 @@ def create_chip1(
         all_cntrls.extend(ruby_system.io_rni.getAllControllers())
 
     # Assign downstream destinations
-    # for now, since we only have one rnf in chip1 we iterate over it
-    # we also use the global hnf_dests 
-    #for rnf in ruby_system.rnf:
-    #    rnf.setDownstream(hnf_dests)
+    for rnf in ruby_system.rnf1:
+        rnf.setDownstream(hnf_dests)
 
-    #for rnf_tgen in ruby_system.rnf_tgen:
-    #    rnf_tgen.setDownstream(hnf_dests)
     if len(dma_ports) > 0:
         for rni in ruby_system.dma_rni1:
             rni.setDownstream(hnf_dests)
 
-    for hnf in ruby_system.hnf2:
+    for hnf in ruby_system.hnf1:
         hnf.setDownstream(mem_dests)
     
-    ruby_system.interface1[0].setDownstream(hnf_dests)
+    #ruby_system.interface1[0].setDownstream(hnf_dests)
 
     # Setup data message size for all controllers
     for cntrl in all_cntrls:

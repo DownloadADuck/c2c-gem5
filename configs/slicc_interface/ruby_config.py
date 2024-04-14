@@ -40,21 +40,11 @@ def setup_memory_controllers(
 
     for i, dir_cntrl in enumerate(dir_cntrls0):
         crossbar = None
-        
+
         dir_ranges = []
         #for mem_range in mem_ranges0:
         if i != 0:
-            # SNF3 C2C
             mem_type = ObjectList.mem_list.get(options0.mem_type)
-            # We don't want a memory controller for the snf3
-            #dram_intf = MemConfig.create_mem_intf(
-            #    mem_type,
-            #    mem_ranges1,
-            #    i,
-            #    int(math.log(options0.num_dirs, 2)),
-            #    intlv_size,
-            #    options0.xor_low_bit,
-            #)
             range = m5.objects.AddrRange(
                 mem_ranges1.start,
                 size=mem_ranges1.size(),
@@ -84,10 +74,7 @@ def setup_memory_controllers(
         if crossbar != None:
             mem_ctrl.port = crossbar.mem_side_ports
         else:
-            if i != 0:
-                # SNF3 C2C
-                print("we do not connect the snf3")
-            else: 
+            if i == 0:
                 # classic SN
                 mem_ctrl.port = dir_cntrl.memory_out_port
 
@@ -101,39 +88,54 @@ def setup_memory_controllers(
 
     index = 0
 
-    for dir_cntrl in dir_cntrls1:
+    for i, dir_cntrl in enumerate(dir_cntrls1):
         crossbar = None
         
         dir_ranges = []
         #for mem_range in mem_ranges1:
-        mem_type = ObjectList.mem_list.get(options1.mem_type)
-        dram_intf = MemConfig.create_mem_intf(
-            mem_type,
-            mem_ranges1,
-            index,
-            int(math.log(options1.num_dirs, 2)),
-            intlv_size,
-            options1.xor_low_bit,
-        )
-        if issubclass(mem_type, DRAMInterface):
-            mem_ctrl = m5.objects.MemCtrl(dram=dram_intf)
+        if i != 0:
+            # C2C Interface
+            mem_type = ObjectList.mem_list.get(options1.mem_type)
+            range = m5.objects.AddrRange(
+                mem_ranges0.start,
+                size=mem_ranges0.size(),
+            )
+
+            dir_ranges.append(range)
         else: 
-            mem_ctrl = dram_intf
-            
-        mem_ctrls1.append(mem_ctrl)
-        dir_ranges.append(dram_intf.range)
+            # classic SN
+            mem_type = ObjectList.mem_list.get(options1.mem_type)
+            dram_intf = MemConfig.create_mem_intf(
+                mem_type,
+                mem_ranges1,
+                i,
+                int(math.log(options1.num_dirs, 2)),
+                intlv_size,
+                options1.xor_low_bit,
+            )
+
+            if issubclass(mem_type, DRAMInterface):
+                mem_ctrl = m5.objects.MemCtrl(dram=dram_intf)
+            else: 
+                mem_ctrl = dram_intf
+                
+            mem_ctrls1.append(mem_ctrl)
+            dir_ranges.append(dram_intf.range)
 
         if crossbar != None:
             mem_ctrl.port = crossbar.mem_side_ports
         else:
-            mem_ctrl.port = dir_cntrl.memory_out_port
-        # Enable low-power DRAM states if option is enabled
-        if issubclass(mem_type, DRAMInterface):
-            mem_ctrl.dram.enable_dram_powerdown = (
-                options1.enable_dram_powerdown
-            )
+            if i == 0:
+                mem_ctrl.port = dir_cntrl.memory_out_port
+
+            # Enable low-power DRAM states if option is enabled
+            if issubclass(mem_type, DRAMInterface):
+                mem_ctrl.dram.enable_dram_powerdown = (
+                    options1.enable_dram_powerdown
+                )
         index += 1
         dir_cntrl.addr_ranges = dir_ranges
+
     system.mem_ctrls0 = mem_ctrls0
     system.mem_ctrls1 = mem_ctrls1
     
@@ -182,8 +184,8 @@ def create_system(
     ruby.network1 = network1
 
     if cpus is None:
-        cpus0 = system.cpus
-        cpus1 = []
+        cpus0 = system.cpus0
+        cpus1 = system.cpus1
     
     # Chip 0
     (cpu_sequencers0, dir_cntrls0, topology0) = \
@@ -256,7 +258,7 @@ def create_system(
     
     # Connect the system port for loading of binaries etc
     system.system_port = system.sys_port_proxy.in_ports
-    
+
     setup_memory_controllers(
         system,
         ruby,
@@ -275,7 +277,10 @@ def create_system(
 
     # TrafficGen setup
     for i in range(len(cpus0)):
-        system.tgens[i].port = cpu_sequencers0[i].in_ports
+        system.tgens0[i].port = cpu_sequencers0[i].in_ports
+
+    for i in range(len(cpus1)):
+        system.tgens1[i].port = cpu_sequencers1[i].in_ports
     
     ruby.number_of_virtual_networks = ruby.network0.number_of_virtual_networks
     ruby._cpu_ports = cpu_sequencers0

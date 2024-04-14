@@ -121,7 +121,7 @@ options1.l2_assoc = 8
 options1.l3_size = '32kB'
 options1.l3_assoc = 16
 options1.cacheline_size = 64
-options1.num_cpus = 0
+options1.num_cpus = 1
 options1.network_fault_model = False
 options1.checkpoint_dir = None
 options1.standard_switch = None
@@ -207,13 +207,20 @@ arv = convert.toMemorySize('2MB')
 addr_range_vaults = [AddrRange(i*arv, ((i+1)*arv-1)) for i in range(2)]
 
 system = System(
-    tgens=[
+    tgens0=[
         TrafficGen(
             config_file="./m5out/lat_mem_rd.cfg",
             progress_check="10s",
         ) for i in range(np)
     ],
-    cpus=[CPUClass(cpu_id=i) for i in range(np)],
+    tgens1=[
+        TrafficGen(
+            config_file="./m5out/lat_mem_rd.cfg",
+            progress_check="10s",
+        ) for i in range(np)
+    ],
+    cpus0=[CPUClass(cpu_id=i) for i in range(np)],
+    cpus1=[CPUClass(cpu_id=(np + i)) for i in range(np)],
     mem_mode="timing",
     mem_ranges=addr_range_vaults,
     cache_line_size=64
@@ -238,15 +245,21 @@ system.cpu_clk_domain = SrcClockDomain(
     clock='2GHz', voltage_domain=system.cpu_voltage_domain
 )
 
-for cpu in system.cpus:
+for cpu in system.cpus0:
+    cpu.clk_domain = system.cpu_clk_domain
+
+for cpu in system.cpus1:
     cpu.clk_domain = system.cpu_clk_domain
 
 for i in range(np):
     if len(multiprocesses) == 1:
-        system.cpus[i].workload = multiprocesses[0]
+        system.cpus0[i].workload = multiprocesses[0]
+        system.cpus1[i].workload = multiprocesses[0]
     else:
-        system.cpus[i].workload = multiprocesses[i]
-    system.cpus[i].createThreads()
+        system.cpus0[i].workload = multiprocesses[i]
+        system.cpus1[i].workload = multiprocesses[i]
+    system.cpus0[i].createThreads()
+    system.cpus1[i].createThreads()
 
 
 ruby_config.create_system(options0, options1, False, system)
@@ -257,8 +270,10 @@ system.ruby.clk_domain = SrcClockDomain(
 for i in range(np):
     ruby_port = system.ruby._cpu_ports[i]
     # Interrupt controller needs its message port conected only with x86
-    system.cpus[i].createInterruptController()
-    ruby_port.connectCpuPorts(system.cpus[i])
+    system.cpus0[i].createInterruptController()
+    system.cpus1[i].createInterruptController()
+    ruby_port.connectCpuPorts(system.cpus0[i])
+    ruby_port.connectCpuPorts(system.cpus1[i])
 
 system.workload = SEWorkload.init_compatible(mp0_path)
 
