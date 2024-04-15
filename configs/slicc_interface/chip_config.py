@@ -243,6 +243,9 @@ def create_chip0(
 
     for i, hnf in enumerate(ruby_system.hnf):
         hnf.setDownstream(mem_dests[i])
+    
+    hnf_dests.pop(1)
+    ruby_system.interface0[0].setDownstream(hnf_dests)
 
     # Setup data message size for all controllers
     for cntrl in all_cntrls:
@@ -470,8 +473,9 @@ def create_chip1(
 
     for hnf in ruby_system.hnf1:
         hnf.setDownstream(mem_dests)
-    
-    #ruby_system.interface1[0].setDownstream(hnf_dests)
+
+    hnf_dests.pop(1)
+    ruby_system.interface1[0].setDownstream(hnf_dests)
 
     # Setup data message size for all controllers
     for cntrl in all_cntrls:
