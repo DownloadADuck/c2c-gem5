@@ -134,6 +134,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   Event dataToEvent (CHIDataType type) {
+    DPRINTF(RubyGenerated, "Inbound data message of type: %s\n", type);
     if (type == CHIDataType:CompData_UC) {
       return Event:Net_CompData_UC;
     } else if (type == CHIDataType:CBWrData_UC) {
