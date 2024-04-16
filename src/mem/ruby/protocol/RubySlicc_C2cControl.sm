@@ -14,6 +14,7 @@ enumeration(C2cRequestType, desc="...") {
   
   // Requests
   ReadShared, desc="ReadShared";
+  Evict, desc="Evict";
   WriteEvictFull, desc="WriteEvictFull";
   // Responses
   CompAck,    desc="CompAck message";

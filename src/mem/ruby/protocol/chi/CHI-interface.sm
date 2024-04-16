@@ -77,6 +77,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     // Requests
     Net_ReadShared, desc="";
     C2c_ReadShared, desc="";
+    Net_Evict, desc="";
+    C2c_Evict, desc="";
     Net_WriteEvictFull, desc="";
     C2c_WriteEvictFull, desc="";
 
@@ -111,6 +113,8 @@ machine(MachineType:Interface, "C2C interface controller") :
   Event reqToEvent (CHIRequestType type) {
     if (type == CHIRequestType:ReadShared) {
       return Event:Net_ReadShared;
+    } else if (type == CHIRequestType:Evict) {
+      return Event:Net_Evict;
     } else if (type == CHIRequestType:WriteEvictFull) {
       return Event:Net_WriteEvictFull;
     } else {
@@ -146,6 +150,8 @@ machine(MachineType:Interface, "C2C interface controller") :
   Event c2cReqToEvent (C2cRequestType type) {
     if (type == C2cRequestType:ReadShared) {
       return Event:C2c_ReadShared;
+    } else if (type == C2cRequestType:Evict) {
+      return Event:C2c_Evict;
     } else if (type == C2cRequestType:WriteEvictFull) {
       return Event:C2c_WriteEvictFull;
     } else {
@@ -174,6 +180,8 @@ machine(MachineType:Interface, "C2C interface controller") :
   CHIRequestType c2cMsgToCHIReq(C2cRequestType type){
     if (type == C2cRequestType:ReadShared) {
       return CHIRequestType:ReadShared;
+    } else if (type == C2cRequestType:Evict) {
+      return CHIRequestType:Evict;
     } else if (type == C2cRequestType:WriteEvictFull) {
       return CHIRequestType:WriteEvictFull;
     } else {
@@ -196,6 +204,8 @@ machine(MachineType:Interface, "C2C interface controller") :
   C2cRequestType CHIReqToC2cMsg(CHIRequestType type) {
     if (type == CHIRequestType:ReadShared) {
       return C2cRequestType:ReadShared;
+    } else if (type == CHIRequestType:Evict) {
+      return C2cRequestType:Evict;
     } else if (type == CHIRequestType:WriteEvictFull) {
       return C2cRequestType:WriteEvictFull;
     } else {
@@ -1015,14 +1025,14 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // WriteEvictFull
-  transition(READY, Net_WriteEvictFull, WAIT_COMPDBID) {
+  transition(READY, {Net_Evict, Net_WriteEvictFull}, WAIT_COMPDBID) {
     allocateTBE;
     initializeFromReqTBE;
     trigger_SendToC2c_Request;
     popReqInQueue;
   }
 
-  transition(READY, C2c_WriteEvictFull) {
+  transition(READY, {C2c_Evict, C2c_WriteEvictFull}) {
     c2cReqAllocateTBE;
     initializeFromC2cReqTBE;
     trigger_SendToNet_Request;
