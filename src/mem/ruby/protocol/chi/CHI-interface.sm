@@ -74,10 +74,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     // Checks if there is a request in the requestFromC2c
     CheckC2cReqAllocTBE, desc="";
 
-    // C2C requests
-    ReqWriteNoSnpPtl, desc="Write no snp ptl request from chip0";
-    ReqWriteNoSnp, desc="Write no snp request from chip0";
-
     // Requests
     Net_ReadShared, desc="";
     C2c_ReadShared, desc="";
@@ -85,8 +81,10 @@ machine(MachineType:Interface, "C2C interface controller") :
     C2c_WriteEvictFull, desc="";
 
     // Data
-    Net_CompData_UC, desc="Response data from net";
-    C2c_CompData_UC, desc="Response data from c2c";
+    Net_CompData_UC, desc="Response data from net of type SC";
+    C2c_CompData_UC, desc="Response data from c2c of type SC";
+    Net_CompData_SC, desc="Response data from net of type SC";
+    C2c_CompData_SC, desc="Response data from c2c of type SC";
     Net_CBWrData_UC, desc="Response from an evict";
     Net_CBWrData_UC_ReceiveDone, desc="Received all CBWrData_UC messages";
     C2c_CBWrData_UC, desc="";
@@ -104,14 +102,11 @@ machine(MachineType:Interface, "C2C interface controller") :
     Trigger_ReceiveDataDone, desc="Received all read data";
     Trigger_SendRetry, desc="";
     Trigger_SendPCrdGrant, desc="";
-    Trigger_SendToNet_ReadShared, desc="Trigger the sending of ReadShared to net";
 
     Trigger_SendToC2c_Request, desc="Trigger the sending of requests to c2c";
     Trigger_SendToNet_Request, desc="Trigger the sending of requests to net";
   }
 
-
-  // Is there a less tedious way to convert messages to events ??
 
   Event reqToEvent (CHIRequestType type) {
     if (type == CHIRequestType:ReadShared) {
@@ -137,6 +132,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     DPRINTF(RubyGenerated, "Inbound data message of type: %s\n", type);
     if (type == CHIDataType:CompData_UC) {
       return Event:Net_CompData_UC;
+    } else if (type == CHIDataType:CompData_SC){
+      return Event:Net_CompData_SC;
     } else if (type == CHIDataType:CBWrData_UC) {
       return Event:Net_CBWrData_UC;
     } else {
@@ -157,12 +154,14 @@ machine(MachineType:Interface, "C2C interface controller") :
   Event c2cRespToEvent (C2cRequestType type) {
     if (type == C2cRequestType:CompData_UC) {
       return Event:C2c_CompData_UC;
+    } else if (type == C2cRequestType:CompData_SC) {
+      return Event:C2c_CompData_SC;
+    } else if (type == C2cRequestType:CBWrData_UC) {
+      return Event:C2c_CBWrData_UC;
     } else if (type == C2cRequestType:CompAck) {
       return Event:C2c_CompAck;
     } else if (type == C2cRequestType:CompDBIDResp) {
       return Event:C2c_CompDBIDResp;
-    } else if (type == C2cRequestType:CBWrData_UC) {
-      return Event:C2c_CBWrData_UC;
     } else {
       error("Invalid C2cResponseType");
     }
@@ -194,10 +193,21 @@ machine(MachineType:Interface, "C2C interface controller") :
     } else if (type == CHIRequestType:WriteEvictFull) {
       return C2cRequestType:WriteEvictFull;
     } else {
-      error("Unexpected CHIRequest Type");
+      error("Unexpected CHIRequest type");
     }
   }
 
+  C2cRequestType CHIDatToC2cMsg(CHIDataType type) {
+    if (type == CHIDataType:CompData_UC) {
+      return C2cRequestType:CompData_UC;
+    } else if (type == CHIDataType:CompData_SC) {
+      return C2cRequestType:CompData_SC;
+    } else if (type == CHIDataType:CBWrData_UC) {
+      return C2cRequestType:CBWrData_UC;
+    } else {
+      error("Unexpected CHIData type");
+    }
+  }
 
   ////////////////////////////////////////////////////////////////////////////
   // Data structures
@@ -710,9 +720,10 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  action(sentToNet_Request, "srr", desc="sends a request to the network") {
+  action(sendToNet_Request, "srr", desc="sends a request to the network") {
     assert(is_valid(tbe));
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_UC);
+    tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_SC);
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CBWrData_UC);
     tbe.expected_req_resp.addExpectedCount(1);
     enqueue(reqOutPort, CHIRequestMsg, request_latency) {
@@ -802,6 +813,8 @@ machine(MachineType:Interface, "C2C interface controller") :
           out_msg.addr := address;
           if (in_msg.type == CHIDataType:CompData_UC) {
             out_msg.event := Event:Trigger_ReceiveDataDone;
+          } else if (in_msg.type == CHIDataType:CompData_SC) {
+            out_msg.event := Event:Trigger_ReceiveDataDone;
           } else if (in_msg.type == CHIDataType:CBWrData_UC) {
             out_msg.event := Event:Net_CBWrData_UC_ReceiveDone;
           }
@@ -810,11 +823,11 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  action(sendToC2c_CompData_UC, "srresp", desc="Send read response to chip0") {
+  action(sendToC2c_Data, "stc2cd", desc="Sends data to c2c") {
     assert(is_valid(tbe));
     enqueue(responseToC2c_out, C2cMsg, to_memory_controller_latency) {
-      out_msg.addr := address;
-      out_msg.Type := C2cRequestType:CompData_UC;
+      out_msg.addr := tbe.addr;
+      out_msg.Type := CHIDatToC2cMsg(tbe.net_dat_type);
       out_msg.Sender := tbe.requestor;
       out_msg.MessageSize := MessageSizeType:Response_Data;
       out_msg.DataBlk := tbe.dataBlk;
@@ -865,28 +878,6 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.type := CHIResponseType:CompDBIDResp;
       out_msg.responder := machineID;
       out_msg.Destination.add(tbe.requestor);
-    }
-  }
-
-  action(sendToC2c_WriteEvictFull, "s2cwef", desc="Send WriteEvictFull to C2C") {
-    enqueue(requestToC2c_out, C2cMsg, request_latency) {
-      out_msg.addr := address;
-      out_msg.Type := C2cRequestType:WriteEvictFull;
-      out_msg.MessageSize := MessageSizeType:Request_Control;
-    }
-  }
-
-  action(sendToNet_WriteEvictFull, "s2nwef", desc="Send WriteEvictFull to Network") {
-    enqueue(reqOutPort, CHIRequestMsg, request_latency) {
-      out_msg.addr := address;
-      out_msg.accAddr := address;
-      out_msg.accSize := blockSize;
-      out_msg.type := CHIRequestType:WriteEvictFull;
-      out_msg.requestor := machineID;
-      out_msg.fwdRequestor := machineID;
-      out_msg.allowRetry := true;
-      out_msg.is_local_pf := false;
-      out_msg.Destination.add(mapAddressToDownstreamMachine(address));
     }
   }
 
@@ -990,7 +981,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popTriggerQueue;
   }
 
-  transition(READING_MEM, C2c_CompData_UC, SENDING_NET_DATA) {
+  transition(READING_MEM, {C2c_CompData_UC, C2c_CompData_SC}, SENDING_NET_DATA) {
     prepareSend;
     sendToNet_Data;
     popResponseFromC2cQueue;
@@ -1050,7 +1041,8 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition(WAIT_WBDATA, Net_CBWrData_UC_ReceiveDone, READY) {
-    sendToC2c_CBWrData_UC;
+    //sendToC2c_CBWrData_UC;
+    sendToC2c_Data;
     deallocateTBE;
     popTriggerQueue;
   }
@@ -1081,18 +1073,18 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition({MEMORY_REQUEST, READY}, Trigger_SendToNet_Request) {
-    sentToNet_Request;
+    sendToNet_Request;
     popTriggerQueue;
   }
 
-  transition(MEMORY_REQUEST, Net_CompData_UC) {
+  transition(MEMORY_REQUEST, {Net_CompData_UC, Net_CompData_SC}) {
     copyDataToTBE;
     checkForReceiveCompletion;
     popDataInQueue;
   }
 
   transition(MEMORY_REQUEST, Trigger_ReceiveDataDone, READY) {
-    sendToC2c_CompData_UC;
+    sendToC2c_Data;
     deallocateTBE;
     wakeUpStalled;
     popTriggerQueue;
