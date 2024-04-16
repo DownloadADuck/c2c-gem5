@@ -114,7 +114,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     } else if (type == CHIRequestType:WriteEvictFull) {
       return Event:Net_WriteEvictFull;
     } else {
-      DPRINTF(RubyGenerated, "reqToEvent CHIRequestType: ", type);
+      DPRINTF(RubyGenerated, "reqToEvent CHIRequestType: %s\n", type);
       error("Invalid CHIRequestType");
     }
   }
@@ -125,13 +125,12 @@ machine(MachineType:Interface, "C2C interface controller") :
     } else if (type == CHIResponseType:CompDBIDResp) {
       return Event:Net_CompDBIDResp;
     } else {
-      DPRINTF(RubyGenerated, "rspToEvent CHIResponseType: ", type);
+      DPRINTF(RubyGenerated, "rspToEvent CHIResponseType: %s\n", type);
       error("Invalid CHIResponseType");
     }
   }
 
   Event datToEvent (CHIDataType type) {
-    DPRINTF(RubyGenerated, "Inbound data message of type: %s\n", type);
     if (type == CHIDataType:CompData_UC) {
       return Event:Net_CompData_UC;
     } else if (type == CHIDataType:CompData_SC){
@@ -139,7 +138,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     } else if (type == CHIDataType:CBWrData_UC) {
       return Event:Net_CBWrData_UC;
     } else {
-      DPRINTF(RubyGenerated, "datToEvent CHIDataType: ", type);
+      DPRINTF(RubyGenerated, "datToEvent CHIDataType: %s\n", type);
       error("Invalid CHIDataType");
     }
   }
@@ -150,7 +149,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     } else if (type == C2cRequestType:WriteEvictFull) {
       return Event:C2c_WriteEvictFull;
     } else {
-      DPRINTF(RubyGenerated, "c2cReqToEvent C2cRequestType: ", type);
+      DPRINTF(RubyGenerated, "c2cReqToEvent C2cRequestType: %s\n", type);
       error("Invalid C2c request type");
     }
   }
@@ -167,7 +166,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     } else if (type == C2cRequestType:CompDBIDResp) {
       return Event:C2c_CompDBIDResp;
     } else {
-      DPRINTF(RubyGenerated, "c2cRespToEvent C2cRequestType: ", type);
+      DPRINTF(RubyGenerated, "c2cRespToEvent C2cRequestType: %s\n", type);
       error("Invalid C2cResponseType");
     }
   }
