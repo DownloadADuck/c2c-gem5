@@ -17,8 +17,9 @@ enumeration(C2cRequestType, desc="...") {
   Evict, desc="Evict";
   WriteEvictFull, desc="WriteEvictFull";
   // Responses
-  CompAck,    desc="CompAck message";
+  CompAck,    desc="CompAck";
   CompDBIDResp, desc="CompDBIDResp";
+  Comp_I, desc="Comp_I";
   //Data
   CBWrData_UC, desc="CBWrData_UC";
   CompData_UC, desc="CompData_UC";
