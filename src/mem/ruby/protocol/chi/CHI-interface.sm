@@ -114,21 +114,23 @@ machine(MachineType:Interface, "C2C interface controller") :
     } else if (type == CHIRequestType:WriteEvictFull) {
       return Event:Net_WriteEvictFull;
     } else {
+      DPRINTF(RubyGenerated, "reqToEvent CHIRequestType: ", type);
       error("Invalid CHIRequestType");
     }
   }
 
-  Event respToEvent (CHIResponseType type) {
+  Event rspToEvent (CHIResponseType type) {
     if (type == CHIResponseType:CompAck) {
       return Event:Net_CompAck;
     } else if (type == CHIResponseType:CompDBIDResp) {
       return Event:Net_CompDBIDResp;
     } else {
+      DPRINTF(RubyGenerated, "rspToEvent CHIResponseType: ", type);
       error("Invalid CHIResponseType");
     }
   }
 
-  Event dataToEvent (CHIDataType type) {
+  Event datToEvent (CHIDataType type) {
     DPRINTF(RubyGenerated, "Inbound data message of type: %s\n", type);
     if (type == CHIDataType:CompData_UC) {
       return Event:Net_CompData_UC;
@@ -137,6 +139,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     } else if (type == CHIDataType:CBWrData_UC) {
       return Event:Net_CBWrData_UC;
     } else {
+      DPRINTF(RubyGenerated, "datToEvent CHIDataType: ", type);
       error("Invalid CHIDataType");
     }
   }
@@ -147,6 +150,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     } else if (type == C2cRequestType:WriteEvictFull) {
       return Event:C2c_WriteEvictFull;
     } else {
+      DPRINTF(RubyGenerated, "c2cReqToEvent C2cRequestType: ", type);
       error("Invalid C2c request type");
     }
   }
@@ -163,6 +167,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     } else if (type == C2cRequestType:CompDBIDResp) {
       return Event:C2c_CompDBIDResp;
     } else {
+      DPRINTF(RubyGenerated, "c2cRespToEvent C2cRequestType: ", type);
       error("Invalid C2cResponseType");
     }
   }
@@ -180,6 +185,8 @@ machine(MachineType:Interface, "C2C interface controller") :
   CHIDataType c2cMsgToCHIData(C2cRequestType type) {
     if (type == C2cRequestType:CompData_UC) {
       return CHIDataType:CompData_UC;
+    } else if (type == C2cRequestType:CompData_SC) {
+      return CHIDataType:CompData_SC;
     } else if (type == C2cRequestType:CBWrData_UC) {
       return CHIDataType:CBWrData_UC;
     } else {
@@ -461,7 +468,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     if (rspInPort.isReady(clockEdge())) {
       printResources();
       peek(rspInPort, CHIResponseMsg) {
-        trigger(respToEvent(in_msg.type), in_msg.addr, TBEs[in_msg.addr]);
+        trigger(rspToEvent(in_msg.type), in_msg.addr, TBEs[in_msg.addr]);
       }
     }
   }
@@ -473,7 +480,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       peek(datInPort, CHIDataMsg) {
         assert((in_msg.bitMask.count() <= data_channel_size)
                 && (in_msg.bitMask.count() > 0));
-        trigger(dataToEvent(in_msg.type), in_msg.addr, TBEs[in_msg.addr]);
+        trigger(datToEvent(in_msg.type), in_msg.addr, TBEs[in_msg.addr]);
       }
     }
   }
