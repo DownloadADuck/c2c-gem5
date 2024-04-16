@@ -172,6 +172,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:C2c_CBWrData_UC;
     } else if (type == C2cRequestType:CompAck) {
       return Event:C2c_CompAck;
+    } else if (type == C2cRequestType:Comp_I) {
+      return Event:C2c_Comp_I;
     } else if (type == C2cRequestType:CompDBIDResp) {
       return Event:C2c_CompDBIDResp;
     } else {
@@ -195,6 +197,10 @@ machine(MachineType:Interface, "C2C interface controller") :
   CHIResponseType c2cMsgToCHIRsp(C2cRequestType type) {
     if(type == C2cRequestType:CompDBIDResp) {
       return CHIResponseType:CompDBIDResp;
+    } else if (type == C2cRequestType:CompAck) {
+      return CHIResponseType:CompAck;
+    } else if (type == C2cRequestType:Comp_I) {
+      return CHIResponseType:Comp_I;
     } else {
       error ("Unexpected C2cMsg response type");
     }
@@ -802,6 +808,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       tbe.dataBlkValid.orMask(in_msg.bitMask);
       tbe.rxtxBytes := tbe.rxtxBytes + in_msg.bitMask.count();
       tbe.net_dat_type := in_msg.type;
+      // updating requestor for CompAcks
+      tbe.requestor := in_msg.responder;
     }
   }
 
@@ -910,6 +918,13 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
+  action(prepareSend_Response, "psr", desc="Saves info to tbe to send the response") {
+    assert(is_valid(tbe));
+    peek(responseFromC2c_in, C2cMsg){
+      tbe.to_net_rsp_type := in_msg.Type;
+    }
+  }
+
   action(sendToC2c_Response, "c2cr", desc="Sends response to c2c") {
     assert(is_valid(tbe));
     enqueue(responseToC2c_out, C2cMsg, response_latency) {
@@ -917,13 +932,6 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.Type := CHIRspToC2cMsg(tbe.to_c2c_rsp_type);
       out_msg.MessageSize := MessageSizeType:Response_Control;
       //out_msg.C2c_sharer := in_msg.responder;
-    }
-  }
-
-  action(prepareSend_Response, "psr", desc="Saves info to tbe to send the response") {
-    assert(is_valid(tbe));
-    peek(responseFromC2c_in, C2cMsg){
-      tbe.to_net_rsp_type := in_msg.Type;
     }
   }
 
@@ -969,7 +977,15 @@ machine(MachineType:Interface, "C2C interface controller") :
   action(updateTBE_FromNetResp, "utbefr", desc="Updates the TBE with response info") {
     assert(is_valid(tbe));
     peek(rspInPort, CHIResponseMsg) {
+      tbe.to_c2c_rsp_type := in_msg.type;
       tbe.destination := in_msg.responder;
+    }
+  }
+
+  action(updateTBE_FromC2cResp, "utbefc2cr", desc="Update the TBE with response from c2c") {
+    assert(is_valid(tbe));
+    peek(responseFromC2c_in, C2cMsg) { 
+      tbe.to_net_rsp_type := in_msg.Type;
     }
   }
 
@@ -1071,15 +1087,13 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   transition(READY, Net_CompAck) {
     updateTBE_FromNetResp;
-    //sendToC2c_CompAck;
     sendToC2c_Response;
     popRspInQueue;
     deallocateTBE;
   }
 
   transition(READY, C2c_CompAck) {
-    // TODO
-    // updateTBE_FromC2cResp
+    updateTBE_FromC2cResp;
     sendToNet_CompAck;
     popResponseFromC2cQueue;
     deallocateTBE;
@@ -1100,17 +1114,29 @@ machine(MachineType:Interface, "C2C interface controller") :
     popC2cReqRdyInQueue;
   }
 
-  transition(READY, Net_CompDBIDResp) {
+  transition(READY, {Net_Comp_I, Net_CompDBIDResp}) {
     updateTBE_FromNetResp;
-    //sendToC2c_CompDBIDResp;
     sendToC2c_Response;
     popRspInQueue;
+  }
+
+  // Comp_I
+  //transition(READY, Net_Comp_I) {
+  //  updateTBE_FromNetResp;
+  //  sendToC2c_Response;
+  //  popRspInQueue;
+  //}
+
+  // See if this needs WB data or not
+  transition(WAIT_COMPDBID, C2c_Comp_I) {
+    prepareSend_Response;
+    sendToNet_Response;
+    popResponseFromC2cQueue;
   }
 
   transition(WAIT_COMPDBID, C2c_CompDBIDResp, WAIT_WBDATA) {
     prepareSend_Response;
     sendToNet_Response;
-    //sendToNet_CompDBIDResp;
     popResponseFromC2cQueue;
   }
 
@@ -1121,7 +1147,6 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition(WAIT_WBDATA, Net_CBWrData_UC_ReceiveDone, READY) {
-    //sendToC2c_CBWrData_UC;
     sendToC2c_Data;
     deallocateTBE;
     popTriggerQueue;
@@ -1142,13 +1167,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     deallocateTBE;
     wakeUpStalled;
     popTriggerQueue;
-  }
-
-  // Comp_I
-  transition(READY, Net_Comp_I) {
-    updateTBE_FromNetResp;
-    sendToC2c_Response;
-    popRspInQueue;
   }
 
   // ReadShared
