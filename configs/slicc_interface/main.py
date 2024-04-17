@@ -209,13 +209,13 @@ addr_range_vaults = [AddrRange(i*arv, ((i+1)*arv-1)) for i in range(2)]
 system = System(
     tgens0=[
         TrafficGen(
-            config_file="./m5out/lat_mem_rd.cfg",
+            config_file="./m5out/lat_mem_rd0.cfg",
             progress_check="10s",
         ) for i in range(np)
     ],
     tgens1=[
         TrafficGen(
-            config_file="./m5out/lat_mem_rd.cfg",
+            config_file="./m5out/lat_mem_rd1.cfg",
             progress_check="10s",
         ) for i in range(np)
     ],
