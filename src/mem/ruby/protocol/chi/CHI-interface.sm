@@ -563,6 +563,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     if (snpInPort.isReady(clockEdge())) {
       printResources();
       peek(snpInPort, CHIRequestMsg) {
+        DPRINTF(RubyGenerated, "snpInPort CHIRequest type: %s\n", in_msg.type);
         error("Snoops not supported yet");
       }
     }
