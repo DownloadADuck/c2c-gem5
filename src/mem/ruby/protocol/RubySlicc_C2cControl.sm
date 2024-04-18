@@ -16,6 +16,8 @@ enumeration(C2cRequestType, desc="...") {
   ReadShared, desc="ReadShared";
   Evict, desc="Evict";
   WriteEvictFull, desc="WriteEvictFull";
+  // Snoops
+  SnpCleanInvalid, desc="SnpCleanInvalid";
   // Responses
   CompAck,    desc="CompAck";
   CompDBIDResp, desc="CompDBIDResp";
