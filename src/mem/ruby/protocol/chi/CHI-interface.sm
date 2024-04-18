@@ -742,7 +742,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     peek(snpInPort, CHIRequestMsg) {
       tbe.requestor := in_msg.requestor;
       if (in_msg.dataToFwdRequestor) {
-        tbe.destinaion := in_msg.fwdRequestor;
+        tbe.destination := in_msg.fwdRequestor;
       } else {
         tbe.destination := in_msg.requestor;
       }
@@ -766,7 +766,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       tbe.Sender := in_msg.Sender;
       tbe.size := in_msg.MessageSize;
       tbe.to_net_snp_type := in_msg.Type;
-      tbe.c2c_sharers := in_msg.c2c_sharers;
+      tbe.c2c_sharers := in_msg.C2c_sharers;
     }
   }
 
@@ -796,7 +796,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.Type := CHIReqToC2cMsg(tbe.to_c2c_snp_type);
       out_msg.Sender := tbe.requestor;
       out_msg.MessageSize := MessageSizeType:Request_Control;
-      out_msg.c2c_sharers := tbe.c2c_sharers;
+      out_msg.C2c_sharers := tbe.c2c_sharers;
       out_msg.Len := 0;
     }
   } 
@@ -808,7 +808,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.accAddr := tbe.addr;
       out_msg.accSize := blockSize;
       out_msg.requestor := machineID;
-      out_msg.type := tbe.to_net_snp_type;
+      out_msg.type := c2cMsgToCHIReq(tbe.to_net_snp_type);
       out_msg.allowRetry := false;
       out_msg.is_local_pf := false;
       out_msg.Destination.add(tbe.c2c_sharers);
@@ -1261,14 +1261,14 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition(READY, Net_SnpCleanInvalid) {
     allocateTBE;
     initializeFromSnpTBE;
-    SendToC2c_Snoop;
+    sendToC2c_Snoop;
     popSnpInQueue;
   }
 
   transition(READY, C2c_SnpCleanInvalid) {
     c2cReqAllocateTBE;
     initializeFromC2cSnpTBE;
-    SendToNet_Snoop;
+    sendToNet_Snoop;
     popC2cReqRdyInQueue;
   }
 
