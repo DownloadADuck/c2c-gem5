@@ -401,26 +401,6 @@ AbstractController::serviceRespToC2cQueue()
     pkt = new Packet(req, MemCmd::c2c_packet);
     pkt->c2c_msg = mem_msg;
 
-    //if (mem_msg->getType() == C2cRequestType_CompData_UC) {
-    //    pkt = new Packet(req, MemCmd::CHICompData_UC);
-    //    pkt->allocate();
-    //    pkt->setData(mem_msg->m_DataBlk.getData(getOffset(mem_msg->m_addr), 
-    //                resp_size));
-    //} else if (mem_msg->getType() == C2cRequestType_CompAck) {
-    //    pkt = new Packet(req, MemCmd::CHICompAck);
-    //} else if (mem_msg->getType() == C2cRequestType_CompDBIDResp) {
-    //    pkt = new Packet(req, MemCmd::CHICompDBIDResp);
-    //} else if (mem_msg->getType() == C2cRequestType_CBWrData_UC) {
-    //    pkt = new Packet(req, MemCmd::CHICBWrData_UC);
-    //    pkt->allocate();
-    //    pkt->setData(mem_msg->m_DataBlk.getData(getOffset(mem_msg->m_addr),
-    //                resp_size));
-    //} else {
-    //    panic("Unknown memory response type (%s) for addr %p",
-    //          C2cRequestType_to_string(mem_msg->getType()),
-    //          mem_msg->m_addr);
-    //}
-
     SenderState *s = new SenderState(mem_msg->m_Sender);
     pkt->pushSenderState(s);
 
@@ -564,9 +544,7 @@ AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
         (*msg).m_Type = (*(pkt->c2c_msg)).m_Type;
         (*msg).m_DataBlk = (*(pkt->c2c_msg)).m_DataBlk;
 
-        if ((*(pkt->c2c_msg)).m_Type == C2cRequestType_CompAck) {
-            (*msg).m_C2c_sharers = (*(pkt->c2c_msg)).m_C2c_sharers;
-        }
+        (*msg).m_C2c_sharers = (*(pkt->c2c_msg)).m_C2c_sharers;
     } else {
         panic("Incorrect packet type received in the c2c_out_port!");
     }
@@ -590,13 +568,8 @@ AbstractController::recvTimingReq(PacketPtr pkt)
     delete s;
 
     if (pkt->isRead()) {
-        // build the new C2cMsg fields from the packet 
-        if ((*(pkt->c2c_msg)).m_Type == C2cRequestType_ReadShared){
-            (*msg).m_Type = (*(pkt->c2c_msg)).m_Type;
-            (*msg).m_C2c_sharers = (*(pkt->c2c_msg)).m_C2c_sharers;
-        } else {
-            (*msg).m_Type = (*(pkt->c2c_msg)).m_Type;
-        }
+        (*msg).m_Type = (*(pkt->c2c_msg)).m_Type;
+        (*msg).m_C2c_sharers = (*(pkt->c2c_msg)).m_C2c_sharers;
     } else {
         panic("Incorrect packet type received in the c2c_in_port!");
     }

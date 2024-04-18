@@ -82,6 +82,10 @@ machine(MachineType:Interface, "C2C interface controller") :
     Net_WriteEvictFull, desc="";
     C2c_WriteEvictFull, desc="";
 
+    // Snoops
+    Net_SnpCleanInvalid;
+    C2c_SnpCleanInvalid;
+
     // Data
     Net_CompData_UC, desc="Response data from net of type SC";
     C2c_CompData_UC, desc="Response data from c2c of type SC";
@@ -121,6 +125,15 @@ machine(MachineType:Interface, "C2C interface controller") :
     } else {
       DPRINTF(RubyGenerated, "reqToEvent CHIRequestType: %s\n", type);
       error("Invalid CHIRequestType");
+    }
+  }
+
+  Event snpToEvent (CHIRequestType type) {
+    if (type == CHIRequestType:SnpCleanInvalid) {
+      return Event:Net_SnpCleanInvalid;
+    } else {
+      DPRINTF(RubyGenerated, "snpToEvent CHIRequestType: %s\n", type);
+      error("Invalid CHIRequestType snoop");
     }
   }
 
@@ -565,8 +578,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     if (snpInPort.isReady(clockEdge())) {
       printResources();
       peek(snpInPort, CHIRequestMsg) {
-        DPRINTF(RubyGenerated, "snpInPort CHIRequest type: %s\n", in_msg.type);
-        error("Snoops not supported yet");
+        trigger(snpToEvent(in_msg.type), in_msg.addr, TBEs[in_msg.addr]);
       }
     }
   }
@@ -1127,14 +1139,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     popRspInQueue;
   }
 
-  // Comp_I
-  //transition(READY, Net_Comp_I) {
-  //  updateTBE_FromNetResp;
-  //  sendToC2c_Response;
-  //  popRspInQueue;
-  //}
-
-  // See if this needs WB data or not
   transition(WAIT_COMPDBID, C2c_Comp_I) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
@@ -1176,7 +1180,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popTriggerQueue;
   }
 
-  // ReadShared
+  // Requests
   transition(READY, C2c_ReadShared, MEMORY_REQUEST){
     c2cReqAllocateTBE;
     initializeFromC2cReqTBE;
@@ -1189,6 +1193,22 @@ machine(MachineType:Interface, "C2C interface controller") :
     popTriggerQueue;
   }
 
+  // Snoops
+  transition(READY, Net_SnpCleanInvalid, SNP_BLKD) {
+    allocateTBE;
+    initializeFromSnoopTBE;
+    trigger_SendToC2c_Snoop;
+    popSnpInQueue;
+  }
+
+  transition(READY, C2c_SnpCleanInvalid, SNP_BLKD) {
+    c2cSnpAllocateTBE;
+    initializeFromC2cSnpTBE;
+    trigger_SendToNet_Snoop;
+    popC2cReqRdyInQueue;
+  }
+
+  // Data
   transition(MEMORY_REQUEST, {Net_CompData_UC, Net_CompData_SC}) {
     copyDataToTBE;
     checkForReceiveCompletion;
