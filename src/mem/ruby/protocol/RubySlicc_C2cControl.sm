@@ -35,7 +35,7 @@ structure(C2cMsg, desc="...", interface="Message") {
   MachineID OriginalRequestorMachId, desc="What component originally requested";
 
   // C2c sharer field
-  MachineID C2c_sharer,         desc="Off-chip sharer";
+  MachineID C2c_sharers,         desc="Off-chip sharer";
 
   DataBlock DataBlk,            desc="Data to writeback";
   MessageSizeType MessageSize,  desc="size category of the message";

@@ -893,7 +893,7 @@ machine(MachineType:Interface, "C2C interface controller") :
         out_msg.addr := address;
         out_msg.Type := C2cRequestType:CompAck;
         out_msg.MessageSize := MessageSizeType:Response_Control;
-        out_msg.C2c_sharer := in_msg.responder;
+        out_msg.C2c_sharers := in_msg.responder;
       }
     }
   }
@@ -905,7 +905,7 @@ machine(MachineType:Interface, "C2C interface controller") :
         out_msg.type := CHIResponseType:CompAck;
         out_msg.responder := machineID;
         // adding the c2c_sharer 
-        out_msg.c2c_sharer := in_msg.C2c_sharer;
+        out_msg.c2c_sharers := in_msg.C2c_sharers;
         out_msg.Destination.add(mapAddressToDownstreamMachine(address));
       }
     }

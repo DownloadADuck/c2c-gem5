@@ -102,6 +102,9 @@ structure(CHIRequestMsg, desc="", interface="Message") {
   bool allowRetry,          desc="This request can be retried";
   NetDest Destination,      desc="Message destination";
 
+  // c2c off-chip sharer field
+  MachineID c2c_sharers, desc="off-chip sharer";
+
   RequestPtr seqReq,        default="nullptr", desc="Pointer to original request from CPU/sequencer (nullptr if not valid)";
   bool isSeqReqValid,       default="false",   desc="Set if seqReq is valid (not nullptr)";
 
@@ -159,7 +162,7 @@ structure(CHIResponseMsg, desc="", interface="Message") {
   //NOTE: not in CHI and for debuging only
 
   // c2c off-chip sharer field
-  MachineID c2c_sharer, desc="off-chip sharer";
+  MachineID c2c_sharers, desc="off-chip sharer";
 
   MessageSizeType MessageSize, default="MessageSizeType_Control";
 
