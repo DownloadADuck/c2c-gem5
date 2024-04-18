@@ -293,6 +293,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     MachineID destination, desc="Where we are sending data";
     bool useDataSepResp, desc="Replies with DataSepResp instead of CompData";
 
+    MachineID c2c_sharers, desc="Stores the c2c_sharers when sending a response";
+
     // Storing types
     CHIRequestType to_c2c_req_type, desc="Temporarily stores the request type";
     C2cRequestType to_net_req_type, desc="Temporarily stores the c2c request type";
@@ -907,6 +909,7 @@ machine(MachineType:Interface, "C2C interface controller") :
         // adding the c2c_sharer 
         out_msg.c2c_sharers := in_msg.C2c_sharers;
         out_msg.Destination.add(mapAddressToDownstreamMachine(address));
+        DPRINTF(RubyGenerated, "SendToNet_Response CompAck c2c_Sharers: %s\n", out_msg.c2c_sharers);
       }
     }
   }
@@ -932,7 +935,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.addr := tbe.addr;
       out_msg.Type := CHIRspToC2cMsg(tbe.to_c2c_rsp_type);
       out_msg.MessageSize := MessageSizeType:Response_Control;
-      //out_msg.C2c_sharer := in_msg.responder;
+      out_msg.C2c_sharers := tbe.c2c_sharers;
+      DPRINTF(RubyGenerated, "SendToC2c_Response C2c_Sharers: %s\n", out_msg.C2c_sharers);
     }
   }
 
@@ -980,6 +984,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     peek(rspInPort, CHIResponseMsg) {
       tbe.to_c2c_rsp_type := in_msg.type;
       tbe.destination := in_msg.responder;
+      tbe.c2c_sharers := in_msg.responder;
     }
   }
 
@@ -987,6 +992,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     assert(is_valid(tbe));
     peek(responseFromC2c_in, C2cMsg) { 
       tbe.to_net_rsp_type := in_msg.Type;
+      tbe.c2c_sharers := in_msg.C2c_sharers;
     }
   }
 
@@ -1130,13 +1136,13 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   // See if this needs WB data or not
   transition(WAIT_COMPDBID, C2c_Comp_I) {
-    prepareSend_Response;
+    updateTBE_FromC2cResp;
     sendToNet_Response;
     popResponseFromC2cQueue;
   }
 
   transition(WAIT_COMPDBID, C2c_CompDBIDResp, WAIT_WBDATA) {
-    prepareSend_Response;
+    updateTBE_FromC2cResp;
     sendToNet_Response;
     popResponseFromC2cQueue;
   }

@@ -565,7 +565,7 @@ AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
         (*msg).m_DataBlk = (*(pkt->c2c_msg)).m_DataBlk;
 
         if ((*(pkt->c2c_msg)).m_Type == C2cRequestType_CompAck) {
-            (*msg).m_C2c_sharer = (*(pkt->c2c_msg)).m_C2c_sharer;
+            (*msg).m_C2c_sharers = (*(pkt->c2c_msg)).m_C2c_sharers;
         }
     } else {
         panic("Incorrect packet type received in the c2c_out_port!");
@@ -593,7 +593,7 @@ AbstractController::recvTimingReq(PacketPtr pkt)
         // build the new C2cMsg fields from the packet 
         if ((*(pkt->c2c_msg)).m_Type == C2cRequestType_ReadShared){
             (*msg).m_Type = (*(pkt->c2c_msg)).m_Type;
-            (*msg).m_C2c_sharer = (*(pkt->c2c_msg)).m_C2c_sharer;
+            (*msg).m_C2c_sharers = (*(pkt->c2c_msg)).m_C2c_sharers;
         } else {
             (*msg).m_Type = (*(pkt->c2c_msg)).m_Type;
         }
