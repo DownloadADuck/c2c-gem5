@@ -27,7 +27,7 @@ enumeration(C2cRequestType, desc="...") {
   CBWrData_UC, desc="CBWrData_UC";
   CompData_UC, desc="CompData_UC";
   CompData_SC, desc="CompData_SC";
-  CompData_SC_PD, desc="CompData_SC_PD";
+  CompData_SD_PD, desc="CompData_SD_PD";
 }
 
 // Message to and from C2C interface
