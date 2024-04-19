@@ -708,6 +708,25 @@ machine(MachineType:Interface, "C2C interface controller") :
     tbe.useDataSepResp := false;
   }
 
+  action(allocateTBE_Snoop, "atbes", desc="Allocate TBE for a snoop") {
+    if (storTBEs.areNSlotsAvailable(1)) {
+      // reserve a slot for this snoop request
+      storTBEs.incrementReserved();
+    } else {
+      error("No TBE slots available for snoop request");
+    }
+
+    storTBEs.decrementReserved();
+    assert(storTBEs.areNSlotsAvailable(1));
+
+    TBEs.allocate(address);
+    set_tbe(TBEs[address]);
+    tbe.storSlot := storTBEs.addEntryToNewSlot();
+    tbe.addr := address;
+    tbe.rxtxBytes := 0;
+    tbe.useDataSepResp := false;
+  }
+
   action(c2cReqAllocateTBE, "c2catbe", desc="") {
     // We must have reserved resource for this allocation
     storTBEs.decrementReserved();
@@ -1259,7 +1278,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   // Snoops
   transition(READY, Net_SnpCleanInvalid) {
-    allocateTBE;
+    allocateTBE_Snoop;
     initializeFromSnpTBE;
     sendToC2c_Snoop;
     popSnpInQueue;
