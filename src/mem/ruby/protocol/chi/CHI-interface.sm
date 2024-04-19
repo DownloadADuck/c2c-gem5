@@ -87,10 +87,12 @@ machine(MachineType:Interface, "C2C interface controller") :
     C2c_SnpCleanInvalid;
 
     // Data
-    Net_CompData_UC, desc="Response data from net of type SC";
-    C2c_CompData_UC, desc="Response data from c2c of type SC";
+    Net_CompData_UC, desc="Response data from net of type UC";
+    C2c_CompData_UC, desc="Response data from c2c of type UC";
     Net_CompData_SC, desc="Response data from net of type SC";
     C2c_CompData_SC, desc="Response data from c2c of type SC";
+    Net_CompData_SD_PD, desc="Response data from net of type SD PD";
+    C2c_CompData_SD_PD, desc="Response data from c2c of type SD PD";
     Net_CBWrData_UC, desc="Response from an evict";
     Net_CBWrData_UC_ReceiveDone, desc="Received all CBWrData_UC messages";
     C2c_CBWrData_UC, desc="";
@@ -102,6 +104,9 @@ machine(MachineType:Interface, "C2C interface controller") :
     C2c_Comp_I, desc="";
     Net_CompDBIDResp, desc="";
     C2c_CompDBIDResp, desc="";
+
+    Net_SnpResp_I, desc="";
+    C2c_SnpResp_I, desc="";
 
     // Internal event triggers
     Trigger_Send, desc="";
@@ -144,6 +149,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:Net_Comp_I;
     } else if (type == CHIResponseType:CompDBIDResp) {
       return Event:Net_CompDBIDResp;
+    } else if (type == CHIResponseType:SnpResp_I) {
+      return Event:Net_SnpResp_I;
     } else {
       DPRINTF(RubyGenerated, "rspToEvent CHIResponseType: %s\n", type);
       error("Invalid CHIResponseType");
@@ -153,8 +160,10 @@ machine(MachineType:Interface, "C2C interface controller") :
   Event datToEvent (CHIDataType type) {
     if (type == CHIDataType:CompData_UC) {
       return Event:Net_CompData_UC;
-    } else if (type == CHIDataType:CompData_SC){
+    } else if (type == CHIDataType:CompData_SC) {
       return Event:Net_CompData_SC;
+    } else if (type == CHIDataType:CompData_SC_PD) {
+      return Event:Net_CompData_SC_PD;
     } else if (type == CHIDataType:CBWrData_UC) {
       return Event:Net_CBWrData_UC;
     } else {
@@ -183,6 +192,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:C2c_CompData_UC;
     } else if (type == C2cRequestType:CompData_SC) {
       return Event:C2c_CompData_SC;
+    } else if (type == C2cRequestType:CompData_SC_PD) {
+      return Event:C2c_CompData_SC_PD;
     } else if (type == C2cRequestType:CBWrData_UC) {
       return Event:C2c_CBWrData_UC;
     } else if (type == C2cRequestType:CompAck) {
@@ -191,6 +202,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:C2c_Comp_I;
     } else if (type == C2cRequestType:CompDBIDResp) {
       return Event:C2c_CompDBIDResp;
+    } else if (type == C2cRequestType:SnpResp_I) {
+      return Event:C2c_SnpResp_I;
     } else {
       DPRINTF(RubyGenerated, "c2cRespToEvent C2cRequestType: %s\n", type);
       error("Invalid C2cResponseType");
@@ -218,6 +231,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return CHIResponseType:CompAck;
     } else if (type == C2cRequestType:Comp_I) {
       return CHIResponseType:Comp_I;
+    } else if (type == C2cRequestType:SnpResp_I) {
+      return CHIResponseType:SnpResp_I;
     } else {
       error ("Unexpected C2cMsg response type");
     }
@@ -228,6 +243,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return CHIDataType:CompData_UC;
     } else if (type == C2cRequestType:CompData_SC) {
       return CHIDataType:CompData_SC;
+    } else if (type == C2cRequestType:CompData_SC_PD) {
+      return CHIDataType:CompData_SC_PD;
     } else if (type == C2cRequestType:CBWrData_UC) {
       return CHIDataType:CBWrData_UC;
     } else {
@@ -256,6 +273,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return C2cRequestType:Comp_I;
     } else if (type == CHIResponseType:CompDBIDResp) {
       return C2cRequestType:CompDBIDResp;
+    } else if (type == CHIResponseType:SnpResp_I) {
+      return C2cRequestType:SnpResp_I;
     } else {
       error("Unexpected CHIResponse type");
     }
@@ -266,6 +285,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return C2cRequestType:CompData_UC;
     } else if (type == CHIDataType:CompData_SC) {
       return C2cRequestType:CompData_SC;
+    } else if (type == CHIDataType:CompData_SC_PD) {
+      return C2cRequestType:CompData_SC_PD;
     } else if (type == CHIDataType:CBWrData_UC) {
       return C2cRequestType:CBWrData_UC;
     } else {
@@ -866,6 +887,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     assert(is_valid(tbe));
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_UC);
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_SC);
+    tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_SC_PD);
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CBWrData_UC);
     tbe.expected_req_resp.addExpectedCount(1);
     enqueue(reqOutPort, CHIRequestMsg, request_latency) {
@@ -955,12 +977,10 @@ machine(MachineType:Interface, "C2C interface controller") :
       } else {
         enqueue(triggerOutPort, TriggerMsg, 0) {
           out_msg.addr := address;
-          if (in_msg.type == CHIDataType:CompData_UC) {
-            out_msg.event := Event:Trigger_ReceiveDataDone;
-          } else if (in_msg.type == CHIDataType:CompData_SC) {
-            out_msg.event := Event:Trigger_ReceiveDataDone;
-          } else if (in_msg.type == CHIDataType:CBWrData_UC) {
+          if (in_msg.type == CHIDataType:CBWrData_UC) {
             out_msg.event := Event:Net_CBWrData_UC_ReceiveDone;
+          } else {
+            out_msg.event := Event:Trigger_ReceiveDataDone;
           }
         }
       }
@@ -1171,7 +1191,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popTriggerQueue;
   }
 
-  transition(READING_MEM, {C2c_CompData_UC, C2c_CompData_SC}, SENDING_NET_DATA) {
+  transition(READING_MEM, {C2c_CompData_UC, C2c_CompData_SC, C2c_CompData_SC_PD}, SENDING_NET_DATA) {
     prepareSend_Data;
     sendToNet_Data;
     popResponseFromC2cQueue;
@@ -1216,10 +1236,27 @@ machine(MachineType:Interface, "C2C interface controller") :
     popC2cReqRdyInQueue;
   }
 
-  transition(READY, {Net_Comp_I, Net_CompDBIDResp}) {
+  // Response
+  // waits for resp data so we don't deallocate TBE
+  transition(READY, Net_CompDBIDResp) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
     popRspInQueue;
+  }
+
+  // doesn't wait for resp, we deallocate TBE
+  transition(READY, {Net_Comp_I, Net_SnpResp_I}) {
+    updateTBE_FromNetResp;
+    sendToC2c_Response;
+    deallocateTBE;
+    popRspInQueue;
+  }
+
+  transition(READY, C2c_SnpResp_I) {
+    updateTBE_FromC2cResp;
+    sendToNet_Response;
+    deallocateTBE;
+    popResponseFromC2cQueue;
   }
 
   transition(WAIT_COMPDBID, C2c_Comp_I) {
@@ -1292,7 +1329,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // Data
-  transition(MEMORY_REQUEST, {Net_CompData_UC, Net_CompData_SC}) {
+  transition(MEMORY_REQUEST, {Net_CompData_UC, Net_CompData_SC, Net_CompData_SC_PD}) {
     copyDataToTBE;
     checkForReceiveCompletion;
     popDataInQueue;
