@@ -15,6 +15,7 @@ enumeration(C2cRequestType, desc="...") {
   // Requests
   ReadShared, desc="ReadShared";
   ReadUnique, desc="ReadUnique";
+  CleanUnique, desc="CleanUnique";
   Evict, desc="Evict";
   WriteEvictFull, desc="WriteEvictFull";
   // Snoops

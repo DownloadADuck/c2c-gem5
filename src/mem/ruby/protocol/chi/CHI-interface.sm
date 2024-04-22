@@ -82,6 +82,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     C2c_ReadShared, desc="";
     Net_ReadUnique, desc="";
     C2c_ReadUnique, desc="";
+    Net_CleanUnique, desc="";
+    C2c_CleanUnique, desc="";
     Net_Evict, desc="";
     C2c_Evict, desc="";
     Net_WriteEvictFull, desc="";
@@ -134,12 +136,14 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:Net_ReadShared;
     } else if (type == CHIRequestType:ReadUnique) {
       return Event:Net_ReadUnique;
+    } else if (type == CHIRequestType:CleanUnique) {
+      return Event:Net_CleanUnique;
     } else if (type == CHIRequestType:Evict) {
       return Event:Net_Evict;
     } else if (type == CHIRequestType:WriteEvictFull) {
       return Event:Net_WriteEvictFull;
     } else {
-      DPRINTF(RubyGenerated, "reqToEvent CHIRequestType: %s\n", type);
+      DPRINTF(RubyC2c, "reqToEvent CHIRequestType: %s\n", type);
       error("Invalid CHIRequestType");
     }
   }
@@ -148,7 +152,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     if (type == CHIRequestType:SnpCleanInvalid) {
       return Event:Net_SnpCleanInvalid;
     } else {
-      DPRINTF(RubyGenerated, "snpToEvent CHIRequestType: %s\n", type);
+      DPRINTF(RubyC2c, "snpToEvent CHIRequestType: %s\n", type);
       error("Invalid CHIRequestType snoop");
     }
   }
@@ -163,7 +167,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     } else if (type == CHIResponseType:SnpResp_I) {
       return Event:Net_SnpResp_I;
     } else {
-      DPRINTF(RubyGenerated, "rspToEvent CHIResponseType: %s\n", type);
+      DPRINTF(RubyC2c, "rspToEvent CHIResponseType: %s\n", type);
       error("Invalid CHIResponseType");
     }
   }
@@ -182,7 +186,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     } else if (type == CHIDataType:SnpRespData_I_PD) {
       return Event:Net_SnpRespData_I_PD;
     } else {
-      DPRINTF(RubyGenerated, "datToEvent CHIDataType: %s\n", type);
       DPRINTF(RubyC2c, "datToEvent CHIDataType: %s\n", type);
       error("Invalid CHIDataType");
     }
@@ -193,6 +196,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:C2c_ReadShared;
     } else if (type == C2cRequestType:ReadUnique) {
       return Event:C2c_ReadUnique;
+    } else if (type == C2cRequestType:CleanUnique) {
+      return Event:C2c_CleanUnique;
     } else if (type == C2cRequestType:Evict) {
       return Event:C2c_Evict;
     } else if (type == C2cRequestType:WriteEvictFull) {
@@ -200,7 +205,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     } else if (type == C2cRequestType:SnpCleanInvalid) {
       return Event:C2c_SnpCleanInvalid;
     } else {
-      DPRINTF(RubyGenerated, "c2cReqToEvent C2cRequestType: %s\n", type);
+      DPRINTF(RubyC2c, "c2cReqToEvent C2cRequestType: %s\n", type);
       error("Invalid C2c request type");
     }
   }
@@ -237,6 +242,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return CHIRequestType:ReadShared;
     } else if (type == C2cRequestType:ReadUnique) {
       return CHIRequestType:ReadUnique;
+    } else if (type == C2cRequestType:CleanUnique) {
+      return CHIRequestType:CleanUnique;
     } else if (type == C2cRequestType:Evict) {
       return CHIRequestType:Evict;
     } else if (type == C2cRequestType:WriteEvictFull) {
@@ -285,6 +292,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return C2cRequestType:ReadShared;
     } else if (type == CHIRequestType:ReadUnique) {
       return C2cRequestType:ReadUnique;
+    } else if (type == CHIRequestType:CleanUnique) {
+      return C2cRequestType:CleanUnique;
     } else if (type == CHIRequestType:Evict) {
       return C2cRequestType:Evict;
     } else if (type == CHIRequestType:WriteEvictFull) {
@@ -1215,7 +1224,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   // Transitions
   ////////////////////////////////////////////////////////////////////////////
 
-  transition(READY, {Net_ReadShared, Net_ReadUnique}, READING_MEM) {
+  transition(READY, {Net_ReadShared, Net_ReadUnique, Net_CleanUnique}, READING_MEM) {
     allocateTBE;
     initializeFromReqTBE;
     trigger_SendToC2c_Request;
@@ -1329,7 +1338,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // Requests
-  transition(READY, {C2c_ReadShared, C2c_ReadUnique}, MEMORY_REQUEST){
+  transition(READY, {C2c_ReadShared, C2c_ReadUnique, C2c_CleanUnique}, MEMORY_REQUEST){
     c2cReqAllocateTBE;
     initializeFromC2cReqTBE;
     trigger_SendToNet_Request;
