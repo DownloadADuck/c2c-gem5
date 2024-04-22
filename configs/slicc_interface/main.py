@@ -27,7 +27,7 @@ class Object(object):
 
 # Needed options0 for the create_system method
 options0 = Object()
-options0.cmd = "tests/test-progs/hello/bin/x86/linux/hello"
+options0.cmd = "tests/test-progs/threads/bin/x86/linux/threads"
 options0.input = ''
 options0.output = ''
 options0.errout = '' 
@@ -207,18 +207,18 @@ arv = convert.toMemorySize('2MB')
 addr_range_vaults = [AddrRange(i*arv, ((i+1)*arv-1)) for i in range(2)]
 
 system = System(
-    tgens0=[
-        TrafficGen(
-            config_file="./m5out/lat_mem_rd0.cfg",
-            progress_check="10s",
-        ) for i in range(np)
-    ],
-    tgens1=[
-        TrafficGen(
-            config_file="./m5out/lat_mem_rd1.cfg",
-            progress_check="10s",
-        ) for i in range(np)
-    ],
+    #tgens0=[
+    #    TrafficGen(
+    #        config_file="./m5out/lat_mem_rd0.cfg",
+    #        progress_check="10s",
+    #    ) for i in range(np)
+    #],
+    #tgens1=[
+    #    TrafficGen(
+    #        config_file="./m5out/lat_mem_rd1.cfg",
+    #        progress_check="10s",
+    #    ) for i in range(np)
+    #],
     cpus0=[CPUClass(cpu_id=i) for i in range(np)],
     cpus1=[CPUClass(cpu_id=(np + i)) for i in range(np)],
     mem_mode="timing",
@@ -245,21 +245,29 @@ system.cpu_clk_domain = SrcClockDomain(
     clock='2GHz', voltage_domain=system.cpu_voltage_domain
 )
 
-for cpu in system.cpus0:
+cpu_list = system.cpus0 + system.cpus1
+
+for cpu in cpu_list:
     cpu.clk_domain = system.cpu_clk_domain
 
-for cpu in system.cpus1:
-    cpu.clk_domain = system.cpu_clk_domain
+#for cpu in system.cpus1:
+#    cpu.clk_domain = system.cpu_clk_domain
 
-for i in range(np):
+for i in range(len(cpu_list)):
     if len(multiprocesses) == 1:
-        system.cpus0[i].workload = multiprocesses[0]
-        system.cpus1[i].workload = multiprocesses[0]
+        #system.cpus0[i].workload = multiprocesses[0]
+        cpu_list[i].workload = multiprocesses[0]
     else:
         system.cpus0[i].workload = multiprocesses[i]
         system.cpus1[i].workload = multiprocesses[i]
-    system.cpus0[i].createThreads()
-    system.cpus1[i].createThreads()
+    cpu_list[i].createThreads()
+    #system.cpus0[i].createThreads()
+    #system.cpus1[i].createThreads()
+
+# make a common list of cpus to pass to createThreads? 
+#print("cpu_list: ", cpu_list)
+#for i in range(len(cpu_list)):
+#    cpu_list[i].createThreads()
 
 
 ruby_config.create_system(options0, options1, False, system)

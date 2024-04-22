@@ -276,11 +276,11 @@ def create_system(
             cpu_seq.connectIOPorts(piobus)
 
     # TrafficGen setup
-    for i in range(len(cpus0)):
-        system.tgens0[i].port = cpu_sequencers0[i].in_ports
+    #for i in range(len(cpus0)):
+    #    system.tgens0[i].port = cpu_sequencers0[i].in_ports
 
-    for i in range(len(cpus1)):
-        system.tgens1[i].port = cpu_sequencers1[i].in_ports
+    #for i in range(len(cpus1)):
+    #    system.tgens1[i].port = cpu_sequencers1[i].in_ports
     
     ruby.number_of_virtual_networks = ruby.network0.number_of_virtual_networks
     ruby._cpu_ports = cpu_sequencers0
