@@ -56,6 +56,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     WAIT_COMPDBID, AccessPermission:Invalid, desc="Waiting for CompDBID from Net";
     SENDING_WBDATA, AccessPermission:Invalid, desc="Sending CBWrData_UC to Net";
 
+    BLKD_SNP, AccessPermission:Invalid, desc="Pending snoop transaction";
+
 
     // Null state for debugging; allow writes
     null, AccessPermission:Backing_Store, desc="Null state";
@@ -96,6 +98,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     Net_CBWrData_UC, desc="Response from an evict";
     Net_CBWrData_UC_ReceiveDone, desc="Received all CBWrData_UC messages";
     C2c_CBWrData_UC, desc="";
+    Net_SnpRespData_I_PD, desc="Response data to a snoop";
+    C2c_SnpRespData_I_PD, desc="Response data to a snoop";
 
     // Responses
     Net_CompAck, desc="";
@@ -166,6 +170,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:Net_CompData_SD_PD;
     } else if (type == CHIDataType:CBWrData_UC) {
       return Event:Net_CBWrData_UC;
+    } else if (type == CHIDataType:SnpRespData_I_PD) {
+      return Event:Net_SnpRespData_I_PD;
     } else {
       DPRINTF(RubyGenerated, "datToEvent CHIDataType: %s\n", type);
       error("Invalid CHIDataType");
@@ -204,6 +210,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:C2c_CompDBIDResp;
     } else if (type == C2cRequestType:SnpResp_I) {
       return Event:C2c_SnpResp_I;
+    } else if (type == C2cRequestType:SnpRespData_I_PD) {
+      return Event:C2c_SnpRespData_I_PD;
     } else {
       DPRINTF(RubyGenerated, "c2cRespToEvent C2cRequestType: %s\n", type);
       error("Invalid C2cResponseType");
@@ -247,6 +255,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return CHIDataType:CompData_SD_PD;
     } else if (type == C2cRequestType:CBWrData_UC) {
       return CHIDataType:CBWrData_UC;
+    } else if (type == C2cRequestType:SnpRespData_I_PD) {
+      return CHIDataType:SnpRespData_I_PD;
     } else {
       error("Unexpected C2cMsg data type");
     }
@@ -289,6 +299,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return C2cRequestType:CompData_SD_PD;
     } else if (type == CHIDataType:CBWrData_UC) {
       return C2cRequestType:CBWrData_UC;
+    } else if (type == CHIDataType:SnpRespData_I_PD) {
+      return C2cRequestType:SnpRespData_I_PD;
     } else {
       error("Unexpected CHIData type");
     }
@@ -843,6 +855,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   action(sendToNet_Snoop, "stns", desc="Send snoop to net") {
     assert(is_valid(tbe));
+    tbe.expected_req_resp.addExpectedDataType(CHIDataType:SnpRespData_I_PD); 
     enqueue(snpOutPort, CHIRequestMsg, request_latency) {
       out_msg.addr := tbe.addr;
       out_msg.accAddr := tbe.addr;
@@ -1178,7 +1191,6 @@ machine(MachineType:Interface, "C2C interface controller") :
   // Transitions
   ////////////////////////////////////////////////////////////////////////////
 
-  // requestor side
   transition(READY, Net_ReadShared, READING_MEM) {
     allocateTBE;
     initializeFromReqTBE;
@@ -1191,21 +1203,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     popTriggerQueue;
   }
 
-  transition(READING_MEM, {C2c_CompData_UC, C2c_CompData_SC, C2c_CompData_SD_PD}, SENDING_NET_DATA) {
-    prepareSend_Data;
-    sendToNet_Data;
-    popResponseFromC2cQueue;
-  }
-
-  transition(SENDING_NET_DATA, Trigger_Send) {
-    sendToNet_Data;
-    popTriggerQueue;
-  }
-
-  transition(SENDING_NET_DATA, Trigger_SendDone, READY) {
-    wakeUpStalled;
-    popTriggerQueue;
-  }
 
   transition(READY, Net_CompAck) {
     updateTBE_FromNetResp;
@@ -1245,14 +1242,21 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // doesn't wait for resp, we deallocate TBE
-  transition(READY, {Net_Comp_I, Net_SnpResp_I}) {
+  transition(READY, Net_Comp_I) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
     deallocateTBE;
     popRspInQueue;
   }
 
-  transition(READY, C2c_SnpResp_I) {
+  transition(BLKD_SNP, Net_SnpResp_I, READY) {
+    updateTBE_FromNetResp;
+    sendToC2c_Response;
+    deallocateTBE;
+    popRspInQueue;
+  }
+
+  transition(BLKD_SNP, C2c_SnpResp_I, READY) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
     deallocateTBE;
@@ -1314,14 +1318,14 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // Snoops
-  transition(READY, Net_SnpCleanInvalid) {
+  transition(READY, Net_SnpCleanInvalid, BLKD_SNP) {
     allocateTBE_Snoop;
     initializeFromSnpTBE;
     sendToC2c_Snoop;
     popSnpInQueue;
   }
 
-  transition(READY, C2c_SnpCleanInvalid) {
+  transition(READY, C2c_SnpCleanInvalid, BLKD_SNP) {
     c2cReqAllocateTBE;
     initializeFromC2cSnpTBE;
     sendToNet_Snoop;
@@ -1335,10 +1339,44 @@ machine(MachineType:Interface, "C2C interface controller") :
     popDataInQueue;
   }
 
+  transition(READING_MEM, {C2c_CompData_UC, C2c_CompData_SC, C2c_CompData_SD_PD}, SENDING_NET_DATA) {
+    prepareSend_Data;
+    sendToNet_Data;
+    popResponseFromC2cQueue;
+  }
+  
+  transition(SENDING_NET_DATA, Trigger_Send) {
+    sendToNet_Data;
+    popTriggerQueue;
+  }
+
+  transition(SENDING_NET_DATA, Trigger_SendDone, READY) {
+    wakeUpStalled;
+    popTriggerQueue;
+  }
+
   transition(MEMORY_REQUEST, Trigger_ReceiveDataDone, READY) {
     sendToC2c_Data;
     wakeUpStalled;
     popTriggerQueue;
+  }
+
+  transition(BLKD_SNP, Net_SnpRespData_I_PD) {
+    copyDataToTBE;
+    checkForReceiveCompletion;
+    popDataInQueue;
+  }
+
+  transition(BLKD_SNP, Trigger_ReceiveDataDone, READY) {
+    sendToC2c_Data;
+    wakeUpStalled;
+    popTriggerQueue;
+  }
+
+  transition(BLKD_SNP, C2c_SnpRespData_I_PD, SENDING_NET_DATA) {
+    prepareSend_Data;
+    sendToNet_Data;
+    popResponseFromC2cQueue;
   }
 
   // Notice we only use this here and call wakeUp when leaving this state
