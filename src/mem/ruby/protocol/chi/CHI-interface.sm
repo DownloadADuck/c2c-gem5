@@ -80,6 +80,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     // Requests
     Net_ReadShared, desc="";
     C2c_ReadShared, desc="";
+    Net_ReadUnique, desc="";
+    C2c_ReadUnique, desc="";
     Net_Evict, desc="";
     C2c_Evict, desc="";
     Net_WriteEvictFull, desc="";
@@ -128,6 +130,8 @@ machine(MachineType:Interface, "C2C interface controller") :
   Event reqToEvent (CHIRequestType type) {
     if (type == CHIRequestType:ReadShared) {
       return Event:Net_ReadShared;
+    } else if (type == CHIRequestType:ReadUnique) {
+      return Event:Net_ReadUnique;
     } else if (type == CHIRequestType:Evict) {
       return Event:Net_Evict;
     } else if (type == CHIRequestType:WriteEvictFull) {
@@ -182,6 +186,8 @@ machine(MachineType:Interface, "C2C interface controller") :
   Event c2cReqToEvent (C2cRequestType type) {
     if (type == C2cRequestType:ReadShared) {
       return Event:C2c_ReadShared;
+    } else if (type == C2cRequestType:ReadUnique) {
+      return Event:C2c_ReadUnique;
     } else if (type == C2cRequestType:Evict) {
       return Event:C2c_Evict;
     } else if (type == C2cRequestType:WriteEvictFull) {
@@ -222,6 +228,8 @@ machine(MachineType:Interface, "C2C interface controller") :
   CHIRequestType c2cMsgToCHIReq(C2cRequestType type){
     if (type == C2cRequestType:ReadShared) {
       return CHIRequestType:ReadShared;
+    } else if (type == C2cRequestType:ReadUnique) {
+      return CHIRequestType:ReadUnique;
     } else if (type == C2cRequestType:Evict) {
       return CHIRequestType:Evict;
     } else if (type == C2cRequestType:WriteEvictFull) {
@@ -266,6 +274,8 @@ machine(MachineType:Interface, "C2C interface controller") :
   C2cRequestType CHIReqToC2cMsg(CHIRequestType type) {
     if (type == CHIRequestType:ReadShared) {
       return C2cRequestType:ReadShared;
+    } else if (type == CHIRequestType:ReadUnique) {
+      return C2cRequestType:ReadUnique;
     } else if (type == CHIRequestType:Evict) {
       return C2cRequestType:Evict;
     } else if (type == CHIRequestType:WriteEvictFull) {
@@ -1193,7 +1203,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   // Transitions
   ////////////////////////////////////////////////////////////////////////////
 
-  transition(READY, Net_ReadShared, READING_MEM) {
+  transition(READY, {Net_ReadShared, Net_ReadUnique}, READING_MEM) {
     allocateTBE;
     initializeFromReqTBE;
     trigger_SendToC2c_Request;
@@ -1307,7 +1317,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // Requests
-  transition(READY, C2c_ReadShared, MEMORY_REQUEST){
+  transition(READY, {C2c_ReadShared, C2c_ReadUnique}, MEMORY_REQUEST){
     c2cReqAllocateTBE;
     initializeFromC2cReqTBE;
     trigger_SendToNet_Request;
