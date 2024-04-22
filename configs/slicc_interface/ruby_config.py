@@ -232,8 +232,6 @@ def create_system(
 
     # C2C forwarding interface setup
     for interface in system.ruby.interface1:
-        #for snf3 in system.ruby.snf3:
-        #    snf3.cntrl.memory_out_port = interface.cntrl.c2c_in_port
         for interface0 in system.ruby.interface0:
             interface0.cntrl.c2c_out_port = interface.cntrl.c2c_in_port
             interface0.cntrl.c2c_in_port = interface.cntrl.c2c_out_port
@@ -283,8 +281,8 @@ def create_system(
     #    system.tgens1[i].port = cpu_sequencers1[i].in_ports
     
     ruby.number_of_virtual_networks = ruby.network0.number_of_virtual_networks
-    ruby._cpu_ports = cpu_sequencers0
-    ruby.num_of_sequencers = len(cpu_sequencers0)
+    ruby._cpu_ports = cpu_sequencers0 + cpu_sequencers1
+    ruby.num_of_sequencers = len(cpu_sequencers0 + cpu_sequencers1)
 
 
 def create_directories(options, bootmem, ruby_system, system):

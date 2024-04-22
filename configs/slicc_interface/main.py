@@ -275,13 +275,18 @@ ruby_config.create_system(options0, options1, False, system)
 system.ruby.clk_domain = SrcClockDomain(
     clock='2GHz', voltage_domain=system.voltage_domain
 )
-for i in range(np):
+
+for i in range(len(cpu_list)):
     ruby_port = system.ruby._cpu_ports[i]
-    # Interrupt controller needs its message port conected only with x86
-    system.cpus0[i].createInterruptController()
-    system.cpus1[i].createInterruptController()
-    ruby_port.connectCpuPorts(system.cpus0[i])
-    ruby_port.connectCpuPorts(system.cpus1[i])
+    cpu_list[i].createInterruptController()
+    ruby_port.connectCpuPorts(cpu_list[i])
+#for i in range(np):
+#    ruby_port = system.ruby._cpu_ports[i]
+#    # Interrupt controller needs its message port conected only with x86
+#    system.cpus0[i].createInterruptController()
+#    system.cpus1[i].createInterruptController()
+#    ruby_port.connectCpuPorts(system.cpus0[i])
+#    ruby_port.connectCpuPorts(system.cpus1[i])
 
 system.workload = SEWorkload.init_compatible(mp0_path)
 
