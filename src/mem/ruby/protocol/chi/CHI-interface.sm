@@ -55,6 +55,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     WAIT_WBDATA, AccessPermission:Invalid, desc="Waiting for CBWrData_UC from Net";
     WAIT_COMPDBID, AccessPermission:Invalid, desc="Waiting for CompDBID from Net";
     SENDING_WBDATA, AccessPermission:Invalid, desc="Sending CBWrData_UC to Net";
+    SENDING_NET_DATA_NO_ACK, AccessPermission:Backing_Store_Busy, desc="Sending data to network, not waiting for Acks";
 
     BLKD_SNP, AccessPermission:Invalid, desc="Pending snoop transaction";
 
@@ -856,6 +857,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   action(sendToNet_Snoop, "stns", desc="Send snoop to net") {
     assert(is_valid(tbe));
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:SnpRespData_I_PD); 
+    tbe.expected_req_resp.addExpectedCount(1);
     enqueue(snpOutPort, CHIRequestMsg, request_latency) {
       out_msg.addr := tbe.addr;
       out_msg.accAddr := tbe.addr;
@@ -1370,13 +1372,25 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition(BLKD_SNP, Trigger_ReceiveDataDone, READY) {
     sendToC2c_Data;
     wakeUpStalled;
+    deallocateTBE;
     popTriggerQueue;
   }
 
-  transition(BLKD_SNP, C2c_SnpRespData_I_PD, SENDING_NET_DATA) {
+  transition(BLKD_SNP, C2c_SnpRespData_I_PD, SENDING_NET_DATA_NO_ACK) {
     prepareSend_Data;
     sendToNet_Data;
     popResponseFromC2cQueue;
+  }
+  // Sending loop not waiting for acks. Deallocating TBE in the end.
+  transition(SENDING_NET_DATA_NO_ACK, Trigger_Send) {
+    sendToNet_Data;
+    popTriggerQueue;
+  }
+
+  transition(SENDING_NET_DATA_NO_ACK, Trigger_SendDone, READY) {
+    wakeUpStalled;
+    deallocateTBE;
+    popTriggerQueue;
   }
 
   // Notice we only use this here and call wakeUp when leaving this state
