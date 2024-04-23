@@ -47,6 +47,8 @@ structure(C2cMsg, desc="...", interface="Message") {
   // C2c sharer field
   MachineID C2c_sharers,         desc="Off-chip sharer";
 
+  bool RetToSrc,                desc="Affects whether or not a snoop resp return data";
+
   DataBlock DataBlk,            desc="Data to writeback";
   MessageSizeType MessageSize,  desc="size category of the message";
   int Len,                      desc="size of the memory/dma request";

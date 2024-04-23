@@ -570,6 +570,7 @@ AbstractController::recvTimingReq(PacketPtr pkt)
     if (pkt->isRead()) {
         (*msg).m_Type = (*(pkt->c2c_msg)).m_Type;
         (*msg).m_C2c_sharers = (*(pkt->c2c_msg)).m_C2c_sharers;
+        (*msg).m_RetToSrc = (*(pkt->c2c_msg)).m_RetToSrc;
     } else {
         panic("Incorrect packet type received in the c2c_in_port!");
     }

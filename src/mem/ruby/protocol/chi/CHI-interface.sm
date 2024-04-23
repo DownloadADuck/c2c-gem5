@@ -397,6 +397,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     bool useDataSepResp, desc="Replies with DataSepResp instead of CompData";
 
     MachineID c2c_sharers, desc="Stores the c2c_sharers when sending a response";
+    bool retToSrc, desc="Stores the retToSrc for snoop handling";
 
     // Storing types
     CHIRequestType to_c2c_req_type, desc="Temporarily stores the request type";
@@ -671,6 +672,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     if (snpInPort.isReady(clockEdge())) {
       printResources();
       peek(snpInPort, CHIRequestMsg) {
+        DPRINTF(RubyC2c, "Inbound snoop retToSrc: %s\n", in_msg.retToSrc);
         trigger(snpToEvent(in_msg.type), in_msg.addr, TBEs[in_msg.addr]);
       }
     }
@@ -853,6 +855,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       tbe.accSize := in_msg.accSize;
       tbe.to_c2c_snp_type := in_msg.type;
       tbe.c2c_sharers := in_msg.c2c_sharers;
+      tbe.retToSrc := in_msg.retToSrc;
     }
   }
 
@@ -870,6 +873,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       tbe.size := in_msg.MessageSize;
       tbe.to_net_snp_type := in_msg.Type;
       tbe.c2c_sharers := in_msg.C2c_sharers;
+      tbe.retToSrc := in_msg.RetToSrc;
     }
   }
 
@@ -901,6 +905,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.MessageSize := MessageSizeType:Request_Control;
       out_msg.C2c_sharers := tbe.c2c_sharers;
       out_msg.Len := 0;
+      out_msg.RetToSrc := tbe.retToSrc;
     }
   } 
 
@@ -913,11 +918,13 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.accAddr := tbe.addr;
       out_msg.accSize := blockSize;
       out_msg.requestor := machineID;
+      out_msg.fwdRequestor := mechineID;
       out_msg.type := c2cMsgToCHIReq(tbe.to_net_snp_type);
       out_msg.allowRetry := false;
       out_msg.is_local_pf := false;
       out_msg.Destination.add(tbe.c2c_sharers);
-      out_msg.retToSrc := false;
+      DPRINTF(RubyC2c, "sendToNet --> %s retToSrc --> %s\n", out_msg.type, tbe.retToSrc);
+      out_msg.retToSrc := tbe.retToSrc;
     }
   }
 
