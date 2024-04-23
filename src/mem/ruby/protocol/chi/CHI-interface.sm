@@ -90,8 +90,10 @@ machine(MachineType:Interface, "C2C interface controller") :
     C2c_WriteEvictFull, desc="";
 
     // Snoops
-    Net_SnpCleanInvalid;
-    C2c_SnpCleanInvalid;
+    Net_SnpCleanInvalid, desc="";
+    C2c_SnpCleanInvalid, desc="";
+    Net_SnpSharedFwd, desc="";
+    C2c_SnpSharedFwd, desc="";
 
     // Data
     Net_CompData_UC, desc="Response data from net of type UC";
@@ -153,6 +155,8 @@ machine(MachineType:Interface, "C2C interface controller") :
   Event snpToEvent (CHIRequestType type) {
     if (type == CHIRequestType:SnpCleanInvalid) {
       return Event:Net_SnpCleanInvalid;
+    } else if (type == CHIRequestType:SnpSharedFwd) {
+      return Event:Net_SnpSharedFwd;
     } else {
       DPRINTF(RubyC2c, "snpToEvent CHIRequestType: %s\n", type);
       error("Invalid CHIRequestType snoop");
@@ -208,6 +212,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:C2c_WriteEvictFull;
     } else if (type == C2cRequestType:SnpCleanInvalid) {
       return Event:C2c_SnpCleanInvalid;
+    } else if (type == C2cRequestType:SnpSharedFwd) {
+      return Event:C2c_SnpSharedFwd;
     } else {
       DPRINTF(RubyC2c, "c2cReqToEvent C2cRequestType: %s\n", type);
       error("Invalid C2c request type");
@@ -256,6 +262,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return CHIRequestType:WriteEvictFull;
     } else if (type == C2cRequestType:SnpCleanInvalid) {
       return CHIRequestType:SnpCleanInvalid;
+    } else if (type == C2cRequestType:SnpSharedFwd) {
+      return CHIRequestType:SnpSharedFwd;
     } else {
       error("Unexpected C2cMsg request type");
     }
@@ -308,6 +316,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return C2cRequestType:WriteEvictFull;
     } else if (type == CHIRequestType:SnpCleanInvalid) {
       return C2cRequestType:SnpCleanInvalid;
+    } else if (type == CHIRequestType:SnpSharedFwd) {
+      return C2cRequestType:SnpSharedFwd;
     } else {
       error("Unexpected CHIRequest type");
     }
@@ -1344,14 +1354,14 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // Snoops
-  transition(READY, Net_SnpCleanInvalid, BLKD_SNP) {
+  transition(READY, {Net_SnpCleanInvalid, Net_SnpSharedFwd}, BLKD_SNP) {
     allocateTBE_Snoop;
     initializeFromSnpTBE;
     sendToC2c_Snoop;
     popSnpInQueue;
   }
 
-  transition(READY, C2c_SnpCleanInvalid, BLKD_SNP) {
+  transition(READY, {C2c_SnpCleanInvalid, C2c_SnpSharedFwd}, BLKD_SNP) {
     c2cReqAllocateTBE;
     initializeFromC2cSnpTBE;
     sendToNet_Snoop;

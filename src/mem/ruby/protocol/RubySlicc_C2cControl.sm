@@ -20,6 +20,7 @@ enumeration(C2cRequestType, desc="...") {
   WriteEvictFull, desc="WriteEvictFull";
   // Snoops
   SnpCleanInvalid, desc="SnpCleanInvalid";
+  SnpSharedFwd, desc="SnpSharedFwd";
   // Responses
   CompAck,    desc="CompAck";
   CompDBIDResp, desc="CompDBIDResp";
