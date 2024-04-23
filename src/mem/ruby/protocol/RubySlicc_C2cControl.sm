@@ -24,6 +24,7 @@ enumeration(C2cRequestType, desc="...") {
   CompAck,    desc="CompAck";
   CompDBIDResp, desc="CompDBIDResp";
   Comp_I, desc="Comp_I";
+  Comp_UC, desc="Comp_UC";
   SnpResp_I, desc="SnpResp_I";
   //Data
   CBWrData_UC, desc="CBWrData_UC";
