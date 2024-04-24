@@ -845,7 +845,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   action(initializeFromSnpTBE, "ifstbe", desc="Initialize TBE fields snoop") {
     peek(snpInPort, CHIRequestMsg) {
       tbe.requestor := in_msg.requestor;
-      if (in_msg.dataToFwdRequestor) {
+      if (in_msg.type == CHIRequestType:SnpSharedFwd) {
         tbe.destination := in_msg.fwdRequestor;
       } else {
         tbe.destination := in_msg.requestor;
@@ -988,7 +988,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     //tbe.dataBlkValid.setMask(addressOffset(tbe.accAddr, tbe.addr), tbe.accSize);
   }
 
-  // Different action in case we need different TBE in the future 
   action(copyDataToTBE, "cpRDat", decs="Copies the received read data to TBE") {
     peek(datInPort, CHIDataMsg) {
       assert(is_valid(tbe));
