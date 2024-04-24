@@ -109,6 +109,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     C2c_CBWrData_UC, desc="";
     Net_SnpRespData_I_PD, desc="Response data to a snoop";
     C2c_SnpRespData_I_PD, desc="Response data to a snoop";
+    Net_SnpRespData_SC_Fwded_SD_PD, desc="Response data to a snoop";
+    C2c_SnpRespData_SC_Fwded_SD_PD, desc="Response data to a snoop";
 
     // Responses
     Net_CompAck, desc="";
@@ -193,6 +195,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:Net_CBWrData_UC;
     } else if (type == CHIDataType:SnpRespData_I_PD) {
       return Event:Net_SnpRespData_I_PD;
+    } else if (type == CHIDataType:SnpRespData_SC_Fwded_SD_PD) {
+      return Event:Net_SnpRespData_SC_Fwded_SD_PD;
     } else {
       DPRINTF(RubyC2c, "datToEvent CHIDataType: %s\n", type);
       error("Invalid CHIDataType");
@@ -243,6 +247,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:C2c_SnpResp_I;
     } else if (type == C2cRequestType:SnpRespData_I_PD) {
       return Event:C2c_SnpRespData_I_PD;
+    } else if (type == C2cRequestType:SnpRespData_SC_Fwded_SD_PD) {
+      return Event:C2c_SnpRespData_SC_Fwded_SD_PD;
     } else {
       DPRINTF(RubyGenerated, "c2cRespToEvent C2cRequestType: %s\n", type);
       error("Invalid C2cResponseType");
@@ -298,6 +304,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return CHIDataType:CBWrData_UC;
     } else if (type == C2cRequestType:SnpRespData_I_PD) {
       return CHIDataType:SnpRespData_I_PD;
+    } else if (type == C2cRequestType:SnpRespData_SC_Fwded_SD_PD) {
+      return CHIDataType:SnpRespData_SC_Fwded_SD_PD;
     } else {
       error("Unexpected C2cMsg data type");
     }
@@ -352,6 +360,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return C2cRequestType:CBWrData_UC;
     } else if (type == CHIDataType:SnpRespData_I_PD) {
       return C2cRequestType:SnpRespData_I_PD;
+    } else if (type == CHIDataType:SnpRespData_SC_Fwded_SD_PD) {
+      return C2cRequestType:SnpRespData_SC_Fwded_SD_PD;
     } else {
       error("Unexpected CHIData type");
     }
@@ -911,6 +921,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   action(sendToNet_Snoop, "stns", desc="Send snoop to net") {
     assert(is_valid(tbe));
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:SnpRespData_I_PD); 
+    tbe.expected_req_resp.addExpectedDataType(CHIDataType:SnpRespData_SC_Fwded_SD_PD); 
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_SD_PD); 
     tbe.expected_req_resp.addExpectedCount(1);
     enqueue(snpOutPort, CHIRequestMsg, request_latency) {
@@ -1009,7 +1020,11 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.dataBlk := tbe.dataBlk;
       // Called in order for the whole block so use rxtxBytes as offset
       out_msg.bitMask.setMask(tbe.rxtxBytes, data_channel_size);
-      out_msg.Destination.add(tbe.destination);
+      if (out_msg.type == CHIDataType:SnpRespData_SC_Fwded_SD_PD) {
+        out_msg.Destination.add(tbe.requestor);
+      } else {
+        out_msg.Destination.add(tbe.destination);
+      }
       out_msg.responder := machineID;
     }
 
@@ -1434,7 +1449,14 @@ machine(MachineType:Interface, "C2C interface controller") :
     popTriggerQueue;
   }
 
-  transition(BLKD_SNP, Net_SnpRespData_I_PD) {
+  transition(BLKD_SNP, {Net_SnpRespData_I_PD, Net_SnpRespData_SC_Fwded_SD_PD}) {
+    copyDataToTBE;
+    checkForReceiveCompletion;
+    popDataInQueue;
+  }
+
+  // Special case when we send both the compData and snpRespData
+  transition(READY, Net_SnpRespData_SC_Fwded_SD_PD, BLKD_SNP) {
     copyDataToTBE;
     checkForReceiveCompletion;
     popDataInQueue;
@@ -1447,7 +1469,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     popTriggerQueue;
   }
 
-  transition(BLKD_SNP, C2c_SnpRespData_I_PD, SENDING_NET_DATA_NO_ACK) {
+  transition(BLKD_SNP, {C2c_SnpRespData_I_PD, C2c_SnpRespData_SC_Fwded_SD_PD},
+              SENDING_NET_DATA_NO_ACK) {
     prepareSend_Data;
     sendToNet_Data;
     popResponseFromC2cQueue;
