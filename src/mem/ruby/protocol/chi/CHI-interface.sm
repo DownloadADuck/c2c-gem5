@@ -672,7 +672,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     if (snpInPort.isReady(clockEdge())) {
       printResources();
       peek(snpInPort, CHIRequestMsg) {
-        DPRINTF(RubyC2c, "Inbound snoop retToSrc: %s\n", in_msg.retToSrc);
         trigger(snpToEvent(in_msg.type), in_msg.addr, TBEs[in_msg.addr]);
       }
     }
@@ -912,6 +911,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   action(sendToNet_Snoop, "stns", desc="Send snoop to net") {
     assert(is_valid(tbe));
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:SnpRespData_I_PD); 
+    tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_SD_PD); 
     tbe.expected_req_resp.addExpectedCount(1);
     enqueue(snpOutPort, CHIRequestMsg, request_latency) {
       out_msg.addr := tbe.addr;
@@ -923,7 +923,6 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.allowRetry := false;
       out_msg.is_local_pf := false;
       out_msg.Destination.add(tbe.c2c_sharers);
-      DPRINTF(RubyC2c, "sendToNet --> %s retToSrc --> %s\n", out_msg.type, tbe.retToSrc);
       out_msg.retToSrc := tbe.retToSrc;
     }
   }
@@ -1405,14 +1404,14 @@ machine(MachineType:Interface, "C2C interface controller") :
     popTriggerQueue;
   }
 
-  transition(BLKD_REQ, {Net_CompData_UC, Net_CompData_SC, 
+  transition({BLKD_REQ, BLKD_SNP}, {Net_CompData_UC, Net_CompData_SC, 
               Net_CompData_SD_PD, Net_CompData_UD_PD}) {
     copyDataToTBE;
     checkForReceiveCompletion;
     popDataInQueue;
   }
 
-  transition(READING_MEM, {C2c_CompData_UC, C2c_CompData_SC, 
+  transition({READING_MEM, BLKD_SNP}, {C2c_CompData_UC, C2c_CompData_SC, 
               C2c_CompData_SD_PD, C2c_CompData_UD_PD}, SENDING_NET_DATA) {
     prepareSend_Data;
     sendToNet_Data;
@@ -1429,6 +1428,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popTriggerQueue;
   }
 
+  // Data response that doesn't wait for Acks -> deallocateTBE
   transition(BLKD_REQ, Trigger_ReceiveDataDone, READY) {
     sendToC2c_Data;
     wakeUpStalled;
