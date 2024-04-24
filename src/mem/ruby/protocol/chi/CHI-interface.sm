@@ -58,6 +58,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     SENDING_NET_DATA_NO_ACK, AccessPermission:Backing_Store_Busy, desc="Sending data to network, not waiting for Acks";
 
     BLKD_SNP, AccessPermission:Invalid, desc="Pending snoop transaction";
+    SNP_FWD, AccessPermission:Invalid, desc="Special case for snoop forwarding";
 
 
     // Null state for debugging; allow writes
@@ -1374,14 +1375,28 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // Snoops
-  transition(READY, {Net_SnpCleanInvalid, Net_SnpSharedFwd}, BLKD_SNP) {
+  transition(READY, Net_SnpCleanInvalid, BLKD_SNP) {
     allocateTBE_Snoop;
     initializeFromSnpTBE;
     sendToC2c_Snoop;
     popSnpInQueue;
   }
 
-  transition(READY, {C2c_SnpCleanInvalid, C2c_SnpSharedFwd}, BLKD_SNP) {
+  transition(READY, C2c_SnpCleanInvalid, BLKD_SNP) {
+    c2cReqAllocateTBE;
+    initializeFromC2cSnpTBE;
+    sendToNet_Snoop;
+    popC2cReqRdyInQueue;
+  }
+
+  transition(READY, Net_SnpSharedFwd, SNP_FWD) {
+    allocateTBE_Snoop;
+    initializeFromSnpTBE;
+    sendToC2c_Snoop;
+    popSnpInQueue;
+  }
+
+  transition(READY, C2c_SnpSharedFwd, SNP_FWD) {
     c2cReqAllocateTBE;
     initializeFromC2cSnpTBE;
     sendToNet_Snoop;
@@ -1418,15 +1433,22 @@ machine(MachineType:Interface, "C2C interface controller") :
     popTriggerQueue;
   }
 
-  transition({BLKD_REQ, BLKD_SNP}, {Net_CompData_UC, Net_CompData_SC, 
-              Net_CompData_SD_PD, Net_CompData_UD_PD}) {
+  transition(READY, Net_SnpRespData_SC_Fwded_SD_PD, BLKD_SNP) {
     copyDataToTBE;
     checkForReceiveCompletion;
     popDataInQueue;
   }
 
-  transition({READING_MEM, BLKD_SNP}, {C2c_CompData_UC, C2c_CompData_SC, 
-              C2c_CompData_SD_PD, C2c_CompData_UD_PD}, SENDING_NET_DATA) {
+  transition({BLKD_REQ, BLKD_SNP, SNP_FWD}, {Net_CompData_UC, Net_CompData_SC, 
+              Net_CompData_SD_PD, Net_CompData_UD_PD, Net_SnpRespData_SC_Fwded_SD_PD}) {
+    copyDataToTBE;
+    checkForReceiveCompletion;
+    popDataInQueue;
+  }
+
+  transition({READING_MEM, BLKD_SNP, SNP_FWD}, {C2c_CompData_UC, C2c_CompData_SC, 
+              C2c_CompData_SD_PD, C2c_CompData_UD_PD, C2c_SnpRespData_SC_Fwded_SD_PD}, 
+              SENDING_NET_DATA) {
     prepareSend_Data;
     sendToNet_Data;
     popResponseFromC2cQueue;
@@ -1443,24 +1465,24 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // Data response that doesn't wait for Acks -> deallocateTBE
-  transition(BLKD_REQ, Trigger_ReceiveDataDone, READY) {
+  transition({BLKD_REQ, SNP_FWD}, Trigger_ReceiveDataDone, READY) {
     sendToC2c_Data;
     wakeUpStalled;
     popTriggerQueue;
   }
 
-  transition(BLKD_SNP, {Net_SnpRespData_I_PD, Net_SnpRespData_SC_Fwded_SD_PD}) {
+  transition(BLKD_SNP, Net_SnpRespData_I_PD) {
     copyDataToTBE;
     checkForReceiveCompletion;
     popDataInQueue;
   }
 
   // Special case when we send both the compData and snpRespData
-  transition(READY, Net_SnpRespData_SC_Fwded_SD_PD, BLKD_SNP) {
-    copyDataToTBE;
-    checkForReceiveCompletion;
-    popDataInQueue;
-  }
+  //transition(READY, Net_SnpRespData_SC_Fwded_SD_PD, BLKD_SNP) {
+  //  copyDataToTBE;
+  //  checkForReceiveCompletion;
+  //  popDataInQueue;
+  //}
 
   transition(BLKD_SNP, Trigger_ReceiveDataDone, READY) {
     sendToC2c_Data;
@@ -1469,8 +1491,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popTriggerQueue;
   }
 
-  transition(BLKD_SNP, {C2c_SnpRespData_I_PD, C2c_SnpRespData_SC_Fwded_SD_PD},
-              SENDING_NET_DATA_NO_ACK) {
+  transition(BLKD_SNP, C2c_SnpRespData_I_PD, SENDING_NET_DATA_NO_ACK) {
     prepareSend_Data;
     sendToNet_Data;
     popResponseFromC2cQueue;
