@@ -35,6 +35,7 @@ enumeration(C2cRequestType, desc="...") {
   CompData_UD_PD, desc="CompData_UD_PD";
   SnpRespData_I_PD, desc="SnpRespData_I_PD";
   SnpRespData_SC_Fwded_SD_PD, desc="SnpRespData_SC_Fwded_SC_PD";
+  SnpRespData_SC_Fwded_SC, desc="SnpRespData_SC_Fwded_SC";
 }
 
 // Message to and from C2C interface

@@ -113,6 +113,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     C2c_SnpRespData_I_PD, desc="Response data to a snoop";
     Net_SnpRespData_SC_Fwded_SD_PD, desc="Response data to a snoop";
     C2c_SnpRespData_SC_Fwded_SD_PD, desc="Response data to a snoop";
+    Net_SnpRespData_SC_Fwded_SC, desc="Response data to a snoop";
+    C2c_SnpRespData_SC_Fwded_SC, desc="Response data to a snoop";
 
     // Responses
     Net_CompAck, desc="";
@@ -199,6 +201,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:Net_SnpRespData_I_PD;
     } else if (type == CHIDataType:SnpRespData_SC_Fwded_SD_PD) {
       return Event:Net_SnpRespData_SC_Fwded_SD_PD;
+    } else if (type == CHIDataType:SnpRespData_SC_Fwded_SC) {
+      return Event:Net_SnpRespData_SC_Fwded_SC;
     } else {
       DPRINTF(RubyC2c, "datToEvent CHIDataType: %s\n", type);
       error("Invalid CHIDataType");
@@ -251,6 +255,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:C2c_SnpRespData_I_PD;
     } else if (type == C2cRequestType:SnpRespData_SC_Fwded_SD_PD) {
       return Event:C2c_SnpRespData_SC_Fwded_SD_PD;
+    } else if (type == C2cRequestType:SnpRespData_SC_Fwded_SC) {
+      return Event:C2c_SnpRespData_SC_Fwded_SC;
     } else {
       DPRINTF(RubyGenerated, "c2cRespToEvent C2cRequestType: %s\n", type);
       error("Invalid C2cResponseType");
@@ -308,6 +314,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return CHIDataType:SnpRespData_I_PD;
     } else if (type == C2cRequestType:SnpRespData_SC_Fwded_SD_PD) {
       return CHIDataType:SnpRespData_SC_Fwded_SD_PD;
+    } else if (type == C2cRequestType:SnpRespData_SC_Fwded_SC) {
+      return CHIDataType:SnpRespData_SC_Fwded_SC;
     } else {
       error("Unexpected C2cMsg data type");
     }
@@ -364,6 +372,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return C2cRequestType:SnpRespData_I_PD;
     } else if (type == CHIDataType:SnpRespData_SC_Fwded_SD_PD) {
       return C2cRequestType:SnpRespData_SC_Fwded_SD_PD;
+    } else if (type == CHIDataType:SnpRespData_SC_Fwded_SC) {
+      return C2cRequestType:SnpRespData_SC_Fwded_SC;
     } else {
       error("Unexpected CHIData type");
     }
@@ -924,6 +934,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     assert(is_valid(tbe));
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:SnpRespData_I_PD); 
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:SnpRespData_SC_Fwded_SD_PD); 
+    tbe.expected_req_resp.addExpectedDataType(CHIDataType:SnpRespData_SC_Fwded_SC); 
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_SD_PD); 
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_SC);
     if (c2cMsgToCHIReq(tbe.to_net_snp_type) == CHIRequestType:SnpSharedFwd) {
@@ -1027,7 +1038,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.dataBlk := tbe.dataBlk;
       // Called in order for the whole block so use rxtxBytes as offset
       out_msg.bitMask.setMask(tbe.rxtxBytes, data_channel_size);
-      if (out_msg.type == CHIDataType:SnpRespData_SC_Fwded_SD_PD) {
+      if (out_msg.type == CHIDataType:SnpRespData_SC_Fwded_SD_PD || 
+          out_msg.type == CHIDataType:SnpRespData_SC_Fwded_SC) {
         out_msg.Destination.add(tbe.requestor);
       } else {
         out_msg.Destination.add(tbe.destination);
@@ -1440,14 +1452,15 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // Going back to the SNPFWD to send the complete data
-  transition(READY, Net_SnpRespData_SC_Fwded_SD_PD, BLKD_SNP) {
+  transition(READY, {Net_SnpRespData_SC_Fwded_SD_PD, Net_SnpRespData_SC_Fwded_SC}, BLKD_SNP) {
     copyDataToTBE;
     checkForReceiveCompletion;
     popDataInQueue;
   }
 
   transition({BLKD_REQ, BLKD_SNP, SNP_FWD}, {Net_CompData_UC, Net_CompData_SC, 
-              Net_CompData_SD_PD, Net_CompData_UD_PD, Net_SnpRespData_SC_Fwded_SD_PD}) {
+              Net_CompData_SD_PD, Net_CompData_UD_PD, Net_SnpRespData_SC_Fwded_SD_PD,
+              Net_SnpRespData_SC_Fwded_SC}) {
     copyDataToTBE;
     checkForReceiveCompletion;
     popDataInQueue;
@@ -1472,7 +1485,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // SnpSharedFwd
-  transition(READY, C2c_SnpRespData_SC_Fwded_SD_PD, SENDING_SNP_DATA) {
+  transition(READY, {C2c_SnpRespData_SC_Fwded_SD_PD, C2c_SnpRespData_SC_Fwded_SC}, SENDING_SNP_DATA) {
     prepareSend_Data;
     sendToNet_Data;
     popResponseFromC2cQueue;
