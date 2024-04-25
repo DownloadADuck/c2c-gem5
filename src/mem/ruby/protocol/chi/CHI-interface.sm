@@ -60,6 +60,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     SENDING_SNP_DATA, AccessPermission:Invalid, desc="Sending snoop data for snoop forwarding";
     BLKD_SNP, AccessPermission:Invalid, desc="Pending snoop transaction";
     SNP_FWD, AccessPermission:Invalid, desc="Special case for snoop forwarding";
+    SNP_FWD_2, AccessPermission:Invalid, desc="Second part of snoop fwd handling";
 
 
     // Null state for debugging; allow writes
@@ -1416,7 +1417,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // SnpUniqueFwd
-  transition(SNP_FWD, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD}, READY) {
+  transition(SNP_FWD_2, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD}, READY) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
     deallocateTBE;
@@ -1523,17 +1524,28 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // SnpSharedFwd
-  transition(SNP_FWD, {Net_CompData_UC, Net_CompData_SC, 
-              Net_CompData_SD_PD, Net_CompData_UD_PD, Net_SnpRespData_SC_Fwded_SD_PD,
-              Net_SnpRespData_SC_Fwded_SC}) {
+  transition(SNP_FWD, {Net_CompData_UC, Net_CompData_SC, Net_CompData_SD_PD, Net_CompData_UD_PD}) {
     copyDataToTBE;
     checkForReceiveCompletion;
     popDataInQueue;
   }
 
-  transition(SNP_FWD, Trigger_ReceiveDataDone) {
+  transition(SNP_FWD, Trigger_ReceiveDataDone, SNP_FWD_2) {
     sendToC2c_Data;
     wakeUpStalled;
+    popTriggerQueue;
+  }
+
+  transition(SNP_FWD_2, {Net_SnpRespData_SC_Fwded_SD_PD, Net_SnpRespData_SC_Fwded_SC}) {
+    copyDataToTBE;
+    checkForReceiveCompletion;
+    popDataInQueue;
+  }
+
+  transition(SNP_FWD_2, Trigger_ReceiveDataDone, READY) {
+    sendToC2c_Data;
+    wakeUpStalled;
+    deallocateTBE;
     popTriggerQueue;
   }
 
@@ -1554,7 +1566,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popTriggerQueue;
   }
 
-  transition(SNP_FWD, {C2c_SnpRespData_SC_Fwded_SD_PD, C2c_SnpRespData_SC_Fwded_SC}, SENDING_NET_DATA) {
+  transition(SNP_FWD, {C2c_SnpRespData_SC_Fwded_SD_PD, C2c_SnpRespData_SC_Fwded_SC}, SENDING_NET_DATA_NO_ACK) {
     prepareSend_Data;
     sendToNet_Data;
     popResponseFromC2cQueue;
