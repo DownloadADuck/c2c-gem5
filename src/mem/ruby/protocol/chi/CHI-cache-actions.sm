@@ -1454,6 +1454,8 @@ action(Send_SnpUniqueFwd, desc="") {
     prepareRequest(tbe, CHIRequestType:SnpUniqueFwd, out_msg);
     out_msg.Destination.addNetDest(tbe.dir_sharers);
     out_msg.retToSrc := false;
+    DPRINTF(RubyC2c, "HNF Send_SnpUniqueFwd, tbe.c2c_sharers: %s\n", tbe.c2c_sharers);
+    out_msg.c2c_sharers := tbe.c2c_sharers;
   }
 }
 

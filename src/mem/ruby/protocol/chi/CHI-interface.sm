@@ -96,6 +96,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     C2c_SnpCleanInvalid, desc="";
     Net_SnpSharedFwd, desc="";
     C2c_SnpSharedFwd, desc="";
+    Net_SnpUniqueFwd, desc="";
+    C2c_SnpUniqueFwd, desc="";
 
     // Data
     Net_CompData_UC, desc="Response data from net of type UC";
@@ -163,6 +165,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:Net_SnpCleanInvalid;
     } else if (type == CHIRequestType:SnpSharedFwd) {
       return Event:Net_SnpSharedFwd;
+    } else if (type == CHIRequestType:SnpUniqueFwd) {
+      return Event:Net_SnpUniqueFwd;
     } else {
       DPRINTF(RubyC2c, "snpToEvent CHIRequestType: %s\n", type);
       error("Invalid CHIRequestType snoop");
@@ -224,6 +228,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:C2c_SnpCleanInvalid;
     } else if (type == C2cRequestType:SnpSharedFwd) {
       return Event:C2c_SnpSharedFwd;
+    } else if (type == C2cRequestType:SnpUniqueFwd) {
+      return Event:C2c_SnpUniqueFwd;
     } else {
       DPRINTF(RubyC2c, "c2cReqToEvent C2cRequestType: %s\n", type);
       error("Invalid C2c request type");
@@ -278,6 +284,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return CHIRequestType:SnpCleanInvalid;
     } else if (type == C2cRequestType:SnpSharedFwd) {
       return CHIRequestType:SnpSharedFwd;
+    } else if (type == C2cRequestType:SnpUniqueFwd) {
+      return CHIRequestType:SnpUniqueFwd;
     } else {
       error("Unexpected C2cMsg request type");
     }
@@ -336,6 +344,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return C2cRequestType:SnpCleanInvalid;
     } else if (type == CHIRequestType:SnpSharedFwd) {
       return C2cRequestType:SnpSharedFwd;
+    } else if (type == CHIRequestType:SnpUniqueFwd) {
+      return C2cRequestType:SnpUniqueFwd;
     } else {
       error("Unexpected CHIRequest type");
     }
@@ -867,7 +877,8 @@ machine(MachineType:Interface, "C2C interface controller") :
   action(initializeFromSnpTBE, "ifstbe", desc="Initialize TBE fields snoop") {
     peek(snpInPort, CHIRequestMsg) {
       tbe.requestor := in_msg.requestor;
-      if (in_msg.type == CHIRequestType:SnpSharedFwd) {
+      if (in_msg.type == CHIRequestType:SnpSharedFwd ||
+          in_msg.type == CHIRequestType:SnpUniqueFwd) {
         tbe.destination := in_msg.fwdRequestor;
       } else {
         tbe.destination := in_msg.requestor;
@@ -937,7 +948,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:SnpRespData_SC_Fwded_SC); 
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_SD_PD); 
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_SC);
-    if (c2cMsgToCHIReq(tbe.to_net_snp_type) == CHIRequestType:SnpSharedFwd) {
+    if (c2cMsgToCHIReq(tbe.to_net_snp_type) == CHIRequestType:SnpSharedFwd ||
+        c2cMsgToCHIReq(tbe.to_net_snp_type) == CHIRequestType:SnpUniqueFwd) {
       tbe.expected_req_resp.addExpectedCount(3);
     } else {
       tbe.expected_req_resp.addExpectedCount(1);
@@ -1407,14 +1419,14 @@ machine(MachineType:Interface, "C2C interface controller") :
     popC2cReqRdyInQueue;
   }
 
-  transition(READY, Net_SnpSharedFwd, SNP_FWD) {
+  transition(READY, {Net_SnpSharedFwd, Net_SnpUniqueFwd}, SNP_FWD) {
     allocateTBE_Snoop;
     initializeFromSnpTBE;
     sendToC2c_Snoop;
     popSnpInQueue;
   }
 
-  transition(READY, C2c_SnpSharedFwd, SNP_FWD) {
+  transition(READY, {C2c_SnpSharedFwd, C2c_SnpUniqueFwd}, SNP_FWD) {
     c2cReqAllocateTBE;
     initializeFromC2cSnpTBE;
     sendToNet_Snoop;

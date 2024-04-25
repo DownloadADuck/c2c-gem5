@@ -21,6 +21,7 @@ enumeration(C2cRequestType, desc="...") {
   // Snoops
   SnpCleanInvalid, desc="SnpCleanInvalid";
   SnpSharedFwd, desc="SnpSharedFwd";
+  SnpUniqueFwd, desc="SnpUniqueFwd";
   // Responses
   CompAck,    desc="CompAck";
   CompDBIDResp, desc="CompDBIDResp";
