@@ -57,6 +57,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     SENDING_WBDATA, AccessPermission:Invalid, desc="Sending CBWrData_UC to Net";
     SENDING_NET_DATA_NO_ACK, AccessPermission:Backing_Store_Busy, desc="Sending data to network, not waiting for Acks";
 
+    SENDING_SNP_DATA, AccessPermission:Invalid, desc="Sending snoop data for snoop forwarding";
     BLKD_SNP, AccessPermission:Invalid, desc="Pending snoop transaction";
     SNP_FWD, AccessPermission:Invalid, desc="Special case for snoop forwarding";
 
@@ -924,7 +925,12 @@ machine(MachineType:Interface, "C2C interface controller") :
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:SnpRespData_I_PD); 
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:SnpRespData_SC_Fwded_SD_PD); 
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_SD_PD); 
-    tbe.expected_req_resp.addExpectedCount(1);
+    tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_SC);
+    if (c2cMsgToCHIReq(tbe.to_net_snp_type) == CHIRequestType:SnpSharedFwd) {
+      tbe.expected_req_resp.addExpectedCount(3);
+    } else {
+      tbe.expected_req_resp.addExpectedCount(1);
+    }
     enqueue(snpOutPort, CHIRequestMsg, request_latency) {
       out_msg.addr := tbe.addr;
       out_msg.accAddr := tbe.addr;
@@ -1433,6 +1439,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popTriggerQueue;
   }
 
+  // Going back to the SNPFWD to send the complete data
   transition(READY, Net_SnpRespData_SC_Fwded_SD_PD, BLKD_SNP) {
     copyDataToTBE;
     checkForReceiveCompletion;
@@ -1447,7 +1454,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition({READING_MEM, BLKD_SNP, SNP_FWD}, {C2c_CompData_UC, C2c_CompData_SC, 
-              C2c_CompData_SD_PD, C2c_CompData_UD_PD, C2c_SnpRespData_SC_Fwded_SD_PD}, 
+              C2c_CompData_SD_PD, C2c_CompData_UD_PD}, 
               SENDING_NET_DATA) {
     prepareSend_Data;
     sendToNet_Data;
@@ -1460,6 +1467,23 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition(SENDING_NET_DATA, Trigger_SendDone, READY) {
+    wakeUpStalled;
+    popTriggerQueue;
+  }
+
+  // SnpSharedFwd
+  transition(READY, C2c_SnpRespData_SC_Fwded_SD_PD, SENDING_SNP_DATA) {
+    prepareSend_Data;
+    sendToNet_Data;
+    popResponseFromC2cQueue;
+  }
+  
+  transition(SENDING_SNP_DATA, Trigger_Send) {
+    sendToNet_Data;
+    popTriggerQueue;
+  }
+
+  transition(SENDING_SNP_DATA, Trigger_SendDone, SNP_FWD) {
     wakeUpStalled;
     popTriggerQueue;
   }
