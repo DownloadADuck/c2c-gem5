@@ -1064,6 +1064,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.bitMask.setMask(tbe.rxtxBytes, data_channel_size);
       if (out_msg.type == CHIDataType:SnpRespData_SC_Fwded_SD_PD || 
           out_msg.type == CHIDataType:SnpRespData_SC_Fwded_SC) {
+        out_msg.c2c_sharers := tbe.c2c_sharers;
         out_msg.Destination.add(tbe.requestor);
       } else {
         out_msg.Destination.add(tbe.destination);

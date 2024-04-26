@@ -214,6 +214,8 @@ structure(CHIDataMsg, desc="", interface="Message") {
 
   MessageSizeType MessageSize, default="MessageSizeType_Data";
 
+  MachineID c2c_sharers, desc="Off-Chip sharer for snp responses";
+
   bool functionalRead(Packet *pkt) {
     if(bitMask.isFull()) {
       return testAndRead(addr, dataBlk, pkt);
