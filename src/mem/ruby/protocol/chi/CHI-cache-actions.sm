@@ -1826,6 +1826,8 @@ action(UpdateDirState_FromSnpDataResp, desc="") {
             (in_msg.type == CHIDataType:SnpRespData_SC_PD_Fwded_SC) ||
             (in_msg.type == CHIDataType:SnpRespData_SC_Fwded_SD_PD)) {
           tbe.dir_sharers.add(tbe.requestor);
+          tbe.c2c_sharers := in_msg.c2c_sharers;
+          DPRINTF(RubyC2c, "UpdateDirState_FromSnpDataResp, tbe.c2c_sharers: %s\n", tbe.c2c_sharers);
         }
         if (in_msg.type == CHIDataType:SnpRespData_SC_Fwded_SD_PD) {
           tbe.dir_ownerExists := true;
