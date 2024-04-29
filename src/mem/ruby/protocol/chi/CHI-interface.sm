@@ -941,6 +941,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   action(sendToC2c_Snoop, "stctcs", desc="Send snoop to c2c") {
     assert(is_valid(tbe));
+    //DPRINTF(RubyC2c, "sendToC2c_Snoop, tbe.c2c_sharers: %s\n", tbe.c2c_sharers);
     enqueue(requestToC2c_out, C2cMsg, to_memory_controller_latency) {
       out_msg.addr := tbe.addr;
       out_msg.Type := CHIReqToC2cMsg(tbe.to_c2c_snp_type);
@@ -960,6 +961,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_SD_PD); 
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_UD_PD); 
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_SC);
+    //DPRINTF(RubyC2c, "sendToNet_Snoop, tbe.c2c_sharers: %s\n", tbe.c2c_sharers); 
     if (c2cMsgToCHIReq(tbe.to_net_snp_type) == CHIRequestType:SnpSharedFwd ||
         c2cMsgToCHIReq(tbe.to_net_snp_type) == CHIRequestType:SnpUniqueFwd) {
       tbe.expected_req_resp.addExpectedCount(3);
@@ -1204,6 +1206,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.type := c2cMsgToCHIRsp(tbe.to_net_rsp_type);
       out_msg.responder := machineID;
       out_msg.Destination.add(tbe.requestor);
+      DPRINTF(RubyC2c, "Interface send response tbe.c2c_sharers: %s\n", tbe.c2c_sharers);
+      out_msg.c2c_sharers := tbe.c2c_sharers;
     }
   }
 
