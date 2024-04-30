@@ -964,6 +964,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_SD_PD); 
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_UD_PD); 
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_SC);
+    tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_UC);
     DPRINTF(RubyC2c, "sendToNet_Snoop, tbe.c2c_sharers: %s, addr: %d\n", 
             tbe.c2c_sharers, tbe.addr); 
     if (c2cMsgToCHIReq(tbe.to_net_snp_type) == CHIRequestType:SnpSharedFwd ||
