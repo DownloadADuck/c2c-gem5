@@ -29,6 +29,7 @@ enumeration(C2cRequestType, desc="...") {
   Comp_UC, desc="Comp_UC";
   SnpResp_I, desc="SnpResp_I";
   SnpResp_I_Fwded_UD_PD, desc="SnpResp_I_Fwded_UD_PD";
+  SnpResp_I_Fwded_UC, desc="SnpResp_I_Fwded_UC";
   //Data
   CBWrData_UC, desc="CBWrData_UC";
   CompData_UC, desc="CompData_UC";
