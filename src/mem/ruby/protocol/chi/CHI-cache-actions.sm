@@ -1827,7 +1827,7 @@ action(UpdateDirState_FromSnpDataResp, desc="") {
             (in_msg.type == CHIDataType:SnpRespData_SC_PD_Fwded_SC) ||
             (in_msg.type == CHIDataType:SnpRespData_SC_Fwded_SD_PD)) {
           tbe.dir_sharers.add(tbe.requestor);
-          //tbe.c2c_sharers := in_msg.c2c_sharers;
+          tbe.c2c_sharers := tbe.c2c_requestor;
         }
         if (in_msg.type == CHIDataType:SnpRespData_SC_Fwded_SD_PD) {
           tbe.dir_ownerExists := true;
@@ -1845,7 +1845,7 @@ action(UpdateDirState_FromSnpDataResp, desc="") {
         tbe.dir_ownerIsExcl := false;
         tbe.dir_sharers.remove(in_msg.responder);
         tbe.dir_sharers.add(tbe.requestor);
-        //tbe.c2c_sharers := in_msg.c2c_sharers;
+        tbe.c2c_sharers := tbe.c2c_requestor;
         if (in_msg.type == CHIDataType:SnpRespData_I_Fwded_SD_PD) {
           tbe.dir_ownerExists := true;
           tbe.dir_owner := tbe.requestor;
@@ -2092,11 +2092,9 @@ action(UpdateDirState_FromSnpResp, desc="") {
       assert(tbe.dir_sharers.count() == 1);
       tbe.dir_sharers.remove(in_msg.responder);
       // requestor is the new owner
-      // Luis add c2c_sharers here
-      tbe.c2c_sharers := in_msg.c2c_sharers;
+      tbe.c2c_sharers := tbe.c2c_requestor;
       if (is_HN) {
-        DPRINTF(RubyC2c, "UpdateDirState_FromSnpResp tbe.c2c_sharers: %s\n", tbe.c2c_sharers);
-        DPRINTF(RubyC2c, "in_msg.c2c_sharers: %s\n", in_msg.c2c_sharers);
+        DPRINTF(RubyC2c, "UpdateDirState_FromSnpResp tbe.c2c_sharers: %s, address: %d\n", tbe.c2c_sharers, tbe.addr);
       }
       tbe.dir_sharers.add(tbe.requestor);
       tbe.dir_ownerExists := true;

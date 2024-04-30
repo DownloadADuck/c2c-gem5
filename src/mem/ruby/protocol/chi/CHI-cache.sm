@@ -637,6 +637,7 @@ machine(MachineType:Cache, "Cache coherency protocol") :
     NetDest dir_sharers,          desc="Upstream controllers that have the line (includes owner)";
     MachineID dir_owner,          desc="Owner ID";
     MachineID c2c_sharers,        desc="Off-chip controllers that have the line";
+    MachineID c2c_requestor,      desc="Off-chip requestor in case of a snp fwd dir_sharers update";
     bool dir_ownerExists,         desc="Owner ID is valid";
     bool dir_ownerIsExcl,         desc="Owner is UD or UC; SD otherwise";
     bool doCacheFill,             desc="Write valid data to the cache when completing transaction";
