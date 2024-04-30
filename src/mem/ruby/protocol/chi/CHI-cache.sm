@@ -156,6 +156,9 @@ machine(MachineType:Cache, "Cache coherency protocol") :
   // Use prefetcher
   bool use_prefetcher, default="false";
 
+  // Default null machine for comparison statements
+  MachineID default_machine;
+
   // Message Queues
 
   // Interface to the network
