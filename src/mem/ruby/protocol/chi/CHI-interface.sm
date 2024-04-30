@@ -972,6 +972,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     } else {
       tbe.expected_req_resp.addExpectedCount(1);
     }
+    DPRINTF(RubyC2c, "sentToNet_Snoop out_msg.destination: %s\n", tbe.c2c_sharers);
     enqueue(snpOutPort, CHIRequestMsg, request_latency) {
       out_msg.addr := tbe.addr;
       out_msg.accAddr := tbe.addr;
