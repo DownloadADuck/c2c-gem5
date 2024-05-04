@@ -28,12 +28,12 @@ from .nodes.interface import Interface
 
 from m5.objects import NULL, RubySystem, RubySequencer, RubyPortProxy
 
-class C2cCacheHierarchy(AbstractCacheHierarchy):
+class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
     def __init__(self, size: str, assoc: int) -> None:
         super().__init__() 
 
-        self.size = size
-        self.assoc = assoc
+        self._size = size
+        self._assoc = assoc
 
     @overrides(AbstractCacheHierarchy)
     def incorporate_cache(self, board: AbstractBoard) -> None:

@@ -21,19 +21,14 @@ requires(
     kvm_required=True,
 )
 
-from gem5.components.cacheierarchies.chi.c2c_cache_hierarchy import (
+from gem5.components.cachehierarchies.chi.c2c_cache_hierarchy import (
     C2cCacheHierarchy,
 )
 
 # Here we setup a MESI Two Level Cache Hierarchy.
 cache_hierarchy = C2cCacheHierarchy(
-    l1d_size="16kB",
-    l1d_assoc=8,
-    l1i_size="16kB",
-    l1i_assoc=8,
-    l2_size="256kB",
-    l2_assoc=16,
-    num_l2_banks=1,
+    size="16kB",
+    assoc=8,
 )
 
 # System memory
