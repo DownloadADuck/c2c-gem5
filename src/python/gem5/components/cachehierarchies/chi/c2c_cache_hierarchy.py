@@ -69,9 +69,11 @@ class C2cCacheHierarchy(AbstractCacheHierarchy):
         self.hnf0.ruby_system = self.ruby_system
         self.hnf1.ruby_system = self.ruby_system
 
+        # Add to the RNF destinations
         self.cluster0_dest.append(self.hnf0)
         self.cluster1_dest.append(self.hnf1)
 
+        # Create one Interface per chip
         self.interface0 = Interface(
             self.ruby_system.network0,
             cache_line_size=board.get_cache_line_size(),
@@ -84,7 +86,7 @@ class C2cCacheHierarchy(AbstractCacheHierarchy):
         )
         self.interface0.ruby_system = self.ruby_system
         self.interface1.ruby_system = self.ruby_system
-
+        # Add to the RNF destinations
         self.cluster0_dest.append(self.interface0)
         self.cluster1_dest.append(self.interface1)
 
@@ -95,7 +97,7 @@ class C2cCacheHierarchy(AbstractCacheHierarchy):
                 i, 
                 board,
                 self.ruby_system.network0,
-                cluster0_dest,
+                self.cluster0_dest,
             ) for i, core in enumerate(board.get_processor().get_cores())
         ]
         self.core_cluster1 = [
@@ -104,7 +106,7 @@ class C2cCacheHierarchy(AbstractCacheHierarchy):
                 i, 
                 board, 
                 self.ruby_system.network1, 
-                cluster1_dest,
+                self.cluster1_dest,
             ) for i, core in enumerate(board.get_processor().get_cores())
         ]
 
@@ -168,8 +170,6 @@ class C2cCacheHierarchy(AbstractCacheHierarchy):
         """Given the core and the core number this function creates a cluster
         for the core with a split I/D cache
         """
-        # TODO: add the network as argument so we can connect each cluster
-        # to its respective network. 
         cluster = SubSystem()
         cluster.dcache = PrivateL1MOESICache(
             size=self._size,
@@ -222,9 +222,24 @@ class C2cCacheHierarchy(AbstractCacheHierarchy):
         else:
             core.connect_interrupt()
 
-        # TODO: Need to change that to pass it as argument so we are able to 
-        # add the interface as downstream destination. 
         cluster.dcache.downstream_destination = cluster_dests
         cluster.icache.downstream_destination = cluster_dests
 
         return cluster
+    
+    # TODO: add the network as an argument
+    def _create_memory_controller(
+        self, board: AbstractBoard
+    ) -> List[MemoryController]:
+        memory_controllers = []
+        for rng, port in board.get_mem_ports():
+            mc = MemoryController(self.ruby_system.network, rng, port)
+            mc.ruby_system = self.ruby_system
+            memory_controllers.append(mc)
+        return memory_controllers
+    
+    def _create_dma_controllers(
+        self, board: AbstractBoard
+    ) -> List[DMARequestor]:
+        print("Need to add support for DMA controllers")
+        sys.exit()
