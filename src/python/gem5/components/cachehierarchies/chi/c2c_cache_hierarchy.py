@@ -42,8 +42,8 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
 
         self.ruby_system = RubySystem()
 
-        self.cluster0_dest = []
-        self.cluster1_dest = []
+        cluster0_dest = []
+        cluster1_dest = []
 
         # Two networks
         self.ruby_system.network0 = SimplePt2Pt(self.ruby_system)
@@ -70,8 +70,8 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         self.hnf1.ruby_system = self.ruby_system
 
         # Add to the RNF destinations
-        self.cluster0_dest.append(self.hnf0)
-        self.cluster1_dest.append(self.hnf1)
+        cluster0_dest.append(self.hnf0)
+        cluster1_dest.append(self.hnf1)
 
         # Create one Interface per chip
         self.interface0 = Interface(
@@ -91,8 +91,8 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         self.interface1.c2c_out_port = self.interface0.c2c_in_port
 
         # Add to the RNF destinations
-        self.cluster0_dest.append(self.interface0)
-        self.cluster1_dest.append(self.interface1)
+        cluster0_dest.append(self.interface0)
+        cluster1_dest.append(self.interface1)
 
         # Create two core cluster with split I/D cache for each core
         self.core_cluster0 = [
@@ -101,7 +101,7 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
                 i, 
                 board,
                 self.ruby_system.network0,
-                self.cluster0_dest,
+                cluster0_dest,
             ) for i, core in enumerate(board.get_processor().get_cores())
         ]
         self.core_cluster1 = [
@@ -110,7 +110,7 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
                 i, 
                 board, 
                 self.ruby_system.network1, 
-                self.cluster1_dest,
+                cluster1_dest,
             ) for i, core in enumerate(board.get_processor().get_cores())
         ]
 

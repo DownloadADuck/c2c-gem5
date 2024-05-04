@@ -34,8 +34,8 @@ class InterfaceNode(Interface_Controller):
         self.version = InterfaceNode.versionCount()
         self._cache_line_size = cache_line_size
 
-        self.transition_per_cycle = 1024
-        self.sc_lock_enabled = False
+        #transition_per_cycle = 1024
+        #self.sc_lock_enabled = False
         
         self.data_channel_size = 32
         self.connectQueues(network)
