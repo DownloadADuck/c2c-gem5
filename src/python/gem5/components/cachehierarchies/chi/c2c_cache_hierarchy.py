@@ -86,6 +86,10 @@ class C2cCacheHierarchy(AbstractCacheHierarchy):
         )
         self.interface0.ruby_system = self.ruby_system
         self.interface1.ruby_system = self.ruby_system
+
+        self.interface0.c2c_out_port = self.interface1.c2c_in_port
+        self.interface1.c2c_out_port = self.interface0.c2c_in_port
+
         # Add to the RNF destinations
         self.cluster0_dest.append(self.interface0)
         self.cluster1_dest.append(self.interface1)
