@@ -1,3 +1,4 @@
+import sys
 from itertools import chain
 from typing import List
 
@@ -27,4 +28,165 @@ from .nodes.memory_controller import MemoryController
 from m5.objects import NULL, RubySystem, RubySequencer, RubyPortProxy
 
 class C2cCacheHierarchy(AbstractCacheHierarchy):
-    
+    def __init__(self, size: str, assoc: int) -> None:
+        super().__init__() 
+
+        self.size = size
+        self.assoc = assoc
+
+    @overrides(AbstractCacheHierarchy)
+    def incorporate_cache(self, board: AbstractBoard) -> None:
+        
+        requires(coherence_protocol_required=CoherenceProtocol.CHI)
+
+        self.ruby_system = RubySystem()
+
+        # Two networks
+        self.ruby_system.network0 = SimplePt2Pt(self.ruby_system)
+        self.ruby_system.network1 = SimplePt2Pt(self.ruby_system)
+
+        # Network configuration
+        # virtual networks: 0=requests, 1=snoops, 2=responses, 3=data
+        self.ruby_system.number_of_virtual_networks = 4
+        self.ruby_system.network0.number_of_virtual_networks = 4
+        self.ruby_system.network1.number_of_virtual_networks = 4
+
+        # Create a single HNF per chip
+        self.hnf0 = SimpleDirectory(
+            self.ruby_system.network0,
+            cache_line_size=board.get_cache_line_size(),
+            clk_domain=board.get_clock_domain(),
+        )
+        self.hnf1 = SimpleDirectory(
+            self.ruby_system.network1,
+            cache_line_size=board.get_cache_line_size(),
+            clk_domain=board.get_clock_domain(),
+        )
+        self.hnf0.ruby_system = self.ruby_system
+        self.hnf1.ruby_system = self.ruby_system
+
+        # Create two core cluster with split I/D cache for each core
+        self.core_cluster0 = [
+            self._create_core_cluster(core, i, board)
+            for i, core in enumerate(board.get_processor().get_cores())
+        ]
+        self.core_cluster1 = [
+            self._create_core_cluster(core, i, board)
+            for i, core in enumerate(board.get_processor().get_cores())
+        ]
+
+        # Create the coherent side of the memory controllers
+        self.memory_controllers0 = self._create_memory_controllers(board)
+        self.hnf0.downstream_destination = self.memory_controllers0
+
+        self.memory_controllers1 = self._create_memory_controllers(board)
+        self.hnf1.downstream_destination = self.memory_controllers1
+
+        # We are not supporting DMA controllers now
+        if board.has_dma_ports():
+            print("We do not support DMA controllers yet!")
+            sys.exit()
+        
+        # Two clusters in total
+        self.ruby_system.num_of_sequencers = (len(self.core_cluster0) + \
+                                            len(self.core_cluster1)) * 2
+        
+        self.ruby_system.network0.connectControllers(
+            list(
+                chain.from_iterable(
+                    [
+                        (cluster.dcache, cluster.icache)
+                        for cluster in self.core_cluster0
+                    ]
+                )
+            )
+            + self.memory_controllers0
+            + [self.hnf0]
+            + (self.dma_controllers if board.has_dma_ports() else [])
+        )
+        self.ruby_system.network1.connectControllers(
+            list(
+                chain.from_iterable(
+                    [
+                        (cluster.dcache, cluster.icache)
+                        for cluster in self.core_cluster1
+                    ]
+                )
+            )
+            + self.memory_controllers1
+            + [self.hnf1]
+            + (self.dma_controllers if board.has_dma_ports() else [])
+        )
+         
+        self.ruby_system.network0.setup_buffers()
+        self.ruby_system.network1.setup_buffers()
+
+        self.ruby_system.sys_port_proxy = RubyPortProxy()
+        board.connect_system_port(self.ruby_system.sys_port_proxy.in_ports)
+
+    def _create_core_cluster(
+        self, core: AbstractCore, core_num: int, board: AbstractBoard
+    ) -> SubSystem:
+        """Given the core and the core number this function creates a cluster
+        for the core with a split I/D cache
+        """
+        # TODO: add the network as argument so we can connect each cluster
+        # to its respective network. 
+        cluster = SubSystem()
+        cluster.dcache = PrivateL1MOESICache(
+            size=self._size,
+            assoc=self.assoc,
+            network=self.ruby_system.network,
+            core=core,
+            cache_line_size=board.get_cache_line_size(),
+            
+            target_isa=board.get_processor().get_isa(),
+            clk_domain=board.get_clock_domain(),
+        )
+        cluster.icache = PrivateL1MOESICache(
+            size=self._size,
+            assoc=self._assoc,
+            network=self.ruby_system.network,
+            core=core,
+            cache_line_size=board.get_cache_line_size(),
+            target_isa=board.get_processor().get_isa(),
+            clk_domain=board.get_clock_domain(),
+        )
+
+        cluster.icache.sequencer = RubySequencer(
+            version=core_num, dcache=NULL, clk_domain=cluster.icache.clk_domain
+        )
+        cluster.dcache.sequencer = RubySequencer(
+            version=core_num,
+            dcache=cluster.dcache.cache,
+            clk_domain=cluster.dcache.clk_domain,
+        )
+
+        if board.has_io_bus():
+            cluster.dcache.sequencer.connectIOPorts(board.get_io_bus())
+
+        cluster.dcache.ruby_system = self.ruby_system
+        cluster.icache.ruby_system = self.ruby_system
+
+        core.connect_icache(cluster.icache.sequencer.in_ports)
+        core.connect_dcache(cluster.dcache.sequencer.in_ports)
+
+        core.connect_walker_ports(
+            cluster.dcache.sequencer.in_ports,
+            cluster.icache.sequencer.in_ports,
+        )
+
+        # Connect the interrupt ports
+        if board.get_processor().get_isa() == ISA.X86:
+            int_req_port = cluster.dcache.sequencer.interrupt_out_port
+            int_resp_port = cluster.dcache.sequencer.in_ports
+            core.connect_interrupt(int_req_port, int_resp_port)
+        else:
+            core.connect_interrupt()
+
+        # TODO: Need to change that to pass it as argument so we are able to 
+        # add the interface as downstream destination. 
+        cluster.dcache.downstream_destination = [self.directory]
+        cluster.icache.downstream_destination = [self.directory]
+
+        return cluster
