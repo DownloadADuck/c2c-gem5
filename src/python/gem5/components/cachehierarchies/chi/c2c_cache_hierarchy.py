@@ -24,6 +24,7 @@ from .nodes.private_l1_moesi_cache import PrivateL1MOESICache
 from .nodes.dma_requestor import DMARequestor
 from .nodes.directory import SimpleDirectory
 from .nodes.memory_controller import MemoryController
+from .nodes.interface import Interface
 
 from m5.objects import NULL, RubySystem, RubySequencer, RubyPortProxy
 
@@ -40,6 +41,9 @@ class C2cCacheHierarchy(AbstractCacheHierarchy):
         requires(coherence_protocol_required=CoherenceProtocol.CHI)
 
         self.ruby_system = RubySystem()
+
+        self.cluster0_dest = []
+        self.cluster1_dest = []
 
         # Two networks
         self.ruby_system.network0 = SimplePt2Pt(self.ruby_system)
@@ -65,14 +69,43 @@ class C2cCacheHierarchy(AbstractCacheHierarchy):
         self.hnf0.ruby_system = self.ruby_system
         self.hnf1.ruby_system = self.ruby_system
 
+        self.cluster0_dest.append(self.hnf0)
+        self.cluster1_dest.append(self.hnf1)
+
+        self.interface0 = Interface(
+            self.ruby_system.network0,
+            cache_line_size=board.get_cache_line_size(),
+            clk_domain=board.get_clock_domain(),
+        )
+        self.interface1 = Interface(
+            self.ruby_system.network1,
+            cache_line_size=board.get_cache_line_size(),
+            clk_domain=board.get_clock_domain(),
+        )
+        self.interface0.ruby_system = self.ruby_system
+        self.interface1.ruby_system = self.ruby_system
+
+        self.cluster0_dest.append(self.interface0)
+        self.cluster1_dest.append(self.interface1)
+
         # Create two core cluster with split I/D cache for each core
         self.core_cluster0 = [
-            self._create_core_cluster(core, i, board)
-            for i, core in enumerate(board.get_processor().get_cores())
+            self._create_core_cluster(
+                core, 
+                i, 
+                board,
+                self.ruby_system.network0,
+                cluster0_dest,
+            ) for i, core in enumerate(board.get_processor().get_cores())
         ]
         self.core_cluster1 = [
-            self._create_core_cluster(core, i, board)
-            for i, core in enumerate(board.get_processor().get_cores())
+            self._create_core_cluster(
+                core, 
+                i, 
+                board, 
+                self.ruby_system.network1, 
+                cluster1_dest,
+            ) for i, core in enumerate(board.get_processor().get_cores())
         ]
 
         # Create the coherent side of the memory controllers
@@ -125,7 +158,12 @@ class C2cCacheHierarchy(AbstractCacheHierarchy):
         board.connect_system_port(self.ruby_system.sys_port_proxy.in_ports)
 
     def _create_core_cluster(
-        self, core: AbstractCore, core_num: int, board: AbstractBoard
+        self, 
+        core: AbstractCore,
+        core_num: int,
+        board: AbstractBoard,
+        network,
+        cluster_dests
     ) -> SubSystem:
         """Given the core and the core number this function creates a cluster
         for the core with a split I/D cache
@@ -136,7 +174,7 @@ class C2cCacheHierarchy(AbstractCacheHierarchy):
         cluster.dcache = PrivateL1MOESICache(
             size=self._size,
             assoc=self.assoc,
-            network=self.ruby_system.network,
+            network=network,
             core=core,
             cache_line_size=board.get_cache_line_size(),
             
@@ -146,7 +184,7 @@ class C2cCacheHierarchy(AbstractCacheHierarchy):
         cluster.icache = PrivateL1MOESICache(
             size=self._size,
             assoc=self._assoc,
-            network=self.ruby_system.network,
+            network=network,
             core=core,
             cache_line_size=board.get_cache_line_size(),
             target_isa=board.get_processor().get_isa(),
@@ -186,7 +224,7 @@ class C2cCacheHierarchy(AbstractCacheHierarchy):
 
         # TODO: Need to change that to pass it as argument so we are able to 
         # add the interface as downstream destination. 
-        cluster.dcache.downstream_destination = [self.directory]
-        cluster.icache.downstream_destination = [self.directory]
+        cluster.dcache.downstream_destination = cluster_dests
+        cluster.icache.downstream_destination = cluster_dests
 
         return cluster
