@@ -3,7 +3,8 @@ from gem5.isas import ISA
 from gem5.components.processors.cpu_types import CPUTypes
 from gem5.components.processors.abstract_core import AbstractCore
 
-from m5.objects import Interface_Controller, MessageBuffer, RubyNetwork
+from m5.objects import Interface_Controller, MessageBuffer, RubyNetwork, \
+                        ClockDomain, NULL
 
 import math
 
@@ -74,3 +75,15 @@ class InterfaceNode(Interface_Controller):
         self.rspIn.in_port = network.out_port
         self.snpIn.in_port = network.out_port
         self.datIn.in_port = network.out_port
+
+        
+class Interface(InterfaceNode):
+    def __init__(
+        self,
+        network: RubyNetwork,
+        cache_line_size: int,
+        clk_domain: ClockDomain,
+    ):
+        super().__init__(network, cache_line_size)
+        
+        self.clk_domain = clk_domain
