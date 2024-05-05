@@ -90,6 +90,10 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         self.interface0.c2c_out_port = self.interface1.c2c_in_port
         self.interface1.c2c_out_port = self.interface0.c2c_in_port
 
+        # Downstream destinations
+        self.interface0.downstream_destination = self.hnf0
+        self.interface1.downstream_destination = self.hnf1
+
         # Add to the RNF destinations
         cluster0_dest.append(self.interface0)
         cluster1_dest.append(self.interface1)
@@ -115,10 +119,12 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         ]
 
         # Create the coherent side of the memory controllers
-        self.memory_controllers0 = self._create_memory_controllers(board)
+        self.memory_controllers0 = self._create_memory_controllers(board, \
+            self.ruby_system.network0)
         self.hnf0.downstream_destination = self.memory_controllers0
 
-        self.memory_controllers1 = self._create_memory_controllers(board)
+        self.memory_controllers1 = self._create_memory_controllers(board, \
+            self.ruby_system.network1)
         self.hnf1.downstream_destination = self.memory_controllers1
 
         # We are not supporting DMA controllers now
@@ -177,7 +183,7 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         cluster = SubSystem()
         cluster.dcache = PrivateL1MOESICache(
             size=self._size,
-            assoc=self.assoc,
+            assoc=self._assoc,
             network=network,
             core=core,
             cache_line_size=board.get_cache_line_size(),
@@ -231,13 +237,14 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
 
         return cluster
     
-    # TODO: add the network as an argument
-    def _create_memory_controller(
-        self, board: AbstractBoard
+    def _create_memory_controllers(
+        self, 
+        board: AbstractBoard,
+        network,
     ) -> List[MemoryController]:
         memory_controllers = []
         for rng, port in board.get_mem_ports():
-            mc = MemoryController(self.ruby_system.network, rng, port)
+            mc = MemoryController(network, rng, port)
             mc.ruby_system = self.ruby_system
             memory_controllers.append(mc)
         return memory_controllers
