@@ -250,3 +250,46 @@ class X86C2cBoard(AbstractSystemBoard, KernelDiskWorkload):
     @overrides(AbstractSystemBoard)
     def get_mem_side_coherent_io_port(self) -> Port:
         return self.iobus.mem_side_ports
+
+    @overrides(AbstractSystemBoard)
+    def _setup_memory_ranges(self):
+        memory = self.get_memory()
+
+        if memory.get_size() > toMemorySize("3GB"):
+            raise Exception(
+                "X86C2cBoard currently only supports memory sizes up "
+                "to 3GB because of the I/O hole."
+            )
+        data_range = AddrRange = AddrRange(memory.get_size())
+        memory.set_memory_range([data_range])
+
+        # Add the address range for the IO
+        self.mem_ranges = [
+            data_range, # All data
+            AddrRange(0xC0000000, size=0x100000), # For I/O
+        ]
+
+    @overrides(KernelDiskWorkload)
+    def get_disk_device(self):
+        return "/dev/hda"
+
+    @overrides(KernelDiskWorkload)
+    def _add_disk_to_board(self, disk_image: AbstractResource):
+        ide_disk = IdeDisk()
+        ide_disk.driveID = "device0"
+        ide_disk.image = CowDiskImage(
+            child=RawDiskImage(read_only=True), read_only=False
+        )
+        ide_disk.image.child.image_file = disk_image.get_local_path()
+
+        # Attach the SimObject to the system.
+        self.pc.south_bridge.ide.disks = [ide_disk]
+
+    @overrides(KernelDiskWorkload)
+    def get_default_kernel_args(self) -> List[str]:
+        return [
+            "earlyprintk=ttyS0",
+            "console=ttyS0",
+            "lpj=7999923",
+            "root={root_value}",
+        ]
