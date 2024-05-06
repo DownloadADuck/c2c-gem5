@@ -134,18 +134,19 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
                 network=self.ruby_system.network0,
                 cluster_dest=cluster0_dest,
             )
-            self.dma_controllers1 = self._create_dma_controllers(
-                board, 
-                network=self.ruby_system.network1,
-                cluster_dest=cluster1_dest,
-            )
+            #self.dma_controllers1 = self._create_dma_controllers(
+            #    board, 
+            #    network=self.ruby_system.network1,
+            #    cluster_dest=cluster1_dest,
+            #)
             self.ruby_system.num_of_sequencers = len(
                 self.core_cluster0 +
                 self.core_cluster1
-            ) * 2 + len(
-                self.dma_controllers0 + 
-                self.dma_controllers1
-            )
+            ) * 2 + len(self.dma_controllers0)
+            #) * 2 + len(
+            #    self.dma_controllers0 + 
+            #    self.dma_controllers1
+            #)
                 
         else:
             self.ruby_system.num_of_sequencers = (len(self.core_cluster0) + \
@@ -278,7 +279,7 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         dma_controllers = []
         for i, port in enumerate(board.get_dma_ports()):
             ctrl = DMARequestor(
-                self.ruby_system.network,
+                network,
                 board.get_cache_line_size(),
                 board.get_clock_domain(),
             )
