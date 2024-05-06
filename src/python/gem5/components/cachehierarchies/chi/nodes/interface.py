@@ -9,7 +9,7 @@ from m5.objects import Interface_Controller, MessageBuffer, RubyNetwork, \
 import math
 
 class TriggerMessageBuffer(MessageBuffer):
-    # Not affected by Tuby tester randomization
+    # Not affected by Ruby tester randomization
     randomization = "disabled"
     allow_zero_latency = True
 
@@ -34,9 +34,6 @@ class InterfaceNode(Interface_Controller):
         self.version = InterfaceNode.versionCount()
         self._cache_line_size = cache_line_size
 
-        #transition_per_cycle = 1024
-        #self.sc_lock_enabled = False
-        
         self.data_channel_size = 32
         self.connectQueues(network)
 
@@ -57,7 +54,7 @@ class InterfaceNode(Interface_Controller):
         self.requestToC2c=C2cMessageBuffer() 
         self.responseFromC2c=C2cMessageBuffer()
         self.responseToC2c=C2cMessageBuffer()
-        self.requestToC2c=C2cMessageBuffer()
+        self.requestFromC2c=C2cMessageBuffer()
 
         self.reqOut = MessageBuffer()
         self.rspOut = MessageBuffer()

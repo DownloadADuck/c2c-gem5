@@ -288,7 +288,7 @@ class TwoRangesMemory(AbstractMemorySystem):
         intlv_bits = log(self._num_channels, 2)
         for i, ctrl in enumerate(self.mem_ctrl):
             ctrl.dram.range = AddrRange(
-                start=self._mem_range.start,
+                start=(self._mem_range.start)+(self._range_size * i),
                 size=(self._range_size)*(i+1),
             )
 
