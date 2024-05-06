@@ -101,21 +101,21 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         # Create two core cluster with split I/D cache for each core
         self.core_cluster0 = [
             self._create_core_cluster(
-                core, 
-                i, 
+                (board.get_processor().get_cores())[0],
+                0,
                 board,
                 self.ruby_system.network0,
                 cluster0_dest,
-            ) for i, core in enumerate(board.get_processor().get_cores())
+            )
         ]
         self.core_cluster1 = [
             self._create_core_cluster(
-                core, 
-                i, 
-                board, 
-                self.ruby_system.network1, 
+                (board.get_processor().get_cores())[1],
+                1,
+                board,
+                self.ruby_system.network1,
                 cluster1_dest,
-            ) for i, core in enumerate(board.get_processor().get_cores())
+            )
         ]
 
         # Create the coherent side of the memory controllers
