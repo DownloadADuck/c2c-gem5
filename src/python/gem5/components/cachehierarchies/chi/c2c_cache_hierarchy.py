@@ -163,8 +163,8 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             )
             + self.memory_controllers0
             + [self.hnf0]
-            + (self.dma_controllers if board.has_dma_ports() else [])
-            + self.interface0
+            + (self.dma_controllers0 if board.has_dma_ports() else [])
+            + [self.interface0]
         )
         self.ruby_system.network1.connectControllers(
             list(
@@ -177,8 +177,8 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             )
             + self.memory_controllers1
             + [self.hnf1]
-            + (self.dma_controllers if board.has_dma_ports() else [])
-            + self.interface1
+            #+ (self.dma_controllers1 if board.has_dma_ports() else [])
+            + [self.interface1]
         )
          
         self.ruby_system.network0.setup_buffers()
@@ -278,6 +278,7 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
     ) -> List[DMARequestor]:
         dma_controllers = []
         for i, port in enumerate(board.get_dma_ports()):
+            print("create_dma_controllers i: {}, port: {}".format(i, port))
             ctrl = DMARequestor(
                 network,
                 board.get_cache_line_size(),
