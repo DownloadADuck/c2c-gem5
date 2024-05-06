@@ -127,14 +127,29 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             self.ruby_system.network1, rng_idx=1)
         self.hnf1.downstream_destinations = self.memory_controllers1
 
-        # We are not supporting DMA controllers now
+        # Create the DMA Controllers, if required.
         if board.has_dma_ports():
-            print("We do not support DMA controllers yet!")
-            sys.exit()
-        
-        # Two clusters in total
-        self.ruby_system.num_of_sequencers = (len(self.core_cluster0) + \
-                                            len(self.core_cluster1)) * 2
+            self.dma_controllers0 = self._create_dma_controllers(
+                board, 
+                network=self.ruby_system.network0,
+                cluster_dest=cluster0_dest,
+            )
+            self.dma_controllers1 = self._create_dma_controllers(
+                board, 
+                network=self.ruby_system.network1,
+                cluster_dest=cluster1_dest,
+            )
+            self.ruby_system.num_of_sequencers = len(
+                self.core_cluster0 +
+                self.core_cluster1
+            ) * 2 + len(
+                self.dma_controllers0 + 
+                self.dma_controllers1
+            )
+                
+        else:
+            self.ruby_system.num_of_sequencers = (len(self.core_cluster0) + \
+                                                len(self.core_cluster1)) * 2
         
         self.ruby_system.network0.connectControllers(
             list(
@@ -148,6 +163,7 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             + self.memory_controllers0
             + [self.hnf0]
             + (self.dma_controllers if board.has_dma_ports() else [])
+            + self.interface0
         )
         self.ruby_system.network1.connectControllers(
             list(
@@ -161,6 +177,7 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             + self.memory_controllers1
             + [self.hnf1]
             + (self.dma_controllers if board.has_dma_ports() else [])
+            + self.interface1
         )
          
         self.ruby_system.network0.setup_buffers()
@@ -241,7 +258,7 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         self, 
         board: AbstractBoard,
         network,
-        rng_idx: int,
+        rng_idx,
     ) -> List[MemoryController]:
         memory_controllers = []
         for idx, (rng, port) in enumerate(board.get_mem_ports()):
@@ -253,7 +270,27 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         return memory_controllers
     
     def _create_dma_controllers(
-        self, board: AbstractBoard
+        self, 
+        board: AbstractBoard,
+        network,
+        cluster_dest,
     ) -> List[DMARequestor]:
-        print("Need to add support for DMA controllers")
-        sys.exit()
+        dma_controllers = []
+        for i, port in enumerate(board.get_dma_ports()):
+            ctrl = DMARequestor(
+                self.ruby_system.network,
+                board.get_cache_line_size(),
+                board.get_clock_domain(),
+            )
+            version = len(board.get_processor().get_cores()) + i
+            ctrl.sequencer = RubySequencer(version=version, in_ports=port)
+            ctrl.sequencer.dcache = NULL
+
+            ctrl.ruby_system = self.ruby_system
+            ctrl.sequencer.ruby_system = self.ruby_system
+
+            ctrl.downstream_destinations = cluster_dest
+
+            dma_controllers.append(ctrl)
+
+        return dma_controllers
