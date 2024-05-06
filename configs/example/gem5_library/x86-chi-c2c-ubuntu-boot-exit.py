@@ -3,6 +3,10 @@
 from gem5.utils.requires import requires
 from gem5.components.boards.x86_c2c_board import X86C2cBoard
 from gem5.components.memory.single_channel import SingleChannelDDR3_1600
+from gem5.components.memory.multi_channel import (
+    DualChannelDDR3_1600,
+    DualChannelDDR3_1600_C2C,
+)
 from gem5.components.processors.simple_switchable_processor import (
     SimpleSwitchableProcessor,
 )
@@ -32,7 +36,7 @@ cache_hierarchy = C2cCacheHierarchy(
 )
 
 # System memory
-memory = SingleChannelDDR3_1600(size="3GB")
+memory = DualChannelDDR3_1600_C2C(size="3GB", range_size="5MB")
 
 # Switchable KVM -> timing
 processor = SimpleSwitchableProcessor(

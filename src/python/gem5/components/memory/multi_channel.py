@@ -24,7 +24,10 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from .memory import ChanneledMemory
+from .memory import (
+    ChanneledMemory,
+    TwoRangesMemory,
+)
 from .abstract_memory_system import AbstractMemorySystem
 
 from typing import Optional
@@ -42,6 +45,15 @@ def DualChannelDDR3_1600(
     """
     return ChanneledMemory(DDR3_1600_8x8, 2, 64, size=size)
 
+def DualChannelDDR3_1600_C2C(
+    size: Optional[str] = None,
+    range_size: Optional[str] = None,
+) -> AbstractMemorySystem:
+    """
+    A dual channel memory system using DDR3_1600_8x8 based DIMM
+    """
+    return TwoRangesMemory(DDR3_1600_8x8, 2, 64, size=size, \
+        range_size=range_size)
 
 def DualChannelDDR3_2133(
     size: Optional[str] = None,
