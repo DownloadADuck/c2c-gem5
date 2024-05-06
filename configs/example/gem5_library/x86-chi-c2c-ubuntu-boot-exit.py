@@ -36,7 +36,7 @@ cache_hierarchy = C2cCacheHierarchy(
 )
 
 # System memory
-memory = DualChannelDDR3_1600_C2C(size="3GB", range_size="5MB")
+memory = DualChannelDDR3_1600_C2C(size="3GB", range_size="1GB")
 
 # Switchable KVM -> timing
 processor = SimpleSwitchableProcessor(
