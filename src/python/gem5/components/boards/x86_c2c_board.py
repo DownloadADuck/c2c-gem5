@@ -260,7 +260,7 @@ class X86C2cBoard(AbstractSystemBoard, KernelDiskWorkload):
                 "X86C2cBoard currently only supports memory sizes up "
                 "to 3GB because of the I/O hole."
             )
-        data_range = AddrRange = AddrRange(memory.get_size())
+        data_range = AddrRange(memory.get_size())
         memory.set_memory_range([data_range])
 
         # Add the address range for the IO

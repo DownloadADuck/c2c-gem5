@@ -91,8 +91,8 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         self.interface1.c2c_out_port = self.interface0.c2c_in_port
 
         # Downstream destinations
-        self.interface0.downstream_destination = self.hnf0
-        self.interface1.downstream_destination = self.hnf1
+        self.interface0.downstream_destinations = self.hnf0
+        self.interface1.downstream_destinations = self.hnf1
 
         # Add to the RNF destinations
         cluster0_dest.append(self.interface0)
@@ -121,11 +121,11 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         # Create the coherent side of the memory controllers
         self.memory_controllers0 = self._create_memory_controllers(board, \
             self.ruby_system.network0)
-        self.hnf0.downstream_destination = self.memory_controllers0
+        self.hnf0.downstream_destinations = self.memory_controllers0
 
         self.memory_controllers1 = self._create_memory_controllers(board, \
             self.ruby_system.network1)
-        self.hnf1.downstream_destination = self.memory_controllers1
+        self.hnf1.downstream_destinations = self.memory_controllers1
 
         # We are not supporting DMA controllers now
         if board.has_dma_ports():
@@ -232,8 +232,8 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         else:
             core.connect_interrupt()
 
-        cluster.dcache.downstream_destination = cluster_dests
-        cluster.icache.downstream_destination = cluster_dests
+        cluster.dcache.downstream_destinations = cluster_dests
+        cluster.icache.downstream_destinations = cluster_dests
 
         return cluster
     
@@ -244,6 +244,7 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
     ) -> List[MemoryController]:
         memory_controllers = []
         for rng, port in board.get_mem_ports():
+            print("C2cCacheHierarchy create_memory_controllers")
             mc = MemoryController(network, rng, port)
             mc.ruby_system = self.ruby_system
             memory_controllers.append(mc)
