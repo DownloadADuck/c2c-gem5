@@ -25,18 +25,26 @@ requires(
     kvm_required=True,
 )
 
+from gem5.components.cachehierarchies.chi.private_l1_cache_hierarchy import (
+    PrivateL1CacheHierarchy,
+)
 from gem5.components.cachehierarchies.chi.c2c_cache_hierarchy import (
     C2cCacheHierarchy,
 )
 
 # Here we setup a MESI Two Level Cache Hierarchy.
-cache_hierarchy = C2cCacheHierarchy(
+#cache_hierarchy = C2cCacheHierarchy(
+#    size="16kB",
+#    assoc=8,
+#)
+cache_hierarchy = PrivateL1CacheHierarchy(
     size="16kB",
     assoc=8,
 )
 
 # System memory
-memory = DualChannelDDR3_1600_C2C(size="3GB", range_size="1GB")
+#memory = DualChannelDDR3_1600_C2C(size="3GB", range_size="1GB")
+memory = DualChannelDDR3_1600(size="3GB")
 
 # Switchable KVM -> timing
 processor = SimpleSwitchableProcessor(

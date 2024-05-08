@@ -29,6 +29,15 @@ from .nodes.interface import Interface
 from m5.objects import NULL, RubySystem, RubySequencer, RubyPortProxy
 
 class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
+    """A single level cache based on CHI for x86
+
+    This hierarchy has a split I/D L1 caches per CPU, two directories (HNF),
+    and as many memory controllers (SNF) as memory channels. The directories 
+    does not have an associated cache.
+
+    The network is a simple point-to-point between all of the controllers.
+    """
+
     def __init__(self, size: str, assoc: int) -> None:
         super().__init__() 
 
@@ -139,15 +148,16 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             #    network=self.ruby_system.network1,
             #    cluster_dest=cluster1_dest,
             #)
-            self.ruby_system.num_of_sequencers = len(
-                self.core_cluster0 +
-                self.core_cluster1
+            self.ruby_system.num_of_sequencers = (
+                len(self.core_cluster0) + 
+                len(self.core_cluster1)
             ) * 2 + len(self.dma_controllers0)
             #) * 2 + len(
             #    self.dma_controllers0 + 
             #    self.dma_controllers1
             #)
-                
+            print("dma_controllers0 downstream dests: {}".format(cluster0_dest))
+
         else:
             self.ruby_system.num_of_sequencers = (len(self.core_cluster0) + \
                                                 len(self.core_cluster1)) * 2
@@ -229,6 +239,11 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         )
 
         if board.has_io_bus():
+            print(
+                "board has io_bus. board.get_io_bus: {}".format(
+                    board.get_io_bus()
+                )
+            )
             cluster.dcache.sequencer.connectIOPorts(board.get_io_bus())
 
         cluster.dcache.ruby_system = self.ruby_system
@@ -292,7 +307,7 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             ctrl.sequencer.ruby_system = self.ruby_system
 
             ctrl.downstream_destinations = cluster_dest
-
+            print("{} downstream destinations: {}".format(ctrl, cluster_dest))
             dma_controllers.append(ctrl)
 
         return dma_controllers
