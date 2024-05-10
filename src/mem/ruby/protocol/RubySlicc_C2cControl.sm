@@ -18,6 +18,7 @@ enumeration(C2cRequestType, desc="...") {
   CleanUnique, desc="CleanUnique";
   Evict, desc="Evict";
   WriteEvictFull, desc="WriteEvictFull";
+  WriteBackFull, desc="WriteBackFull";
   // Snoops
   SnpCleanInvalid, desc="SnpCleanInvalid";
   SnpSharedFwd, desc="SnpSharedFwd";
