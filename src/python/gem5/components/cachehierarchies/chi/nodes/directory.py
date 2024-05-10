@@ -24,9 +24,16 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from typing import List
 from .abstract_node import AbstractNode
 
-from m5.objects import ClockDomain, NULL, RubyCache, RubyNetwork
+from m5.objects import (
+    AddrRange,
+    ClockDomain, 
+    NULL,
+    RubyCache,
+    RubyNetwork,
+)
 
 
 class SimpleDirectory(AbstractNode):
@@ -41,6 +48,7 @@ class SimpleDirectory(AbstractNode):
         network: RubyNetwork,
         cache_line_size: int,
         clk_domain: ClockDomain,
+        ranges: List[AddrRange]
     ):
         super().__init__(network, cache_line_size)
 
@@ -50,6 +58,8 @@ class SimpleDirectory(AbstractNode):
         )
 
         self.clk_domain = clk_domain
+
+        self.addr_ranges = ranges
 
         # Only used for L1 controllers
         self.send_evictions = False

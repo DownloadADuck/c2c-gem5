@@ -1,10 +1,17 @@
+from typing import List
 from abc import abstractmethod
 from gem5.isas import ISA
 from gem5.components.processors.cpu_types import CPUTypes
 from gem5.components.processors.abstract_core import AbstractCore
 
-from m5.objects import Interface_Controller, MessageBuffer, RubyNetwork, \
-                        ClockDomain, NULL
+from m5.objects import (
+    AddrRange,
+    Interface_Controller,
+    MessageBuffer,
+    RubyNetwork,
+    ClockDomain, 
+    NULL,
+)
 
 import math
 
@@ -28,12 +35,18 @@ class InterfaceNode(Interface_Controller):
         cls._version += 1
         return cls._version - 1
     
-    def __init__(self, network: RubyNetwork, cache_line_size: int):
+    def __init__(
+        self, 
+        network: RubyNetwork, 
+        cache_line_size: int, 
+        ranges: List[AddrRange]
+    ):
         super(InterfaceNode, self).__init__()
 
         self.version = InterfaceNode.versionCount()
         self._cache_line_size = cache_line_size
 
+        self.addr_ranges = ranges
         self.data_channel_size = 32
         self.connectQueues(network)
 

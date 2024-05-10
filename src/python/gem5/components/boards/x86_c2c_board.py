@@ -94,13 +94,6 @@ class X86C2cBoard(AbstractSystemBoard, KernelDiskWorkload):
         # Setup memory system specific settings.
         if self.get_cache_hierarchy().is_ruby():
             self.pc.attachIO(self.get_io_bus(), [self.pc.south_bridge.ide.dma])
-            print(
-                "x86_c2c_board: self.pc.attachIO self.get_io_bus {}, \
-                self.pc.south_bridge.ide.dma {}.".format(
-                    self.get_io_bus(), \
-                    self.pc.south_bridge.ide.dma
-                )
-            )
         else:
             self.bridge = Bridge(delay="50ns")
             self.bridge.mem_side_port = self.get_io_bus().cpu_side_ports

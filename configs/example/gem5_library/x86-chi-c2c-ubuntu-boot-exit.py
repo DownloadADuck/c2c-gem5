@@ -36,18 +36,18 @@ from gem5.components.cachehierarchies.chi.test_hierarchy import (
 )
 
 # Here we setup a MESI Two Level Cache Hierarchy.
-#cache_hierarchy = C2cCacheHierarchy(
-#    size="16kB",
-#    assoc=8,
-#)
+cache_hierarchy = C2cCacheHierarchy(
+    size="16kB",
+    assoc=8,
+)
 #cache_hierarchy = PrivateL1CacheHierarchy(
 #    size="16kB",
 #    assoc=8,
 #)
-cache_hierarchy = TestHierarchy(
-    size="16kB",
-    assoc=8,
-)
+#cache_hierarchy = TestHierarchy(
+#    size="16kB",
+#    assoc=8,
+#)
 
 # System memory
 memory = DualChannelDDR3_1600_C2C(size="3GB", range_size="1GB")
@@ -64,7 +64,7 @@ processor = SimpleSwitchableProcessor(
     starting_core_type=CPUTypes.TIMING,
     switch_core_type=CPUTypes.TIMING,
     isa=ISA.X86,
-    num_cores=1,
+    num_cores=2,
 )
 
 # Board setup

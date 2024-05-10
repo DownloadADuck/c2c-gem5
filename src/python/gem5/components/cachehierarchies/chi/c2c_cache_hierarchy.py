@@ -53,6 +53,10 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
 
         cluster0_dest = []
         cluster1_dest = []
+        mem_ranges = []
+    
+        for rng, port in board.get_mem_ports():
+            mem_ranges.append(rng)
 
         # Two networks
         self.ruby_system.network0 = SimplePt2Pt(self.ruby_system)
@@ -69,11 +73,13 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             self.ruby_system.network0,
             cache_line_size=board.get_cache_line_size(),
             clk_domain=board.get_clock_domain(),
+            ranges=[mem_ranges[0]],
         )
         self.hnf1 = SimpleDirectory(
             self.ruby_system.network1,
             cache_line_size=board.get_cache_line_size(),
             clk_domain=board.get_clock_domain(),
+            ranges=[mem_ranges[1]],
         )
         self.hnf0.ruby_system = self.ruby_system
         self.hnf1.ruby_system = self.ruby_system
@@ -82,16 +88,19 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         cluster0_dest.append(self.hnf0)
         cluster1_dest.append(self.hnf1)
 
+        print("board.get_mem_ports(): {}".format(board.get_mem_ports()))
+        print("mem_ranges: {}".format(mem_ranges))
+
         # Create one Interface per chip
         self.interface0 = Interface(
             self.ruby_system.network0,
             cache_line_size=board.get_cache_line_size(),
-            clk_domain=board.get_clock_domain(),
+            ranges = [mem_ranges[0]],
         )
         self.interface1 = Interface(
             self.ruby_system.network1,
             cache_line_size=board.get_cache_line_size(),
-            clk_domain=board.get_clock_domain(),
+            ranges = [mem_ranges[1]],
         )
         self.interface0.ruby_system = self.ruby_system
         self.interface1.ruby_system = self.ruby_system
@@ -143,20 +152,10 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
                 network=self.ruby_system.network0,
                 cluster_dest=cluster0_dest,
             )
-            #self.dma_controllers1 = self._create_dma_controllers(
-            #    board, 
-            #    network=self.ruby_system.network1,
-            #    cluster_dest=cluster1_dest,
-            #)
             self.ruby_system.num_of_sequencers = (
                 len(self.core_cluster0) + 
                 len(self.core_cluster1)
             ) * 2 + len(self.dma_controllers0)
-            #) * 2 + len(
-            #    self.dma_controllers0 + 
-            #    self.dma_controllers1
-            #)
-            print("dma_controllers0 downstream dests: {}".format(cluster0_dest))
 
         else:
             self.ruby_system.num_of_sequencers = (len(self.core_cluster0) + \
@@ -239,11 +238,6 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         )
 
         if board.has_io_bus():
-            print(
-                "board has io_bus. board.get_io_bus: {}".format(
-                    board.get_io_bus()
-                )
-            )
             cluster.dcache.sequencer.connectIOPorts(board.get_io_bus())
 
         cluster.dcache.ruby_system = self.ruby_system
@@ -293,7 +287,6 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
     ) -> List[DMARequestor]:
         dma_controllers = []
         for i, port in enumerate(board.get_dma_ports()):
-            print("create_dma_controllers i: {}, port: {}".format(i, port))
             ctrl = DMARequestor(
                 network,
                 board.get_cache_line_size(),
@@ -307,7 +300,6 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             ctrl.sequencer.ruby_system = self.ruby_system
 
             ctrl.downstream_destinations = cluster_dest
-            print("{} downstream destinations: {}".format(ctrl, cluster_dest))
             dma_controllers.append(ctrl)
 
         return dma_controllers
