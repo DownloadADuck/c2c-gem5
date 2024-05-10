@@ -31,27 +31,40 @@ from gem5.components.cachehierarchies.chi.private_l1_cache_hierarchy import (
 from gem5.components.cachehierarchies.chi.c2c_cache_hierarchy import (
     C2cCacheHierarchy,
 )
+from gem5.components.cachehierarchies.chi.test_hierarchy import (
+    TestHierarchy,
+)
 
 # Here we setup a MESI Two Level Cache Hierarchy.
 #cache_hierarchy = C2cCacheHierarchy(
 #    size="16kB",
 #    assoc=8,
 #)
-cache_hierarchy = PrivateL1CacheHierarchy(
+#cache_hierarchy = PrivateL1CacheHierarchy(
+#    size="16kB",
+#    assoc=8,
+#)
+cache_hierarchy = TestHierarchy(
     size="16kB",
     assoc=8,
 )
 
 # System memory
-#memory = DualChannelDDR3_1600_C2C(size="3GB", range_size="1GB")
-memory = DualChannelDDR3_1600(size="3GB")
+memory = DualChannelDDR3_1600_C2C(size="3GB", range_size="1GB")
+#memory = DualChannelDDR3_1600(size="3GB")
 
 # Switchable KVM -> timing
+#processor = SimpleSwitchableProcessor(
+#    starting_core_type=CPUTypes.KVM,
+#    switch_core_type=CPUTypes.TIMING,
+#    isa=ISA.X86,
+#    num_cores=1,
+#)
 processor = SimpleSwitchableProcessor(
-    starting_core_type=CPUTypes.KVM,
+    starting_core_type=CPUTypes.TIMING,
     switch_core_type=CPUTypes.TIMING,
     isa=ISA.X86,
-    num_cores=2,
+    num_cores=1,
 )
 
 # Board setup
