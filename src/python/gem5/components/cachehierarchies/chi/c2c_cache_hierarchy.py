@@ -95,12 +95,14 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         self.interface0 = Interface(
             self.ruby_system.network0,
             cache_line_size=board.get_cache_line_size(),
-            ranges = [mem_ranges[0]],
+            clk_domain=board.get_clock_domain(),
+            ranges=[mem_ranges[1]],
         )
         self.interface1 = Interface(
             self.ruby_system.network1,
             cache_line_size=board.get_cache_line_size(),
-            ranges = [mem_ranges[1]],
+            clk_domain=board.get_clock_domain(),
+            ranges=[mem_ranges[0]],
         )
         self.interface0.ruby_system = self.ruby_system
         self.interface1.ruby_system = self.ruby_system

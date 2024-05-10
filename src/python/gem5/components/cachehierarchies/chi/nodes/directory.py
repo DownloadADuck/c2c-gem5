@@ -60,6 +60,7 @@ class SimpleDirectory(AbstractNode):
         self.clk_domain = clk_domain
 
         self.addr_ranges = ranges
+        print("SimpleDirectory {}, mem_ranges: {}".format(self, self.addr_ranges))
 
         # Only used for L1 controllers
         self.send_evictions = False

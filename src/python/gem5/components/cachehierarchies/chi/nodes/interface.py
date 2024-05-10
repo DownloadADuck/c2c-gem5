@@ -39,14 +39,12 @@ class InterfaceNode(Interface_Controller):
         self, 
         network: RubyNetwork, 
         cache_line_size: int, 
-        ranges: List[AddrRange]
     ):
         super(InterfaceNode, self).__init__()
 
         self.version = InterfaceNode.versionCount()
         self._cache_line_size = cache_line_size
 
-        self.addr_ranges = ranges
         self.data_channel_size = 32
         self.connectQueues(network)
 
@@ -93,7 +91,10 @@ class Interface(InterfaceNode):
         network: RubyNetwork,
         cache_line_size: int,
         clk_domain: ClockDomain,
+        ranges: List[AddrRange],
     ):
         super().__init__(network, cache_line_size)
         
         self.clk_domain = clk_domain
+        self.addr_ranges = ranges
+        print("Interface {}, mem_ranges: {}".format(self, self.addr_ranges))
