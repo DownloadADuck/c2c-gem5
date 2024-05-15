@@ -1454,7 +1454,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popResponseFromC2cQueue;
   }
 
-  transition({BLKD_SNP, READY}, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, 
+  transition({BLKD_SNP, SNP_FWD, READY}, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, 
   Net_SnpResp_SC_Fwded_SC, Net_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
