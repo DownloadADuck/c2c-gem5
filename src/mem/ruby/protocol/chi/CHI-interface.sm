@@ -952,6 +952,21 @@ machine(MachineType:Interface, "C2C interface controller") :
       tbe.retToSrc := in_msg.retToSrc;
     }
   }
+  
+  action(updateTBEFromNetSnp, "irstbe", desc="Snp from a req") {
+    peek(snpInPort, CHIRequestMsg) {
+      DPRINTF(RubyC2c, "updateTBEFromNetSnp: \n in_msg.requestor: %s\n in_msg.fwdRequestor: %s\n in_msg.addr: %d\n in_msg.retToSrc %s\n in_msg.type: %s\n, in_msg.c2c_sharers: %s\n", in_msg.requestor, in_msg.fwdRequestor,
+      in_msg.addr, in_msg.retToSrc, in_msg.type, in_msg.c2c_sharers);
+      DPRINTF(RubyC2c, "updateReaSnpTBE: tbe.requestor: %s\n", tbe.requestor);
+      // Request following a request
+      tbe.destination := in_msg.requestor;
+      tbe.accAddr := in_msg.accAddr;
+      tbe.accSize := in_msg.accSize;
+      tbe.to_c2c_snp_type := in_msg.type;
+      tbe.c2c_sharers := in_msg.c2c_sharers;
+      tbe.retToSrc := in_msg.retToSrc;
+    }
+  }
 
   action(initializeFromC2cReqTBE, "ic2ctbe", desc="Initialize TBE fields from C2C request") {
     peek(c2cReqRdyInPort, C2cMsg) {
@@ -961,9 +976,20 @@ machine(MachineType:Interface, "C2C interface controller") :
       tbe.c2c_requestor := in_msg.C2c_requestor;
     }
   }
+  
+  action(updateTBEFromC2cSnp, "utfcs", desc="Initialize TBE fields from C2C request") {
+    peek(c2cReqRdyInPort, C2cMsg) {
+      DPRINTF(RubyC2c, "updateTBEFromC2cSnp - tbe.requestor: %s\n", tbe.requestor);
+      tbe.Sender := in_msg.Sender;
+      tbe.size := in_msg.MessageSize;
+      tbe.to_net_snp_type := in_msg.Type;
+      tbe.c2c_requestor := in_msg.C2c_requestor;
+    }
+  }
 
-  action(initializeFromC2cSnpTBE, "ic2csnp", desc="Initialize TBE fields from C2C snoop") {
+  action(initializeFromC2cSnpTBE, "ifcst", desc="Initialize TBE fields from C2C snoop") {
     peek(requestFromC2c_in, C2cMsg) {
+      tbe.requestor := machineID;
       tbe.Sender := in_msg.Sender;
       tbe.size := in_msg.MessageSize;
       tbe.to_net_snp_type := in_msg.Type;
@@ -1023,12 +1049,13 @@ machine(MachineType:Interface, "C2C interface controller") :
       tbe.expected_req_resp.addExpectedCount(1);
     }
     DPRINTF(RubyC2c, "sentToNet_Snoop out_msg.destination: %s\n", tbe.c2c_sharers);
+    DPRINTF(RubyC2c, "sentToNet_Snoop out_msg.fwdRequestor: %s\n", tbe.requestor);
     enqueue(snpOutPort, CHIRequestMsg, request_latency) {
       out_msg.addr := tbe.addr;
       out_msg.accAddr := tbe.addr;
       out_msg.accSize := blockSize;
       out_msg.requestor := machineID;
-      out_msg.fwdRequestor := machineID;
+      out_msg.fwdRequestor := tbe.requestor;
       out_msg.type := c2cMsgToCHIReq(tbe.to_net_snp_type);
       out_msg.allowRetry := false;
       out_msg.is_local_pf := false;
@@ -1126,8 +1153,10 @@ machine(MachineType:Interface, "C2C interface controller") :
           out_msg.type == CHIDataType:SnpRespData_SC_Fwded_SC) {
         out_msg.c2c_sharers := tbe.c2c_sharers;
         out_msg.Destination.add(tbe.requestor);
+        DPRINTF(RubyC2c, "out_msg.Destination.add(tbe.requestor): %s\n", tbe.requestor);
       } else {
         out_msg.Destination.add(tbe.destination);
+        DPRINTF(RubyC2c, "out_msg.Destination.add(tbe.destination): %s\n", tbe.destination);
       }
       out_msg.responder := machineID;
     }
@@ -1243,19 +1272,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  //action(sendToNet_CompDBIDResp, "s2ncdr", desc="Send CompDBID to network") {
-  //  assert(is_valid(tbe));
-  //  clearRexpectedReqResp(tbe);
-  //  tbe.expected_req_resp.addExpectedDataType(CHIDataType:CBWrData_UC);
-  //  tbe.expected_req_resp.addExpectedCount(1);
-  //  enqueue(rspOutPort, CHIResponseMsg, response_latency) {
-  //    out_msg.addr := tbe.addr;
-  //    out_msg.type := CHIResponseType:CompDBIDResp;
-  //    out_msg.responder := machineID;
-  //    out_msg.Destination.add(tbe.requestor);
-  //  }
-  //}
-
   action(sendToNet_Response, "s2nrsp", desc="Send response to the network") {
     assert(is_valid(tbe));
     clearRexpectedReqResp(tbe);
@@ -1271,19 +1287,6 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.c2c_sharers := tbe.c2c_sharers;
     }
   }
-
-  //action(sendToC2c_CBWrData_UC, "s2cnwd", desc="Sending the WBData to C2C") {
-  //  assert(is_valid(tbe));
-  //  enqueue(responseToC2c_out, C2cMsg, to_memory_controller_latency) {
-  //    out_msg.addr := tbe.addr;
-  //    out_msg.Type := C2cRequestType:CBWrData_UC;
-  //    out_msg.Sender := tbe.requestor;
-  //    out_msg.MessageSize := MessageSizeType:Response_Data;
-  //    out_msg.DataBlk := tbe.dataBlk;
-  //    out_msg.Len := tbe.accSize;
-  //  }
-  //  tbe.dataBlkValid.clear();
-  //}
 
   action(updateTBE_FromNetResp, "utbefr", desc="Updates the TBE with response info") {
     assert(is_valid(tbe));
@@ -1516,7 +1519,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popC2cReqRdyInQueue;
   }
 
-  // Quick fix to allow a SnpSharedFwd after a ReadShared request
+  // Allow a SnpSharedFwd after a ReadShared request
   transition(READY, {Net_SnpSharedFwd, Net_SnpUniqueFwd}, SNP_FWD) {
     allocateTBE_Snoop;
     initializeFromSnpTBE;
@@ -1525,7 +1528,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition(BLKD_REQ, {Net_SnpSharedFwd, Net_SnpUniqueFwd}, SNP_FWD) {
-    initializeFromSnpTBE;
+    updateTBEFromNetSnp;
     sendToC2c_Snoop;
     popSnpInQueue;
   }
@@ -1538,7 +1541,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition(READING_MEM, {C2c_SnpSharedFwd, C2c_SnpUniqueFwd}, SNP_FWD) {
-    initializeFromC2cSnpTBE;
+    updateTBEFromC2cSnp;
     sendToNet_Snoop;
     popC2cReqRdyInQueue;
   }
