@@ -955,10 +955,11 @@ machine(MachineType:Interface, "C2C interface controller") :
   
   action(updateTBEFromNetSnp, "irstbe", desc="Snp from a req") {
     peek(snpInPort, CHIRequestMsg) {
-      DPRINTF(RubyC2c, "updateTBEFromNetSnp: \n in_msg.requestor: %s\n in_msg.fwdRequestor: %s\n in_msg.addr: %d\n in_msg.retToSrc %s\n in_msg.type: %s\n, in_msg.c2c_sharers: %s\n", in_msg.requestor, in_msg.fwdRequestor,
-      in_msg.addr, in_msg.retToSrc, in_msg.type, in_msg.c2c_sharers);
-      DPRINTF(RubyC2c, "updateReaSnpTBE: tbe.requestor: %s\n", tbe.requestor);
+      //DPRINTF(RubyC2c, "updateTBEFromNetSnp: \n in_msg.requestor: %s\n in_msg.fwdRequestor: %s\n in_msg.addr: %d\n in_msg.retToSrc %s\n in_msg.type: %s\n, in_msg.c2c_sharers: %s\n", in_msg.requestor, in_msg.fwdRequestor,
+      //in_msg.addr, in_msg.retToSrc, in_msg.type, in_msg.c2c_sharers);
+      //DPRINTF(RubyC2c, "updateReaSnpTBE: tbe.requestor: %s\n", tbe.requestor);
       // Request following a request
+      tbe.requestor := in_msg.requestor;
       tbe.destination := in_msg.requestor;
       tbe.accAddr := in_msg.accAddr;
       tbe.accSize := in_msg.accSize;
@@ -979,7 +980,6 @@ machine(MachineType:Interface, "C2C interface controller") :
   
   action(updateTBEFromC2cSnp, "utfcs", desc="Initialize TBE fields from C2C request") {
     peek(c2cReqRdyInPort, C2cMsg) {
-      DPRINTF(RubyC2c, "updateTBEFromC2cSnp - tbe.requestor: %s\n", tbe.requestor);
       tbe.Sender := in_msg.Sender;
       tbe.size := in_msg.MessageSize;
       tbe.to_net_snp_type := in_msg.Type;
