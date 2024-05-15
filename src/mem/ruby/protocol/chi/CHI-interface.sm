@@ -984,6 +984,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       tbe.size := in_msg.MessageSize;
       tbe.to_net_snp_type := in_msg.Type;
       tbe.c2c_requestor := in_msg.C2c_requestor;
+      tbe.c2c_sharers := in_msg.C2c_sharers;
+      tbe.retToSrc := in_msg.RetToSrc;
     }
   }
 
