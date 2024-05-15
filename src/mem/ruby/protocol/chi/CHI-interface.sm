@@ -61,6 +61,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     BLKD_SNP, AccessPermission:Invalid, desc="Pending snoop transaction";
     SNP_FWD, AccessPermission:Invalid, desc="Special case for snoop forwarding";
     SNP_FWD_2, AccessPermission:Invalid, desc="Second part of snoop fwd handling";
+    SNP_FWD_LOC, AccessPermission:Invalid, desc="SnpFwd but data is local to requestor";
 
 
     // Null state for debugging; allow writes
@@ -1454,7 +1455,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popResponseFromC2cQueue;
   }
 
-  transition({BLKD_SNP, SNP_FWD, READY}, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, 
+  transition({BLKD_SNP, READY}, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, 
   Net_SnpResp_SC_Fwded_SC, Net_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
@@ -1521,16 +1522,9 @@ machine(MachineType:Interface, "C2C interface controller") :
     popC2cReqRdyInQueue;
   }
 
-  // Allow a SnpSharedFwd after a ReadShared request
   transition(READY, {Net_SnpSharedFwd, Net_SnpUniqueFwd}, SNP_FWD) {
     allocateTBE_Snoop;
     initializeFromSnpTBE;
-    sendToC2c_Snoop;
-    popSnpInQueue;
-  }
-
-  transition(BLKD_REQ, {Net_SnpSharedFwd, Net_SnpUniqueFwd}, SNP_FWD) {
-    updateTBEFromNetSnp;
     sendToC2c_Snoop;
     popSnpInQueue;
   }
@@ -1542,10 +1536,33 @@ machine(MachineType:Interface, "C2C interface controller") :
     popC2cReqRdyInQueue;
   }
 
-  transition(READING_MEM, {C2c_SnpSharedFwd, C2c_SnpUniqueFwd}, SNP_FWD) {
+  // Allow a SnpSharedFwd after a ReadShared request
+  // Means that data is local but is waiting for CompAck
+  transition(BLKD_REQ, {Net_SnpSharedFwd, Net_SnpUniqueFwd}, SNP_FWD_LOC) {
+    updateTBEFromNetSnp;
+    sendToC2c_Snoop;
+    popSnpInQueue;
+  }
+
+  transition(READING_MEM, {C2c_SnpSharedFwd, C2c_SnpUniqueFwd}, SNP_FWD_LOC) {
     updateTBEFromC2cSnp;
     sendToNet_Snoop;
     popC2cReqRdyInQueue;
+  }
+  
+  // Waiting for CompAck, we do not delete the TBE
+  transition(SNP_FWD_LOC, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, 
+  Net_SnpResp_SC_Fwded_SC, Net_SnpResp_I_Fwded_UC}, READY) {
+    updateTBE_FromNetResp;
+    sendToC2c_Response;
+    popRspInQueue;
+  }
+
+  transition(SNP_FWD_LOC, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, 
+  C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_I_Fwded_UC}, READY) {
+    updateTBE_FromC2cResp;
+    sendToNet_Response;
+    popResponseFromC2cQueue;
   }
 
   // Data
