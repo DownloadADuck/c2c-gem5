@@ -142,6 +142,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     C2c_SnpResp_I_Fwded_UC, desc="";
     Net_SnpResp_SC_Fwded_SC, desc="";
     C2c_SnpResp_SC_Fwded_SC, desc="";
+    Net_SnpResp_SC_Fwded_SD_PD, desc="";
+    C2c_SnpResp_SC_Fwded_SD_PD, desc="";
 
     // Internal event triggers
     Trigger_Send, desc="";
@@ -204,6 +206,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:Net_SnpResp_I_Fwded_UC;
     } else if (type == CHIResponseType:SnpResp_SC_Fwded_SC) {
       return Event:Net_SnpResp_SC_Fwded_SC;
+    } else if (type == CHIResponseType:SnpResp_SC_Fwded_SD_PD) {
+      return Event:Net_SnpResp_SC_Fwded_SD_PD;
     } else {
       DPRINTF(RubyC2c, "rspToEvent CHIResponseType: %s\n", type);
       error("Invalid CHIResponseType");
@@ -289,6 +293,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:C2c_SnpResp_I_Fwded_UC;
     } else if (type == C2cRequestType:SnpResp_SC_Fwded_SC) {
       return Event:C2c_SnpResp_SC_Fwded_SC;
+    } else if (type == C2cRequestType:SnpResp_SC_Fwded_SD_PD) {
+      return Event:C2c_SnpResp_SC_Fwded_SD_PD;
     } else if (type == C2cRequestType:SnpRespData_I_PD) {
       return Event:C2c_SnpRespData_I_PD;
     } else if (type == C2cRequestType:SnpRespData_SC_Fwded_SD_PD) {
@@ -342,6 +348,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return CHIResponseType:SnpResp_I_Fwded_UC;
     } else if (type == C2cRequestType:SnpResp_SC_Fwded_SC) {
       return CHIResponseType:SnpResp_SC_Fwded_SC;
+    } else if (type == C2cRequestType:SnpResp_SC_Fwded_SD_PD) {
+      return CHIResponseType:SnpResp_SC_Fwded_SD_PD;
     } else {
       error ("Unexpected C2cMsg response type");
     }
@@ -412,6 +420,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return C2cRequestType:SnpResp_I_Fwded_UC;
     } else if (type == CHIResponseType:SnpResp_SC_Fwded_SC) {
       return C2cRequestType:SnpResp_SC_Fwded_SC;
+    } else if (type == CHIResponseType:SnpResp_SC_Fwded_SD_PD) {
+      return C2cRequestType:SnpResp_SC_Fwded_SD_PD;
     } else {
       error("Unexpected CHIResponse type");
     }
@@ -1456,7 +1466,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition({BLKD_SNP, READY}, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, 
-  Net_SnpResp_SC_Fwded_SC, Net_SnpResp_I_Fwded_UC}, READY) {
+  Net_SnpResp_SC_Fwded_SC, Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
     deallocateTBE;
@@ -1464,7 +1474,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition({BLKD_SNP, READY}, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, 
-  C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_I_Fwded_UC}, READY) {
+  C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
     deallocateTBE;
@@ -1492,7 +1502,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   // SnpUniqueFwd
   transition(SNP_FWD_2, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, 
-  Net_SnpResp_SC_Fwded_SC, Net_SnpResp_I_Fwded_UC}, READY) {
+  Net_SnpResp_SC_Fwded_SC, Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
     deallocateTBE;
@@ -1500,7 +1510,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition(SNP_FWD, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, 
-  C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_I_Fwded_UC}, READY) {
+  C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
     deallocateTBE;
@@ -1552,14 +1562,14 @@ machine(MachineType:Interface, "C2C interface controller") :
   
   // Waiting for CompAck, we do not delete the TBE
   transition(SNP_FWD_LOC, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, 
-  Net_SnpResp_SC_Fwded_SC, Net_SnpResp_I_Fwded_UC}, READY) {
+  Net_SnpResp_SC_Fwded_SC, Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
     popRspInQueue;
   }
 
   transition(SNP_FWD_LOC, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, 
-  C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_I_Fwded_UC}, READY) {
+  C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
     popResponseFromC2cQueue;
