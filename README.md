@@ -18,11 +18,11 @@ scons build/X86_CHI/gem5.opt --default=X86 PROTOCOL=CHI -j<num of cores>
 scons build/X86_CHI/gem5.debug --default=X86 PROTOCOL=CHI -j<num of cores>
 ```
 
-- Run the last architecture (optional tgen debug flag)
+- Run the last **syscall** architecture (optional debug flag)
 ```bash
-build/X86_CHI/gem5.opt --debug-flags=TrafficGen configs/interface_bridge/tgen_arm.py
+build/X86_CHI/gem5.opt --debug-flags=RubyGenerated configs/slicc_interface/main.py
 ```
-- Run the `two_HNFs` working architecture (working memory region setup)
+- Run the last **full-system** architecture
 ```bash
-build/X86_CHI/gem5.opt --debug-flags=TrafficGen configs/two_HNFs/tgen_arm.py
+build/X86_CHI/gem5.opt configs/example/gem5_library/x86-chi-ubuntu-boot-exit.py
 ```
