@@ -2567,9 +2567,17 @@ action(Send_CompI, desc="") {
   assert(is_valid(tbe));
 
   // Used to ack Evict request
-  assert(tbe.dir_sharers.isElement(tbe.requestor));
-  assert((tbe.dir_ownerExists == false) || (tbe.dir_owner != tbe.requestor));
+  if ((tbe.dir_ownerExists == false) || (tbe.dir_owner != tbe.requestor)) {
+    DPRINTF(RubyC2c, "WARNING: Send_CompI, dir_owner == tbe.requestor");
+    DPRINTF(RubyGenerated, "WARNING: Send_CompI, dir_owner == tbe.requestor");
+  }
 
+  DPRINTF(RubyC2c, "Send_CompI: \naddress: %d\n, tbe.requestor:%s\n tbe.dir_owner: %s\n",
+  address, tbe.requestor, tbe.dir_owner);
+
+  //assert((tbe.dir_ownerExists == false) || (tbe.dir_owner != tbe.requestor));
+  assert(tbe.dir_sharers.isElement(tbe.requestor));
+  
   tbe.dir_sharers.remove(tbe.requestor);
 
   enqueue(rspOutPort, CHIResponseMsg, response_latency) {

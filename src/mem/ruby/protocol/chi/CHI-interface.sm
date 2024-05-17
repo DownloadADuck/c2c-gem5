@@ -1053,16 +1053,12 @@ machine(MachineType:Interface, "C2C interface controller") :
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_UD_PD); 
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_SC);
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_UC);
-    DPRINTF(RubyC2c, "sendToNet_Snoop, tbe.c2c_sharers: %s, addr: %d\n", 
-            tbe.c2c_sharers, tbe.addr); 
     if (c2cMsgToCHIReq(tbe.to_net_snp_type) == CHIRequestType:SnpSharedFwd ||
         c2cMsgToCHIReq(tbe.to_net_snp_type) == CHIRequestType:SnpUniqueFwd) {
       tbe.expected_req_resp.addExpectedCount(3);
     } else {
       tbe.expected_req_resp.addExpectedCount(1);
     }
-    DPRINTF(RubyC2c, "sentToNet_Snoop out_msg.destination: %s\n", tbe.c2c_sharers);
-    DPRINTF(RubyC2c, "sentToNet_Snoop out_msg.fwdRequestor: %s\n", tbe.requestor);
     enqueue(snpOutPort, CHIRequestMsg, request_latency) {
       out_msg.addr := tbe.addr;
       out_msg.accAddr := tbe.addr;
@@ -1166,10 +1162,8 @@ machine(MachineType:Interface, "C2C interface controller") :
           out_msg.type == CHIDataType:SnpRespData_SC_Fwded_SC) {
         out_msg.c2c_sharers := tbe.c2c_sharers;
         out_msg.Destination.add(tbe.requestor);
-        DPRINTF(RubyC2c, "out_msg.Destination.add(tbe.requestor): %s\n", tbe.requestor);
       } else {
         out_msg.Destination.add(tbe.destination);
-        DPRINTF(RubyC2c, "out_msg.Destination.add(tbe.destination): %s\n", tbe.destination);
       }
       out_msg.responder := machineID;
     }
@@ -1296,7 +1290,6 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.type := c2cMsgToCHIRsp(tbe.to_net_rsp_type);
       out_msg.responder := machineID;
       out_msg.Destination.add(tbe.requestor);
-      DPRINTF(RubyC2c, "Interface send response tbe.c2c_sharers: %s, address: %d\n", tbe.c2c_sharers, tbe.addr);
       out_msg.c2c_sharers := tbe.c2c_sharers;
     }
   }
