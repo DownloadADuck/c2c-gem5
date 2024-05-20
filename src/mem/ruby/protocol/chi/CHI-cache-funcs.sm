@@ -429,6 +429,7 @@ TBE allocateRequestTBE(Addr addr, CHIRequestMsg in_msg), return_by_pointer="yes"
 
   // field used on fwdSnpResp dir_sharers update
   tbe.c2c_requestor := in_msg.c2c_requestor;
+  tbe.off_chip := in_msg.off_chip;
 
   return tbe;
 }
