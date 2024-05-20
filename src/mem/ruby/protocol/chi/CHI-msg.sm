@@ -105,6 +105,7 @@ structure(CHIRequestMsg, desc="", interface="Message") {
   // c2c off-chip sharer field
   MachineID c2c_sharers, desc="off-chip sharer";
   MachineID c2c_requestor, desc="off-chip requestor";
+  bool off_chip, desc="off-chip flag";
 
   RequestPtr seqReq,        default="nullptr", desc="Pointer to original request from CPU/sequencer (nullptr if not valid)";
   bool isSeqReqValid,       default="false",   desc="Set if seqReq is valid (not nullptr)";
