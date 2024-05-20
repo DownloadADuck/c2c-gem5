@@ -1123,6 +1123,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.allowRetry := true;
       out_msg.is_remote_pf := false;
       out_msg.Destination.add(mapAddressToDownstreamMachine(address));
+      out_msg.off_chip := true;
     }
 
   }
