@@ -2567,18 +2567,18 @@ action(Send_CompI, desc="") {
   assert(is_valid(tbe));
 
   // Used to ack Evict request
-  if ((tbe.dir_ownerExists == false) || (tbe.dir_owner != tbe.requestor)) {
-    DPRINTF(RubyC2c, "WARNING: Send_CompI, dir_owner == tbe.requestor");
-    DPRINTF(RubyGenerated, "WARNING: Send_CompI, dir_owner == tbe.requestor");
+  if ((tbe.off_chip == true) && (tbe.dir_owner == tbe.requestor)) {
+    // The requestor and sharer/owner are local to the same chip
+    // The c2c interface is both requestor and owner
+    // We don't remove the interface from the dir_sharers
+
+    DPRINTF(RubyC2c, "Off-chip evict with sharer local to requestor");
+    assert(tbe.dir_sharers.isElement(tbe.requestor));
+  } else {
+    assert((tbe.dir_ownerExists == false) || (tbe.dir_owner != tbe.requestor));
+    assert(tbe.dir_sharers.isElement(tbe.requestor));
+    tbe.dir_sharers.remove(tbe.requestor);
   }
-
-  DPRINTF(RubyC2c, "Send_CompI: \naddress: %d\n, tbe.requestor:%s\n tbe.dir_owner: %s\n",
-  address, tbe.requestor, tbe.dir_owner);
-
-  //assert((tbe.dir_ownerExists == false) || (tbe.dir_owner != tbe.requestor));
-  assert(tbe.dir_sharers.isElement(tbe.requestor));
-  
-  tbe.dir_sharers.remove(tbe.requestor);
 
   enqueue(rspOutPort, CHIResponseMsg, response_latency) {
     out_msg.addr := address;
