@@ -37,8 +37,10 @@ from gem5.components.cachehierarchies.chi.test_hierarchy import (
 
 # Here we setup a MESI Two Level Cache Hierarchy.
 cache_hierarchy = C2cCacheHierarchy(
-    size="16kB",
-    assoc=8,
+    l1_size="32kB",
+    l1_assoc=8,
+    l2_size="64kB",
+    l2_assoc=8,
 )
 #cache_hierarchy = PrivateL1CacheHierarchy(
 #    size="16kB",
