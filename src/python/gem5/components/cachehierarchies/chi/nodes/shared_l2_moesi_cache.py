@@ -1,6 +1,5 @@
 from gem5.components.processors.abstract_core import AbstractCore
 from gem5.isas import ISA
-from python.m5.objects import RubyNetwork
 
 from .abstract_node import AbstractNode
 
