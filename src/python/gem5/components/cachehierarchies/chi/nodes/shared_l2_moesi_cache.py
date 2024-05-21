@@ -3,7 +3,12 @@ from gem5.isas import ISA
 
 from .abstract_node import AbstractNode
 
-from m5.objects import ClockDomain, RubyCache, RubyNetwork
+from m5.objects import (
+    ClockDomain, 
+    RubyCache, 
+    RubyNetwork, 
+    NULL
+)
 
 class SharedL2MOESICache(AbstractNode):
     def __init__(
@@ -21,6 +26,8 @@ class SharedL2MOESICache(AbstractNode):
         self.cache = RubyCache(
             size=size, assoc=assoc, start_index_bit=self.getBlockSizeBits()
         )
+
+        self.sequencer = NULL
 
         self.clk_domain = clk_domain
         self.send_evictions = core.requires_send_evicts()
