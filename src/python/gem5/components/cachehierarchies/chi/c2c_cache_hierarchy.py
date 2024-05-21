@@ -97,9 +97,6 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         cluster0_dest.append(self.hnf0)
         cluster1_dest.append(self.hnf1)
 
-        print("board.get_mem_ports(): {}".format(board.get_mem_ports()))
-        print("mem_ranges: {}".format(mem_ranges))
-
         # Create one Interface per chip
         self.interface0 = Interface(
             self.ruby_system.network0,
@@ -296,7 +293,6 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         memory_controllers = []
         for idx, (rng, port) in enumerate(board.get_mem_ports()):
             if idx == rng_idx:
-                print("create_memory_controllers rng: {}, port: {}".format(rng, port))
                 mc = MemoryController(network, rng, port)
                 mc.ruby_system = self.ruby_system
                 memory_controllers.append(mc)

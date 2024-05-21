@@ -64,7 +64,6 @@ class MemoryController(Memory_Controller):
 
         self.version = self.versionCount()
         self.addr_ranges = ranges
-        print("MemoryController {}, mem_ranges: {}".format(self, self.addr_ranges))
         self.memory_out_port = port
         self.data_channel_size = 32
 

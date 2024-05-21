@@ -97,4 +97,3 @@ class Interface(InterfaceNode):
         
         self.clk_domain = clk_domain
         self.addr_ranges = ranges
-        print("Interface {}, mem_ranges: {}".format(self, self.addr_ranges))
