@@ -1475,9 +1475,16 @@ machine(MachineType:Interface, "C2C interface controller") :
     popResponseFromC2cQueue;
   }
 
-  transition(WAIT_COMP, C2c_Comp_I) {
+  // !! This is a hack
+  //transition(WAIT_COMP, C2c_Comp_I) {
+  //  updateTBE_FromC2cResp;
+  //  sendToNet_Response;
+  //  popResponseFromC2cQueue;
+  //}
+  transition(WAIT_COMP, C2c_Comp_I, READY) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
+    deallocateTBE;
     popResponseFromC2cQueue;
   }
 

@@ -164,7 +164,8 @@ structure(CHIResponseMsg, desc="", interface="Message") {
   //NOTE: not in CHI and for debuging only
 
   // c2c off-chip sharer field
-  MachineID c2c_sharers, desc="off-chip sharer";
+  MachineID c2c_sharers, desc="Off-chip sharer";
+  bool off_chip,         desc="Response triggering a new off_chip response";
 
   MessageSizeType MessageSize, default="MessageSizeType_Control";
 

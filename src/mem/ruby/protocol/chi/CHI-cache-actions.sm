@@ -2578,6 +2578,7 @@ action(Send_CompI, desc="") {
     assert((tbe.dir_ownerExists == false) || (tbe.dir_owner != tbe.requestor));
     assert(tbe.dir_sharers.isElement(tbe.requestor));
     tbe.dir_sharers.remove(tbe.requestor);
+    tbe.off_chip := false;
   }
 
   enqueue(rspOutPort, CHIResponseMsg, response_latency) {
@@ -2585,6 +2586,7 @@ action(Send_CompI, desc="") {
     out_msg.type := CHIResponseType:Comp_I;
     out_msg.responder := machineID;
     out_msg.Destination.add(tbe.requestor);
+    out_msg.off_chip := false;
   }
 }
 
