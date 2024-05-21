@@ -51,5 +51,5 @@ class SharedL2MOESICache(AbstractNode):
         self.number_of_repl_TBEs = 32
         self.number_of_snoop_TBEs = 16
         self.number_of_DVM_TBEs = 1 # should not receive any dvm
-        self.number_of_DVM_snoop_TBEs = # should not receive any dvm
+        self.number_of_DVM_snoop_TBEs = 1 # should not receive any dvm
         self.unify_repl_TBEs = False

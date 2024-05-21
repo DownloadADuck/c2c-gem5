@@ -176,7 +176,7 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             list(
                 chain.from_iterable(
                     [
-                        (cluster.dcache, cluster.icache)
+                        (cluster.dcache, cluster.icache, cluster.l2cache)
                         for cluster in self.core_cluster0
                     ]
                 )
@@ -190,7 +190,7 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             list(
                 chain.from_iterable(
                     [
-                        (cluster.dcache, cluster.icache)
+                        (cluster.dcache, cluster.icache, cluster.l2cache)
                         for cluster in self.core_cluster1
                     ]
                 )
