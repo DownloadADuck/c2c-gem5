@@ -30,7 +30,7 @@ class SharedL2MOESICache(AbstractNode):
         self.sequencer = NULL
 
         self.clk_domain = clk_domain
-        self.send_evictions = core.requires_send_evicts()
+        self.send_evictions = False
         self.use_prefetcher = False
         
         # Only applies to home nodes
