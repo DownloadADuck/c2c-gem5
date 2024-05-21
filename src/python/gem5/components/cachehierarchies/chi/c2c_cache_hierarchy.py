@@ -21,6 +21,7 @@ from gem5.components.cachehierarchies.ruby.topologies.simple_pt2pt import (
 )
 
 from .nodes.private_l1_moesi_cache import PrivateL1MOESICache
+from .nodes.shared_l2_moesi_cache import SharedL2MOESICache
 from .nodes.dma_requestor import DMARequestor
 from .nodes.directory import SimpleDirectory
 from .nodes.memory_controller import MemoryController
@@ -38,11 +39,19 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
     The network is a simple point-to-point between all of the controllers.
     """
 
-    def __init__(self, size: str, assoc: int) -> None:
+    def __init__(
+        self,
+        l1_size: str, 
+        l1_assoc: int,
+        l2_size: str, 
+        l2_assoc: int,
+        ) -> None:
         super().__init__() 
 
-        self._size = size
-        self._assoc = assoc
+        self._l1_size = l1_size
+        self._l1_assoc = l1_assoc
+        self._l2_size = l2_size
+        self._l2_assoc = l2_assoc
 
     @overrides(AbstractCacheHierarchy)
     def incorporate_cache(self, board: AbstractBoard) -> None:
@@ -211,8 +220,8 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         """
         cluster = SubSystem()
         cluster.dcache = PrivateL1MOESICache(
-            size=self._size,
-            assoc=self._assoc,
+            size=self._l1_size,
+            assoc=self._l1_assoc,
             network=network,
             core=core,
             cache_line_size=board.get_cache_line_size(),
@@ -221,8 +230,18 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             clk_domain=board.get_clock_domain(),
         )
         cluster.icache = PrivateL1MOESICache(
-            size=self._size,
-            assoc=self._assoc,
+            size=self._l1_size,
+            assoc=self._l1_assoc,
+            network=network,
+            core=core,
+            cache_line_size=board.get_cache_line_size(),
+            target_isa=board.get_processor().get_isa(),
+            clk_domain=board.get_clock_domain(),
+        )
+
+        cluster.l2cache = SharedL2MOESICache(
+            size=self._l2_size,
+            assoc=self._l2_assoc,
             network=network,
             core=core,
             cache_line_size=board.get_cache_line_size(),
@@ -244,6 +263,7 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
 
         cluster.dcache.ruby_system = self.ruby_system
         cluster.icache.ruby_system = self.ruby_system
+        cluster.l2cache.ruby_system = self.ruby_system
 
         core.connect_icache(cluster.icache.sequencer.in_ports)
         core.connect_dcache(cluster.dcache.sequencer.in_ports)
@@ -261,8 +281,9 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         else:
             core.connect_interrupt()
 
-        cluster.dcache.downstream_destinations = cluster_dests
-        cluster.icache.downstream_destinations = cluster_dests
+        cluster.dcache.downstream_destinations = cluster.l2cache
+        cluster.icache.downstream_destinations = cluster.l2cache
+        cluster.l2cache.downstream_destinations = cluster_dests
 
         return cluster
     
