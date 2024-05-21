@@ -31,9 +31,6 @@ from gem5.components.cachehierarchies.chi.private_l1_cache_hierarchy import (
 from gem5.components.cachehierarchies.chi.c2c_cache_hierarchy import (
     C2cCacheHierarchy,
 )
-from gem5.components.cachehierarchies.chi.test_hierarchy import (
-    TestHierarchy,
-)
 
 # Here we setup a MESI Two Level Cache Hierarchy.
 cache_hierarchy = C2cCacheHierarchy(
