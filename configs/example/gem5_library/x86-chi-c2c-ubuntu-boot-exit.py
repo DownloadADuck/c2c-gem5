@@ -87,6 +87,20 @@ workload = Workload("x86-ubuntu-18.04-boot")
 workload.set_parameter("readfile_contents", command)
 board.set_workload(workload)
 
+# Regular sim
+#simulator = Simulator(
+#    board=board,
+#    on_exit_event={
+#        # Overriding the default behavior for the first m5 exit event. instead
+#        # of exiting the simulator we want to switch processor. 
+#        ExitEvent.EXIT: (func() for func in [processor.switch])
+#    }
+#)
+#simulator.run()
+
+# Ckeckpointing setup
+max_ticks = 845295000000
+checkpoint_path = "./checkpoints"
 simulator = Simulator(
     board=board,
     on_exit_event={
@@ -95,4 +109,14 @@ simulator = Simulator(
         ExitEvent.EXIT: (func() for func in [processor.switch])
     }
 )
-simulator.run()
+simulator.run(max_ticks=max_ticks)
+
+print(
+    "Exiting @ tick {} because {}.".format(
+        simulator.get_current_tick(), simulator.get_last_exit_event_cause()
+    )
+)
+
+print("Checkpointing at", checkpoint_path)
+simulator.save_checkpoint(checkpoint_path)
+print("Checkpointing done")
