@@ -106,14 +106,14 @@ max_ticks = 60000000
 checkpoint_path = "/home/lbertranalvarez/Work/gem5/checkpoints/"
 simulator = Simulator(
     board=board,
-    on_exit_event={
-        #ExitEvent.CHECKPOINT: (func() for func in [processor.switch])
-        ExitEvent.CHECKPOINT: warn_default_decorator(
-            save_checkpoint_generator,
-            "checkpoint",
-            "creating a checkpoint and continuing",
-        )(),
-    }
+    #on_exit_event={
+    #    #ExitEvent.CHECKPOINT: (func() for func in [processor.switch])
+    #    ExitEvent.CHECKPOINT: warn_default_decorator(
+    #        save_checkpoint_generator,
+    #        "checkpoint",
+    #        "creating a checkpoint and continuing",
+    #    )(),
+    #}
 )
 simulator.run(max_ticks=max_ticks)
 
