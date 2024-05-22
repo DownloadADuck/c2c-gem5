@@ -61,7 +61,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     BLKD_SNP, AccessPermission:Invalid, desc="Pending snoop transaction";
     SNP_FWD, AccessPermission:Invalid, desc="Special case for snoop forwarding";
     SNP_FWD_2, AccessPermission:Invalid, desc="Second part of snoop fwd handling";
-    SNP_FWD_LOC, AccessPermission:Invalid, desc="SnpFwd but data is local to requestor";
+    SNP_FWD_LOCAL_DATA, AccessPermission:Invalid, desc="SnpFwd but data is local to requestor";
+    SNP_FWD_RESP_BETWEEN_DATA, AccessPermission:Invalid, desc="The response arrives between the two data pkts";
 
 
     // Null state for debugging; allow writes
@@ -1549,31 +1550,39 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   // Allow a SnpSharedFwd after a ReadShared request
   // Means that data is local but is waiting for CompAck
-  transition(BLKD_REQ, {Net_SnpSharedFwd, Net_SnpUniqueFwd}, SNP_FWD_LOC) {
+  transition(BLKD_REQ, {Net_SnpSharedFwd, Net_SnpUniqueFwd}, SNP_FWD_LOCAL_DATA) {
     updateTBEFromNetSnp;
     sendToC2c_Snoop;
     popSnpInQueue;
   }
 
-  transition(READING_MEM, {C2c_SnpSharedFwd, C2c_SnpUniqueFwd}, SNP_FWD_LOC) {
+  transition(READING_MEM, {C2c_SnpSharedFwd, C2c_SnpUniqueFwd}, SNP_FWD_LOCAL_DATA) {
     updateTBEFromC2cSnp;
     sendToNet_Snoop;
     popC2cReqRdyInQueue;
   }
   
   // Waiting for CompAck, we do not delete the TBE
-  transition(SNP_FWD_LOC, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, 
+  transition(SNP_FWD_LOCAL_DATA, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, 
   Net_SnpResp_SC_Fwded_SC, Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
     popRspInQueue;
   }
 
-  transition(SNP_FWD_LOC, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, 
+  transition(SNP_FWD_LOCAL_DATA, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, 
   C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
     popResponseFromC2cQueue;
+  }
+
+  // Special case where the resp arrived between the two data packets
+  // We send the response after the data 
+  transition(SNP_FWD, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, 
+  Net_SnpResp_SC_Fwded_SC, Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_I_Fwded_UC}, SNP_FWD_RESP_BETWEEN_DATA) {
+    updateTBE_FromNetResp;
+    popRspInQueue;
   }
 
   // Data
@@ -1613,7 +1622,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popDataInQueue;
   }
 
-  transition({BLKD_REQ, BLKD_SNP}, {Net_CompData_UC, Net_CompData_SC, 
+  transition({BLKD_REQ, BLKD_SNP, SNP_FWD_RESP_BETWEEN_DATA}, {Net_CompData_UC, Net_CompData_SC, 
               Net_CompData_SD_PD, Net_CompData_UD_PD, Net_SnpRespData_SC_Fwded_SD_PD,
               Net_SnpRespData_SC_Fwded_SC}) {
     copyDataToTBE;
@@ -1650,6 +1659,15 @@ machine(MachineType:Interface, "C2C interface controller") :
     sendToC2c_Data;
     wakeUpStalled;
     popTriggerQueue;
+  }
+
+  // Special case, response arrives between two data packets
+  // We send the full data packet, then the response
+  transition(SNP_FWD_RESP_BETWEEN_DATA, Trigger_ReceiveDataDone, READY) {
+    sendToC2c_Data;
+    wakeUpStalled;
+    sendToC2c_Response;
+    popDataInQueue;
   }
 
   transition(SNP_FWD_2, {Net_SnpRespData_SC_Fwded_SD_PD, Net_SnpRespData_SC_Fwded_SC}) {
