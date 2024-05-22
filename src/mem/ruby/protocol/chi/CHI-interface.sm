@@ -1667,7 +1667,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     sendToC2c_Data;
     wakeUpStalled;
     sendToC2c_Response;
-    popDataInQueue;
   }
 
   transition(SNP_FWD_2, {Net_SnpRespData_SC_Fwded_SD_PD, Net_SnpRespData_SC_Fwded_SC}) {

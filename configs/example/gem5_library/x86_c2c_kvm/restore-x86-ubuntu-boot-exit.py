@@ -10,6 +10,9 @@ from gem5.components.memory.multi_channel import (
 from gem5.components.processors.simple_switchable_processor import (
     SimpleSwitchableProcessor,
 )
+# Using a non-switch processor to generate the checkpoints
+from gem5.components.processors.simple_processor import SimpleProcessor
+
 from gem5.components.processors.cpu_types import CPUTypes
 from gem5.isas import ISA
 from gem5.coherence_protocol import CoherenceProtocol
@@ -39,18 +42,9 @@ cache_hierarchy = C2cCacheHierarchy(
     l2_size="64kB",
     l2_assoc=8,
 )
-#cache_hierarchy = PrivateL1CacheHierarchy(
-#    size="16kB",
-#    assoc=8,
-#)
-#cache_hierarchy = TestHierarchy(
-#    size="16kB",
-#    assoc=8,
-#)
 
 # System memory
 memory = DualChannelDDR3_1600_C2C(size="2GB", range_size="1GB")
-#memory = DualChannelDDR3_1600(size="3GB")
 
 # Switchable KVM -> timing
 #processor = SimpleSwitchableProcessor(
@@ -59,10 +53,14 @@ memory = DualChannelDDR3_1600_C2C(size="2GB", range_size="1GB")
 #    isa=ISA.X86,
 #    num_cores=1,
 #)
-processor = SimpleSwitchableProcessor(
-    starting_core_type=CPUTypes.TIMING,
-    switch_core_type=CPUTypes.TIMING,
-    isa=ISA.X86,
+#processor = SimpleSwitchableProcessor(
+#    starting_core_type=CPUTypes.TIMING,
+#    switch_core_type=CPUTypes.TIMING,
+#    isa=ISA.X86,
+#    num_cores=2,
+#)
+processor = SimpleProcessor(
+    cpu_type=CPUTypes.TIMING,
     num_cores=2,
 )
 
@@ -99,15 +97,15 @@ board.set_workload(workload)
 #simulator.run()
 
 # Ckeckpointing setup
-max_ticks = 845295000000
-checkpoint_path = "./checkpoints"
+max_ticks = 600000
+checkpoint_path = "checkpoints/"
 simulator = Simulator(
     board=board,
-    on_exit_event={
-        # Overriding the default behavior for the first m5 exit event. instead
-        # of exiting the simulator we want to switch processor. 
-        ExitEvent.EXIT: (func() for func in [processor.switch])
-    }
+    #on_exit_event={
+    #    # Overriding the default behavior for the first m5 exit event. instead
+    #    # of exiting the simulator we want to switch processor. 
+    #    ExitEvent.EXIT: (func() for func in [processor.switch])
+    #}
 )
 simulator.run(max_ticks=max_ticks)
 
