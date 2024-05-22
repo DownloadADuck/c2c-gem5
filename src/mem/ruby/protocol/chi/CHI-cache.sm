@@ -636,10 +636,12 @@ machine(MachineType:Cache, "Cache coherency protocol") :
     bool dataToBeSharedClean,     desc="Local copy will become SC at the end of transaction";
     NetDest dir_sharers,          desc="Upstream controllers that have the line (includes owner)";
     MachineID dir_owner,          desc="Owner ID";
+
+    // c2c fields
     MachineID c2c_sharers,        desc="Off-chip controllers that have the line";
     MachineID c2c_requestor,      desc="Off-chip requestor in case of a snp fwd dir_sharers update";
-
     MachineID default_machine,    desc="Default null machine used for if statements checks";
+    bool off_chip,                desc="off_chip flag for CHI requests";
 
     bool dir_ownerExists,         desc="Owner ID is valid";
     bool dir_ownerIsExcl,         desc="Owner is UD or UC; SD otherwise";

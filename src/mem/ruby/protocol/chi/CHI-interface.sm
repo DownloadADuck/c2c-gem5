@@ -61,6 +61,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     BLKD_SNP, AccessPermission:Invalid, desc="Pending snoop transaction";
     SNP_FWD, AccessPermission:Invalid, desc="Special case for snoop forwarding";
     SNP_FWD_2, AccessPermission:Invalid, desc="Second part of snoop fwd handling";
+    SNP_FWD_LOC, AccessPermission:Invalid, desc="SnpFwd but data is local to requestor";
 
 
     // Null state for debugging; allow writes
@@ -91,6 +92,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     C2c_Evict, desc="";
     Net_WriteEvictFull, desc="";
     C2c_WriteEvictFull, desc="";
+    Net_WriteBackFull, desc="";
+    C2c_WriteBackFull, desc="";
 
     // Snoops
     Net_SnpCleanInvalid, desc="";
@@ -110,8 +113,12 @@ machine(MachineType:Interface, "C2C interface controller") :
     Net_CompData_UD_PD, desc="Response data from net of type UD PD";
     C2c_CompData_UD_PD, desc="Response data from c2c of type UD PD";
     Net_CBWrData_UC, desc="Response from an evict";
-    Net_CBWrData_UC_ReceiveDone, desc="Received all CBWrData_UC messages";
     C2c_CBWrData_UC, desc="";
+    Net_CBWrData_SD_PD, desc="";
+    C2c_CBWrData_SD_PD, desc="";
+    Net_CBWrData_ReceiveDone, desc="Received all CBWrData_UC messages";
+    Net_CBWrData_UD_PD, desc="";
+    C2c_CBWrData_UD_PD, desc="";
     Net_SnpRespData_I_PD, desc="Response data to a snoop";
     C2c_SnpRespData_I_PD, desc="Response data to a snoop";
     Net_SnpRespData_SC_Fwded_SD_PD, desc="Response data to a snoop";
@@ -135,6 +142,10 @@ machine(MachineType:Interface, "C2C interface controller") :
     C2c_SnpResp_I_Fwded_UD_PD, desc="";
     Net_SnpResp_I_Fwded_UC, desc="";
     C2c_SnpResp_I_Fwded_UC, desc="";
+    Net_SnpResp_SC_Fwded_SC, desc="";
+    C2c_SnpResp_SC_Fwded_SC, desc="";
+    Net_SnpResp_SC_Fwded_SD_PD, desc="";
+    C2c_SnpResp_SC_Fwded_SD_PD, desc="";
 
     // Internal event triggers
     Trigger_Send, desc="";
@@ -159,6 +170,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:Net_Evict;
     } else if (type == CHIRequestType:WriteEvictFull) {
       return Event:Net_WriteEvictFull;
+    } else if (type == CHIRequestType:WriteBackFull) {
+      return Event:Net_WriteBackFull;
     } else {
       DPRINTF(RubyC2c, "reqToEvent CHIRequestType: %s\n", type);
       error("Invalid CHIRequestType");
@@ -193,6 +206,10 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:Net_SnpResp_I_Fwded_UD_PD;
     } else if (type == CHIResponseType:SnpResp_I_Fwded_UC) {
       return Event:Net_SnpResp_I_Fwded_UC;
+    } else if (type == CHIResponseType:SnpResp_SC_Fwded_SC) {
+      return Event:Net_SnpResp_SC_Fwded_SC;
+    } else if (type == CHIResponseType:SnpResp_SC_Fwded_SD_PD) {
+      return Event:Net_SnpResp_SC_Fwded_SD_PD;
     } else {
       DPRINTF(RubyC2c, "rspToEvent CHIResponseType: %s\n", type);
       error("Invalid CHIResponseType");
@@ -210,6 +227,10 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:Net_CompData_UD_PD;
     } else if (type == CHIDataType:CBWrData_UC) {
       return Event:Net_CBWrData_UC;
+    } else if (type == CHIDataType:CBWrData_SD_PD) {
+      return Event:Net_CBWrData_SD_PD;
+    } else if (type == CHIDataType:CBWrData_UD_PD) {
+      return Event:Net_CBWrData_UD_PD;
     } else if (type == CHIDataType:SnpRespData_I_PD) {
       return Event:Net_SnpRespData_I_PD;
     } else if (type == CHIDataType:SnpRespData_SC_Fwded_SD_PD) {
@@ -233,6 +254,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:C2c_Evict;
     } else if (type == C2cRequestType:WriteEvictFull) {
       return Event:C2c_WriteEvictFull;
+    } else if (type == C2cRequestType:WriteBackFull) {
+      return Event:C2c_WriteBackFull;
     } else if (type == C2cRequestType:SnpCleanInvalid) {
       return Event:C2c_SnpCleanInvalid;
     } else if (type == C2cRequestType:SnpSharedFwd) {
@@ -256,6 +279,10 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:C2c_CompData_UD_PD;
     } else if (type == C2cRequestType:CBWrData_UC) {
       return Event:C2c_CBWrData_UC;
+    } else if (type == C2cRequestType:CBWrData_SD_PD) {
+      return Event:C2c_CBWrData_SD_PD;
+    } else if (type == C2cRequestType:CBWrData_UD_PD) {
+      return Event:C2c_CBWrData_UD_PD;
     } else if (type == C2cRequestType:CompAck) {
       return Event:C2c_CompAck;
     } else if (type == C2cRequestType:Comp_I) {
@@ -270,6 +297,10 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:C2c_SnpResp_I_Fwded_UD_PD;
     } else if (type == C2cRequestType:SnpResp_I_Fwded_UC) {
       return Event:C2c_SnpResp_I_Fwded_UC;
+    } else if (type == C2cRequestType:SnpResp_SC_Fwded_SC) {
+      return Event:C2c_SnpResp_SC_Fwded_SC;
+    } else if (type == C2cRequestType:SnpResp_SC_Fwded_SD_PD) {
+      return Event:C2c_SnpResp_SC_Fwded_SD_PD;
     } else if (type == C2cRequestType:SnpRespData_I_PD) {
       return Event:C2c_SnpRespData_I_PD;
     } else if (type == C2cRequestType:SnpRespData_SC_Fwded_SD_PD) {
@@ -293,6 +324,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return CHIRequestType:Evict;
     } else if (type == C2cRequestType:WriteEvictFull) {
       return CHIRequestType:WriteEvictFull;
+    } else if (type == C2cRequestType:WriteBackFull) {
+      return CHIRequestType:WriteBackFull;
     } else if (type == C2cRequestType:SnpCleanInvalid) {
       return CHIRequestType:SnpCleanInvalid;
     } else if (type == C2cRequestType:SnpSharedFwd) {
@@ -319,6 +352,10 @@ machine(MachineType:Interface, "C2C interface controller") :
       return CHIResponseType:SnpResp_I_Fwded_UD_PD;
     } else if (type == C2cRequestType:SnpResp_I_Fwded_UC) {
       return CHIResponseType:SnpResp_I_Fwded_UC;
+    } else if (type == C2cRequestType:SnpResp_SC_Fwded_SC) {
+      return CHIResponseType:SnpResp_SC_Fwded_SC;
+    } else if (type == C2cRequestType:SnpResp_SC_Fwded_SD_PD) {
+      return CHIResponseType:SnpResp_SC_Fwded_SD_PD;
     } else {
       error ("Unexpected C2cMsg response type");
     }
@@ -335,6 +372,10 @@ machine(MachineType:Interface, "C2C interface controller") :
       return CHIDataType:CompData_UD_PD;
     } else if (type == C2cRequestType:CBWrData_UC) {
       return CHIDataType:CBWrData_UC;
+    } else if (type == C2cRequestType:CBWrData_SD_PD) {
+      return CHIDataType:CBWrData_SD_PD;
+    } else if (type == C2cRequestType:CBWrData_UD_PD) {
+      return CHIDataType:CBWrData_UD_PD;
     } else if (type == C2cRequestType:SnpRespData_I_PD) {
       return CHIDataType:SnpRespData_I_PD;
     } else if (type == C2cRequestType:SnpRespData_SC_Fwded_SD_PD) {
@@ -357,6 +398,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return C2cRequestType:Evict;
     } else if (type == CHIRequestType:WriteEvictFull) {
       return C2cRequestType:WriteEvictFull;
+    } else if (type == CHIRequestType:WriteBackFull) {
+      return C2cRequestType:WriteBackFull;
     } else if (type == CHIRequestType:SnpCleanInvalid) {
       return C2cRequestType:SnpCleanInvalid;
     } else if (type == CHIRequestType:SnpSharedFwd) {
@@ -383,6 +426,10 @@ machine(MachineType:Interface, "C2C interface controller") :
       return C2cRequestType:SnpResp_I_Fwded_UD_PD;
     } else if (type == CHIResponseType:SnpResp_I_Fwded_UC) {
       return C2cRequestType:SnpResp_I_Fwded_UC;
+    } else if (type == CHIResponseType:SnpResp_SC_Fwded_SC) {
+      return C2cRequestType:SnpResp_SC_Fwded_SC;
+    } else if (type == CHIResponseType:SnpResp_SC_Fwded_SD_PD) {
+      return C2cRequestType:SnpResp_SC_Fwded_SD_PD;
     } else {
       error("Unexpected CHIResponse type");
     }
@@ -399,6 +446,10 @@ machine(MachineType:Interface, "C2C interface controller") :
       return C2cRequestType:CompData_UD_PD;
     } else if (type == CHIDataType:CBWrData_UC) {
       return C2cRequestType:CBWrData_UC;
+    } else if (type == CHIDataType:CBWrData_SD_PD) {
+      return C2cRequestType:CBWrData_SD_PD;
+    } else if (type == CHIDataType:CBWrData_UD_PD) {
+      return C2cRequestType:CBWrData_UD_PD;
     } else if (type == CHIDataType:SnpRespData_I_PD) {
       return C2cRequestType:SnpRespData_I_PD;
     } else if (type == CHIDataType:SnpRespData_SC_Fwded_SD_PD) {
@@ -824,6 +875,15 @@ machine(MachineType:Interface, "C2C interface controller") :
     requestFromC2c_in.dequeue(clockEdge());
   }
 
+  action(enqueueToC2cReqRdy, desc="Enqueues a request without allocating a new tbe") {
+    peek(requestFromC2c_in, C2cMsg) {
+      enqueue(c2cReqRdyOutPort, C2cMsg, 0) {
+        out_msg := in_msg;
+      }
+    }
+    requestFromC2c_in.dequeue(clockEdge());
+  }
+
   action(checkAllocateTBE_withCredit, desc="") {
     // We must have reserved resources for this request
     peek(reqInPort, CHIRequestMsg) {
@@ -913,6 +973,22 @@ machine(MachineType:Interface, "C2C interface controller") :
       tbe.retToSrc := in_msg.retToSrc;
     }
   }
+  
+  action(updateTBEFromNetSnp, "irstbe", desc="Snp from a req") {
+    peek(snpInPort, CHIRequestMsg) {
+      //DPRINTF(RubyC2c, "updateTBEFromNetSnp: \n in_msg.requestor: %s\n in_msg.fwdRequestor: %s\n in_msg.addr: %d\n in_msg.retToSrc %s\n in_msg.type: %s\n, in_msg.c2c_sharers: %s\n", in_msg.requestor, in_msg.fwdRequestor,
+      //in_msg.addr, in_msg.retToSrc, in_msg.type, in_msg.c2c_sharers);
+      //DPRINTF(RubyC2c, "updateReaSnpTBE: tbe.requestor: %s\n", tbe.requestor);
+      // Request following a request
+      tbe.requestor := in_msg.requestor;
+      tbe.destination := in_msg.requestor;
+      tbe.accAddr := in_msg.accAddr;
+      tbe.accSize := in_msg.accSize;
+      tbe.to_c2c_snp_type := in_msg.type;
+      tbe.c2c_sharers := in_msg.c2c_sharers;
+      tbe.retToSrc := in_msg.retToSrc;
+    }
+  }
 
   action(initializeFromC2cReqTBE, "ic2ctbe", desc="Initialize TBE fields from C2C request") {
     peek(c2cReqRdyInPort, C2cMsg) {
@@ -922,9 +998,21 @@ machine(MachineType:Interface, "C2C interface controller") :
       tbe.c2c_requestor := in_msg.C2c_requestor;
     }
   }
+  
+  action(updateTBEFromC2cSnp, "utfcs", desc="Initialize TBE fields from C2C request") {
+    peek(c2cReqRdyInPort, C2cMsg) {
+      tbe.Sender := in_msg.Sender;
+      tbe.size := in_msg.MessageSize;
+      tbe.to_net_snp_type := in_msg.Type;
+      tbe.c2c_requestor := in_msg.C2c_requestor;
+      tbe.c2c_sharers := in_msg.C2c_sharers;
+      tbe.retToSrc := in_msg.RetToSrc;
+    }
+  }
 
-  action(initializeFromC2cSnpTBE, "ic2csnp", desc="Initialize TBE fields from C2C snoop") {
+  action(initializeFromC2cSnpTBE, "ifcst", desc="Initialize TBE fields from C2C snoop") {
     peek(requestFromC2c_in, C2cMsg) {
+      tbe.requestor := machineID;
       tbe.Sender := in_msg.Sender;
       tbe.size := in_msg.MessageSize;
       tbe.to_net_snp_type := in_msg.Type;
@@ -975,21 +1063,18 @@ machine(MachineType:Interface, "C2C interface controller") :
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_UD_PD); 
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_SC);
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_UC);
-    DPRINTF(RubyC2c, "sendToNet_Snoop, tbe.c2c_sharers: %s, addr: %d\n", 
-            tbe.c2c_sharers, tbe.addr); 
     if (c2cMsgToCHIReq(tbe.to_net_snp_type) == CHIRequestType:SnpSharedFwd ||
         c2cMsgToCHIReq(tbe.to_net_snp_type) == CHIRequestType:SnpUniqueFwd) {
       tbe.expected_req_resp.addExpectedCount(3);
     } else {
       tbe.expected_req_resp.addExpectedCount(1);
     }
-    DPRINTF(RubyC2c, "sentToNet_Snoop out_msg.destination: %s\n", tbe.c2c_sharers);
     enqueue(snpOutPort, CHIRequestMsg, request_latency) {
       out_msg.addr := tbe.addr;
       out_msg.accAddr := tbe.addr;
       out_msg.accSize := blockSize;
       out_msg.requestor := machineID;
-      out_msg.fwdRequestor := machineID;
+      out_msg.fwdRequestor := tbe.requestor;
       out_msg.type := c2cMsgToCHIReq(tbe.to_net_snp_type);
       out_msg.allowRetry := false;
       out_msg.is_local_pf := false;
@@ -1033,6 +1118,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_SD_PD);
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_UD_PD);
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CBWrData_UC);
+    tbe.expected_req_resp.addExpectedDataType(CHIDataType:CBWrData_SD_PD);
+    tbe.expected_req_resp.addExpectedDataType(CHIDataType:CBWrData_UD_PD);
     tbe.expected_req_resp.addExpectedCount(1);
     enqueue(reqOutPort, CHIRequestMsg, request_latency) {
       out_msg.addr := address;
@@ -1047,6 +1134,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.allowRetry := true;
       out_msg.is_remote_pf := false;
       out_msg.Destination.add(mapAddressToDownstreamMachine(address));
+      out_msg.off_chip := true;
     }
 
   }
@@ -1127,8 +1215,12 @@ machine(MachineType:Interface, "C2C interface controller") :
       } else {
         enqueue(triggerOutPort, TriggerMsg, 0) {
           out_msg.addr := address;
-          if (in_msg.type == CHIDataType:CBWrData_UC) {
-            out_msg.event := Event:Net_CBWrData_UC_ReceiveDone;
+          if (
+            in_msg.type == CHIDataType:CBWrData_UC ||
+            in_msg.type == CHIDataType:CBWrData_UD_PD ||
+            in_msg.type == CHIDataType:CBWrData_SD_PD
+          ) {
+            out_msg.event := Event:Net_CBWrData_ReceiveDone;
           } else {
             out_msg.event := Event:Trigger_ReceiveDataDone;
           }
@@ -1200,46 +1292,21 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  //action(sendToNet_CompDBIDResp, "s2ncdr", desc="Send CompDBID to network") {
-  //  assert(is_valid(tbe));
-  //  clearRexpectedReqResp(tbe);
-  //  tbe.expected_req_resp.addExpectedDataType(CHIDataType:CBWrData_UC);
-  //  tbe.expected_req_resp.addExpectedCount(1);
-  //  enqueue(rspOutPort, CHIResponseMsg, response_latency) {
-  //    out_msg.addr := tbe.addr;
-  //    out_msg.type := CHIResponseType:CompDBIDResp;
-  //    out_msg.responder := machineID;
-  //    out_msg.Destination.add(tbe.requestor);
-  //  }
-  //}
-
   action(sendToNet_Response, "s2nrsp", desc="Send response to the network") {
     assert(is_valid(tbe));
     clearRexpectedReqResp(tbe);
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CBWrData_UC);
+    tbe.expected_req_resp.addExpectedDataType(CHIDataType:CBWrData_SD_PD);
+    tbe.expected_req_resp.addExpectedDataType(CHIDataType:CBWrData_UD_PD);
     tbe.expected_req_resp.addExpectedCount(1);
     enqueue(rspOutPort, CHIResponseMsg, response_latency) {
       out_msg.addr := tbe.addr;
       out_msg.type := c2cMsgToCHIRsp(tbe.to_net_rsp_type);
       out_msg.responder := machineID;
       out_msg.Destination.add(tbe.requestor);
-      DPRINTF(RubyC2c, "Interface send response tbe.c2c_sharers: %s, address: %d\n", tbe.c2c_sharers, tbe.addr);
       out_msg.c2c_sharers := tbe.c2c_sharers;
     }
   }
-
-  //action(sendToC2c_CBWrData_UC, "s2cnwd", desc="Sending the WBData to C2C") {
-  //  assert(is_valid(tbe));
-  //  enqueue(responseToC2c_out, C2cMsg, to_memory_controller_latency) {
-  //    out_msg.addr := tbe.addr;
-  //    out_msg.Type := C2cRequestType:CBWrData_UC;
-  //    out_msg.Sender := tbe.requestor;
-  //    out_msg.MessageSize := MessageSizeType:Response_Data;
-  //    out_msg.DataBlk := tbe.dataBlk;
-  //    out_msg.Len := tbe.accSize;
-  //  }
-  //  tbe.dataBlkValid.clear();
-  //}
 
   action(updateTBE_FromNetResp, "utbefr", desc="Updates the TBE with response info") {
     assert(is_valid(tbe));
@@ -1330,14 +1397,14 @@ machine(MachineType:Interface, "C2C interface controller") :
   ////////////////////////////////////////////////////////////////////////////
 
   // Requests
-  transition(READY, {Net_Evict, Net_WriteEvictFull, Net_CleanUnique}, WAIT_COMP) {
+  transition(READY, {Net_Evict, Net_WriteEvictFull, Net_WriteBackFull, Net_CleanUnique}, WAIT_COMP) {
     allocateTBE;
     initializeFromReqTBE;
     trigger_SendToC2c_Request;
     popReqInQueue;
   }
 
-  transition(READY, {C2c_Evict, C2c_WriteEvictFull}) {
+  transition(READY, {C2c_Evict, C2c_WriteEvictFull, C2c_WriteBackFull}) {
     c2cReqAllocateTBE;
     initializeFromC2cReqTBE;
     trigger_SendToNet_Request;
@@ -1405,23 +1472,32 @@ machine(MachineType:Interface, "C2C interface controller") :
     popResponseFromC2cQueue;
   }
 
-  transition({BLKD_SNP, READY}, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, Net_SnpResp_I_Fwded_UC}, READY) {
+  transition({BLKD_SNP, READY}, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, 
+  Net_SnpResp_SC_Fwded_SC, Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
     deallocateTBE;
     popRspInQueue;
   }
 
-  transition({BLKD_SNP, READY}, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, C2c_SnpResp_I_Fwded_UC}, READY) {
+  transition({BLKD_SNP, READY}, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, 
+  C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
     deallocateTBE;
     popResponseFromC2cQueue;
   }
 
-  transition(WAIT_COMP, C2c_Comp_I) {
+  // !! This is a hack
+  //transition(WAIT_COMP, C2c_Comp_I) {
+  //  updateTBE_FromC2cResp;
+  //  sendToNet_Response;
+  //  popResponseFromC2cQueue;
+  //}
+  transition(WAIT_COMP, C2c_Comp_I, READY) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
+    deallocateTBE;
     popResponseFromC2cQueue;
   }
 
@@ -1439,14 +1515,16 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // SnpUniqueFwd
-  transition(SNP_FWD_2, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, Net_SnpResp_I_Fwded_UC}, READY) {
+  transition(SNP_FWD_2, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, 
+  Net_SnpResp_SC_Fwded_SC, Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
     deallocateTBE;
     popRspInQueue;
   }
 
-  transition(SNP_FWD, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, C2c_SnpResp_I_Fwded_UC}, READY) {
+  transition(SNP_FWD, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, 
+  C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
     deallocateTBE;
@@ -1482,20 +1560,49 @@ machine(MachineType:Interface, "C2C interface controller") :
     popC2cReqRdyInQueue;
   }
 
+  // Allow a SnpSharedFwd after a ReadShared request
+  // Means that data is local but is waiting for CompAck
+  transition(BLKD_REQ, {Net_SnpSharedFwd, Net_SnpUniqueFwd}, SNP_FWD_LOC) {
+    updateTBEFromNetSnp;
+    sendToC2c_Snoop;
+    popSnpInQueue;
+  }
+
+  transition(READING_MEM, {C2c_SnpSharedFwd, C2c_SnpUniqueFwd}, SNP_FWD_LOC) {
+    updateTBEFromC2cSnp;
+    sendToNet_Snoop;
+    popC2cReqRdyInQueue;
+  }
+  
+  // Waiting for CompAck, we do not delete the TBE
+  transition(SNP_FWD_LOC, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, 
+  Net_SnpResp_SC_Fwded_SC, Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_I_Fwded_UC}, READY) {
+    updateTBE_FromNetResp;
+    sendToC2c_Response;
+    popRspInQueue;
+  }
+
+  transition(SNP_FWD_LOC, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, 
+  C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_I_Fwded_UC}, READY) {
+    updateTBE_FromC2cResp;
+    sendToNet_Response;
+    popResponseFromC2cQueue;
+  }
+
   // Data
-  transition(WAIT_WBDATA, Net_CBWrData_UC) {
+  transition(WAIT_WBDATA, {Net_CBWrData_UC, Net_CBWrData_SD_PD, Net_CBWrData_UD_PD}) {
     copyDataToTBE;
     checkForReceiveCompletion;
     popDataInQueue;
   }
 
-  transition(WAIT_WBDATA, Net_CBWrData_UC_ReceiveDone, READY) {
+  transition(WAIT_WBDATA, Net_CBWrData_ReceiveDone, READY) {
     sendToC2c_Data;
     deallocateTBE;
     popTriggerQueue;
   }
 
-  transition(READY, C2c_CBWrData_UC, SENDING_WBDATA) {
+  transition(READY, {C2c_CBWrData_UC, C2c_CBWrData_SD_PD, C2c_CBWrData_UD_PD}, SENDING_WBDATA) {
     prepareSend_Data;
     sendToNet_Data;
     popResponseFromC2cQueue;
@@ -1655,6 +1762,11 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   transition({BLKD_REQ,READY}, CheckC2cReqAllocTBE) {
     checkC2cReqAllocateTBE;
+  }
+  
+  // Receiving a request after isuing a request
+  transition(READING_MEM, CheckC2cReqAllocTBE) {
+    enqueueToC2cReqRdy;
   }
 
   transition({READING_MEM,WAITING_NET_DATA,SENDING_NET_DATA,READY},

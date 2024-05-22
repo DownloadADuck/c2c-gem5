@@ -429,6 +429,7 @@ TBE allocateRequestTBE(Addr addr, CHIRequestMsg in_msg), return_by_pointer="yes"
 
   // field used on fwdSnpResp dir_sharers update
   tbe.c2c_requestor := in_msg.c2c_requestor;
+  tbe.off_chip := in_msg.off_chip;
 
   return tbe;
 }
@@ -1038,6 +1039,9 @@ State makeFinalState(TBE tbe, CacheEntry cache_entry, DirEntry dir_entry) {
 
   State cache_state := State:I;
   State dir_state := State:I;
+
+  DPRINTF(RubyC2c, "makeFinalState: \naddr: %d\n dir_owner: %s\n dir_sharers.count: %s\n",
+  tbe.addr, tbe.dir_owner, tbe.dir_sharers.count());
 
   if (tbe.dir_ownerExists) {
     assert(is_valid(dir_entry));

@@ -18,6 +18,7 @@ enumeration(C2cRequestType, desc="...") {
   CleanUnique, desc="CleanUnique";
   Evict, desc="Evict";
   WriteEvictFull, desc="WriteEvictFull";
+  WriteBackFull, desc="WriteBackFull";
   // Snoops
   SnpCleanInvalid, desc="SnpCleanInvalid";
   SnpSharedFwd, desc="SnpSharedFwd";
@@ -30,8 +31,12 @@ enumeration(C2cRequestType, desc="...") {
   SnpResp_I, desc="SnpResp_I";
   SnpResp_I_Fwded_UD_PD, desc="SnpResp_I_Fwded_UD_PD";
   SnpResp_I_Fwded_UC, desc="SnpResp_I_Fwded_UC";
+  SnpResp_SC_Fwded_SC, desc="SnpResp_SC_Fwded_SC";
+  SnpResp_SC_Fwded_SD_PD, desc="SnpResp_SC_Fwded_SD_PD";
   //Data
   CBWrData_UC, desc="CBWrData_UC";
+  CBWrData_SD_PD, desc="CBWrData_SP_PD";
+  CBWrData_UD_PD, desc="CBWrData_UD_PD";
   CompData_UC, desc="CompData_UC";
   CompData_SC, desc="CompData_SC";
   CompData_SD_PD, desc="CompData_SD_PD";
