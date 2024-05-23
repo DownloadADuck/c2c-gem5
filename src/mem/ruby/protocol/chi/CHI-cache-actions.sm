@@ -146,6 +146,7 @@ action(AllocateTBE_SeqRequest, desc="") {
       out_msg.is_local_pf := false;
       out_msg.is_remote_pf := false;
 
+      DPRINTF(RubyGenerated, "SeqRequest type: %s\n", in_msg.Type);
       if ((in_msg.Type == RubyRequestType:LD) ||
           (in_msg.Type == RubyRequestType:IFETCH)) {
         out_msg.type := CHIRequestType:Load;

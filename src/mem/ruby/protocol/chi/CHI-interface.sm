@@ -149,6 +149,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     // Internal event triggers
     Trigger_Send, desc="";
     Trigger_SendDone, desc="";
+    Trigger_SendSnpResp, desc="Used as serialisation tool to delay the snp resp";
     Trigger_ReceiveDataDone, desc="Received all read data";
     Trigger_SendRetry, desc="";
     Trigger_SendPCrdGrant, desc="";
@@ -1313,6 +1314,13 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
+  action(trigger_SendSnpResp, "tssr", desc="Trigger the sending of a snpfwd resp to c2c") {
+    assert(is_valid(tbe));
+    enqueue(triggerOutPort, TriggerMsg, 0) {
+      out_msg.event := Event:Trigger_SendSnpResp;
+    }
+  }
+
   action(popReqInQueue, "preq", desc="Pop request queue.") {
     reqRdyInPort.dequeue(clockEdge());
   }
@@ -1663,11 +1671,17 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   // Special case, response arrives between two data packets
   // We send the full data packet, then the response
-  transition(SNP_FWD_RESP_BETWEEN_DATA, Trigger_ReceiveDataDone, READY) {
+  transition(SNP_FWD_RESP_BETWEEN_DATA, Trigger_ReceiveDataDone) {
     sendToC2c_Data;
     wakeUpStalled;
+    popTriggerQueue;
+    trigger_SendSnpResp;
+  }
+
+  transition(SNP_FWD_RESP_BETWEEN_DATA, Trigger_SendSnpResp) {
     sendToC2c_Response;
     popTriggerQueue;
+    deallocateTBE;
   }
 
   transition(SNP_FWD_2, {Net_SnpRespData_SC_Fwded_SD_PD, Net_SnpRespData_SC_Fwded_SC}) {
