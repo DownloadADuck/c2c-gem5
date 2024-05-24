@@ -159,6 +159,13 @@ action(AllocateTBE_SeqRequest, desc="") {
       } else {
         error("Invalid RubyRequestType");
       }
+      DPRINTF(C2cTraces, "\n LineAddress: %d\n Size: %d\n PhysicalAddress: %d\n in_msg.getRequestPtr(): %s\n Type: %s\n",
+        in_msg.LineAddress,
+	in_msg.Size,
+	in_msg.PhysicalAddress,
+	in_msg.getRequestPtr(),
+	in_msg.Type
+      );
     }
   }
   seqInPort.dequeue(clockEdge());

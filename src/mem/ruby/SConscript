@@ -72,11 +72,12 @@ DebugFlag('RubyHitMiss')
 
 # c2c debug flag
 DebugFlag('RubyC2c')
+DebugFlag('C2cTraces')
 
 CompoundFlag('Ruby', [ 'RubyQueue', 'RubyNetwork', 'RubyTester',
     'RubyGenerated', 'RubySlicc', 'RubySystem', 'RubyCache',
     'RubyDma', 'RubyPort', 'RubySequencer', 'RubyCacheTrace',
-    'RubyPrefetcher', 'RubyProtocol', 'RubyHitMiss', 'RubyC2c'])
+    'RubyPrefetcher', 'RubyProtocol', 'RubyHitMiss', 'RubyC2c', 'C2cTraces'])
 
 #
 # Link includes
