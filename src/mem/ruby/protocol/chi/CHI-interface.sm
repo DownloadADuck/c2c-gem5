@@ -1003,7 +1003,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   action(initializeFromC2cSnpTBE, "ifcst", desc="Initialize TBE fields from C2C snoop") {
-    peek(requestFromC2c_in, C2cMsg) {
+    peek(c2cReqRdyInPort, C2cMsg) {
       tbe.requestor := machineID;
       tbe.Sender := in_msg.Sender;
       tbe.size := in_msg.MessageSize;
