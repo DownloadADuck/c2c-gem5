@@ -146,6 +146,7 @@ action(AllocateTBE_SeqRequest, desc="") {
       out_msg.is_local_pf := false;
       out_msg.is_remote_pf := false;
 
+      DPRINTF(RubyGenerated, "SeqRequest type: %s\n", in_msg.Type);
       if ((in_msg.Type == RubyRequestType:LD) ||
           (in_msg.Type == RubyRequestType:IFETCH)) {
         out_msg.type := CHIRequestType:Load;
@@ -1525,6 +1526,7 @@ action(Send_SnpSharedFwd_ToOwner, desc="") {
       prepareRequest(tbe, CHIRequestType:SnpNotSharedDirtyFwd, out_msg);
     }
     out_msg.Destination.add(tbe.dir_owner);
+    DPRINTF(RubyC2c, "Send_SnpSharedFwd_ToOwner dir_owner: %s, c2c_sharers: %s\n", tbe.dir_owner, tbe.c2c_sharers);
     out_msg.c2c_sharers := tbe.c2c_sharers;
     out_msg.retToSrc := retToSrc;
   }

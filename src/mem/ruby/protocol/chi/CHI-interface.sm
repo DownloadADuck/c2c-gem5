@@ -61,7 +61,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     BLKD_SNP, AccessPermission:Invalid, desc="Pending snoop transaction";
     SNP_FWD, AccessPermission:Invalid, desc="Special case for snoop forwarding";
     SNP_FWD_2, AccessPermission:Invalid, desc="Second part of snoop fwd handling";
-    SNP_FWD_LOC, AccessPermission:Invalid, desc="SnpFwd but data is local to requestor";
+    SNP_FWD_LOCAL_DATA, AccessPermission:Invalid, desc="SnpFwd but data is local to requestor";
+    SNP_FWD_RESP_BETWEEN_DATA, AccessPermission:Invalid, desc="The response arrives between the two data pkts";
 
 
     // Null state for debugging; allow writes
@@ -150,6 +151,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     // Internal event triggers
     Trigger_Send, desc="";
     Trigger_SendDone, desc="";
+    Trigger_SendSnpResp, desc="Used as serialisation tool to delay the snp resp";
     Trigger_ReceiveDataDone, desc="Received all read data";
     Trigger_SendRetry, desc="";
     Trigger_SendPCrdGrant, desc="";
@@ -1011,11 +1013,12 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   action(initializeFromC2cSnpTBE, "ifcst", desc="Initialize TBE fields from C2C snoop") {
-    peek(requestFromC2c_in, C2cMsg) {
+    peek(c2cReqRdyInPort, C2cMsg) {
       tbe.requestor := machineID;
       tbe.Sender := in_msg.Sender;
       tbe.size := in_msg.MessageSize;
       tbe.to_net_snp_type := in_msg.Type;
+      DPRINTF(RubyC2c, "initializeFromC2cSnpTBE: Addr: %d, in_msg.c2c_sharers: %s\n", address, in_msg.C2c_sharers);
       tbe.c2c_sharers := in_msg.C2c_sharers;
       tbe.retToSrc := in_msg.RetToSrc;
     }
@@ -1042,7 +1045,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   action(sendToC2c_Snoop, "stctcs", desc="Send snoop to c2c") {
     assert(is_valid(tbe));
-    //DPRINTF(RubyC2c, "sendToC2c_Snoop, tbe.c2c_sharers: %s\n", tbe.c2c_sharers);
+    DPRINTF(RubyC2c, "sendToC2c_Snoop, tbe.c2c_sharers: %s\n", tbe.c2c_sharers);
     enqueue(requestToC2c_out, C2cMsg, to_memory_controller_latency) {
       out_msg.addr := tbe.addr;
       out_msg.Type := CHIReqToC2cMsg(tbe.to_c2c_snp_type);
@@ -1069,6 +1072,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     } else {
       tbe.expected_req_resp.addExpectedCount(1);
     }
+    DPRINTF(RubyC2c, "sendToNet_Snoop: Addr: %d, destination: %s", tbe.addr, tbe.c2c_sharers);
     enqueue(snpOutPort, CHIRequestMsg, request_latency) {
       out_msg.addr := tbe.addr;
       out_msg.accAddr := tbe.addr;
@@ -1325,6 +1329,13 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
+  action(trigger_SendSnpResp, "tssr", desc="Trigger the sending of a snpfwd resp to c2c") {
+    assert(is_valid(tbe));
+    enqueue(triggerOutPort, TriggerMsg, 1) {
+      out_msg.event := Event:Trigger_SendSnpResp;
+    }
+  }
+
   action(popReqInQueue, "preq", desc="Pop request queue.") {
     reqRdyInPort.dequeue(clockEdge());
   }
@@ -1562,31 +1573,39 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   // Allow a SnpSharedFwd after a ReadShared request
   // Means that data is local but is waiting for CompAck
-  transition(BLKD_REQ, {Net_SnpSharedFwd, Net_SnpUniqueFwd}, SNP_FWD_LOC) {
+  transition(BLKD_REQ, {Net_SnpSharedFwd, Net_SnpUniqueFwd}, SNP_FWD_LOCAL_DATA) {
     updateTBEFromNetSnp;
     sendToC2c_Snoop;
     popSnpInQueue;
   }
 
-  transition(READING_MEM, {C2c_SnpSharedFwd, C2c_SnpUniqueFwd}, SNP_FWD_LOC) {
+  transition(READING_MEM, {C2c_SnpSharedFwd, C2c_SnpUniqueFwd}, SNP_FWD_LOCAL_DATA) {
     updateTBEFromC2cSnp;
     sendToNet_Snoop;
     popC2cReqRdyInQueue;
   }
   
   // Waiting for CompAck, we do not delete the TBE
-  transition(SNP_FWD_LOC, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, 
+  transition(SNP_FWD_LOCAL_DATA, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, 
   Net_SnpResp_SC_Fwded_SC, Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
     popRspInQueue;
   }
 
-  transition(SNP_FWD_LOC, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, 
+  transition(SNP_FWD_LOCAL_DATA, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, 
   C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
     popResponseFromC2cQueue;
+  }
+
+  // Special case where the resp arrived between the two data packets
+  // We send the response after the data 
+  transition(SNP_FWD, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, 
+  Net_SnpResp_SC_Fwded_SC, Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_I_Fwded_UC}, SNP_FWD_RESP_BETWEEN_DATA) {
+    updateTBE_FromNetResp;
+    popRspInQueue;
   }
 
   // Data
@@ -1626,7 +1645,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popDataInQueue;
   }
 
-  transition({BLKD_REQ, BLKD_SNP}, {Net_CompData_UC, Net_CompData_SC, 
+  transition({BLKD_REQ, BLKD_SNP, SNP_FWD_RESP_BETWEEN_DATA}, {Net_CompData_UC, Net_CompData_SC, 
               Net_CompData_SD_PD, Net_CompData_UD_PD, Net_SnpRespData_SC_Fwded_SD_PD,
               Net_SnpRespData_SC_Fwded_SC}) {
     copyDataToTBE;
@@ -1663,6 +1682,21 @@ machine(MachineType:Interface, "C2C interface controller") :
     sendToC2c_Data;
     wakeUpStalled;
     popTriggerQueue;
+  }
+
+  // Special case, response arrives between two data packets
+  // We send the full data packet, then the response
+  transition(SNP_FWD_RESP_BETWEEN_DATA, Trigger_ReceiveDataDone) {
+    sendToC2c_Data;
+    wakeUpStalled;
+    popTriggerQueue;
+    trigger_SendSnpResp;
+  }
+
+  transition(SNP_FWD_RESP_BETWEEN_DATA, Trigger_SendSnpResp) {
+    sendToC2c_Response;
+    popTriggerQueue;
+    deallocateTBE;
   }
 
   transition(SNP_FWD_2, {Net_SnpRespData_SC_Fwded_SD_PD, Net_SnpRespData_SC_Fwded_SC}) {

@@ -166,7 +166,7 @@ void
 Sequencer::llscClearMonitor(const Addr claddr)
 {
     // clear monitor is called for all stores and evictions
-    if (m_dataCache_ptr == NULL)
+   if (m_dataCache_ptr == NULL)
         return;
     AbstractCacheEntry *line = m_dataCache_ptr->lookup(claddr);
     if (line && line->isLocked(m_version)) {
