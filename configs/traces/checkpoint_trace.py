@@ -69,7 +69,7 @@ args = parser.parse_args()
 def is_pow2(num):
     return num != 0 and ((num & (num - 1)) == 0)
 
-def create_trace(filename, packets, burst_size, itt):
+def create_trace(filename, packets, burst_size):
     try:
         proto_out = gzip.open(filename, "wb")
     except IOError:
@@ -83,10 +83,13 @@ def create_trace(filename, packets, burst_size, itt):
     header.tick_freq = 1000000000000
     protolib.encodeMessage(proto_out, header)
 
-    tick = 0
-    for packet_info in packets:
+    base_tick = 0
+    tick = base_tick
+    for i, packet_info in enumerate(packets):
+        if i > 0:
+            tick += packet_info['tick'] - packets[i - 1]['tick']
         packet = packet_pb2.Packet()
-        packet.tick = packet_info['tick']
+        packet.tick = tick
         packet.addr = packet_info['addr']
         packet.size = packet_info['size']
         packet.cmd = packet_info['cmd']
@@ -94,7 +97,6 @@ def create_trace(filename, packets, burst_size, itt):
             print(f"Ifetch packet @ address: {packet.addr}")
         
         protolib.encodeMessage(proto_out, packet)
-        tick += itt
 
         print(f"Encoding packet {packet} in {filename}")
 
@@ -145,8 +147,8 @@ trace_file_core1 = os.path.join(m5.options.outdir, "lat_mem_rd_core1.trc.gz")
 itt = 150 * 1000  # 150 ns in ticks
 burst_size = 64
 
-create_trace(trace_file_core0, packets_core0, burst_size, itt)
-create_trace(trace_file_core1, packets_core1, burst_size, itt)
+create_trace(trace_file_core0, packets_core0, burst_size)
+create_trace(trace_file_core1, packets_core1, burst_size)
 
 print("Generated trace files:", trace_file_core0, trace_file_core1)
 
