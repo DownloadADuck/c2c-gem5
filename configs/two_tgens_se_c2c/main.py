@@ -45,7 +45,6 @@ options0.link_latency = 1
 options0.router_latency = 1
 options0.outdir = "/m5out"
 options0.cpu_clock = '2GHz'
-options0.l2_size = '32kB'
 options0.network = 'simple'
 options0.simple_physical_channels = False
 options0.repeat_switch = None
@@ -57,9 +56,10 @@ options0.fast_forward = None
 options0.num_l3caches = 1
 options0.chi_config = None
 options0.l1i_size = '32kB'
-options0.l1i_assoc = 2
-options0.l1d_size = '64kB'
-options0.l1d_assoc = 2
+options0.l1i_assoc = 8
+options0.l1d_size = '32kB'
+options0.l1d_assoc = 8
+options0.l2_size = '64kB'
 options0.l2_assoc = 8
 options0.l3_size = '32kB'
 options0.l3_assoc = 16
@@ -102,7 +102,6 @@ options1.link_latency = 1
 options1.router_latency = 1
 options1.outdir = "/m5out"
 options1.cpu_clock = '2GHz'
-options1.l2_size = '2MB'
 options1.network = 'simple'
 options1.simple_physical_channels = False
 options1.repeat_switch = None
@@ -114,9 +113,10 @@ options1.fast_forward = None
 options1.num_l3caches = 1
 options1.chi_config = None
 options1.l1i_size = '32kB'
-options1.l1i_assoc = 2
-options1.l1d_size = '64kB'
-options1.l1d_assoc = 2
+options1.l1i_assoc = 8
+options1.l1d_size = '32kB'
+options1.l1d_assoc = 8
+options1.l2_size = '64kB'
 options1.l2_assoc = 8
 options1.l3_size = '32kB'
 options1.l3_assoc = 16
@@ -203,19 +203,21 @@ np = options0.num_cpus
 mp0_path = multiprocesses[0].executable
 
 # Memory ranges
-arv = convert.toMemorySize('2MB')
+arv = convert.toMemorySize('2GB')
 addr_range_vaults = [AddrRange(i*arv, ((i+1)*arv-1)) for i in range(2)]
 
 system = System(
     tgens0=[
         TrafficGen(
-            config_file="./m5out/lat_mem_rd.cfg",
+            config_file="./m5out/lat_mem_rd_core0.cfg",
+            #config_file="./m5out/lat_mem_rd.cfg",
             progress_check="10s",
         ) for i in range(np)
     ],
     tgens1=[
         TrafficGen(
-            config_file="./m5out/lat_mem_rd.cfg",
+            config_file="./m5out/lat_mem_rd_core1.cfg",
+            #config_file="./m5out/lat_mem_rd.cfg",
             progress_check="10s",
         ) for i in range(np)
     ],
