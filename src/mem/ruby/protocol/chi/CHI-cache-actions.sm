@@ -1533,7 +1533,6 @@ action(Send_SnpSharedFwd_ToOwner, desc="") {
       prepareRequest(tbe, CHIRequestType:SnpNotSharedDirtyFwd, out_msg);
     }
     out_msg.Destination.add(tbe.dir_owner);
-    DPRINTF(RubyC2c, "Send_SnpSharedFwd_ToOwner dir_owner: %s, c2c_sharers: %s\n", tbe.dir_owner, tbe.c2c_sharers);
     out_msg.c2c_sharers := tbe.c2c_sharers;
     out_msg.retToSrc := retToSrc;
   }
@@ -2113,9 +2112,6 @@ action(UpdateDirState_FromSnpResp, desc="") {
       tbe.dir_sharers.remove(in_msg.responder);
       // requestor is the new owner
       tbe.c2c_sharers := tbe.c2c_requestor;
-      if (is_HN) {
-        DPRINTF(RubyC2c, "UpdateDirState_FromSnpResp tbe.c2c_sharers: %s, address: %d\n", tbe.c2c_sharers, tbe.addr);
-      }
       if (tbe.c2c_requestor != tbe.default_machine) {
         tbe.c2c_sharers := tbe.c2c_requestor;
       }
@@ -2580,8 +2576,8 @@ action(Send_CompI, desc="") {
     // The requestor and sharer/owner are local to the same chip
     // The c2c interface is both requestor and owner
     // We don't remove the interface from the dir_sharers
+    DPRINTF(RubyC2c, "Send_CompI - Addr: %d, requestor: %s, dir_ower: %s \n We don't delete the requestor from the tbe.dir_sharers", tbe.addr, tbe.requestor, tbe.dir_owner);
 
-    DPRINTF(RubyC2c, "Off-chip evict with sharer local to requestor");
     assert(tbe.dir_sharers.isElement(tbe.requestor));
   } else {
     assert((tbe.dir_ownerExists == false) || (tbe.dir_owner != tbe.requestor));

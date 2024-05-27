@@ -10,7 +10,7 @@ from gem5.isas import ISA
 from gem5.runtime import get_runtime_isa
 
 addToPath("../")
-from slicc_interface import ruby_config
+from two_tgens_se_c2c import ruby_config
 
 from common import Options
 from common import Simulation

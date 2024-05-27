@@ -1089,7 +1089,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   action(trigger_SendToC2c_Request, "ts2cr", desc="Trigger sendToC2c_Request") {
     assert(is_valid(tbe));
-    enqueue(triggerOutPort, TriggerMsg, 0) {
+    enqueue(triggerOutPort, TriggerMsg, 1) {
       out_msg.addr := address;
       out_msg.event := Event:Trigger_SendToC2c_Request;
     }
@@ -1138,7 +1138,11 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.allowRetry := true;
       out_msg.is_remote_pf := false;
       out_msg.Destination.add(mapAddressToDownstreamMachine(address));
-      out_msg.off_chip := true;
+      if (out_msg.type == CHIRequestType:Evict) {
+        out_msg.off_chip := false;
+      } else {
+        out_msg.off_chip := true;
+      }
     }
 
   }
