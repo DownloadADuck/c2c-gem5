@@ -1,7 +1,7 @@
 machine(MachineType:Interface, "C2C interface controller") :
 
   Cycles request_latency := 1;
-  Cycles response_latency := 2;
+  Cycles response_latency := 1;
   Cycles data_latency := 1;
   Cycles to_memory_controller_latency := 1;
 

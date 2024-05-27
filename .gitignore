@@ -7,6 +7,8 @@
 *.swp
 *.log
 *.yaml
+send_email.py
+run_and_notify.sh
 
 # Adding the lat_mem traces in m5out/
 !m5out/lat_mem*

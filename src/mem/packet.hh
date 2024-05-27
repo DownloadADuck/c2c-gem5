@@ -156,6 +156,7 @@ class MemCmd
         TlbiExtSync,
         // c2c command
         c2c_packet,
+        trace_ifetch, // used when generating traces with IFETCH 
         NUM_MEM_CMDS
     };
 
@@ -184,6 +185,7 @@ class MemCmd
         IsPrint,        //!< Print state matching address (for debugging)
         IsFlush,        //!< Flush the address from caches
         FromCache,      //!< Request originated from a caching agent
+        IsInstrFetch,
         NUM_COMMAND_ATTRIBUTES
     };
 
@@ -242,6 +244,8 @@ class MemCmd
     bool isEviction() const        { return testCmdAttrib(IsEviction); }
     bool isClean() const           { return testCmdAttrib(IsClean); }
     bool fromCache() const         { return testCmdAttrib(FromCache); }
+
+    bool isInstrFetch() const      { return testCmdAttrib(IsInstrFetch); }
 
     /**
      * A writeback is an eviction that carries data.
@@ -605,6 +609,9 @@ class Packet : public Printable
     bool isUpgrade()  const          { return cmd.isUpgrade(); }
     bool isRequest() const           { return cmd.isRequest(); }
     bool isResponse() const          { return cmd.isResponse(); }
+
+    bool isInstrFetch() const        { return cmd.isInstrFetch(); }
+
     bool needsWritable() const
     {
         // we should never check if a response needsWritable, the

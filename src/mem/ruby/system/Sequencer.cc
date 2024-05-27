@@ -831,6 +831,8 @@ Sequencer::makeRequest(PacketPtr pkt)
                 primary_type = secondary_type = htmCmdToRubyRequestType(pkt);
             } else if (pkt->req->isInstFetch()) {
                 primary_type = secondary_type = RubyRequestType_IFETCH;
+            } else if (pkt->isInstrFetch()) {
+                primary_type = secondary_type = RubyRequestType_IFETCH;
             } else {
                 if (pkt->req->isReadModifyWrite()) {
                     primary_type = RubyRequestType_RMW_Read;

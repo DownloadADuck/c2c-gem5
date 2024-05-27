@@ -239,6 +239,7 @@ MemCmd::commandInfo[] =
     { {IsRequest}, InvalidCmd, "TlbiExtSync" },
     // c2c command
     { {IsRead, IsRequest, IsResponse}, c2c_packet, "c2c_packet"}, 
+    { {IsRead, IsRequest, IsInstrFetch}, InvalidCmd, "trace_ifetch"},
 };
 
 AddrRange
