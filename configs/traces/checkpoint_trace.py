@@ -90,8 +90,14 @@ def create_trace(filename, packets, burst_size, itt):
         packet.addr = packet_info['addr']
         packet.size = packet_info['size']
         packet.cmd = packet_info['cmd']
+        print(f"flags: {packet.request}")
+        #if packet_info['isInstFetch']:
+            #packet.flags. = True
+        
 
-        print(f"Packet - Tick: {packet.tick}, Address: {packet.addr}, Size: {packet.size}, Command: {packet.cmd}")
+        print(f"Packet - Tick: {packet.tick}, Address: {packet.addr}, \
+            Size: {packet.size}, Command: {packet.cmd}, isInstFetch: \
+            {packet.req.isInstFetch}")
 
         protolib.encodeMessage(proto_out, packet)
         tick += itt
@@ -109,17 +115,24 @@ def parse_log_file(log_file):
             addr = int(lines[i + 1].split(':')[1])
             size = int(lines[i + 2].split(':')[1])
             packet_type = lines[i + 5].split(':')[1].strip()
+            isInstFetch = bool(False)
 
             if packet_type == "IFETCH":
                 cmd = 1  # ReadReq
+                isInstFetch = True
+            elif packet_type == "LD":
+                cmd = 1 # ReadReq
+            elif packet_type == "ST":
+                cmd = 4 # WriteReq
             else:
-                cmd = 4  # WriteReq
+                raise RuntimeError(f"Error parsing command for Addr: {addr}")
 
             packet_info = {
                 'tick': tick,
                 'addr': addr,
                 'size': size,
-                'cmd': cmd
+                'cmd': cmd,
+                'isInstFetch': isInstFetch
             }
 
             if core_cluster == 'core_cluster0':
