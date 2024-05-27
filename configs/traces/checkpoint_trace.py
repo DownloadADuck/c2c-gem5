@@ -69,25 +69,28 @@ args = parser.parse_args()
 def is_pow2(num):
     return num != 0 and ((num & (num - 1)) == 0)
 
-def create_trace(filename, packets, burst_size):
+def create_trace(core0_filename, core1_filename, packets, burst_size):
     try:
-        proto_out = gzip.open(filename, "wb")
+        proto_out_core0 = gzip.open(core0_filename, "wb")
+        proto_out_core1 = gzip.open(core1_filename, "wb")
     except IOError:
-        print("Failed to open ", filename, " for writing")
+        print("Failed to open trace files for writing")
         exit(-1)
 
-    proto_out.write(b'gem5')
+    proto_out_core0.write(b'gem5')
+    proto_out_core1.write(b'gem5')
 
     header = packet_pb2.PacketHeader()
     header.obj_id = "lat_mem_rd trace"
     header.tick_freq = 1000000000000
-    protolib.encodeMessage(proto_out, header)
+    protolib.encodeMessage(proto_out_core0, header)
+    protolib.encodeMessage(proto_out_core1, header)
 
     base_tick = 5000
+    tick = base_tick
+
     for i, packet_info in enumerate(packets):
-        if i == 0:
-            tick = base_tick
-        else:
+        if i > 0:
             tick += packet_info['tick'] - packets[i - 1]['tick']
         
         packet = packet_pb2.Packet()
@@ -98,19 +101,26 @@ def create_trace(filename, packets, burst_size):
         if packet.cmd == 61:
             print(f"Ifetch packet @ address: {packet.addr}")
 
-        protolib.encodeMessage(proto_out, packet)
+        if packet_info['core'] == 'core0':
+            protolib.encodeMessage(proto_out_core0, packet)
+            print(f"Encoding packet tick: {packet.tick}")
+            print(f"cmd: {packet.cmd}")
+            print(f"addr: {packet.addr}")
+            print(f"size: {packet.size}")
+            print(f" in {core0_filename}")
+        else:
+            protolib.encodeMessage(proto_out_core1, packet)
+            print(f"Encoding packet tick: {packet.tick}")
+            print(f"cmd: {packet.cmd}")
+            print(f"addr: {packet.addr}")
+            print(f"size: {packet.size}")
+            print(f" in {core1_filename}")
 
-        print(f"Encoding packet tick: {packet.tick}")
-        print(f"cmd: {packet.cmd}")
-        print(f"addr: {packet.addr}")
-        print(f"size: {packet.size}")
-        print(f" in {filename}")
-
-    proto_out.close()
+    proto_out_core0.close()
+    proto_out_core1.close()
 
 def parse_log_file(log_file):
-    packets_core0 = []
-    packets_core1 = []
+    packets = []
     with open(log_file, 'r') as file:
         lines = file.readlines()
         for i in range(0, len(lines), 6):
@@ -134,26 +144,26 @@ def parse_log_file(log_file):
                 'addr': addr,
                 'size': size,
                 'cmd': cmd,
+                'core': 'core0' if core_cluster == 'core_cluster0' else 'core1'
             }
 
-            if core_cluster == 'core_cluster0':
-                packets_core0.append(packet_info)
-            else:
-                packets_core1.append(packet_info)
+            packets.append(packet_info)
 
-    return packets_core0, packets_core1
+    # Sort packets by tick
+    packets.sort(key=lambda x: x['tick'])
 
-packets_core0, packets_core1 = parse_log_file(args.log_file)
+    return packets
 
-print(f"\npackets_core0: {packets_core0}\npackets_core1: {packets_core1}")
+packets = parse_log_file(args.log_file)
+
+print(f"\npackets: {packets}")
 
 trace_file_core0 = os.path.join(m5.options.outdir, "lat_mem_rd_core0.trc.gz")
 trace_file_core1 = os.path.join(m5.options.outdir, "lat_mem_rd_core1.trc.gz")
 
 burst_size = 64
 
-create_trace(trace_file_core0, packets_core0, burst_size)
-create_trace(trace_file_core1, packets_core1, burst_size)
+create_trace(trace_file_core0, trace_file_core1, packets, burst_size)
 
 print("Generated trace files:", trace_file_core0, trace_file_core1)
 
@@ -207,8 +217,6 @@ m5.simulate(2 * period)
 print("lat_mem_rd simulation complete")
 
 print(f"lat_mem_rd with iterations, ranges:")
-for packet in packets_core0:
-    print(packet)
-for packet in packets_core1:
+for packet in packets:
     print(packet)
 
