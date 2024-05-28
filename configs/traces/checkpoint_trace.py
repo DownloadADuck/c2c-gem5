@@ -171,8 +171,7 @@ def create_cfg_file(cfg_filename, trace_filename, period):
     cfg_file = open(cfg_filename, "w")
     cfg_file.write(f"STATE 0 {period} TRACE {trace_filename} 0\n")
     cfg_file.write("INIT 0\n")
-    cfg_file.write("TRANSITION 0 1 1\n")
-    cfg_file.write("TRANSITION 1 1 1\n")
+    cfg_file.write("TRANSITION 0 0 1")
     cfg_file.close()
 
 cfg_file_core0 = os.path.join(m5.options.outdir, "lat_mem_rd_core0.cfg")

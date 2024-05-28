@@ -1335,7 +1335,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   action(trigger_SendSnpResp, "tssr", desc="Trigger the sending of a snpfwd resp to c2c") {
     assert(is_valid(tbe));
-    enqueue(triggerOutPort, TriggerMsg, 1) {
+    enqueue(triggerOutPort, TriggerMsg, 3) {
       out_msg.event := Event:Trigger_SendSnpResp;
     }
   }
@@ -1538,7 +1538,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popRspInQueue;
   }
 
-  transition(SNP_FWD, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, 
+  transition(SNP_FWD, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, interface.sm
   C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
