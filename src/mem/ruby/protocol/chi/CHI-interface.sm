@@ -1376,11 +1376,18 @@ machine(MachineType:Interface, "C2C interface controller") :
   // Stall/wake-up only used for requests that arrive when we are on the
   // WAITING_NET_DATA state. For all other case the line should be either
   // ready or we can overlap
-  action(stallRequestQueue, "str", desc="Stall and wait on the address") {
+  action(stallReqRdyQueue, "str", desc="Stall and wait on the address") {
     peek(reqRdyInPort, CHIRequestMsg){
       stall_and_wait(reqRdyInPort, address);
     }
   }
+  
+  action(stallRequestQueue, "srq", desc="Stall request queue") {
+    peek(reqInPort, CHIRequestMsg){
+      stall_and_wait(reqInPort, address);
+    }
+  }
+
   action(wakeUpStalled, "wa", desc="Wake up any requests waiting for this address") {
     wakeUpAllBuffers(address);
   }
@@ -1538,7 +1545,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popRspInQueue;
   }
 
-  transition(SNP_FWD, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, interface.sm
+  transition(SNP_FWD, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD,
   C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
@@ -1594,6 +1601,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   Net_SnpResp_SC_Fwded_SC, Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
+    wakeUpStalled;
     popRspInQueue;
   }
 
@@ -1601,6 +1609,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
+    wakeUpStalled;
     popResponseFromC2cQueue;
   }
 
@@ -1778,6 +1787,11 @@ machine(MachineType:Interface, "C2C interface controller") :
   // Notice we only use this here and call wakeUp when leaving this state
   transition({READING_MEM,WAITING_NET_DATA,SENDING_NET_DATA},
              {Net_ReadShared}) {
+    stallReqRdyQueue;
+  }
+
+  // When receiving a request during a SNP_FWD we stall
+  transition(SNP_FWD, CheckAllocTBE) {
     stallRequestQueue;
   }
 
