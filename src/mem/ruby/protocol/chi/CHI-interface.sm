@@ -1382,9 +1382,15 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
   
-  action(stallRequestQueue, "srq", desc="Stall request queue") {
+  action(stallNetRequestQueue, "snrq", desc="Stall net request queue") {
     peek(reqInPort, CHIRequestMsg){
       stall_and_wait(reqInPort, address);
+    }
+  }
+
+  action(stallC2cRequestQueue, "scrq", decs="Stall c2c request queue") {
+    peek(requestFromC2c_in, C2cMsg){
+      stall_and_wait(requestFromC2c_in, address);
     }
   }
 
@@ -1794,7 +1800,11 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   // When receiving a request during a SNP_FWD we stall
   transition({SNP_FWD, WAIT_WBDATA}, CheckAllocTBE) {
-    stallRequestQueue;
+    stallNetRequestQueue;
+  }
+
+  transition(SENDING_WBDATA, CheckC2cReqAllocTBE) {
+    stallC2cRequestQueue;
   }
 
   transition({READING_MEM,WAITING_NET_DATA,SENDING_NET_DATA,READY},
