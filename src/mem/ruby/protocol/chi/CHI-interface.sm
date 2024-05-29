@@ -1541,6 +1541,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   Net_SnpResp_SC_Fwded_SC, Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
+    wakeUpStalled;
     deallocateTBE;
     popRspInQueue;
   }
@@ -1549,6 +1550,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
+    wakeUpStalled;
     deallocateTBE;
     popResponseFromC2cQueue;
   }
@@ -1630,6 +1632,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   transition(WAIT_WBDATA, Net_CBWrData_ReceiveDone, READY) {
     sendToC2c_Data;
+    wakeUpStalled;
     deallocateTBE;
     popTriggerQueue;
   }
@@ -1693,7 +1696,6 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   transition(SNP_FWD, Trigger_ReceiveDataDone, SNP_FWD_2) {
     sendToC2c_Data;
-    wakeUpStalled;
     popTriggerQueue;
   }
 
@@ -1791,7 +1793,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // When receiving a request during a SNP_FWD we stall
-  transition(SNP_FWD, CheckAllocTBE) {
+  transition({SNP_FWD, WAIT_WBDATA}, CheckAllocTBE) {
     stallRequestQueue;
   }
 

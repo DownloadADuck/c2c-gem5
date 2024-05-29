@@ -26,3 +26,21 @@ build/X86_CHI/gem5.opt --debug-flags=RubyGenerated configs/slicc_interface/main.
 ```bash
 build/X86_CHI/gem5.opt configs/example/gem5_library/x86-chi-ubuntu-boot-exit.py
 ```
+## Checkpoint with traces
+
+- Run the FS simulation with the **C2cTraces** debug flag
+```bash
+build/X86_CHI/gem5.opt --debug-flags=C2cTraces --debug-start=<start_tick> configs/example/gem5_library/x86_c2c_kvm/no-checkpoint-x86-ubuntu-boot-exit.py > trace.log
+```
+- Filter the traces to remove IFETCH
+```bash
+python3 icache_trace_filter.py <input_log_file> <output_log_file>```
+
+- Run the python parser with the previous output log file as input to generate the traces 
+```bash
+build/X86_CHI/gem.opt config/traces/checkpoint_trace.py --log-file <output_log_file>
+```
+- Run the simulation with the two trace files (optional debug flag)
+```bash
+build/X86_CHI/gem5.opt --debug-flags=RubyGenerated config/two_tgens_se_c2c/main.py
+```

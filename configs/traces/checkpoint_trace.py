@@ -218,4 +218,3 @@ print("lat_mem_rd simulation complete")
 print(f"lat_mem_rd with iterations, ranges:")
 for packet in packets:
     print(packet)
-
