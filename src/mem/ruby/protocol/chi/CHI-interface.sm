@@ -1468,6 +1468,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     updateTBE_FromNetResp;
     sendToC2c_Response;
     popRspInQueue;
+    wakeUpStalled;
     deallocateTBE;
   }
 
@@ -1799,7 +1800,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // When receiving a request during a SNP_FWD we stall
-  transition({SNP_FWD, WAIT_WBDATA}, CheckAllocTBE) {
+  transition({BLKD_REQ, SNP_FWD, WAIT_WBDATA}, CheckAllocTBE) {
     stallNetRequestQueue;
   }
 
@@ -1819,7 +1820,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popTriggerQueue;
   }
 
-  transition({READING_MEM,WAITING_NET_DATA,SENDING_NET_DATA,BLKD_REQ,READY},
+  transition({READING_MEM,WAITING_NET_DATA,SENDING_NET_DATA,READY},
               CheckAllocTBE) {
     checkAllocateTBE;
   }
