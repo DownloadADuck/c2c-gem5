@@ -1,0 +1,21 @@
+all: infinite-loop-static infinite-loop-dynamic infinite-loop-32-static
+
+infinite-loop-static: infinite_loop.c dockcross-x64
+	./dockcross-x64 bash -c '$$CC infinite-loop.c -o infinite-loop64-static -static'
+
+infinite-loop-dynamic: infinite_loop.c dockcross-x64
+	./dockcross-x64 bash -c '$$CC infinite-loop.c -o infinite-loop64-dynamic'
+
+infinite-loop-32-static: infinite_loop.c dockcross-x86
+	./dockcross-x86 bash -c '$$CC infinite-loop.c -o infinite-loop32-static -static'
+
+dockcross-x64:
+	docker run --rm dockcross/linux-x64 > ./dockcross-x64
+	chmod +x ./dockcross-x64
+
+dockcross-x86:
+	docker run --rm dockcross/linux-x86 > ./dockcross-x86
+	chmod +x ./dockcross-x86
+
+clean:
+	rm -f dockcross-* infinite-loop64-static infinite-loop64-dynamic infinite-loop32-static

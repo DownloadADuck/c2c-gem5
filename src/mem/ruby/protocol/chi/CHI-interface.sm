@@ -1388,6 +1388,12 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
+  action(stallNetSnoopQueue, "snsq", desc="Stall net snoop queue") {
+    peek(snpInPort, CHIRequestMsg){
+      stall_and_wait(snpInPort, address);
+    }
+  }
+
   action(stallC2cRequestQueue, "scrq", decs="Stall c2c request queue") {
     peek(requestFromC2c_in, C2cMsg){
       stall_and_wait(requestFromC2c_in, address);
@@ -1800,12 +1806,18 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // When receiving a request during a SNP_FWD we stall
+  // HACK: We should not stall on a snpSharedFwd after ReadRequest
   transition({BLKD_REQ, SNP_FWD, WAIT_WBDATA}, CheckAllocTBE) {
     stallNetRequestQueue;
   }
 
   transition(SENDING_WBDATA, CheckC2cReqAllocTBE) {
     stallC2cRequestQueue;
+  }
+
+  //Stalling snoops
+  transition(BLKD_REQ, Net_SnpCleanInvalid) {
+    stallNetSnoopQueue;
   }
 
   transition({READING_MEM,WAITING_NET_DATA,SENDING_NET_DATA,READY},

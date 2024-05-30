@@ -27,7 +27,7 @@ class Object(object):
 
 # Needed options0 for the create_system method
 options0 = Object()
-options0.cmd = "tests/test-progs/hello/bin/x86/linux/hello"
+options0.cmd = "tests/test-progs/infinite-loop/bin/infinite_loop"
 options0.input = ''
 options0.output = ''
 options0.errout = '' 
@@ -82,9 +82,10 @@ options0.restore_simpoint_checkpoint = False
 options0.max_checkpoints = 5
 options0.checkpoint_at_end = False
 options0.num_interfaces = 1
+options0.abs_max_tick = 481400000 #481358165
 
 options1 = Object()
-options1.cmd = "tests/test-progs/hello/bin/x86/linux/hello"
+options1.cmd = "tests/test-progs/infinite-loop/bin/infinite_loop"
 options1.input = ''
 options1.output = ''
 options1.errout = '' 
