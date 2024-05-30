@@ -37,6 +37,7 @@ class CPUTypes(Enum):
     O3 = "o3"
     TIMING = "timing"
     MINOR = "minor"
+    NONCACHING_SIMPLE = "noncaching_simple"
 
 
 def get_cpu_types_str_set() -> Set[str]:
@@ -85,6 +86,7 @@ def get_mem_mode(input: CPUTypes) -> MemMode:
         CPUTypes.MINOR: MemMode.TIMING,
         CPUTypes.KVM: MemMode.ATOMIC_NONCACHING,
         CPUTypes.ATOMIC: MemMode.ATOMIC,
+        CPUTypes.NONCACHING_SIMPLE: MemMode.ATOMIC_NONCACHING,
     }
 
     return cpu_mem_mode_map[input]
