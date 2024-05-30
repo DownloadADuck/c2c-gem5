@@ -95,6 +95,7 @@ class SimpleCore(BaseCPUCore):
             CPUTypes.TIMING: "TimingSimpleCPU",
             CPUTypes.KVM: "KvmCPU",
             CPUTypes.MINOR: "MinorCPU",
+            CPUTypes.NONCACHING_SIMPLE: "NonCachingSimpleCPU",
         }
 
         if isa not in _isa_string_map:
