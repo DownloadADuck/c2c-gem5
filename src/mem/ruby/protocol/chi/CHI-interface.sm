@@ -1576,6 +1576,13 @@ machine(MachineType:Interface, "C2C interface controller") :
     popSnpInQueue;
   }
 
+  // We allow a SnpCleanInvalid to be serviced after a CleanUnique
+  transition(BLKD_REQ, Net_SnpCleanInvalid, BLKD_SNP) {
+    initializeFromSnpTBE;
+    sendToC2c_Snoop;
+    popSnpInQueue;
+  } 
+
   transition(READY, C2c_SnpCleanInvalid, BLKD_SNP) {
     c2cReqAllocateTBE;
     initializeFromC2cSnpTBE;
@@ -1816,9 +1823,9 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   //Stalling snoops
-  transition(BLKD_REQ, Net_SnpCleanInvalid) {
-    stallNetSnoopQueue;
-  }
+  //transition(BLKD_REQ, Net_SnpCleanInvalid) {
+  //  stallNetSnoopQueue;
+  //}
 
   transition({READING_MEM,WAITING_NET_DATA,SENDING_NET_DATA,READY},
               Trigger_SendRetry) {

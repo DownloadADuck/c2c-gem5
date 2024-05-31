@@ -64,7 +64,8 @@ memory = DualChannelDDR3_1600_C2C(size="2GB", range_size="1GB")
 #    num_cores=2,
 #)
 processor = SimpleProcessor(
-    cpu_type=CPUTypes.NONCACHING_SIMPLE,
+    #cpu_type=CPUTypes.NONCACHING_SIMPLE,
+    cpu_type=CPUTypes.KVM,
     isa=ISA.X86,
     num_cores=2,
 )
