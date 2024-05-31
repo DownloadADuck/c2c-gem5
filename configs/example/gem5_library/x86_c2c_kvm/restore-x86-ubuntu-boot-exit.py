@@ -1,6 +1,7 @@
 # C2c architecture booting and exiting ubuntu with KVM enabled CPUs
 # Uses X86 and CHI
 from gem5.utils.requires import requires
+from gem5.resources.resource import Resource
 from gem5.components.boards.x86_c2c_board import X86C2cBoard
 from gem5.components.memory.single_channel import SingleChannelDDR3_1600
 from gem5.components.memory.multi_channel import (
@@ -19,6 +20,10 @@ from gem5.coherence_protocol import CoherenceProtocol
 from gem5.simulate.simulator import Simulator
 from gem5.simulate.exit_event import ExitEvent
 from gem5.resources.workload import Workload
+#from gem5.resources.resource import (
+#    CheckpointResource,
+#    obtain_resource,
+#)
 
 # This runs a check to ensure the gem5 binary is compiled to X86 and to the
 # CHI coherence protocol.
@@ -83,7 +88,11 @@ command = (
 
 workload = Workload("x86-ubuntu-18.04-boot")
 workload.set_parameter("readfile_contents", command)
-board.set_workload(workload)
+board.set_workload(
+    workload,
+    #checkpoint=Resource("./checkpoints/m5.cpt"),
+    checkpoint="./checkpoints/m5.cpt"
+)
 
 # Regular sim
 #simulator = Simulator(

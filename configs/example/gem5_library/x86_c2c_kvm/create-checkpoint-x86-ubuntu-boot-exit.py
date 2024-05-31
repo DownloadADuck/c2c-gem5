@@ -103,7 +103,7 @@ board.set_workload(workload)
 #simulator.run()
 
 # Ckeckpointing setup
-max_ticks = 60000000
+max_ticks = 865950000000
 checkpoint_path = "/home/lbertranalvarez/Work/gem5/checkpoints/"
 simulator = Simulator(
     board=board,

@@ -1583,7 +1583,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     popSnpInQueue;
   } 
 
-  transition(READY, C2c_SnpCleanInvalid, BLKD_SNP) {
+  // We allow a SnpCleanInvalid to be serviced after a CleanUnique
+  transition({READY, WAIT_COMP}, C2c_SnpCleanInvalid, BLKD_SNP) {
     c2cReqAllocateTBE;
     initializeFromC2cSnpTBE;
     sendToNet_Snoop;
@@ -1849,7 +1850,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
   
   // Receiving a request after isuing a request
-  transition(READING_MEM, CheckC2cReqAllocTBE) {
+  transition({READING_MEM, BLKD_SNP}, CheckC2cReqAllocTBE) {
     enqueueToC2cReqRdy;
   }
 
