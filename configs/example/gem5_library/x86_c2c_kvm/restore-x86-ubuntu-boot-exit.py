@@ -20,10 +20,10 @@ from gem5.coherence_protocol import CoherenceProtocol
 from gem5.simulate.simulator import Simulator
 from gem5.simulate.exit_event import ExitEvent
 from gem5.resources.workload import Workload
-#from gem5.resources.resource import (
-#    CheckpointResource,
-#    obtain_resource,
-#)
+from gem5.resources.resource import (
+    CheckpointResource,
+    get_resource,
+)
 
 # This runs a check to ensure the gem5 binary is compiled to X86 and to the
 # CHI coherence protocol.
@@ -86,35 +86,20 @@ command = (
     + "m5 exit;"
 )
 
-workload = Workload("x86-ubuntu-18.04-boot")
-workload.set_parameter("readfile_contents", command)
-board.set_workload(
-    workload,
-    #checkpoint=Resource("./checkpoints/m5.cpt"),
-    checkpoint="./checkpoints/m5.cpt"
+#workload = Workload("x86-ubuntu-18.04-boot")
+#workload.set_parameter("readfile_contents", command)
+board.set_kernel_disk_workload(
+    kernel=get_resource("x86-linux-kernel-5.4.49"),
+    disk_image=get_resource("x86-ubuntu-18.04-img"),
+    checkpoint=get_resource("./checkpoints/m5.cpt"),
 )
-
-# Regular sim
-#simulator = Simulator(
-#    board=board,
-#    on_exit_event={
-#        # Overriding the default behavior for the first m5 exit event. instead
-#        # of exiting the simulator we want to switch processor. 
-#        ExitEvent.EXIT: (func() for func in [processor.switch])
-#    }
-#)
-#simulator.run()
 
 # Ckeckpointing setup
 max_ticks = 600000
 checkpoint_path = "checkpoints/"
 simulator = Simulator(
     board=board,
-    #on_exit_event={
-    #    # Overriding the default behavior for the first m5 exit event. instead
-    #    # of exiting the simulator we want to switch processor. 
-    #    ExitEvent.EXIT: (func() for func in [processor.switch])
-    #}
+    full_system=True,
 )
 simulator.run(max_ticks=max_ticks)
 
@@ -123,7 +108,3 @@ print(
         simulator.get_current_tick(), simulator.get_last_exit_event_cause()
     )
 )
-
-print("Checkpointing at", checkpoint_path)
-simulator.save_checkpoint(checkpoint_path)
-print("Checkpointing done")
