@@ -274,6 +274,7 @@ BaseSimpleCPU::checkForInterrupts()
     }
 }
 
+static uint64_t last_printed_tick = 0;
 
 void
 BaseSimpleCPU::setupFetchRequest(const RequestPtr &req)
@@ -286,8 +287,11 @@ BaseSimpleCPU::setupFetchRequest(const RequestPtr &req)
     Addr fetchPC = (instAddr & decoder->pcMask()) + t_info.fetchOffset;
 
     // set up memory request for instruction fetch
-    DPRINTF(Fetch, "Fetch: Inst PC:%08p, Fetch PC:%08p\n", instAddr, fetchPC);
-
+    uint64_t current_tick = curTick();
+    if (current_tick - last_printed_tick >= 1000000000) {
+        DPRINTF(Fetch, "Fetch: Inst PC:%08p, Fetch PC:%08p\n", instAddr, fetchPC);
+        last_printed_tick = current_tick;
+    }
     req->setVirt(fetchPC, decoder->moreBytesSize(), Request::INST_FETCH,
                  instRequestorId(), instAddr);
 }

@@ -53,7 +53,7 @@ memory = DualChannelDDR3_1600_C2C(size="2GB", range_size="1GB")
 # Switchable KVM -> timing
 processor = SimpleSwitchableProcessor(
     starting_core_type=CPUTypes.KVM,
-    switch_core_type=CPUTypes.TIMING,
+    switch_core_type=CPUTypes.KVM,
     isa=ISA.X86,
     num_cores=2,
 )
@@ -79,7 +79,8 @@ board = X86C2cBoard(
 )
 
 
-max_ticks = 865733000000
+#max_ticks = 1160000000000
+max_ticks = 860000000000
 
 # 1 000 000 000 ticks per sec
 delay = max_ticks / 1e9
@@ -98,7 +99,7 @@ workload = Workload("x86-ubuntu-18.04-boot")
 workload.set_parameter("readfile_contents", command)
 board.set_workload(workload)
 
-# Ckeckpointing setup
+# Checkpointing setup
 checkpoint_path = "/home/lbertranalvarez/Work/gem5/checkpoints/"
 simulator = Simulator(
     board=board,
