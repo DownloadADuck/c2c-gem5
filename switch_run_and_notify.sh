@@ -3,10 +3,8 @@
 # Run the gem5 sim
 # 1163117343708
 build/X86_CHI/gem5.opt \
-	--debug-flags=RubyGenerated \
-	--debug-start=860000000000 \
-	configs/example/gem5_library/x86_c2c_kvm/create-checkpoint-x86-ubuntu-boot-exit.py > \
-	switch_output.yaml
+	--debug-flags=Fetch \
+	configs/example/gem5_library/x86_c2c_kvm/create-checkpoint-x86-ubuntu-boot-exit.py
 
 # Check exit status 
 if  [ $? -eq 0 ]; then

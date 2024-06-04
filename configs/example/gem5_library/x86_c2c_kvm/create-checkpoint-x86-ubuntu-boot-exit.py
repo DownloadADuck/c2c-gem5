@@ -53,7 +53,7 @@ memory = DualChannelDDR3_1600_C2C(size="2GB", range_size="1GB")
 # Switchable KVM -> timing
 processor = SimpleSwitchableProcessor(
     starting_core_type=CPUTypes.KVM,
-    switch_core_type=CPUTypes.KVM,
+    switch_core_type=CPUTypes.TIMING,
     isa=ISA.X86,
     num_cores=2,
 )
@@ -79,8 +79,8 @@ board = X86C2cBoard(
 )
 
 
-#max_ticks = 1160000000000
-max_ticks = 860000000000
+#max_ticks = 960000000000
+max_ticks = 1010000000000
 
 # 1 000 000 000 ticks per sec
 delay = max_ticks / 1e9

@@ -64,6 +64,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     SNP_FWD_LOCAL_DATA, AccessPermission:Invalid, desc="SnpFwd but data is local to requestor";
     SNP_FWD_RESP_BETWEEN_DATA, AccessPermission:Invalid, desc="The response arrives between the two data pkts";
 
+    STALE_SNP, AccessPermission:Invalid, desc="Happens when receiving a snpCleanInvalid after a request";
+
 
     // Null state for debugging; allow writes
     null, AccessPermission:Backing_Store, desc="Null state";
@@ -1523,12 +1525,23 @@ machine(MachineType:Interface, "C2C interface controller") :
     popResponseFromC2cQueue;
   }
 
-  // !! This is a hack
-  //transition(WAIT_COMP, C2c_Comp_I) {
-  //  updateTBE_FromC2cResp;
-  //  sendToNet_Response;
-  //  popResponseFromC2cQueue;
-  //}
+  // Stale CleanUnique
+  transition(STALE_SNP, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, Net_SnpResp_SC_Fwded_SC,
+  Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_I_Fwded_UC}, WAIT_COMP) {
+    updateTBE_FromNetResp;
+    sendToC2c_Response;
+    deallocateTBE;
+    popRspInQueue;
+  }
+
+  transition(STALE_SNP, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, C2c_SnpResp_SC_Fwded_SC,
+  C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_I_Fwded_UC}, BLKD_REQ) {
+    updateTBE_FromC2cResp;
+    sendToNet_Response;
+    deallocateTBE;
+    popResponseFromC2cQueue;
+  }
+
   transition(WAIT_COMP, C2c_Comp_I, READY) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
@@ -1576,15 +1589,28 @@ machine(MachineType:Interface, "C2C interface controller") :
     popSnpInQueue;
   }
 
-  // We allow a SnpCleanInvalid to be serviced after a CleanUnique
-  transition(BLKD_REQ, Net_SnpCleanInvalid, BLKD_SNP) {
+  // Receiving a SnpClean after a req needs serialization 
+  transition(BLKD_REQ, Net_SnpCleanInvalid, STALE_SNP) {
     initializeFromSnpTBE;
     sendToC2c_Snoop;
     popSnpInQueue;
   } 
 
   // We allow a SnpCleanInvalid to be serviced after a CleanUnique
-  transition({READY, WAIT_COMP}, C2c_SnpCleanInvalid, BLKD_SNP) {
+  transition(BLKD_REQ, C2c_SnpCleanInvalid, STALE_SNP){
+    initializeFromC2cSnpTBE;
+    sendToNet_Snoop;
+    popC2cReqRdyInQueue;
+  }
+
+  transition(READY, C2c_SnpCleanInvalid, BLKD_SNP) {
+    c2cReqAllocateTBE;
+    initializeFromC2cSnpTBE;
+    sendToNet_Snoop;
+    popC2cReqRdyInQueue;
+  }
+
+  transition(WAIT_COMP, C2c_SnpCleanInvalid, BLKD_SNP) {
     updateTBEFromC2cSnp;
     sendToNet_Snoop;
     popC2cReqRdyInQueue;
