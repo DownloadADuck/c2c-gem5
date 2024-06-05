@@ -1530,7 +1530,6 @@ machine(MachineType:Interface, "C2C interface controller") :
   Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_I_Fwded_UC}, WAIT_COMP) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
-    deallocateTBE;
     popRspInQueue;
   }
 
@@ -1538,7 +1537,6 @@ machine(MachineType:Interface, "C2C interface controller") :
   C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_I_Fwded_UC}, BLKD_REQ) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
-    deallocateTBE;
     popResponseFromC2cQueue;
   }
 
@@ -1597,11 +1595,11 @@ machine(MachineType:Interface, "C2C interface controller") :
   } 
 
   // We allow a SnpCleanInvalid to be serviced after a CleanUnique
-  transition(BLKD_REQ, C2c_SnpCleanInvalid, STALE_SNP){
-    initializeFromC2cSnpTBE;
-    sendToNet_Snoop;
-    popC2cReqRdyInQueue;
-  }
+  //transition(BLKD_REQ, C2c_SnpCleanInvalid, STALE_SNP){
+  //  initializeFromC2cSnpTBE;
+  //  sendToNet_Snoop;
+  //  popC2cReqRdyInQueue;
+  //}
 
   transition(READY, C2c_SnpCleanInvalid, BLKD_SNP) {
     c2cReqAllocateTBE;
@@ -1610,7 +1608,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popC2cReqRdyInQueue;
   }
 
-  transition(WAIT_COMP, C2c_SnpCleanInvalid, BLKD_SNP) {
+  transition(WAIT_COMP, C2c_SnpCleanInvalid, STALE_SNP) {
     updateTBEFromC2cSnp;
     sendToNet_Snoop;
     popC2cReqRdyInQueue;
