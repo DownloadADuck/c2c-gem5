@@ -544,6 +544,7 @@ AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
         (*msg).m_Type = (*(pkt->c2c_msg)).m_Type;
         (*msg).m_DataBlk = (*(pkt->c2c_msg)).m_DataBlk;
 
+        (*msg).m_Stale = (*(pkt->c2c_msg)).m_Stale;
         (*msg).m_C2c_sharers = (*(pkt->c2c_msg)).m_C2c_sharers;
     } else {
         panic("Incorrect packet type received in the c2c_out_port!");

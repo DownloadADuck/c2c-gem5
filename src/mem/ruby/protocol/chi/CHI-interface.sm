@@ -508,6 +508,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     MachineID c2c_requestor, desc="Stores the off-chip requestor";
 
     bool retToSrc, desc="Stores the retToSrc for snoop handling";
+    bool stale, desc="Stores the stale status for responses";
 
     // Storing types
     CHIRequestType to_c2c_req_type, desc="Temporarily stores the request type";
@@ -1298,7 +1299,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.Type := CHIRspToC2cMsg(tbe.to_c2c_rsp_type);
       out_msg.MessageSize := MessageSizeType:Response_Control;
       out_msg.C2c_sharers := tbe.c2c_sharers;
-      DPRINTF(RubyGenerated, "SendToC2c_Response C2c_Sharers: %s\n", out_msg.C2c_sharers);
+      out_msg.Stale := tbe.stale;
     }
   }
 
@@ -1315,6 +1316,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.responder := machineID;
       out_msg.Destination.add(tbe.requestor);
       out_msg.c2c_sharers := tbe.c2c_sharers;
+      out_msg.stale := tbe.stale;
     }
   }
 
@@ -1324,6 +1326,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       tbe.to_c2c_rsp_type := in_msg.type;
       tbe.destination := in_msg.responder;
       tbe.c2c_sharers := in_msg.responder;
+      tbe.stale := in_msg.stale;
     }
   }
 
@@ -1332,6 +1335,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     peek(responseFromC2c_in, C2cMsg) { 
       tbe.to_net_rsp_type := in_msg.Type;
       tbe.c2c_sharers := in_msg.C2c_sharers;
+      tbe.stale := in_msg.Stale;
     }
   }
 

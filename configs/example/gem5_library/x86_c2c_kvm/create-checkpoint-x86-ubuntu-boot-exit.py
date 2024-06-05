@@ -67,8 +67,8 @@ board = X86C2cBoard(
     cache_hierarchy=cache_hierarchy,
 )
 
-
-max_ticks = 860000000000
+#max_ticks = 860000000000
+max_ticks = 1000000000
 
 # Full System workload setup
 # The X86Board takes a kernel, a disk image and an optional command to run
@@ -89,7 +89,6 @@ def exit_switch_cpu_event():
     while True:
         yield False
 
-
 # Checkpointing setup
 checkpoint_path = "/home/lbertranalvarez/Work/gem5/checkpoints/"
 simulator = Simulator(
@@ -105,7 +104,6 @@ print(
         simulator.get_current_tick(), simulator.get_last_exit_event_cause()
     )
 )
-
 
 #print("Checkpointing at", checkpoint_path)
 #simulator.save_checkpoint(checkpoint_path)

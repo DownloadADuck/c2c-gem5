@@ -59,6 +59,7 @@ structure(C2cMsg, desc="...", interface="Message") {
   MachineID C2c_requestor,       desc="Off-chip requestor";
 
   bool RetToSrc,                desc="Affects whether or not a snoop resp return data";
+  bool Stale,                   desc="Response stale status flag";
 
   DataBlock DataBlk,            desc="Data to writeback";
   MessageSizeType MessageSize,  desc="size category of the message";
