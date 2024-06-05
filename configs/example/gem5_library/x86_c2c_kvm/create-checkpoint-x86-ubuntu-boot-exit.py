@@ -1,5 +1,6 @@
 # C2c architecture booting and exiting ubuntu with KVM enabled CPUs
 # Uses X86 and CHI
+import m5
 from gem5.utils.requires import requires
 from gem5.components.boards.x86_c2c_board import X86C2cBoard
 from gem5.components.memory.single_channel import SingleChannelDDR3_1600
@@ -53,22 +54,10 @@ memory = DualChannelDDR3_1600_C2C(size="2GB", range_size="1GB")
 # Switchable KVM -> timing
 processor = SimpleSwitchableProcessor(
     starting_core_type=CPUTypes.KVM,
-    switch_core_type=CPUTypes.KVM,
+    switch_core_type=CPUTypes.TIMING,
     isa=ISA.X86,
     num_cores=2,
 )
-#processor = SimpleSwitchableProcessor(
-#    starting_core_type=CPUTypes.TIMING,
-#    switch_core_type=CPUTypes.TIMING,
-#    isa=ISA.X86,
-#    num_cores=2,
-#)
-#processor = SimpleProcessor(
-#    #cpu_type=CPUTypes.NONCACHING_SIMPLE,
-#    cpu_type=CPUTypes.KVM,
-#    isa=ISA.X86,
-#    num_cores=2,
-#)
 
 # Board setup
 board = X86C2cBoard(
@@ -79,16 +68,11 @@ board = X86C2cBoard(
 )
 
 
-#max_ticks = 1010000000000
-max_ticks = 750000000000
-
-# 1 000 000 000 ticks per sec
-delay = max_ticks / 1e9
+max_ticks = 860000000000
 
 # Full System workload setup
 # The X86Board takes a kernel, a disk image and an optional command to run
 command = (
-    #f"m5 exit {delay};"
     "m5 exit;"
     + "echo 'This is running on Timing CPU cores.';"
     + "sleep 1;"
@@ -99,18 +83,22 @@ workload = Workload("x86-ubuntu-18.04-boot")
 workload.set_parameter("readfile_contents", command)
 board.set_workload(workload)
 
+def exit_switch_cpu_event():
+    processor.switch()
+    yield False
+    while True:
+        yield False
+
+
 # Checkpointing setup
 checkpoint_path = "/home/lbertranalvarez/Work/gem5/checkpoints/"
 simulator = Simulator(
     board=board,
-    #on_exit_event={
-    #    ExitEvent.EXIT: (func() for func in [processor.switch])
-    #}
+    on_exit_event={
+        ExitEvent.MAX_TICK : exit_switch_cpu_event()
+    }
 )
 simulator.run(max_ticks=max_ticks)
-print("Switching to timing CPU.")
-processor.switch()
-simulator.run()
 
 print(
     "Exiting @ tick {} because {}.".format(

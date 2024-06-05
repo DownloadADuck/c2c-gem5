@@ -1,9 +1,7 @@
 #!/bin/bash
 
 # Run the gem5 sim
-# 1163117343708
 build/X86_CHI/gem5.opt \
-	--debug-flags=Fetch \
 	configs/example/gem5_library/x86_c2c_kvm/create-checkpoint-x86-ubuntu-boot-exit.py
 
 # Check exit status 
@@ -19,4 +17,3 @@ curl -s \
 	--form-string "user=uaieu5ay7z5sooib15dhqwithhg8je" \
 	--form-string "message=Simulation ended." \
 	https://api.pushover.net/1/messages.json
-#python3 send_email.py
