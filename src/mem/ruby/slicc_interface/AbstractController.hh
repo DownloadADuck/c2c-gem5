@@ -224,6 +224,9 @@ class AbstractController : public ClockedObject, public Consumer
     MachineID mapAddressToDownstreamMachine(Addr addr,
                                     MachineType mtype = MachineType_NUM) const;
 
+    /** Check if the address has a downstream client */
+    bool hasDownstreamClient(Addr addr, MachineType mtype) const;
+
     /** List of downstream destinations (towards memory) */
     const NetDest& allDownstreamDest() const { return downstreamDestinations; }
 

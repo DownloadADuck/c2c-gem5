@@ -620,6 +620,29 @@ const
         name(), addr, mtype);
 }
 
+// Used to check is inbound request is local or not
+bool
+AbstractController::hasDownstreamClient(Addr addr, MachineType mtype)
+const
+{
+    if (mtype == MachineType_NUM) {
+        // Check for any match
+        for (const auto& i : downstreamAddrMap) {
+            if (i.second.contains(addr)) {
+                return true;
+            }
+        }
+    } else {
+        const auto i = downstreamAddrMap.find(mtype);
+        if (i != downstreamAddrMap.end()) {
+            if (i->second.contains(addr)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 // Classic memory port
 bool
 AbstractController::MemoryPort::recvTimingResp(PacketPtr pkt)

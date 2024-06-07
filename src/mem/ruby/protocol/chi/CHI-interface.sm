@@ -836,6 +836,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       // reserve a slot for this request
       storTBEs.incrementReserved();
 
+      DPRINTF(RubyC2c, "checkAllocateTBE -> addr: %s, is_local?: %s", address, mapAddressToDownstreamMachine(address));
+
       peek(reqInPort, CHIRequestMsg) {
         enqueue(reqRdyOutPort, CHIRequestMsg, 0) {
           out_msg := in_msg;
