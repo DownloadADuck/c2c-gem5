@@ -891,7 +891,6 @@ machine(MachineType:Interface, "C2C interface controller") :
         }
       }
     }
-    requestFromC2c_in.dequeue(clockEdge());
   }
 
   action(enqueueToC2cReqRdy, desc="Enqueues a request without allocating a new tbe") {
@@ -900,7 +899,6 @@ machine(MachineType:Interface, "C2C interface controller") :
         out_msg := in_msg;
       }
     }
-    requestFromC2c_in.dequeue(clockEdge());
   }
 
   action(checkAllocateTBE_withCredit, desc="") {
@@ -1391,7 +1389,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     responseFromC2c_in.dequeue(clockEdge());
   }
 
-  // Not used but we keep it for when needed
   action(popRequestFromC2cQueue, "prfc2c", desc="Pop request from c2c queue.") {
     requestFromC2c_in.dequeue(clockEdge());
   }
@@ -1892,16 +1889,24 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   transition({BLKD_REQ,READY}, CheckC2cReqAllocTBE) {
     checkC2cReqAllocateTBE;
+    popRequestFromC2cQueue;
   }
   
   // Receiving a request after isuing a request
   transition({READING_MEM, BLKD_SNP, WAIT_COMP}, CheckC2cReqAllocTBE) {
     enqueueToC2cReqRdy;
+    popRequestFromC2cQueue;
   }
 
   transition({READING_MEM,WAITING_NET_DATA,SENDING_NET_DATA,READY},
               CheckAllocTBE_WithCredit) {
     checkAllocateTBE_withCredit;
     popReqInQueue;
+  }
+
+  transition({READY, READING_MEM, WAITING_NET_DATA, SENDING_NET_DATA},
+              trigger_InitiateReqAck) {
+    enqueueToStalled;
+    SendToC2c_AskForReqAck;
   }
 }
