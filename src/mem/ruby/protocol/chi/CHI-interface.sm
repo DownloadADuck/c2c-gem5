@@ -599,6 +599,9 @@ machine(MachineType:Interface, "C2C interface controller") :
   // Used by the requestor side
   MachineID mapAddressToDownstreamMachine(Addr addr);
 
+  // Used to check if an inbound request is local 
+  bool hasDownstreamClient(Addr addr); 
+
   ////////////////////////////////////////////////////////////////////////////
   // Interface functions required by SLICC
   ////////////////////////////////////////////////////////////////////////////
@@ -836,7 +839,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       // reserve a slot for this request
       storTBEs.incrementReserved();
 
-      DPRINTF(RubyC2c, "checkAllocateTBE -> addr: %s, is_local?: %s", address, mapAddressToDownstreamMachine(address));
+      DPRINTF(RubyC2c, "checkAllocateTBE -> addr: %s, is_local?: %s", address, hasDownstreamClient(address));
 
       peek(reqInPort, CHIRequestMsg) {
         enqueue(reqRdyOutPort, CHIRequestMsg, 0) {
