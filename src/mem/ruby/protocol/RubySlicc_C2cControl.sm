@@ -11,6 +11,9 @@ enumeration(C2cRequestType, desc="...") {
   // (These are currently unused!)
   MEMORY_DATA, desc="Data read from memory";
   MEMORY_ACK,  desc="Write to memory acknowledgement";
+
+  // C2C handshake messages
+  ReqAck, desc="Controller is ready to receive a request";
   
   // Requests
   ReadShared, desc="ReadShared";
@@ -60,6 +63,7 @@ structure(C2cMsg, desc="...", interface="Message") {
 
   bool RetToSrc,                desc="Affects whether or not a snoop resp return data";
   bool Stale,                   desc="Response stale status flag";
+  bool ReqAck,                  desc="This message is a request to send a request";
 
   DataBlock DataBlk,            desc="Data to writeback";
   MessageSizeType MessageSize,  desc="size category of the message";
