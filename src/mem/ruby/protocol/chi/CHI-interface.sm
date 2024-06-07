@@ -839,7 +839,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       // reserve a slot for this request
       storTBEs.incrementReserved();
 
-      DPRINTF(RubyC2c, "checkAllocateTBE -> addr: %s, is_local?: %s", address, hasDownstreamClient(address));
+      DPRINTF(RubyC2c, "checkAllocateTBE -> addr: %s, is_local?: %d\n", address, hasDownstreamClient(address));
 
       peek(reqInPort, CHIRequestMsg) {
         enqueue(reqRdyOutPort, CHIRequestMsg, 0) {
