@@ -1378,6 +1378,14 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
+  action(sendToC2c_ReqAck, "s2cra", desc="Sends the ReqAck to the c2c") {
+    assert(is_valid(tbe));
+    enqueue(responseToC2c_out, C2cMsg, 1) {
+      out_msg.addr := tbe.Address;
+      out_msg.Type := C2cRequestType:ReqAck;
+    }
+  }
+
   action(enqueueToStalled, "ats", decs="Enqueues the waiting request to the stalled queue") {
     // Enqueues to the stalled queue for later use
     peek(reqInPort, CHIRequestMsg) {
