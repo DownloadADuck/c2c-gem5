@@ -515,6 +515,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
     bool retToSrc, desc="Stores the retToSrc for snoop handling";
     bool stale, desc="Stores the stale status for responses";
+    bool pending, desc="Pending off-chip requests flag";
 
     // Storing types
     CHIRequestType to_c2c_req_type, desc="Temporarily stores the request type";
@@ -1421,13 +1422,12 @@ machine(MachineType:Interface, "C2C interface controller") :
     if (tbe.pending) {
       // We have a pending request, send the ReqAck
       enqueue(triggerOutPort, TriggerMsg, 0) {
-        out_msg.Addr := tbe.addr;
         out_msg.event := Event:Trigger_SendToC2c_ReqAck;
       }
     }
   }
 
-  action(popStalled, "ps", desc="Pop stalled in queue") {
+  action(popStalled, "psq", desc="Pop stalled in queue") {
     stalledInPort.dequeue(clockEdge());
   }
 
@@ -1979,8 +1979,8 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition({READY, READING_MEM, WAITING_NET_DATA, SENDING_NET_DATA},
-              trigger_InitiateReqAck) {
+              Trigger_InitiateReqAck) {
     enqueueToStalled;
-    SendToC2c_AskForReqAck;
+    sendToC2c_AskForReqAck;
   }
 }
