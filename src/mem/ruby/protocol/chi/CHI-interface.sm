@@ -778,17 +778,9 @@ machine(MachineType:Interface, "C2C interface controller") :
       printResources();
       peek(requestFromC2c_in, C2cMsg) {
         if (in_msg.ReqAck) {
-          // in_msg is a request demand
-          if (is_valid(tbe)) {
-            // We already have a tbe for this address
-            // We check if the request is expected
-            if (tbe.expected_req_req.hasExpected()) {
-              // We expect a request response from the C2C link
-
-            }
-          } else {
-            // There is no tbe, we can service the request
-          }
+          // in_msg is a request demand, we need to check
+          Addr add :=makeLineAddress(in_msg.addr);
+          trigger(Event:CheckC2cExpectedReq, addr, TBEs[addr]);
         } else {
           // in_msg is not a handshake request we service
           Addr addr := makeLineAddress(in_msg.addr);
@@ -1454,6 +1446,26 @@ machine(MachineType:Interface, "C2C interface controller") :
         out_msg.event := Event:Trigger_SendToC2c_ReqAck;
       }
     }
+  }
+
+  action(checkC2cExpectedReq, "ccer", "Checks if the inbound request is expected") {
+    peek(requestFromC2c_in, C2cMsg) {
+      if (in_msg.ReqAck) {
+          // in_msg is a request demand
+          if (is_valid(tbe)) {
+            // We already have a tbe for this address
+            // We check if the request is expected
+            if (tbe.expected_req_req.hasExpected()) {
+              // We expect a request response from the C2C link
+
+            }
+          } else {
+            // There is no tbe, we can service the request
+          }
+
+      }
+    }
+
   }
 
   action(popStalled, "psq", desc="Pop stalled in queue") {
