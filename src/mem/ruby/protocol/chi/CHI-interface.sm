@@ -1132,6 +1132,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.C2c_requestor := tbe.requestor;
       out_msg.MessageSize := MessageSizeType:Request_Control;
       out_msg.Len := 0;
+      out_msg.ReqAck := false;
     }
   }
 
@@ -1365,11 +1366,29 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   // ReqAck actions
   action(sendToC2c_AskForReqAck, "s2cafra", desc="Sends a demand to send a request to c2c") {
-
+    assert(is_valid(tbe));
+    enqueue(requestToC2c_out, C2cMsg, 1) {
+      out_msg.addr := address;
+      out_msg.Type := CHIReqToC2cMsg(tbe.to_c2c_req_type);
+      out_msg.Sender := tbe.requestor;
+      out_msg.C2c_requestor := tbe.requestor;
+      out_msg.MessageSize := MessageSizeType:Request_Control;
+      out_msg.Len := 0;
+      out_msg.ReqAck := true;
+    }
   }
 
   action(enqueueToStalled, "ats", decs="Enqueues the waiting request to the stalled queue") {
-
+    // Enqueues to the stalled queue for later use
+    peek(reqInPort, CHIRequestMsg) {
+      enqueue(stalledOutPort, CHIRequestMsg, 1) {
+        out_msg := in_msg;
+      }
+    }
+    // Stalls while we wait for the ReqAck
+    peek(stalledInPort, CHIRequestMsg) {
+      stall_and_wait(stalledInPort, address);
+    }
   }
 
   action(checkPending, "cp", desc="Checks if there is pending requests") {
