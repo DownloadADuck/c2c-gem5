@@ -483,6 +483,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     void clear(int dataChunks);
     void addExpectedRespType(CHIResponseType);
     void addExpectedDataType(CHIDataType);
+    // Used to handshake c2c requests
+    void addExpectedReqType(C2cRequestType);
     void setExpectedCount(int val);
     void addExpectedCount(int val);
     bool hasExpected();
@@ -492,8 +494,10 @@ machine(MachineType:Interface, "C2C interface controller") :
     int received();
     bool receiveResp(CHIResponseType);
     bool receiveData(CHIDataType);
+    bool receiveReq(C2cRequestType);
     bool receivedDataType(CHIDataType);
     bool receivedRespType(CHIResponseType);
+    bool receivedReqType(C2cRequestType);
   }
 
   // TBE fields
@@ -773,8 +777,23 @@ machine(MachineType:Interface, "C2C interface controller") :
     if (requestFromC2c_in.isReady(clockEdge())) {
       printResources();
       peek(requestFromC2c_in, C2cMsg) {
-        Addr addr := makeLineAddress(in_msg.addr);
-        trigger(Event:CheckC2cReqAllocTBE, addr, TBEs[addr]);
+        if (in_msg.ReqAck) {
+          // in_msg is a request demand
+          if (is_valid(tbe)) {
+            // We already have a tbe for this address
+            // We check if the request is expected
+            if (tbe.expected_req_req.hasExpected()) {
+              // We expect a request response from the C2C link
+
+            }
+          } else {
+            // There is no tbe, we can service the request
+          }
+        } else {
+          // in_msg is not a handshake request we service
+          Addr addr := makeLineAddress(in_msg.addr);
+          trigger(Event:CheckC2cReqAllocTBE, addr, TBEs[addr]);
+        }
       }
     }
   }
@@ -1000,6 +1019,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       tbe.accAddr := in_msg.accAddr;
       tbe.accSize := in_msg.accSize;
       tbe.to_c2c_req_type := in_msg.type;
+      //tbe.expected_req_req.addExpectedResponseType(C2cRequestType:ReqAck);
+      // for snpSharedFwd we can have others (check transitions)
     }
   }
 
@@ -1989,8 +2010,8 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition({READY, READING_MEM, WAITING_NET_DATA, SENDING_NET_DATA},
               Trigger_InitiateReqAck) {
     allocateTBE;
-    enqueueToStalled;
-
+    initializeFromReqTBE;
     sendToC2c_AskForReqAck;
+    deallocateTBE;
   }
 }
