@@ -874,10 +874,16 @@ machine(MachineType:Interface, "C2C interface controller") :
       } else {
         // address is not local, we ask permission and stall
         peek(reqInPort, CHIRequestMsg) {
+          enqueue(stalledOutPort, CHIRequestMsg, 0) {
+            out_msg := in_msg;
+          }
           enqueue(triggerOutPort, TriggerMsg, 0) {
             out_msg.addr := in_msg.addr;
             out_msg.event := Event:Trigger_InitiateReqAck;
           }
+        }
+        peek(stalledInPort, CHIRequestMsg) {
+          stall_and_wait(stalledInPort, address);
         }
       }
     } else {
@@ -1404,6 +1410,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
+  // Useless because handled by checkAllocateTBE 
   action(enqueueToStalled, "ats", decs="Enqueues the waiting request to the stalled queue") {
     // Enqueues to the stalled queue for later use
     peek(reqInPort, CHIRequestMsg) {
@@ -1422,6 +1429,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     if (tbe.pending) {
       // We have a pending request, send the ReqAck
       enqueue(triggerOutPort, TriggerMsg, 0) {
+        out_msg.addr := tbe.addr;
         out_msg.event := Event:Trigger_SendToC2c_ReqAck;
       }
     }
@@ -1980,7 +1988,9 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   transition({READY, READING_MEM, WAITING_NET_DATA, SENDING_NET_DATA},
               Trigger_InitiateReqAck) {
+    allocateTBE;
     enqueueToStalled;
+
     sendToC2c_AskForReqAck;
   }
 }
