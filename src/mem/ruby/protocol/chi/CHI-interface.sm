@@ -160,6 +160,8 @@ machine(MachineType:Interface, "C2C interface controller") :
 
     Trigger_SendToC2c_Request, desc="Trigger the sending of requests to c2c";
     Trigger_SendToNet_Request, desc="Trigger the sending of requests to net";
+
+    Trigger_InitiateReqAck, desc="Initiates the request acknowledgement";
   }
 
 
@@ -871,6 +873,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   action(checkC2cReqAllocateTBE, desc="Check if we have resources, moves to c2cReqRdy") {
+    // here we need the logic that looks if the request is a reqAck and checks if it is expected or not
     if (storTBEs.areNSlotsAvailable(1)) {
       storTBEs.incrementReserved();
 
