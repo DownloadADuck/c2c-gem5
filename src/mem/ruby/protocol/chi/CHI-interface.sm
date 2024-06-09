@@ -726,6 +726,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   out_port(triggerOutPort, TriggerMsg, triggerQueue);
   out_port(reqRdyOutPort, CHIRequestMsg, reqRdy);
   out_port(c2cReqRdyOutPort, C2cMsg, c2cReqRdy);
+  out_port(stalledOutPort, CHIRequestMsg, stalled);
   // C2c requestor c2c_out_port
   out_port(requestToC2c_out, C2cMsg, requestToC2c);
   // C2c responder c2c_in_port
@@ -813,6 +814,21 @@ machine(MachineType:Interface, "C2C interface controller") :
       printResources();
       peek(c2cReqRdyInPort, C2cMsg) {
         trigger(c2cReqToEvent(in_msg.Type), in_msg.addr, TBEs[in_msg.addr]);
+      }
+    }
+  }
+
+  // Same as the reqIn port but we use it to internally store requests
+  in_port(stalledInPort, CHIRequest, stalled, rank=1) {
+    if (stalledInPort.isReady(clockEdge())) {
+      printResources();
+      peek(stalledInPort, CHIRequestMsg) {
+        if (in_msg.allowRetry) {
+          trigger(Event:CheckAllocTBE, in_msg.addr, TBEs[in_msg.addr]);
+        } else {
+          trigger(Event:CheckAllocTBE_WithCredit,
+                  in_msg.addr, TBEs[in_msg.addr]);
+        }
       }
     }
   }
@@ -1382,7 +1398,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   action(sendToC2c_ReqAck, "s2cra", desc="Sends the ReqAck to the c2c") {
     assert(is_valid(tbe));
     enqueue(responseToC2c_out, C2cMsg, 1) {
-      out_msg.addr := tbe.Address;
+      out_msg.addr := tbe.addr;
       out_msg.Type := C2cRequestType:ReqAck;
     }
   }
