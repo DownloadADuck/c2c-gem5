@@ -716,7 +716,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     tbe.expected_req_resp.clear(blockSize / data_channel_size);
   }
 
-  void cleanExpectedReq(TBE tbe) {
+  void clearExpectedReq(TBE tbe) {
     assert(blockSize >= data_channel_size);
     assert((blockSize % data_channel_size) == 0);
     tbe.expected_req.clear(blockSize / data_channel_size);
@@ -984,8 +984,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     tbe.addr := address;
     tbe.rxtxBytes := 0;
     tbe.useDataSepResp := false;
-    
-    clearExpectedReq(tbe);
   }
 
   action(allocateTBE_Snoop, "atbes", desc="Allocate TBE for a snoop") {
@@ -1024,6 +1022,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   action(initializeFromReqTBE, "itbe", desc="Initialize TBE fields") {
+    assert(is_valid(tbe));
     peek(reqRdyInPort, CHIRequestMsg) {
       tbe.requestor := in_msg.requestor;
       if (in_msg.dataToFwdRequestor) {
@@ -1034,6 +1033,16 @@ machine(MachineType:Interface, "C2C interface controller") :
       tbe.accAddr := in_msg.accAddr;
       tbe.accSize := in_msg.accSize;
       tbe.to_c2c_req_type := in_msg.type;
+
+      // seting up the expected_req map
+      clearExpectedReq(tbe);
+
+      // For now, if the request is not a ReadShared, we don't accept
+      // new inbound requests during the transaction 
+      if (in_msg.type == CHIRequestType:ReadShared) {
+        tbe.expected_req.addExpectedReqType(CHIRequestType:SnpSharedFwd);
+        tbe.expected_req.addExpectedReqType(CHIRequestType:SnpUniqueFwd);
+      }
     }
   }
 
