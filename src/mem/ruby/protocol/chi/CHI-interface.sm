@@ -894,17 +894,14 @@ machine(MachineType:Interface, "C2C interface controller") :
       storTBEs.incrementReserved();
 
       DPRINTF(RubyC2c, "checkAllocateTBE -> addr: %s, is_local?: %d\n", address, hasDownstreamClient(address));
-
-      if (hasDownstreamClient(address)) {
-        // address is local, we have priority
-        peek(reqInPort, CHIRequestMsg) {
+      peek(reqInPort, CHIRequestMsg) {
+        if (hasDownstreamClient(in_msg.addr)) {
+          // address is local, we have priority
           enqueue(reqRdyOutPort, CHIRequestMsg, 0) {
             out_msg := in_msg;
           }
-        }
-      } else {
-        // address is not local, we ask permission and stall
-        peek(reqInPort, CHIRequestMsg) {
+        } else {
+          // address is not local, we ask permission and stall
           enqueue(stalledOutPort, CHIRequestMsg, 0) {
             out_msg := in_msg;
           }
@@ -912,10 +909,10 @@ machine(MachineType:Interface, "C2C interface controller") :
             out_msg.addr := in_msg.addr;
             out_msg.event := Event:Trigger_InitiateReqAck;
           }
-        }
-        // Stalling the queue right after
-        peek(stalledInPort, CHIRequestMsg) {
-          stall_and_wait(stalledInPort, address);
+          // Stalling the queue right after
+          peek(stalledInPort, CHIRequestMsg) {
+            stall_and_wait(stalledInPort, in_msg.addr);
+          }
         }
       }
     } else {
@@ -1522,7 +1519,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   action(popReqInQueue, "priq", desc="Pop request in queue.") {
-    reqRdyInPort.dequeue(clockEdge());
+    reqInPort.dequeue(clockEdge());
   }
 
   action(popReqRdyInQueue, "prreq", desc="Pop request queue.") {
