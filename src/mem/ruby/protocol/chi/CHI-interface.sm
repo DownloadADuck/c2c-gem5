@@ -716,6 +716,12 @@ machine(MachineType:Interface, "C2C interface controller") :
     tbe.expected_req_resp.clear(blockSize / data_channel_size);
   }
 
+  void cleanExpectedReq(TBE tbe) {
+    assert(blockSize >= data_channel_size);
+    assert((blockSize % data_channel_size) == 0);
+    tbe.expected_req.clear(blockSize / data_channel_size);
+  }
+
   ////////////////////////////////////////////////////////////////////////////
   // Helper functions
   ////////////////////////////////////////////////////////////////////////////
@@ -978,6 +984,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     tbe.addr := address;
     tbe.rxtxBytes := 0;
     tbe.useDataSepResp := false;
+    
+    clearExpectedReq(tbe);
   }
 
   action(allocateTBE_Snoop, "atbes", desc="Allocate TBE for a snoop") {
