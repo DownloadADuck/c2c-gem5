@@ -501,6 +501,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   structure(ExpectedReqMap, external="yes") {
+    void clear(int dataChunks);
     void addExpectedReqType(C2cRequestType);
     void setExpectedCount(int val);
     void addExpectedCount(int val);
@@ -1040,8 +1041,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       // For now, if the request is not a ReadShared, we don't accept
       // new inbound requests during the transaction 
       if (in_msg.type == CHIRequestType:ReadShared) {
-        tbe.expected_req.addExpectedReqType(CHIRequestType:SnpSharedFwd);
-        tbe.expected_req.addExpectedReqType(CHIRequestType:SnpUniqueFwd);
+        tbe.expected_req.addExpectedReqType(C2cRequestType:SnpSharedFwd);
+        tbe.expected_req.addExpectedReqType(C2cRequestType:SnpUniqueFwd);
       }
     }
   }
