@@ -137,6 +137,16 @@ class ExpectedReqMap
         :expectedReq(), totalExpected(0)
     {}
 
+    // Clear the tracking state and specified the number of chunks are required
+    // to receive a complete data message
+    void
+    clear(int dataChunks) 
+    {
+        //expectedData.clear(dataChunks)
+        expectedReq.clear(1);
+        totalExpected = 0;
+    }
+
     // Register an expected request message type
     void
     addExpectedReqType(const ReqType &val)
