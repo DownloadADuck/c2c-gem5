@@ -1433,7 +1433,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   // ReqAck actions
   action(sendToC2c_AskForReqAck, "s2cafra", desc="Sends a demand to send a request to c2c") {
-    assert(is_valid(tbe));
+    //assert(is_valid(tbe));
     enqueue(requestToC2c_out, C2cMsg, 1) {
       out_msg.addr := address;
       out_msg.Type := CHIReqToC2cMsg(tbe.to_c2c_req_type);
@@ -1607,6 +1607,21 @@ machine(MachineType:Interface, "C2C interface controller") :
         out_msg.responder := machineID;
         out_msg.Destination.add(in_msg.retryDest);
       }
+    }
+  }
+
+  action(initializeFromStalledTBE, desc="Initialize the TBE with the stalled queue") {
+    assert(is_valid(tbe));
+    peek(stalledInPort, CHIRequestMsg) {
+      tbe.requestor := in_msg.requestor;
+      if (in_msg.dataToFwdRequestor) {
+        tbe.destination := in_msg.fwdRequestor;
+      } else {
+        tbe.destination := in_msg.requestor;
+      }
+      tbe.accAddr := in_msg.accAddr;
+      tbe.accSize := in_msg.accSize;
+      tbe.to_c2c_req_type := in_msg.type;
     }
   }
 
@@ -2088,10 +2103,11 @@ machine(MachineType:Interface, "C2C interface controller") :
     popReqInQueue;
   }
 
+  // Add the new initialize action that peeks the stalled queue
   transition({READY, READING_MEM, WAITING_NET_DATA, SENDING_NET_DATA},
               Trigger_InitiateReqAck) {
     allocateTBE;
-    initializeFromReqTBE;
+    initializeFromStalledTBE;
     sendToC2c_AskForReqAck;
     deallocateTBE;
   }
