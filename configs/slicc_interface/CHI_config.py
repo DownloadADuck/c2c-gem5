@@ -677,15 +677,17 @@ class CHI_Interface(CHI_Node):
         self._cntrl = Interface_Controller(
             version=Versions.getVersion(Interface_Controller),
             ruby_system=ruby_system,
-            triggerQueue=TriggerMessageBuffer(),
             # c2c ports
             requestToC2c=MemCtrlMessageBuffer(),
             responseFromC2c=MemCtrlMessageBuffer(),
             responseToC2c=MemCtrlMessageBuffer(),
             requestFromC2c=MemCtrlMessageBuffer(),
 
+            triggerQueue=TriggerMessageBuffer(),
             reqRdy=TriggerMessageBuffer(),
             c2cReqRdy=TriggerMessageBuffer(),
+            stalled=TriggerMessageBuffer(),
+
             transitions_per_cycle=1024,
         )
 

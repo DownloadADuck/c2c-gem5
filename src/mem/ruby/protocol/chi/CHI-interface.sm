@@ -35,7 +35,6 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   // Queue to temporarily store requests waiting for acks
   MessageBuffer * stalled;
-
 {
 
   ////////////////////////////////////////////////////////////////////////////
