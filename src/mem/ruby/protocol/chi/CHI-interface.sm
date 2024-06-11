@@ -792,7 +792,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       printResources();
       peek(requestFromC2c_in, C2cMsg) {
         if (in_msg.ReqAck) {
-          // in_msg is a request demand, we need to check
+          // in_msg is a handshake request, we need to check
           Addr addr := makeLineAddress(in_msg.addr);
           trigger(Event:CheckC2cExpectedReq, addr, TBEs[addr]);
         } else {
@@ -907,6 +907,7 @@ machine(MachineType:Interface, "C2C interface controller") :
             out_msg.event := Event:Trigger_InitiateReqAck;
           }
         }
+        // Stalling the queue right after
         peek(stalledInPort, CHIRequestMsg) {
           stall_and_wait(stalledInPort, address);
         }
@@ -1025,8 +1026,6 @@ machine(MachineType:Interface, "C2C interface controller") :
       tbe.accAddr := in_msg.accAddr;
       tbe.accSize := in_msg.accSize;
       tbe.to_c2c_req_type := in_msg.type;
-      //tbe.expected_req_req.addExpectedResponseType(C2cRequestType:ReqAck);
-      // for snpSharedFwd we can have others (check transitions)
     }
   }
 
@@ -1464,38 +1463,34 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   action(checkC2cExpectedReq, "ccer", "Checks if the inbound request is expected") {
     peek(requestFromC2c_in, C2cMsg) {
-      if (in_msg.ReqAck) {
-          // in_msg is a request demand
-          if (is_valid(tbe)) {
-            // We already have a tbe for this address
-            // We check if the request is expected
-            if (tbe.expected_req.hasExpected()) {
-              // We expect a potential request we need to check
-              // if the types match
-              if (tbe.expected_req.receiveReq(in_msg.Type) == true) {
-                // We are expecting this, trigger a checkC2cExpectedReq
-                enqueue(triggerOutPort, TriggerMsg, 0) {
-                  out_msg.addr := tbe.addr;
-                  out_msg.event := Event:CheckC2cReqAllocTBE;
-                }
-              } else {
-                // Types don't match, we don't want this request
-                tbe.pending := true;
-              }
-
-            } else {
-              // We are not expecting a request we do not answer
-              // and we set the tbe.pending
-              tbe.pending := true;
-            }
-          } else {
-            // There is no tbe, we can service the request
+      // If we are here, this means that in_msg.ReqAck == true
+      if (is_valid(tbe)) {
+        // We already have a tbe for this address
+        // We check if the request is expected
+        if (tbe.expected_req.hasExpected()) {
+          // We expect a potential request we need to check
+          // if the types match
+          if (tbe.expected_req.receiveReq(in_msg.Type) == true) {
+            // We are expecting this, trigger a checkC2cExpectedReq
             enqueue(triggerOutPort, TriggerMsg, 0) {
               out_msg.addr := tbe.addr;
               out_msg.event := Event:CheckC2cReqAllocTBE;
             }
+          } else {
+            // Types don't match, we don't want this request
+            tbe.pending := true;
           }
-
+        } else {
+          // We are not expecting a request we do not answer
+          // and we set the tbe.pending
+          tbe.pending := true;
+        }
+      } else {
+        // There is no tbe, we can service the request
+        enqueue(triggerOutPort, TriggerMsg, 0) {
+          out_msg.addr := tbe.addr;
+          out_msg.event := Event:CheckC2cReqAllocTBE;
+        }
       }
     }
   }
