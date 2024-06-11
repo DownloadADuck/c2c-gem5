@@ -1471,9 +1471,14 @@ machine(MachineType:Interface, "C2C interface controller") :
     assert(is_valid(tbe));
     if (tbe.pending) {
       // We have a pending request, send the ReqAck
-      enqueue(triggerOutPort, TriggerMsg, 0) {
+      //enqueue(triggerOutPort, TriggerMsg, 0) {
+      //  out_msg.addr := tbe.addr;
+      //  out_msg.event := Event:Trigger_SendToC2c_ReqAck;
+      //}
+      // instead of going through a trigger, we send directly
+      enqueue(responseToC2c_out, C2cMsg, 1) {
         out_msg.addr := tbe.addr;
-        out_msg.event := Event:Trigger_SendToC2c_ReqAck;
+        out_msg.Type := C2cRequestType:ReqAck;
       }
     }
   }
@@ -1654,6 +1659,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     sendToC2c_Response;
     popRspInQueue;
     wakeUpStalled;
+    checkPending;
     deallocateTBE;
   }
 
@@ -1661,6 +1667,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     updateTBE_FromC2cResp;
     sendToNet_CompAck;
     popResponseFromC2cQueue;
+    checkPending;
     deallocateTBE;
   }
 
@@ -1690,16 +1697,18 @@ machine(MachineType:Interface, "C2C interface controller") :
   Net_SnpResp_SC_Fwded_SC, Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
-    deallocateTBE;
     popRspInQueue;
+    checkPending;
+    deallocateTBE;
   }
 
   transition({BLKD_SNP, READY}, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, 
   C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
-    deallocateTBE;
     popResponseFromC2cQueue;
+    checkPending;
+    deallocateTBE;
   }
 
   // Stale CleanUnique
@@ -1720,8 +1729,9 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition(WAIT_COMP, C2c_Comp_I, READY) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
-    deallocateTBE;
     popResponseFromC2cQueue;
+    checkPending;
+    deallocateTBE;
   }
 
   transition(WAIT_COMP, C2c_CompDBIDResp, WAIT_WBDATA) {
@@ -1743,8 +1753,9 @@ machine(MachineType:Interface, "C2C interface controller") :
     updateTBE_FromNetResp;
     sendToC2c_Response;
     wakeUpStalled;
-    deallocateTBE;
     popRspInQueue;
+    checkPending;
+    deallocateTBE;
   }
 
   transition(SNP_FWD, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD,
@@ -1752,8 +1763,9 @@ machine(MachineType:Interface, "C2C interface controller") :
     updateTBE_FromC2cResp;
     sendToNet_Response;
     wakeUpStalled;
-    deallocateTBE;
     popResponseFromC2cQueue;
+    checkPending;
+    deallocateTBE;
   }
 
   // Snoops
@@ -1826,6 +1838,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     sendToC2c_Response;
     wakeUpStalled;
     popRspInQueue;
+    checkPending;
   }
 
   transition(SNP_FWD_LOCAL_DATA, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, 
@@ -1834,6 +1847,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     sendToNet_Response;
     wakeUpStalled;
     popResponseFromC2cQueue;
+    checkPending;
   }
 
   // Special case where the resp arrived between the two data packets
@@ -1854,8 +1868,9 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition(WAIT_WBDATA, Net_CBWrData_ReceiveDone, READY) {
     sendToC2c_Data;
     wakeUpStalled;
-    deallocateTBE;
     popTriggerQueue;
+    checkPending;
+    deallocateTBE;
   }
 
   transition(READY, {C2c_CBWrData_UC, C2c_CBWrData_SD_PD, C2c_CBWrData_UD_PD}, SENDING_WBDATA) {
@@ -1870,9 +1885,10 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition(SENDING_WBDATA, Trigger_SendDone, READY) {
-    deallocateTBE;
     wakeUpStalled;
     popTriggerQueue;
+    checkPending;
+    deallocateTBE;
   }
 
   // Going back to the SNPFWD to send the complete data
@@ -1906,6 +1922,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition(SENDING_NET_DATA, Trigger_SendDone, READY) {
     wakeUpStalled;
     popTriggerQueue;
+    checkPending;
   }
 
   // SnpSharedFwd
@@ -1944,8 +1961,9 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition(SNP_FWD_2, Trigger_ReceiveDataDone, READY) {
     sendToC2c_Data;
     wakeUpStalled;
-    deallocateTBE;
     popTriggerQueue;
+    checkPending;
+    deallocateTBE;
   }
 
   transition(SNP_FWD, {C2c_CompData_UC, C2c_CompData_SC, C2c_CompData_SD_PD, 
@@ -1975,6 +1993,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     sendToC2c_Data;
     wakeUpStalled;
     popTriggerQueue;
+    checkPending;
   }
 
   transition(BLKD_SNP, Net_SnpRespData_I_PD) {
@@ -1986,8 +2005,9 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition(BLKD_SNP, Trigger_ReceiveDataDone, READY) {
     sendToC2c_Data;
     wakeUpStalled;
-    deallocateTBE;
     popTriggerQueue;
+    checkPending;
+    deallocateTBE;
   }
 
   transition(BLKD_SNP, C2c_SnpRespData_I_PD, SENDING_NET_DATA_NO_ACK) {
@@ -2003,8 +2023,9 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   transition(SENDING_NET_DATA_NO_ACK, Trigger_SendDone, READY) {
     wakeUpStalled;
-    deallocateTBE;
     popTriggerQueue;
+    checkPending;
+    deallocateTBE;
   }
 
   // Notice we only use this here and call wakeUp when leaving this state
@@ -2073,5 +2094,9 @@ machine(MachineType:Interface, "C2C interface controller") :
     initializeFromReqTBE;
     sendToC2c_AskForReqAck;
     deallocateTBE;
+  }
+
+  transition({READY,}, Trigger_SendToC2c_ReqAck) {
+    sendToC2c_ReqAck;
   }
 }
