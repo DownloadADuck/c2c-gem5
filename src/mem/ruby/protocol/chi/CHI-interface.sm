@@ -1495,8 +1495,9 @@ machine(MachineType:Interface, "C2C interface controller") :
           if (tbe.expected_req.receiveReq(in_msg.Type) == true) {
             // We are expecting this, trigger a checkC2cExpectedReq
             enqueue(triggerOutPort, TriggerMsg, 0) {
-              out_msg.addr := tbe.addr;
-              out_msg.event := Event:CheckC2cReqAllocTBE;
+              out_msg.addr := in_msg.addr;
+              //out_msg.event := Event:CheckC2cReqAllocTBE;
+              out_msg.event := Event:Trigger_SendToC2c_ReqAck;
             }
           } else {
             // Types don't match, we don't want this request
@@ -1510,8 +1511,9 @@ machine(MachineType:Interface, "C2C interface controller") :
       } else {
         // There is no tbe, we can service the request
         enqueue(triggerOutPort, TriggerMsg, 0) {
-          out_msg.addr := tbe.addr;
-          out_msg.event := Event:CheckC2cReqAllocTBE;
+          out_msg.addr := in_msg.addr;
+          //out_msg.event := Event:CheckC2cReqAllocTBE;
+          out_msg.event := Event:Trigger_SendToC2c_ReqAck;
         }
       }
     }
@@ -2112,7 +2114,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     deallocateTBE;
   }
 
-  transition({READY,}, Trigger_SendToC2c_ReqAck) {
+  transition({READY}, Trigger_SendToC2c_ReqAck) {
     sendToC2c_ReqAck;
   }
 }
