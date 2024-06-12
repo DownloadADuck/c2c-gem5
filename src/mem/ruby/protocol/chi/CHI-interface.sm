@@ -2112,6 +2112,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     initializeFromStalledTBE;
     sendToC2c_AskForReqAck;
     deallocateTBE;
+    popTriggerQueue;
   }
 
   transition({READY}, Trigger_SendToC2c_ReqAck) {
