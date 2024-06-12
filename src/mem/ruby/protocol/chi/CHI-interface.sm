@@ -1493,7 +1493,7 @@ machine(MachineType:Interface, "C2C interface controller") :
           // We expect a potential request we need to check
           // if the types match
           if (tbe.expected_req.receiveReq(in_msg.Type) == true) {
-            // We are expecting this, trigger a checkC2cExpectedReq
+            // We are expecting this, trigger the ReqAck sending
             enqueue(triggerOutPort, TriggerMsg, 0) {
               out_msg.addr := in_msg.addr;
               //out_msg.event := Event:CheckC2cReqAllocTBE;
@@ -2097,7 +2097,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   transition({BLKD_REQ,READY,READING_MEM, BLKD_SNP, WAIT_COMP}, CheckC2cExpectedReq) {
     checkC2cExpectedReq;
-    popTriggerQueue;
+    popRequestFromC2cQueue;
   }
 
   transition({READING_MEM,WAITING_NET_DATA,SENDING_NET_DATA,READY},
