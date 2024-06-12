@@ -2097,6 +2097,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   transition({BLKD_REQ,READY,READING_MEM, BLKD_SNP, WAIT_COMP}, CheckC2cExpectedReq) {
     checkC2cExpectedReq;
+    popTriggerQueue;
   }
 
   transition({READING_MEM,WAITING_NET_DATA,SENDING_NET_DATA,READY},
@@ -2117,5 +2118,6 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   transition({READY}, Trigger_SendToC2c_ReqAck) {
     sendToC2c_ReqAck;
+    popTriggerQueue;
   }
 }
