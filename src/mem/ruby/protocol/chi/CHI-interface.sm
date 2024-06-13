@@ -2133,7 +2133,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popRequestFromC2cQueue;
   }
 
-  transition({BLKD_REQ,READY,READING_MEM, BLKD_SNP, WAIT_COMP}, CheckC2cExpectedReq) {
+  transition({BLKD_REQ,READY,READING_MEM,BLKD_SNP,WAIT_COMP,SENDING_WBDATA}, CheckC2cExpectedReq) {
     checkC2cExpectedReq;
     popRequestFromC2cQueue;
   }
