@@ -44,7 +44,7 @@ cache_hierarchy = C2cCacheHierarchy(
 )
 
 # System memory
-memory = DualChannelDDR3_1600_C2C(size="2GB", range_size="1GB")
+memory = DualChannelDDR3_1600_C2C(size="3GB", range_size="1500MB")
 
 # Switchable KVM -> timing
 #processor = SimpleSwitchableProcessor(
@@ -54,8 +54,8 @@ memory = DualChannelDDR3_1600_C2C(size="2GB", range_size="1GB")
 #    num_cores=1,
 #)
 processor = SimpleSwitchableProcessor(
-    starting_core_type=CPUTypes.TIMING,
-    switch_core_type=CPUTypes.TIMING,
+    starting_core_type=CPUTypes.KVM,
+    switch_core_type=CPUTypes.KVM,
     isa=ISA.X86,
     num_cores=2,
 )

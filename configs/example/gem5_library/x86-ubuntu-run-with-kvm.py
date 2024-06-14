@@ -121,14 +121,26 @@ workload = Workload("x86-ubuntu-18.04-boot")
 workload.set_parameter("readfile_contents", command)
 board.set_workload(workload)
 
+max_ticks = 23000000000000
+
+def exit_switch_cpu_event():
+    processor.switch()
+    yield False
+    while True:
+        yield False
+
 simulator = Simulator(
     board=board,
+    #on_exit_event={
+    #    # Here we want override the default behavior for the first m5 exit
+    #    # exit event. Instead of exiting the simulator, we just want to
+    #    # switch the processor. The 2nd m5 exit after will revert to using
+    #    # default behavior where the simulator run will exit.
+    #    ExitEvent.EXIT: (func() for func in [processor.switch])
+    #},
     on_exit_event={
-        # Here we want override the default behavior for the first m5 exit
-        # exit event. Instead of exiting the simulator, we just want to
-        # switch the processor. The 2nd m5 exit after will revert to using
-        # default behavior where the simulator run will exit.
-        ExitEvent.EXIT: (func() for func in [processor.switch])
+        ExitEvent.MAX_TICK : exit_switch_cpu_event(),
     },
 )
-simulator.run()
+simulator.run(max_ticks=max_ticks)
+#simulator.run()
