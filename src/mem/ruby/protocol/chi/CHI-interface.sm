@@ -1916,7 +1916,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // Data
-  transition(WAIT_WBDATA, {Net_CBWrData_UC, Net_CBWrData_SD_PD, Net_CBWrData_UD_PD}) {
+  transition(WAIT_WBDATA, {Net_CBWrData_UC, Net_CBWrData_I, Net_CBWrData_SD_PD, Net_CBWrData_UD_PD}) {
     copyDataToTBE;
     checkForReceiveCompletion;
     popDataInQueue;
@@ -1930,7 +1930,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     deallocateTBE;
   }
 
-  transition(READY, {C2c_CBWrData_UC, C2c_CBWrData_SD_PD, C2c_CBWrData_UD_PD}, SENDING_WBDATA) {
+  transition(READY, {C2c_CBWrData_UC, C2c_CBWrData_I, C2c_CBWrData_SD_PD, C2c_CBWrData_UD_PD}, SENDING_WBDATA) {
     prepareSend_Data;
     sendToNet_Data;
     popResponseFromC2cQueue;
