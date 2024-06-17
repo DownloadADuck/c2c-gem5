@@ -1614,9 +1614,15 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  action(stallC2cRequestQueue, "scrq", decs="Stall c2c request queue") {
+  action(stallC2cRequestQueue, "scrq", desc="Stall c2c request queue") {
     peek(requestFromC2c_in, C2cMsg){
       stall_and_wait(requestFromC2c_in, address);
+    }
+  }
+
+  action(stallC2cResponseQueue, "scrspq", desc="Stall the c2c response queue") {
+    peek(responseFromC2c_in, C2cMsg){
+      stall_and_wait(responseFromC2c_in, address);
     }
   }
 
@@ -2028,6 +2034,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     prepareSend_Data;
     sendToNet_Data;
     popResponseFromC2cQueue;
+    stallC2cResponseQueue;
   }
 
   transition(SENDING_SNP_DATA, Trigger_Send) {
