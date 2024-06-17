@@ -240,6 +240,8 @@ class TwoRangesMemory(AbstractMemorySystem):
             self._addr_mapping = addr_mapping
         else:
             self._addr_mapping = self._dram_class.addr_mapping.value
+        
+        print(f"DRAM Address mapping: {self._addr_mapping}")
 
         if size:
             self._size = toMemorySize(size)
@@ -285,12 +287,22 @@ class TwoRangesMemory(AbstractMemorySystem):
                 "RoRaBaChCo, RoRaBaCoCh, RoCoRaBaCh"
             )
 
-        intlv_bits = log(self._num_channels, 2)
-        for i, ctrl in enumerate(self.mem_ctrl):
-            ctrl.dram.range = AddrRange(
-                start=(self._mem_range.start)+((self._range_size) * i),
-                size=self._range_size,
-            )
+        #for i, ctrl in enumerate(self.mem_ctrl):
+        #    ctrl.dram.range = AddrRange(
+        #        start=(self._mem_range.start)+((self._range_size) * i),
+        #        size=self._range_size,
+        #    )
+        self.mem_ctrl[0].dram.range = AddrRange(
+            start=0,
+            size=self._range_size,
+        )
+        self.mem_ctrl[1].dram.range = AddrRange(
+            #start=self._range_size + 1,
+            start=self._range_size,
+            size=self._range_size,
+        )
+        print(f"interleave_addresses: ranges: {self.mem_ctrl[0].dram.range}")
+        print(f"interleave_addresses: ranges: {self.mem_ctrl[1].dram.range}")
                 #start=(self._mem_range.start)+((self._range_size) * i),
                 #size=(self._range_size) * (i+1)
 
@@ -329,4 +341,5 @@ class TwoRangesMemory(AbstractMemorySystem):
                 f"This memory's size: {self._size}"
             )
         self._mem_range = ranges[0]
+        print(f"set_memory_ranges - _mem_range: {self._mem_range}")
         self._interleave_addresses()

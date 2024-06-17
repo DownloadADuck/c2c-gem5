@@ -1,6 +1,10 @@
 from gem5.utils.requires import requires
 from gem5.components.boards.x86_board import X86Board
 from gem5.components.memory.single_channel import SingleChannelDDR3_1600
+from gem5.components.memory.multi_channel import (
+    DualChannelDDR3_1600,
+    DualChannelDDR3_1600_C2C,
+)
 from gem5.components.processors.simple_switchable_processor import (
     SimpleSwitchableProcessor,
 )
@@ -33,7 +37,9 @@ cache_hierarchy = MESITwoLevelCacheHierarchy(
 )
 
 # Memory
-memory = SingleChannelDDR3_1600(size="3GB")
+#memory = SingleChannelDDR3_1600(size="3GB")
+#memory = DualChannelDDR3_1600(size="3GB")
+memory = DualChannelDDR3_1600_C2C(size="3GB", range_size="1500MB")
 
 # CPU
 processor = SimpleSwitchableProcessor(
@@ -73,16 +79,16 @@ def exit_switch_cpu_event():
 
 simulator = Simulator(
     board=board,
-    #on_exit_event={
-    #    # Here we want override the default behavior for the first m5 exit
-    #    # exit event. Instead of exiting the simulator, we just want to
-    #    # switch the processor. The 2nd m5 exit after will revert to using
-    #    # default behavior where the simulator run will exit.
-    #    ExitEvent.EXIT: (func() for func in [processor.switch])
-    #},
     on_exit_event={
-        ExitEvent.MAX_TICK : exit_switch_cpu_event(),
+        # Here we want override the default behavior for the first m5 exit
+        # exit event. Instead of exiting the simulator, we just want to
+        # switch the processor. The 2nd m5 exit after will revert to using
+        # default behavior where the simulator run will exit.
+        ExitEvent.EXIT: (func() for func in [processor.switch])
     },
+    #on_exit_event={
+    #    ExitEvent.MAX_TICK : exit_switch_cpu_event(),
+    #},
 )
-simulator.run(max_ticks=max_ticks)
-#simulator.run()
+#simulator.run(max_ticks=max_ticks)
+simulator.run()
