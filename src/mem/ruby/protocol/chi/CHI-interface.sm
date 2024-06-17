@@ -2051,7 +2051,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // Stalling when receiving the snp resp too fast
-  transition(SENDING_SNP_DATA, {C2c_SnpRespData_SC_Fwded_SD_PD, C2c_SnpRespData_SC_Fwded_SC}, SENDING_SNP_DATA) {
+  transition(SENDING_SNP_DATA, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_I_Fwded_UC}, SENDING_SNP_DATA) {
     stallC2cResponseQueue;
   }
 
