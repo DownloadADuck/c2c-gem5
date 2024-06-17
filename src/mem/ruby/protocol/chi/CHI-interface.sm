@@ -1988,7 +1988,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     prepareSend_Data;
     sendToNet_Data;
     popResponseFromC2cQueue;
-    stallC2cResponseQueue;
   }
   
   transition(SENDING_NET_DATA, Trigger_Send) {
@@ -2048,6 +2047,11 @@ machine(MachineType:Interface, "C2C interface controller") :
     prepareSend_Data;
     sendToNet_Data;
     popResponseFromC2cQueue;
+  }
+
+  // Stalling when receiving the snp resp too fast
+  transition(SENDING_SNP_DATA, {C2c_SnpRespData_SC_Fwded_SD_PD, C2c_SnpRespData_SC_Fwded_SC}, SENDING_SNP_DATA) {
+    stallC2cResponseQueue;
   }
 
   transition(SENDING_SNP_DATA, Trigger_Send) {
