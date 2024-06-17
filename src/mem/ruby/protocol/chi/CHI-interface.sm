@@ -125,6 +125,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     C2c_CompData_UD_PD, desc="Response data from c2c of type UD PD";
     Net_CBWrData_UC, desc="Response from an evict";
     C2c_CBWrData_UC, desc="";
+    Net_CBWrData_SC, desc="Response from an evict";
+    C2c_CBWrData_SC, desc="";
     Net_CBWrData_I, desc="Response from an evict";
     C2c_CBWrData_I, desc="";
     Net_CBWrData_SD_PD, desc="";
@@ -247,6 +249,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:Net_CompData_UD_PD;
     } else if (type == CHIDataType:CBWrData_UC) {
       return Event:Net_CBWrData_UC;
+    } else if (type == CHIDataType:CBWrData_SC) {
+      return Event:Net_CBWrData_SC;
     } else if (type == CHIDataType:CBWrData_I) {
       return Event:Net_CBWrData_I;
     } else if (type == CHIDataType:CBWrData_SD_PD) {
@@ -301,6 +305,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:C2c_CompData_UD_PD;
     } else if (type == C2cRequestType:CBWrData_UC) {
       return Event:C2c_CBWrData_UC;
+    } else if (type == C2cRequestType:CBWrData_SC) {
+      return Event:C2c_CBWrData_SC;
     } else if (type == C2cRequestType:CBWrData_I) {
       return Event:C2c_CBWrData_I;
     } else if (type == C2cRequestType:CBWrData_SD_PD) {
@@ -398,6 +404,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return CHIDataType:CompData_UD_PD;
     } else if (type == C2cRequestType:CBWrData_UC) {
       return CHIDataType:CBWrData_UC;
+    } else if (type == C2cRequestType:CBWrData_SC) {
+      return CHIDataType:CBWrData_SC;
     } else if (type == C2cRequestType:CBWrData_I) {
       return CHIDataType:CBWrData_I;
     } else if (type == C2cRequestType:CBWrData_SD_PD) {
@@ -474,6 +482,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return C2cRequestType:CompData_UD_PD;
     } else if (type == CHIDataType:CBWrData_UC) {
       return C2cRequestType:CBWrData_UC;
+    } else if (type == CHIDataType:CBWrData_SC) {
+      return C2cRequestType:CBWrData_SC;
     } else if (type == CHIDataType:CBWrData_I) {
       return C2cRequestType:CBWrData_I;
     } else if (type == CHIDataType:CBWrData_SD_PD) {
@@ -1240,6 +1250,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_SD_PD);
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_UD_PD);
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CBWrData_UC);
+    tbe.expected_req_resp.addExpectedDataType(CHIDataType:CBWrData_SC);
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CBWrData_I);
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CBWrData_SD_PD);
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CBWrData_UD_PD);
@@ -1344,6 +1355,7 @@ machine(MachineType:Interface, "C2C interface controller") :
           out_msg.addr := address;
           if (
             in_msg.type == CHIDataType:CBWrData_UC ||
+            in_msg.type == CHIDataType:CBWrData_SC ||
             in_msg.type == CHIDataType:CBWrData_I ||
             in_msg.type == CHIDataType:CBWrData_UD_PD ||
             in_msg.type == CHIDataType:CBWrData_SD_PD
@@ -1424,6 +1436,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     assert(is_valid(tbe));
     clearExpectedReqResp(tbe);
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CBWrData_UC);
+    tbe.expected_req_resp.addExpectedDataType(CHIDataType:CBWrData_SC);
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CBWrData_I);
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CBWrData_SD_PD);
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CBWrData_UD_PD);
@@ -1916,7 +1929,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // Data
-  transition(WAIT_WBDATA, {Net_CBWrData_UC, Net_CBWrData_I, Net_CBWrData_SD_PD, Net_CBWrData_UD_PD}) {
+  transition(WAIT_WBDATA, {Net_CBWrData_UC, Net_CBWrData_SC, Net_CBWrData_I, Net_CBWrData_SD_PD, Net_CBWrData_UD_PD}) {
     copyDataToTBE;
     checkForReceiveCompletion;
     popDataInQueue;
@@ -1930,7 +1943,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     deallocateTBE;
   }
 
-  transition(READY, {C2c_CBWrData_UC, C2c_CBWrData_I, C2c_CBWrData_SD_PD, C2c_CBWrData_UD_PD}, SENDING_WBDATA) {
+  transition(READY, {C2c_CBWrData_UC, C2c_CBWrData_SC, C2c_CBWrData_I, C2c_CBWrData_SD_PD, C2c_CBWrData_UD_PD}, SENDING_WBDATA) {
     prepareSend_Data;
     sendToNet_Data;
     popResponseFromC2cQueue;
