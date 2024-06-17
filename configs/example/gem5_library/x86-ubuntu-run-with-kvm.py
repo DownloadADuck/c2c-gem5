@@ -131,16 +131,16 @@ def exit_switch_cpu_event():
 
 simulator = Simulator(
     board=board,
-    #on_exit_event={
-    #    # Here we want override the default behavior for the first m5 exit
-    #    # exit event. Instead of exiting the simulator, we just want to
-    #    # switch the processor. The 2nd m5 exit after will revert to using
-    #    # default behavior where the simulator run will exit.
-    #    ExitEvent.EXIT: (func() for func in [processor.switch])
-    #},
     on_exit_event={
-        ExitEvent.MAX_TICK : exit_switch_cpu_event(),
+        # Here we want override the default behavior for the first m5 exit
+        # exit event. Instead of exiting the simulator, we just want to
+        # switch the processor. The 2nd m5 exit after will revert to using
+        # default behavior where the simulator run will exit.
+        ExitEvent.EXIT: (func() for func in [processor.switch])
     },
+    #on_exit_event={
+    #    ExitEvent.MAX_TICK : exit_switch_cpu_event(),
+    #},
 )
-simulator.run(max_ticks=max_ticks)
-#simulator.run()
+#simulator.run(max_ticks=max_ticks)
+simulator.run()
