@@ -2047,7 +2047,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     prepareSend_Data;
     sendToNet_Data;
     popResponseFromC2cQueue;
-    stallC2cResponseQueue;
   }
 
   // Stalling when receiving the snp resp too fast
