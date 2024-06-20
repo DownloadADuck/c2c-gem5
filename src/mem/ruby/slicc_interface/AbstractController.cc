@@ -585,7 +585,8 @@ AbstractController::recvTimingReq(PacketPtr pkt)
 Tick
 AbstractController::recvAtomic(PacketPtr pkt)
 {
-   return ticksToCycles(memoryPort.sendAtomic(pkt));
+    printf("%lu: recvAtomic - Addr: %#x\n", pkt->getAddr());
+    return ticksToCycles(memoryPort.sendAtomic(pkt));
 }
 
 MachineID

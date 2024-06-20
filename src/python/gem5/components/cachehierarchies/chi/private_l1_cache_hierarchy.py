@@ -79,6 +79,10 @@ class PrivateL1CacheHierarchy(AbstractRubyCacheHierarchy):
         requires(coherence_protocol_required=CoherenceProtocol.CHI)
 
         self.ruby_system = RubySystem()
+        mem_ranges = []
+        
+        for rng, port in board.get_mem_ports():
+            mem_ranges.append(rng)
 
         # Ruby's global network.
         self.ruby_system.network = SimplePt2Pt(self.ruby_system)
@@ -93,6 +97,7 @@ class PrivateL1CacheHierarchy(AbstractRubyCacheHierarchy):
             self.ruby_system.network,
             cache_line_size=board.get_cache_line_size(),
             clk_domain=board.get_clock_domain(),
+            ranges=mem_ranges,
         )
         self.directory.ruby_system = self.ruby_system
 
