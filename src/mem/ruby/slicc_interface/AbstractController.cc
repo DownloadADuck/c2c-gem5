@@ -585,7 +585,13 @@ AbstractController::recvTimingReq(PacketPtr pkt)
 Tick
 AbstractController::recvAtomic(PacketPtr pkt)
 {
-    printf("%lu: recvAtomic - Addr: %#x\n", pkt->getAddr());
+    //if (curTick() > 3900000000){
+    //    if (pkt->getAddr() > 1610612736) {
+    //        printf("%lu: chip1: recvAtomic - Addr: %#x\n", curTick(), pkt->getAddr());
+    //    } else {
+    //        printf("%lu: chip0: recvAtomic - Addr: %#x\n", curTick(), pkt->getAddr());
+    //    }
+    //}
     return ticksToCycles(memoryPort.sendAtomic(pkt));
 }
 

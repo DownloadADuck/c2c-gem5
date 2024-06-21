@@ -1,3 +1,6 @@
+import m5
+from m5.objects import Root
+
 from gem5.utils.requires import requires
 from gem5.components.boards.x86_board import X86Board
 from gem5.components.memory.single_channel import SingleChannelDDR3_1600
@@ -98,3 +101,4 @@ simulator = Simulator(
 )
 #simulator.run(max_ticks=max_ticks)
 simulator.run()
+print("Exiting @ tick", m5.curTick())
