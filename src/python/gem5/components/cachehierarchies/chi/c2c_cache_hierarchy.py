@@ -145,12 +145,20 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         ]
 
         # Create the coherent side of the memory controllers
-        self.memory_controllers0 = self._create_memory_controllers(board, \
-            self.ruby_system.network0, rng_idx=0)
+        self.memory_controllers0 = self._create_memory_controllers(
+                board,
+                self.ruby_system.network0, 
+                self.ruby_system.network1, 
+                rng_idx=0, 
+            )
         self.hnf0.downstream_destinations = self.memory_controllers0
 
-        self.memory_controllers1 = self._create_memory_controllers(board, \
-            self.ruby_system.network1, rng_idx=1)
+        self.memory_controllers1 = self._create_memory_controllers(
+                board,
+                self.ruby_system.network1, 
+                self.ruby_system.network0,
+                rng_idx=1, 
+            )
         self.hnf1.downstream_destinations = self.memory_controllers1
 
         # Create the DMA Controllers, if required.
@@ -288,12 +296,13 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         self, 
         board: AbstractBoard,
         network,
+        network_ptr,
         rng_idx,
     ) -> List[MemoryController]:
         memory_controllers = []
         for idx, (rng, port) in enumerate(board.get_mem_ports()):
             if idx == rng_idx:
-                mc = MemoryController(network, rng, port)
+                mc = MemoryController(network, rng, port, network_ptr)
                 mc.ruby_system = self.ruby_system
                 memory_controllers.append(mc)
         return memory_controllers
