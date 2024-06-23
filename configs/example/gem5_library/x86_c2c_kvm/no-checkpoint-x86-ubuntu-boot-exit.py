@@ -1,5 +1,6 @@
 # C2c architecture booting and exiting ubuntu with KVM enabled CPUs
 # Uses X86 and CHI
+import m5
 from gem5.utils.requires import requires
 from gem5.components.boards.x86_c2c_board import X86C2cBoard
 from gem5.components.memory.single_channel import SingleChannelDDR3_1600
@@ -87,3 +88,4 @@ simulator = Simulator(
     }
 )
 simulator.run()
+print("Exiting @ tick", m5.curTick())
