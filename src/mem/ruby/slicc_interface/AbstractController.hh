@@ -364,7 +364,10 @@ class AbstractController : public ClockedObject, public Consumer
     // RequestorID used by some components of gem5.
     const RequestorID m_id;
 
+    // The other network pointer is used in a mutli-chip configuration to 
+    // allow atomic access to other chip memory regions
     Network *m_net_ptr;
+    Network *m_other_net_ptr;
     bool m_is_blocking;
     std::map<Addr, MessageBuffer*> m_block_map;
 

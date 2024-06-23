@@ -301,10 +301,6 @@ class TwoRangesMemory(AbstractMemorySystem):
             start=self._range_size,
             size=self._range_size,
         )
-        print(f"interleave_addresses: ranges: {self.mem_ctrl[0].dram.range}")
-        print(f"interleave_addresses: ranges: {self.mem_ctrl[1].dram.range}")
-                #start=(self._mem_range.start)+((self._range_size) * i),
-                #size=(self._range_size) * (i+1)
 
     @overrides(AbstractMemorySystem)
     def incorporate_memory(self, board: AbstractBoard) -> None:

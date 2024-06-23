@@ -599,6 +599,9 @@ MachineID
 AbstractController::mapAddressToMachine(Addr addr, MachineType mtype) const
 {
     NodeID node = m_net_ptr->addressToNodeID(addr, mtype);
+    //if (node == INVALID_NODE_ID) {
+    //    node = m_other_net_ptr->addressToNodeID(addr, mtype);
+    //}
     MachineID mach = {mtype, node};
     return mach;
 }
