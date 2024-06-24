@@ -365,6 +365,7 @@ RubyPort::MemResponsePort::recvAtomic(PacketPtr pkt)
     // Find the controller for the target address
     MachineID id = ruby_port->m_controller->mapAddressToMachine(
                     pkt->getAddr(), (MachineType)mem_interface_type);
+    
     AbstractController *mem_interface =
         rs->m_abstract_controls[mem_interface_type][id.getNum()];
     Tick latency = mem_interface->recvAtomic(pkt);

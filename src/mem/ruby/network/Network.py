@@ -50,6 +50,8 @@ class RubyNetwork(ClockedObject):
     control_msg_size = Param.Int(8, "")
     ruby_system = Param.RubySystem("")
 
+    version = Param.Int(0, "")
+
     routers = VectorParam.BasicRouter("Network routers")
     netifs = VectorParam.ClockedObject("Network Interfaces")
     ext_links = VectorParam.BasicExtLink("Links to external nodes")

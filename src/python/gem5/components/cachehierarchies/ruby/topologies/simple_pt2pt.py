@@ -30,9 +30,19 @@ from m5.objects import SimpleNetwork, Switch, SimpleExtLink, SimpleIntLink
 class SimplePt2Pt(SimpleNetwork):
     """A simple point-to-point network. This doesn't not use garnet."""
 
+    _version = 0
+
+    @classmethod
+    def versionCount(cls):
+        cls._version += 1
+        print(f"network version count: {cls._version}")
+        return cls._version - 1
+
     def __init__(self, ruby_system):
         super().__init__()
         self.netifs = []
+
+        self.version = self.versionCount()
 
         # TODO: These should be in a base class
         # https://gem5.atlassian.net/browse/GEM5-1039

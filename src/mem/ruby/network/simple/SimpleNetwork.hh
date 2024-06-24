@@ -106,7 +106,7 @@ class SimpleNetwork : public Network
     std::vector<MessageBuffer*> m_int_link_buffers;
     const int m_buffer_size;
     const int m_endpoint_bandwidth;
-
+    int m_version;
 
     struct NetworkStats : public statistics::Group
     {

@@ -51,6 +51,8 @@ class SimpleNetwork(RubyNetwork):
     cxx_header = "mem/ruby/network/simple/SimpleNetwork.hh"
     cxx_class = "gem5::ruby::SimpleNetwork"
 
+    version = Param.Int(0, "Network object version")
+
     buffer_size = Param.Int(
         0,
         "default internal buffer size for links and\
