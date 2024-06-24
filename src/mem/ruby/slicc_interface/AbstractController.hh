@@ -90,6 +90,7 @@ class AbstractController : public ClockedObject, public Consumer
     MachineType getType() const { return m_machineID.getType(); }
 
     void initNetworkPtr(Network* net_ptr) { m_net_ptr = net_ptr; }
+    Network* getNetworkPtr() const { return m_net_ptr; }
 
     // return instance name
     void blockOnQueue(Addr, MessageBuffer*);

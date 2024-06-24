@@ -52,6 +52,9 @@
 #include "sim/full_system.hh"
 #include "sim/system.hh"
 
+//test
+#include "mem/ruby/network/Network.hh"
+
 namespace gem5
 {
 
@@ -365,11 +368,9 @@ RubyPort::MemResponsePort::recvAtomic(PacketPtr pkt)
     // Find the controller for the target address
     MachineID id = ruby_port->m_controller->mapAddressToMachine(
                     pkt->getAddr(), (MachineType)mem_interface_type);
-    if (ruby_port->m_controller.m_net_ptr.m_version != 0) {
-        if (id->getNum() == 2) {
-            id.num = 1;
-        }
-    } 
+    if (id.getType() == MachineType_Memory && id.getNum() == 2) {
+        id.num = 1;
+    }    
     
     AbstractController *mem_interface =
         rs->m_abstract_controls[mem_interface_type][id.getNum()];

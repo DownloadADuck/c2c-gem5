@@ -247,10 +247,10 @@ Network::addressToNodeID(Addr addr, MachineType mtype)
             }
         }
     }
-    if (curTick() > 3000000000) {
-        std::cout << "addressToNodeID - mtype: " << mtype << " addr: " << 
-                    addr << " count: " << MachineType_base_count(mtype) << std::endl;
-    }
+    //if (curTick() > 3000000000) {
+    //    std::cout << "addressToNodeID - mtype: " << mtype << " addr: " << 
+    //                addr << " count: " << MachineType_base_count(mtype) << std::endl;
+    //}
     return MachineType_base_count(mtype);
 }
 

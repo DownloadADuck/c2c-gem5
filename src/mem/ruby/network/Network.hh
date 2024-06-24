@@ -147,6 +147,8 @@ class Network : public ClockedObject
 
     NodeID getLocalNodeID(NodeID global_id) const;
 
+    int getVersion() const { return m_version; }
+
   protected:
     // Private copy constructor and assignment operator
     Network(const Network& obj);
