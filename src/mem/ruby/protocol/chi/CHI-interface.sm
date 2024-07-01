@@ -95,6 +95,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     // Requests
     Net_ReadShared, desc="";
     C2c_ReadShared, desc="";
+    Net_ReadOnce, desc="";
+    C2c_ReadOnce, desc="";
     Net_ReadUnique, desc="";
     C2c_ReadUnique, desc="";
     Net_CleanUnique, desc="";
@@ -184,6 +186,8 @@ machine(MachineType:Interface, "C2C interface controller") :
   Event reqToEvent (CHIRequestType type) {
     if (type == CHIRequestType:ReadShared) {
       return Event:Net_ReadShared;
+    } else if (type == CHIRequestType:ReadOnce) {
+      return Event:Net_ReadOnce;
     } else if (type == CHIRequestType:ReadUnique) {
       return Event:Net_ReadUnique;
     } else if (type == CHIRequestType:CleanUnique) {
@@ -272,6 +276,8 @@ machine(MachineType:Interface, "C2C interface controller") :
   Event c2cReqToEvent (C2cRequestType type) {
     if (type == C2cRequestType:ReadShared) {
       return Event:C2c_ReadShared;
+    } else if (type == C2cRequestType:ReadOnce) {
+      return Event:C2c_ReadOnce;
     } else if (type == C2cRequestType:ReadUnique) {
       return Event:C2c_ReadUnique;
     } else if (type == C2cRequestType:CleanUnique) {
@@ -348,6 +354,8 @@ machine(MachineType:Interface, "C2C interface controller") :
   CHIRequestType c2cMsgToCHIReq(C2cRequestType type){
     if (type == C2cRequestType:ReadShared) {
       return CHIRequestType:ReadShared;
+    } else if (type == C2cRequestType:ReadOnce) {
+      return CHIRequestType:ReadOnce;
     } else if (type == C2cRequestType:ReadUnique) {
       return CHIRequestType:ReadUnique;
     } else if (type == C2cRequestType:CleanUnique) {
@@ -429,6 +437,8 @@ machine(MachineType:Interface, "C2C interface controller") :
   C2cRequestType CHIReqToC2cMsg(CHIRequestType type) {
     if (type == CHIRequestType:ReadShared) {
       return C2cRequestType:ReadShared;
+    } else if (type == CHIRequestType:ReadOnce) {
+      return C2cRequestType:ReadOnce;
     } else if (type == CHIRequestType:ReadUnique) {
       return C2cRequestType:ReadUnique;
     } else if (type == CHIRequestType:CleanUnique) {
@@ -925,8 +935,6 @@ machine(MachineType:Interface, "C2C interface controller") :
       // reserve a slot for this request
       storTBEs.incrementReserved();
 
-      DPRINTF(RubyC2c, "checkAllocateTBE -> addr: %s, is_local?: %d\n", address, hasDownstreamClient(address));
-
       if (hasDownstreamClient(address)) {
         // address is local, we have priority
         peek(reqInPort, CHIRequestMsg) {
@@ -1151,7 +1159,6 @@ machine(MachineType:Interface, "C2C interface controller") :
       tbe.Sender := in_msg.Sender;
       tbe.size := in_msg.MessageSize;
       tbe.to_net_snp_type := in_msg.Type;
-      DPRINTF(RubyC2c, "initializeFromC2cSnpTBE: Addr: %d, in_msg.c2c_sharers: %s\n", address, in_msg.C2c_sharers);
       tbe.c2c_sharers := in_msg.C2c_sharers;
       tbe.retToSrc := in_msg.RetToSrc;
     }
@@ -1178,7 +1185,6 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   action(sendToC2c_Snoop, "stctcs", desc="Send snoop to c2c") {
     assert(is_valid(tbe));
-    DPRINTF(RubyC2c, "sendToC2c_Snoop, tbe.c2c_sharers: %s\n", tbe.c2c_sharers);
     enqueue(requestToC2c_out, C2cMsg, to_memory_controller_latency) {
       out_msg.addr := tbe.addr;
       out_msg.Type := CHIReqToC2cMsg(tbe.to_c2c_snp_type);
@@ -1205,7 +1211,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     } else {
       tbe.expected_req_resp.addExpectedCount(1);
     }
-    DPRINTF(RubyC2c, "sendToNet_Snoop: Addr: %d, destination: %s", tbe.addr, tbe.c2c_sharers);
     enqueue(snpOutPort, CHIRequestMsg, request_latency) {
       out_msg.addr := tbe.addr;
       out_msg.accAddr := tbe.addr;
@@ -1228,7 +1233,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  action(trigger_SendToNet_Request, "tsrr", desc="Trigger SentToNet_ReadShared") {
+  action(trigger_SendToNet_Request, "tsrr", desc="Trigger SentToNet_Request") {
     assert(is_valid(tbe));
     enqueue(triggerOutPort, TriggerMsg, 0) {
       out_msg.addr := address;
@@ -1711,7 +1716,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popC2cReqRdyInQueue;
   }
 
-  transition(READY, {Net_ReadShared, Net_ReadUnique}, READING_MEM) {
+  transition(READY, {Net_ReadShared, Net_ReadOnce, Net_ReadUnique}, READING_MEM) {
     allocateTBE;
     initializeFromReqTBE;
     trigger_SendToC2c_Request;
@@ -1724,7 +1729,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   //Trying to have a blocked state for the Evict
-  transition(READY, {C2c_ReadShared, C2c_ReadUnique, C2c_CleanUnique, C2c_Evict}, BLKD_REQ){
+  transition(READY, {C2c_ReadShared, C2c_ReadOnce, C2c_ReadUnique, C2c_CleanUnique, C2c_Evict}, BLKD_REQ){
     c2cReqAllocateTBE;
     initializeFromC2cReqTBE;
     trigger_SendToNet_Request;
@@ -2118,7 +2123,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   // Notice we only use this here and call wakeUp when leaving this state
   transition({READING_MEM,WAITING_NET_DATA,SENDING_NET_DATA},
-             {Net_ReadShared}) {
+             {Net_ReadShared, Net_ReadOnce}) {
     stallReqRdyQueue;
   }
 

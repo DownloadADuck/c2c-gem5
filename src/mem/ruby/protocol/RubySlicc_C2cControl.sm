@@ -17,6 +17,7 @@ enumeration(C2cRequestType, desc="...") {
   
   // Requests
   ReadShared, desc="ReadShared";
+  ReadOnce, desc="ReadOnce";
   ReadUnique, desc="ReadUnique";
   CleanUnique, desc="CleanUnique";
   Evict, desc="Evict";
@@ -43,6 +44,7 @@ enumeration(C2cRequestType, desc="...") {
   CBWrData_SD_PD, desc="CBWrData_SP_PD";
   CBWrData_UD_PD, desc="CBWrData_UD_PD";
   CompData_UC, desc="CompData_UC";
+  CompData_I, desc="CompData_UC";
   CompData_SC, desc="CompData_SC";
   CompData_SD_PD, desc="CompData_SD_PD";
   CompData_UD_PD, desc="CompData_UD_PD";
