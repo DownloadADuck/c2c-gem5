@@ -112,10 +112,10 @@ AbstractController::init()
                     name(), addr_range.to_string());
             }
             downstreamAddrMap[mid.getType()].insert(addr_range, mid);
-            for (const auto &i : downstreamAddrMap) {
-                std::cout << " Machine ID: " << mid << " allocated to mem range: " << addr_range.to_string() << " this controller: " << this->getMachineID() << std::endl; 
-                //" address map first member: " << i.first << std::endl;
-            }
+            //for (const auto &i : downstreamAddrMap) {
+            //    std::cout << " Machine ID: " << mid << " allocated to mem range: " << addr_range.to_string() << " this controller: " << this->getMachineID() << std::endl; 
+            //    //" address map first member: " << i.first << std::endl;
+            //}
         }
         downstreamDestinations.add(mid);
     }
@@ -585,13 +585,6 @@ AbstractController::recvTimingReq(PacketPtr pkt)
 Tick
 AbstractController::recvAtomic(PacketPtr pkt)
 {
-    //if (curTick() > 3900000000){
-    //    if (pkt->getAddr() > 1610612736) {
-    //        printf("%lu: chip1: recvAtomic - Addr: %#x\n", curTick(), pkt->getAddr());
-    //    } else {
-    //        printf("%lu: chip0: recvAtomic - Addr: %#x\n", curTick(), pkt->getAddr());
-    //    }
-    //}
     return ticksToCycles(memoryPort.sendAtomic(pkt));
 }
 
@@ -599,9 +592,6 @@ MachineID
 AbstractController::mapAddressToMachine(Addr addr, MachineType mtype) const
 {
     NodeID node = m_net_ptr->addressToNodeID(addr, mtype);
-    //if (node == INVALID_NODE_ID) {
-    //    node = m_other_net_ptr->addressToNodeID(addr, mtype);
-    //}
     MachineID mach = {mtype, node};
     return mach;
 }

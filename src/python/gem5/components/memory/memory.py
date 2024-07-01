@@ -241,8 +241,6 @@ class TwoRangesMemory(AbstractMemorySystem):
         else:
             self._addr_mapping = self._dram_class.addr_mapping.value
         
-        print(f"DRAM Address mapping: {self._addr_mapping}")
-
         if size:
             self._size = toMemorySize(size)
         else:
@@ -337,5 +335,4 @@ class TwoRangesMemory(AbstractMemorySystem):
                 f"This memory's size: {self._size}"
             )
         self._mem_range = ranges[0]
-        print(f"set_memory_ranges - _mem_range: {self._mem_range}")
         self._interleave_addresses()
