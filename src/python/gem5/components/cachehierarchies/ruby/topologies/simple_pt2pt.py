@@ -35,7 +35,6 @@ class SimplePt2Pt(SimpleNetwork):
     @classmethod
     def versionCount(cls):
         cls._version += 1
-        print(f"network version count: {cls._version}")
         return cls._version - 1
 
     def __init__(self, ruby_system):

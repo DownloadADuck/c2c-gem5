@@ -369,7 +369,11 @@ RubyPort::MemResponsePort::recvAtomic(PacketPtr pkt)
     MachineID id = ruby_port->m_controller->mapAddressToMachine(
                     pkt->getAddr(), (MachineType)mem_interface_type);
     if (id.getType() == MachineType_Memory && id.getNum() == 2) {
-        id.num = 1;
+        if (pkt->getAddr() <= 1610612736) {
+            id.num = 0;
+        } else {
+            id.num = 1;
+        }
     }    
     
     AbstractController *mem_interface =

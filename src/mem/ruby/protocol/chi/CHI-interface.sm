@@ -1698,7 +1698,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popReqRdyInQueue;
   }
 
-  transition(READY, {C2c_Evict, C2c_WriteEvictFull, C2c_WriteBackFull}) {
+  transition(READY, {C2c_WriteEvictFull, C2c_WriteBackFull}) {
     c2cReqAllocateTBE;
     initializeFromC2cReqTBE;
     trigger_SendToNet_Request;
@@ -1717,7 +1717,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     popTriggerQueue;
   }
 
-  transition(READY, {C2c_ReadShared, C2c_ReadUnique, C2c_CleanUnique}, BLKD_REQ){
+  //Trying to have a blocked state for the Evict
+  transition(READY, {C2c_ReadShared, C2c_ReadUnique, C2c_CleanUnique, C2c_Evict}, BLKD_REQ){
     c2cReqAllocateTBE;
     initializeFromC2cReqTBE;
     trigger_SendToNet_Request;
@@ -1755,7 +1756,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // doesn't wait for resp, we deallocate TBE
-  transition(READY, Net_Comp_I) {
+  transition(BLKD_REQ, Net_Comp_I, READY) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
     deallocateTBE;
