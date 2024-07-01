@@ -119,6 +119,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     // Data
     Net_CompData_UC, desc="Response data from net of type UC";
     C2c_CompData_UC, desc="Response data from c2c of type UC";
+    Net_CompData_I, desc="Response data from net of type UC";
+    C2c_CompData_I, desc="Response data from c2c of type UC";
     Net_CompData_SC, desc="Response data from net of type SC";
     C2c_CompData_SC, desc="Response data from c2c of type SC";
     Net_CompData_SD_PD, desc="Response data from net of type SD PD";
@@ -245,6 +247,8 @@ machine(MachineType:Interface, "C2C interface controller") :
   Event datToEvent (CHIDataType type) {
     if (type == CHIDataType:CompData_UC) {
       return Event:Net_CompData_UC;
+    } else if (type == CHIDataType:CompData_I) {
+      return Event:Net_CompData_I;
     } else if (type == CHIDataType:CompData_SC) {
       return Event:Net_CompData_SC;
     } else if (type == CHIDataType:CompData_SD_PD) {
@@ -303,6 +307,8 @@ machine(MachineType:Interface, "C2C interface controller") :
   Event c2cRespToEvent (C2cRequestType type) {
     if (type == C2cRequestType:CompData_UC) {
       return Event:C2c_CompData_UC;
+    } else if (type == C2cRequestType:CompData_I) {
+      return Event:C2c_CompData_I;
     } else if (type == C2cRequestType:CompData_SC) {
       return Event:C2c_CompData_SC;
     } else if (type == C2cRequestType:CompData_SD_PD) {
@@ -406,6 +412,8 @@ machine(MachineType:Interface, "C2C interface controller") :
   CHIDataType c2cMsgToCHIData(C2cRequestType type) {
     if (type == C2cRequestType:CompData_UC) {
       return CHIDataType:CompData_UC;
+    } else if (type == C2cRequestType:CompData_I) {
+      return CHIDataType:CompData_I;
     } else if (type == C2cRequestType:CompData_SC) {
       return CHIDataType:CompData_SC;
     } else if (type == C2cRequestType:CompData_SD_PD) {
@@ -491,6 +499,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return C2cRequestType:CompData_UC;
     } else if (type == CHIDataType:CompData_SC) {
       return C2cRequestType:CompData_SC;
+    } else if (type == CHIDataType:CompData_I) {
+      return C2cRequestType:CompData_I;
     } else if (type == CHIDataType:CompData_SD_PD) {
       return C2cRequestType:CompData_SD_PD;
     } else if (type == CHIDataType:CompData_UD_PD) {
@@ -1204,6 +1214,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_SD_PD); 
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_UD_PD); 
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_SC);
+    tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_I);
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_UC);
     if (c2cMsgToCHIReq(tbe.to_net_snp_type) == CHIRequestType:SnpSharedFwd ||
         c2cMsgToCHIReq(tbe.to_net_snp_type) == CHIRequestType:SnpUniqueFwd) {
@@ -1258,6 +1269,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     assert(is_valid(tbe));
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_UC);
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_SC);
+    tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_I);
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_SD_PD);
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_UD_PD);
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CBWrData_UC);
@@ -1986,15 +1998,15 @@ machine(MachineType:Interface, "C2C interface controller") :
     popDataInQueue;
   }
 
-  transition({BLKD_REQ, BLKD_SNP, SNP_FWD_RESP_BETWEEN_DATA}, {Net_CompData_UC, Net_CompData_SC, 
-              Net_CompData_SD_PD, Net_CompData_UD_PD, Net_SnpRespData_SC_Fwded_SD_PD,
+  transition({BLKD_REQ, BLKD_SNP, SNP_FWD_RESP_BETWEEN_DATA}, {Net_CompData_UC, Net_CompData_I,
+              Net_CompData_SC, Net_CompData_SD_PD, Net_CompData_UD_PD, Net_SnpRespData_SC_Fwded_SD_PD,
               Net_SnpRespData_SC_Fwded_SC}) {
     copyDataToTBE;
     checkForReceiveCompletion;
     popDataInQueue;
   }
 
-  transition({READING_MEM, BLKD_SNP}, {C2c_CompData_UC, C2c_CompData_SC, 
+  transition({READING_MEM, BLKD_SNP}, {C2c_CompData_UC, C2c_CompData_SC, C2c_CompData_I, 
               C2c_CompData_SD_PD, C2c_CompData_UD_PD}, 
               SENDING_NET_DATA) {
     prepareSend_Data;
@@ -2014,7 +2026,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // SnpSharedFwd
-  transition(SNP_FWD, {Net_CompData_UC, Net_CompData_SC, Net_CompData_SD_PD, Net_CompData_UD_PD}) {
+  transition(SNP_FWD, {Net_CompData_UC, Net_CompData_I, Net_CompData_SC, Net_CompData_SD_PD, Net_CompData_UD_PD}) {
     copyDataToTBE;
     checkForReceiveCompletion;
     popDataInQueue;
@@ -2054,7 +2066,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     deallocateTBE;
   }
 
-  transition(SNP_FWD, {C2c_CompData_UC, C2c_CompData_SC, C2c_CompData_SD_PD, 
+  transition(SNP_FWD, {C2c_CompData_UC, C2c_CompData_I, C2c_CompData_SC, C2c_CompData_SD_PD, 
              C2c_CompData_UD_PD}, SENDING_SNP_DATA) {
     prepareSend_Data;
     sendToNet_Data;
