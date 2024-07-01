@@ -340,7 +340,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     } else if (type == C2cRequestType:ReqAck) {
       return Event:C2c_ReqAck;
     } else {
-      DPRINTF(RubyGenerated, "c2cRespToEvent C2cRequestType: %s\n", type);
+      DPRINTF(RubyC2c, "c2cRespToEvent C2cRequestType: %s\n", type);
       error("Invalid C2cResponseType");
     }
   }
@@ -365,6 +365,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     } else if (type == C2cRequestType:SnpUniqueFwd) {
       return CHIRequestType:SnpUniqueFwd;
     } else {
+      DPRINTF(RubyC2c, "Type: %s\n", type);
       error("Unexpected C2cMsg request type");
     }
   }
@@ -389,6 +390,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     } else if (type == C2cRequestType:SnpResp_SC_Fwded_SD_PD) {
       return CHIResponseType:SnpResp_SC_Fwded_SD_PD;
     } else {
+      DPRINTF(RubyC2c, "Type: %s\n", type);
       error ("Unexpected C2cMsg response type");
     }
   }
@@ -419,6 +421,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     } else if (type == C2cRequestType:SnpRespData_SC_Fwded_SC) {
       return CHIDataType:SnpRespData_SC_Fwded_SC;
     } else {
+      DPRINTF(RubyC2c, "Type: %s\n", type);
       error("Unexpected C2cMsg data type");
     }
   }
@@ -443,6 +446,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     } else if (type == CHIRequestType:SnpUniqueFwd) {
       return C2cRequestType:SnpUniqueFwd;
     } else {
+      DPRINTF(RubyC2c, "Type: %s\n", type);
       error("Unexpected CHIRequest type");
     }
   }
@@ -467,6 +471,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     } else if (type == CHIResponseType:SnpResp_SC_Fwded_SD_PD) {
       return C2cRequestType:SnpResp_SC_Fwded_SD_PD;
     } else {
+      DPRINTF(RubyC2c, "Type: %s\n", type);
       error("Unexpected CHIResponse type");
     }
   }
@@ -497,6 +502,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     } else if (type == CHIDataType:SnpRespData_SC_Fwded_SC) {
       return C2cRequestType:SnpRespData_SC_Fwded_SC;
     } else {
+      DPRINTF(RubyC2c, "Type: %s\n", type);
       error("Unexpected CHIData type");
     }
   }
