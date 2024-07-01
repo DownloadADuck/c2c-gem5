@@ -105,6 +105,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     C2c_Evict, desc="";
     Net_WriteEvictFull, desc="";
     C2c_WriteEvictFull, desc="";
+    Net_WriteUniqueFull, desc="";
+    C2c_WriteUniqueFull, desc="";
     Net_WriteBackFull, desc="";
     C2c_WriteBackFull, desc="";
 
@@ -200,6 +202,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:Net_Evict;
     } else if (type == CHIRequestType:WriteEvictFull) {
       return Event:Net_WriteEvictFull;
+    } else if (type == CHIRequestType:WriteUniqueFull) {
+      return Event:Net_WriteUniqueFull;
     } else if (type == CHIRequestType:WriteBackFull) {
       return Event:Net_WriteBackFull;
     } else {
@@ -294,6 +298,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:C2c_Evict;
     } else if (type == C2cRequestType:WriteEvictFull) {
       return Event:C2c_WriteEvictFull;
+    } else if (type == C2cRequestType:WriteUniqueFull) {
+      return Event:C2c_WriteUniqueFull;
     } else if (type == C2cRequestType:WriteBackFull) {
       return Event:C2c_WriteBackFull;
     } else if (type == C2cRequestType:SnpCleanInvalid) {
@@ -376,6 +382,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return CHIRequestType:Evict;
     } else if (type == C2cRequestType:WriteEvictFull) {
       return CHIRequestType:WriteEvictFull;
+    } else if (type == C2cRequestType:WriteUniqueFull) {
+      return CHIRequestType:WriteUniqueFull;
     } else if (type == C2cRequestType:WriteBackFull) {
       return CHIRequestType:WriteBackFull;
     } else if (type == C2cRequestType:SnpCleanInvalid) {
@@ -463,6 +471,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return C2cRequestType:Evict;
     } else if (type == CHIRequestType:WriteEvictFull) {
       return C2cRequestType:WriteEvictFull;
+    } else if (type == CHIRequestType:WriteUniqueFull) {
+      return C2cRequestType:WriteUniqueFull;
     } else if (type == CHIRequestType:WriteBackFull) {
       return C2cRequestType:WriteBackFull;
     } else if (type == CHIRequestType:SnpCleanInvalid) {
@@ -1727,14 +1737,16 @@ machine(MachineType:Interface, "C2C interface controller") :
   ////////////////////////////////////////////////////////////////////////////
 
   // Requests
-  transition(READY, {Net_Evict, Net_WriteEvictFull, Net_WriteBackFull, Net_CleanUnique}, WAIT_COMP) {
+  transition(READY, {Net_Evict, Net_WriteEvictFull, Net_WriteUniqueFull, 
+              Net_WriteBackFull, Net_CleanUnique}, WAIT_COMP) {
     allocateTBE;
     initializeFromReqTBE;
     trigger_SendToC2c_Request;
     popReqRdyInQueue;
   }
 
-  transition(READY, {C2c_WriteEvictFull, C2c_WriteBackFull}) {
+  transition(READY, {C2c_WriteEvictFull, C2c_WriteUniqueFull, 
+              C2c_WriteBackFull}) {
     c2cReqAllocateTBE;
     initializeFromC2cReqTBE;
     trigger_SendToNet_Request;
