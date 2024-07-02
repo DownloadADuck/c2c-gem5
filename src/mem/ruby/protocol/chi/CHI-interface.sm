@@ -171,6 +171,14 @@ machine(MachineType:Interface, "C2C interface controller") :
     C2c_SnpResp_SC_Fwded_SC, desc="";
     Net_SnpResp_SC_Fwded_SD_PD, desc="";
     C2c_SnpResp_SC_Fwded_SD_PD, desc="";
+    Net_SnpResp_SD_Fwded_I, desc="";
+    C2c_SnpResp_SD_Fwded_I, desc="";
+    Net_SnpResp_SC_Fwded_I, desc="";
+    C2c_SnpResp_SC_Fwded_I, desc="";
+    Net_SnpResp_UD_Fwded_I, desc="";
+    C2c_SnpResp_UD_Fwded_I, desc="";
+    Net_SnpResp_UC_Fwded_I, desc="";
+    C2c_SnpResp_UC_Fwded_I, desc="";
 
     C2c_ReqAck, desc="";
 
@@ -248,6 +256,14 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:Net_SnpResp_SC_Fwded_SC;
     } else if (type == CHIResponseType:SnpResp_SC_Fwded_SD_PD) {
       return Event:Net_SnpResp_SC_Fwded_SD_PD;
+    } else if (type == CHIResponseType:SnpResp_SD_Fwded_I) {
+      return Event:Net_SnpResp_SD_Fwded_I;
+    } else if (type == CHIResponseType:SnpResp_SC_Fwded_I) {
+      return Event:Net_SnpResp_SC_Fwded_I;
+    } else if (type == CHIResponseType:SnpResp_UD_Fwded_I) {
+      return Event:Net_SnpResp_UD_Fwded_I;
+    } else if (type == CHIResponseType:SnpResp_UC_Fwded_I) {
+      return Event:Net_SnpResp_UC_Fwded_I;
     } else {
       DPRINTF(RubyC2c, "rspToEvent CHIResponseType: %s\n", type);
       error("Invalid CHIResponseType");
@@ -361,6 +377,14 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:C2c_SnpResp_SC_Fwded_SC;
     } else if (type == C2cRequestType:SnpResp_SC_Fwded_SD_PD) {
       return Event:C2c_SnpResp_SC_Fwded_SD_PD;
+    } else if (type == C2cRequestType:SnpResp_SD_Fwded_I) {
+      return Event:C2c_SnpResp_SD_Fwded_I;
+    } else if (type == C2cRequestType:SnpResp_SC_Fwded_I) {
+      return Event:C2c_SnpResp_SC_Fwded_I;
+    } else if (type == C2cRequestType:SnpResp_UD_Fwded_I) {
+      return Event:C2c_SnpResp_UD_Fwded_I;
+    } else if (type == C2cRequestType:SnpResp_UC_Fwded_I) {
+      return Event:C2c_SnpResp_UC_Fwded_I;
     } else if (type == C2cRequestType:SnpRespData_I_PD) {
       return Event:C2c_SnpRespData_I_PD;
     } else if (type == C2cRequestType:SnpRespData_SC_Fwded_SD_PD) {
@@ -425,6 +449,14 @@ machine(MachineType:Interface, "C2C interface controller") :
       return CHIResponseType:SnpResp_SC_Fwded_SC;
     } else if (type == C2cRequestType:SnpResp_SC_Fwded_SD_PD) {
       return CHIResponseType:SnpResp_SC_Fwded_SD_PD;
+    } else if (type == C2cRequestType:SnpResp_SD_Fwded_I) {
+      return CHIResponseType:SnpResp_SD_Fwded_I;
+    } else if (type == C2cRequestType:SnpResp_SC_Fwded_I) {
+      return CHIResponseType:SnpResp_SC_Fwded_I;
+    } else if (type == C2cRequestType:SnpResp_UD_Fwded_I) {
+      return CHIResponseType:SnpResp_UD_Fwded_I;
+    } else if (type == C2cRequestType:SnpResp_UC_Fwded_I) {
+      return CHIResponseType:SnpResp_UC_Fwded_I;
     } else {
       DPRINTF(RubyC2c, "Type: %s\n", type);
       error ("Unexpected C2cMsg response type");
@@ -516,6 +548,14 @@ machine(MachineType:Interface, "C2C interface controller") :
       return C2cRequestType:SnpResp_SC_Fwded_SC;
     } else if (type == CHIResponseType:SnpResp_SC_Fwded_SD_PD) {
       return C2cRequestType:SnpResp_SC_Fwded_SD_PD;
+    } else if (type == CHIResponseType:SnpResp_SD_Fwded_I) {
+      return C2cRequestType:SnpResp_SD_Fwded_I;
+    } else if (type == CHIResponseType:SnpResp_SC_Fwded_I) {
+      return C2cRequestType:SnpResp_SC_Fwded_I;
+    } else if (type == CHIResponseType:SnpResp_UD_Fwded_I) {
+      return C2cRequestType:SnpResp_UD_Fwded_I;
+    } else if (type == CHIResponseType:SnpResp_UC_Fwded_I) {
+      return C2cRequestType:SnpResp_UC_Fwded_I;
     } else {
       DPRINTF(RubyC2c, "Type: %s\n", type);
       error("Unexpected CHIResponse type");
@@ -1832,7 +1872,9 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition({BLKD_SNP, READY}, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, 
-  Net_SnpResp_SC_Fwded_SC, Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_I_Fwded_UC}, READY) {
+  Net_SnpResp_SC_Fwded_SC, Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_I_Fwded_UC
+  Net_SnpResp_SD_Fwded_I, Net_SnpResp_SC_Fwded_I, Net_SnpResp_UD_Fwded_I, 
+  Net_SnpResp_UC_Fwded_I}, READY) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
     popRspInQueue;
@@ -1841,7 +1883,9 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition({BLKD_SNP, READY}, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, 
-  C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_I_Fwded_UC}, READY) {
+  C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_I_Fwded_UC
+  C2c_SnpResp_SD_Fwded_I, C2c_SnpResp_SC_Fwded_I, C2c_SnpResp_UD_Fwded_I,
+  C2c_SnpResp_UC_Fwded_I}, READY) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
     popResponseFromC2cQueue;
@@ -1850,15 +1894,19 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // Stale CleanUnique
-  transition(STALE_SNP, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, Net_SnpResp_SC_Fwded_SC,
-  Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_I_Fwded_UC}, WAIT_COMP) {
+  transition(STALE_SNP, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, 
+  Net_SnpResp_SC_Fwded_SC, Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_SD_Fwded_I,
+  Net_SnpResp_SC_Fwded_I, Net_SnpResp_UD_Fwded_I, Net_SnpResp_UC_Fwded_I, 
+  Net_SnpResp_I_Fwded_UC}, WAIT_COMP) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
     popRspInQueue;
   }
 
-  transition(STALE_SNP, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, C2c_SnpResp_SC_Fwded_SC,
-  C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_I_Fwded_UC}, BLKD_REQ) {
+  transition(STALE_SNP, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, 
+  C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_SD_Fwded_I, 
+  C2c_SnpResp_SC_Fwded_I, C2c_SnpResp_UD_Fwded_I, C2c_SnpResp_UC_Fwded_I, 
+  C2c_SnpResp_I_Fwded_UC}, BLKD_REQ) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
     popResponseFromC2cQueue;
@@ -1887,7 +1935,9 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   // SnpUniqueFwd
   transition(SNP_FWD_2, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, 
-  Net_SnpResp_SC_Fwded_SC, Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_I_Fwded_UC}, READY) {
+  Net_SnpResp_SC_Fwded_SC, Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_SD_Fwded_I,
+  Net_SnpResp_SC_Fwded_I, Net_SnpResp_UD_Fwded_I, Net_SnpResp_UC_Fwded_I, 
+  Net_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
     wakeUpStalled;
@@ -1897,7 +1947,9 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition(SNP_FWD, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD,
-  C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_I_Fwded_UC}, READY) {
+  C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_SD_Fwded_I, 
+  C2c_SnpResp_SC_Fwded_I, C2c_SnpResp_UD_Fwded_I, C2c_SnpResp_UC_Fwded_I, 
+  C2c_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
     wakeUpStalled;
@@ -1971,7 +2023,9 @@ machine(MachineType:Interface, "C2C interface controller") :
   
   // Waiting for CompAck, we do not delete the TBE
   transition(SNP_FWD_LOCAL_DATA, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, 
-  Net_SnpResp_SC_Fwded_SC, Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_I_Fwded_UC}, READY) {
+  Net_SnpResp_SC_Fwded_SC, Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_SD_Fwded_I, 
+  Net_SnpResp_SC_Fwded_I, Net_SnpResp_UD_Fwded_I, Net_SnpResp_UC_Fwded_I, 
+  Net_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
     wakeUpStalled;
@@ -1980,7 +2034,9 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition(SNP_FWD_LOCAL_DATA, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, 
-  C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_I_Fwded_UC}, READY) {
+  C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_SD_Fwded_I, 
+  C2c_SnpResp_SC_Fwded_I, C2c_SnpResp_UD_Fwded_I, C2c_SnpResp_UC_Fwded_I, 
+  C2c_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
     wakeUpStalled;
@@ -1991,7 +2047,9 @@ machine(MachineType:Interface, "C2C interface controller") :
   // Special case where the resp arrived between the two data packets
   // We send the response after the data 
   transition(SNP_FWD, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, 
-  Net_SnpResp_SC_Fwded_SC, Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_I_Fwded_UC}, SNP_FWD_RESP_BETWEEN_DATA) {
+  Net_SnpResp_SC_Fwded_SC, Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_SD_Fwded_I, 
+  Net_SnpResp_SC_Fwded_I, Net_SnpResp_UD_Fwded_I, Net_SnpResp_UC_Fwded_I, 
+  Net_SnpResp_I_Fwded_UC}, SNP_FWD_RESP_BETWEEN_DATA) {
     updateTBE_FromNetResp;
     popRspInQueue;
   }
@@ -2114,7 +2172,10 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // Stalling when receiving the snp resp too fast
-  transition(SENDING_SNP_DATA, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_I_Fwded_UC}, SENDING_SNP_DATA) {
+  transition(SENDING_SNP_DATA, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, 
+  C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_SD_Fwded_I, 
+  C2c_SnpResp_SC_Fwded_I, C2c_SnpResp_UD_Fwded_I, C2c_SnpResp_UC_Fwded_I, 
+  C2c_SnpResp_I_Fwded_UC}, SENDING_SNP_DATA) {
     stallC2cResponseQueue;
   }
 

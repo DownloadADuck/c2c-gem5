@@ -39,6 +39,10 @@ enumeration(C2cRequestType, desc="...") {
   SnpResp_I_Fwded_UC, desc="SnpResp_I_Fwded_UC";
   SnpResp_SC_Fwded_SC, desc="SnpResp_SC_Fwded_SC";
   SnpResp_SC_Fwded_SD_PD, desc="SnpResp_SC_Fwded_SD_PD";
+  SnpResp_SD_Fwded_I, desc="SnpResp_SD_Fwded_I";
+  SnpResp_SC_Fwded_I, desc="SnpResp_SC_Fwded_I";
+  SnpResp_UD_Fwded_I, desc="SnpResp_UD_Fwded_I";
+  SnpResp_UC_Fwded_I, desc="SnpResp_UC_Fwded_I";
   //Data
   NCBWrData, desc="NCBWrData";
   CBWrData_UC, desc="CBWrData_UC";
