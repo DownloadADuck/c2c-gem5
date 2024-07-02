@@ -1462,7 +1462,6 @@ action(Send_SnpUniqueFwd, desc="") {
     prepareRequest(tbe, CHIRequestType:SnpUniqueFwd, out_msg);
     out_msg.Destination.addNetDest(tbe.dir_sharers);
     out_msg.retToSrc := false;
-    DPRINTF(RubyGenerated, "send_SnpUniqueFwd - tbe.c2c_sharers: %s\n", tbe.c2c_sharers);
     out_msg.c2c_sharers := tbe.c2c_sharers;
   }
 }
@@ -1628,6 +1627,7 @@ action(Send_SnpOnceFwd, desc="") {
       // TODO should be random or the closest one
       out_msg.Destination.add(tbe.dir_sharers.smallestElement());
     }
+    out_msg.c2c_sharers := tbe.c2c_sharers;
     out_msg.retToSrc := false;
   }
 }
