@@ -62,8 +62,12 @@ enumeration(C2cRequestType, desc="...") {
   SnpRespData_SD , desc="SnpRespData_SD";
   SnpRespData_UC , desc="SnpRespData_UC";
   SnpRespData_UD , desc="SnpRespData_UD";
-  SnpRespData_SC_Fwded_SD_PD, desc="SnpRespData_SC_Fwded_SC_PD";
+  SnpRespData_SC_Fwded_SD_PD, desc="SnpRespData_SC_Fwded_SD_PD";
   SnpRespData_SC_Fwded_SC, desc="SnpRespData_SC_Fwded_SC";
+  SnpRespData_SC_PD_Fwded_SC, desc="SnpRespData_SC_PD_Fwded_SC";
+  SnpRespData_I_Fwded_SD_PD, desc="SnpRespData_I_Fwded_SC_PD";
+  SnpRespData_I_PD_Fwded_SC, desc="SnpRespData_I_PD_Fwded_SC";
+  SnpRespData_I_Fwded_SC, desc="SnpRespData_I_Fwded_SC";
 }
 
 // Message to and from C2C interface
