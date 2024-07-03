@@ -146,6 +146,18 @@ machine(MachineType:Interface, "C2C interface controller") :
     C2c_CBWrData_UD_PD, desc="";
     Net_SnpRespData_I_PD, desc="Response data to a snoop";
     C2c_SnpRespData_I_PD, desc="Response data to a snoop";
+    Net_SnpRespData_I, desc="Response data to a snoop";
+    C2c_SnpRespData_I, desc="Response data to a snoop";
+    Net_SnpRespData_SC_PD, desc="Response data to a snoop";
+    C2c_SnpRespData_SC_PD, desc="Response data to a snoop";
+    Net_SnpRespData_SC, desc="Response data to a snoop";
+    C2c_SnpRespData_SC, desc="Response data to a snoop";
+    Net_SnpRespData_SD, desc="Response data to a snoop";
+    C2c_SnpRespData_SD, desc="Response data to a snoop";
+    Net_SnpRespData_UC, desc="Response data to a snoop";
+    C2c_SnpRespData_UC, desc="Response data to a snoop";
+    Net_SnpRespData_UD, desc="Response data to a snoop";
+    C2c_SnpRespData_UD, desc="Response data to a snoop";
     Net_SnpRespData_SC_Fwded_SD_PD, desc="Response data to a snoop";
     C2c_SnpRespData_SC_Fwded_SD_PD, desc="Response data to a snoop";
     Net_SnpRespData_SC_Fwded_SC, desc="Response data to a snoop";
@@ -295,6 +307,18 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:Net_CBWrData_UD_PD;
     } else if (type == CHIDataType:SnpRespData_I_PD) {
       return Event:Net_SnpRespData_I_PD;
+    } else if (type == CHIDataType:SnpRespData_I) {
+      return Event:Net_SnpRespData_I;
+    } else if (type == CHIDataType:SnpRespData_SC_PD) {
+      return Event:Net_SnpRespData_SC_PD;
+    } else if (type == CHIDataType:SnpRespData_SC) {
+      return Event:Net_SnpRespData_SC;
+    } else if (type == CHIDataType:SnpRespData_SD) {
+      return Event:Net_SnpRespData_SD;
+    } else if (type == CHIDataType:SnpRespData_UC) {
+      return Event:Net_SnpRespData_UC;
+    } else if (type == CHIDataType:SnpRespData_UD) {
+      return Event:Net_SnpRespData_UD;
     } else if (type == CHIDataType:SnpRespData_SC_Fwded_SD_PD) {
       return Event:Net_SnpRespData_SC_Fwded_SD_PD;
     } else if (type == CHIDataType:SnpRespData_SC_Fwded_SC) {
@@ -387,6 +411,18 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:C2c_SnpResp_UC_Fwded_I;
     } else if (type == C2cRequestType:SnpRespData_I_PD) {
       return Event:C2c_SnpRespData_I_PD;
+    } else if (type == C2cRequestType:SnpRespData_I) {
+      return Event:C2c_SnpRespData_I;
+    } else if (type == C2cRequestType:SnpRespData_SC_PD) {
+      return Event:C2c_SnpRespData_SC_PD;
+    } else if (type == C2cRequestType:SnpRespData_SC) {
+      return Event:C2c_SnpRespData_SC;
+    } else if (type == C2cRequestType:SnpRespData_SD) {
+      return Event:C2c_SnpRespData_SD;
+    } else if (type == C2cRequestType:SnpRespData_UC) {
+      return Event:C2c_SnpRespData_UC;
+    } else if (type == C2cRequestType:SnpRespData_UD) {
+      return Event:C2c_SnpRespData_UD;
     } else if (type == C2cRequestType:SnpRespData_SC_Fwded_SD_PD) {
       return Event:C2c_SnpRespData_SC_Fwded_SD_PD;
     } else if (type == C2cRequestType:SnpRespData_SC_Fwded_SC) {
@@ -488,6 +524,18 @@ machine(MachineType:Interface, "C2C interface controller") :
       return CHIDataType:CBWrData_UD_PD;
     } else if (type == C2cRequestType:SnpRespData_I_PD) {
       return CHIDataType:SnpRespData_I_PD;
+    } else if (type == C2cRequestType:SnpRespData_I) {
+      return CHIDataType:SnpRespData_I;
+    } else if (type == C2cRequestType:SnpRespData_SC_PD) {
+      return CHIDataType:SnpRespData_SC_PD;
+    } else if (type == C2cRequestType:SnpRespData_SC) {
+      return CHIDataType:SnpRespData_SC;
+    } else if (type == C2cRequestType:SnpRespData_SD) {
+      return CHIDataType:SnpRespData_SD;
+    } else if (type == C2cRequestType:SnpRespData_UC) {
+      return CHIDataType:SnpRespData_UC;
+    } else if (type == C2cRequestType:SnpRespData_UD) {
+      return CHIDataType:SnpRespData_UD;
     } else if (type == C2cRequestType:SnpRespData_SC_Fwded_SD_PD) {
       return CHIDataType:SnpRespData_SC_Fwded_SD_PD;
     } else if (type == C2cRequestType:SnpRespData_SC_Fwded_SC) {
@@ -587,6 +635,18 @@ machine(MachineType:Interface, "C2C interface controller") :
       return C2cRequestType:CBWrData_UD_PD;
     } else if (type == CHIDataType:SnpRespData_I_PD) {
       return C2cRequestType:SnpRespData_I_PD;
+    } else if (type == CHIDataType:SnpRespData_I) {
+      return C2cRequestType:SnpRespData_I;
+    } else if (type == CHIDataType:SnpRespData_SC_PD) {
+      return C2cRequestType:SnpRespData_SC_PD;
+    } else if (type == CHIDataType:SnpRespData_SC) {
+      return C2cRequestType:SnpRespData_SC;
+    } else if (type == CHIDataType:SnpRespData_SD) {
+      return C2cRequestType:SnpRespData_SD;
+    } else if (type == CHIDataType:SnpRespData_UC) {
+      return C2cRequestType:SnpRespData_UC;
+    } else if (type == CHIDataType:SnpRespData_UD) {
+      return C2cRequestType:SnpRespData_UD;
     } else if (type == CHIDataType:SnpRespData_SC_Fwded_SD_PD) {
       return C2cRequestType:SnpRespData_SC_Fwded_SD_PD;
     } else if (type == CHIDataType:SnpRespData_SC_Fwded_SC) {
@@ -1281,6 +1341,12 @@ machine(MachineType:Interface, "C2C interface controller") :
   action(sendToNet_Snoop, "stns", desc="Send snoop to net") {
     assert(is_valid(tbe));
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:SnpRespData_I_PD); 
+    tbe.expected_req_resp.addExpectedDataType(CHIDataType:SnpRespData_I); 
+    tbe.expected_req_resp.addExpectedDataType(CHIDataType:SnpRespData_SC_PD); 
+    tbe.expected_req_resp.addExpectedDataType(CHIDataType:SnpRespData_SC); 
+    tbe.expected_req_resp.addExpectedDataType(CHIDataType:SnpRespData_SD); 
+    tbe.expected_req_resp.addExpectedDataType(CHIDataType:SnpRespData_UC); 
+    tbe.expected_req_resp.addExpectedDataType(CHIDataType:SnpRespData_UD); 
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:SnpRespData_SC_Fwded_SD_PD); 
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:SnpRespData_SC_Fwded_SC); 
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_SD_PD); 
@@ -2202,7 +2268,9 @@ machine(MachineType:Interface, "C2C interface controller") :
     checkPending;
   }
 
-  transition(BLKD_SNP, Net_SnpRespData_I_PD) {
+  transition(BLKD_SNP, {Net_SnpRespData_I_PD, Net_SnpRespData_I, 
+  Net_SnpRespData_SC_PD, Net_SnpRespData_SC, Net_SnpRespData_SD, 
+  Net_SnpRespData_UC, Net_SnpRespData_UD}) {
     copyDataToTBE;
     checkForReceiveCompletion;
     popDataInQueue;
@@ -2216,7 +2284,9 @@ machine(MachineType:Interface, "C2C interface controller") :
     deallocateTBE;
   }
 
-  transition(BLKD_SNP, C2c_SnpRespData_I_PD, SENDING_NET_DATA_NO_ACK) {
+  transition(BLKD_SNP, {C2c_SnpRespData_I_PD, C2c_SnpRespData_I, 
+  C2c_SnpRespData_SC_PD, C2c_SnpRespData_SC, C2c_SnpRespData_SD, 
+  C2c_SnpRespData_UC, C2c_SnpRespData_UD}, SENDING_NET_DATA_NO_ACK) {
     prepareSend_Data;
     sendToNet_Data;
     popResponseFromC2cQueue;
