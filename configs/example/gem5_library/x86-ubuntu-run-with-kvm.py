@@ -39,7 +39,7 @@ scons build/X86/gem5.opt
 ./build/X86/gem5.opt configs/example/gem5_library/x86-ubuntu-run-with-kvm.py
 ```
 """
-
+import m5
 from gem5.utils.requires import requires
 from gem5.components.boards.x86_board import X86Board
 from gem5.components.memory.single_channel import SingleChannelDDR3_1600
@@ -138,9 +138,6 @@ simulator = Simulator(
         # default behavior where the simulator run will exit.
         ExitEvent.EXIT: (func() for func in [processor.switch])
     },
-    #on_exit_event={
-    #    ExitEvent.MAX_TICK : exit_switch_cpu_event(),
-    #},
 )
-#simulator.run(max_ticks=max_ticks)
 simulator.run()
+print(f"Exiting @ tick {m5.curTick()}")

@@ -51,7 +51,7 @@ memory = DualChannelDDR3_1600_C2C(size="3GB", range_size="1610612736")
 
 # CPU
 processor = SimpleSwitchableProcessor(
-    starting_core_type=CPUTypes.NONCACHING_SIMPLE,
+    starting_core_type=CPUTypes.KVM,
     #starting_core_type=CPUTypes.TIMING,
     switch_core_type=CPUTypes.TIMING,
     isa=ISA.X86,

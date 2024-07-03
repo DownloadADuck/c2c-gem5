@@ -108,7 +108,7 @@ class PrivateL1CacheHierarchy(AbstractRubyCacheHierarchy):
         ]
 
         # Create the coherent side of the memory controllers
-        self.memory_controllers = self._create_memory_controllers(board)
+        self.memory_controllers = self._create_memory_controllers(board, self.ruby_system.network)
         self.directory.downstream_destinations = self.memory_controllers
 
         # Create the DMA Controllers, if required.
@@ -204,11 +204,11 @@ class PrivateL1CacheHierarchy(AbstractRubyCacheHierarchy):
         return cluster
 
     def _create_memory_controllers(
-        self, board: AbstractBoard
+        self, board: AbstractBoard, network,
     ) -> List[MemoryController]:
         memory_controllers = []
         for rng, port in board.get_mem_ports():
-            mc = MemoryController(self.ruby_system.network, rng, port)
+            mc = MemoryController(self.ruby_system.network, rng, port, network)
             mc.ruby_system = self.ruby_system
             memory_controllers.append(mc)
         return memory_controllers
