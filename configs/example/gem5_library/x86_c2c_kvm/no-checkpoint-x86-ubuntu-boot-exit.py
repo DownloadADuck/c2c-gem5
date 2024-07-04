@@ -50,8 +50,8 @@ memory = DualChannelDDR3_1600_C2C(size="3GB", range_size="1610612736")
 # Switchable KVM -> timing
 processor = SimpleSwitchableProcessor(
     #starting_core_type=CPUTypes.TIMING,
-    starting_core_type=CPUTypes.KVM,
-    #starting_core_type=CPUTypes.NONCACHING_SIMPLE,
+    #starting_core_type=CPUTypes.KVM,
+    starting_core_type=CPUTypes.NONCACHING_SIMPLE,
     switch_core_type=CPUTypes.TIMING,
     isa=ISA.X86,
     num_cores=2,
@@ -67,15 +67,15 @@ board = X86C2cBoard(
 
 # Full System workload setup
 # The X86Board takes a kernel, a disk image and an optional command to run
-#command = (
-#    "m5 exit;"
-#    + "echo 'This is running on Timing CPU cores.';"
-#    + "sleep 1;"
-#    + "m5 exit;"
-#)
 command = (
-    "echo hello" 
+    "m5 exit;"
+    + "echo 'This is running on Timing CPU cores.';"
+    + "sleep 1;"
+    + "m5 exit;"
 )
+#command = (
+#    "echo hello" 
+#)
 
 workload = Workload("x86-ubuntu-18.04-boot")
 workload.set_parameter("readfile_contents", command)
