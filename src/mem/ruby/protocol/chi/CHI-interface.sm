@@ -2372,7 +2372,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   // When receiving a request during a SNP_FWD we stall
   // HACK: We should not stall on a snpSharedFwd after ReadRequest
-  transition({BLKD_REQ, SNP_FWD, WAIT_WBDATA}, CheckAllocTBE) {
+  transition({BLKD_REQ, SNP_FWD, BLKD_SNP, WAIT_WBDATA}, CheckAllocTBE) {
     stallNetRequestQueue;
   }
 
@@ -2425,7 +2425,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popRequestFromC2cQueue;
   }
 
-  transition({BLKD_REQ,READY,READING_MEM,BLKD_SNP,WAIT_COMP,SENDING_WBDATA}, CheckC2cExpectedReq) {
+  transition({BLKD_REQ,READY,READING_MEM,BLKD_SNP,WAIT_COMP,SENDING_WBDATA,SENDING_NET_DATA_NO_ACK}, CheckC2cExpectedReq) {
     checkC2cExpectedReq;
     popRequestFromC2cQueue;
   }

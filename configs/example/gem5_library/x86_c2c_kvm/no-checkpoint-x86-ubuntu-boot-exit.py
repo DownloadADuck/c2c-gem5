@@ -20,6 +20,7 @@ from gem5.coherence_protocol import CoherenceProtocol
 from gem5.simulate.simulator import Simulator
 from gem5.simulate.exit_event import ExitEvent
 from gem5.resources.workload import Workload
+from gem5.resources.resource import Resource
 
 # This runs a check to ensure the gem5 binary is compiled to X86 and to the
 # CHI coherence protocol.
@@ -78,7 +79,12 @@ command = (
 #)
 
 workload = Workload("x86-ubuntu-18.04-boot")
-workload.set_parameter("readfile_contents", command)
+#workload.set_parameter("readfile_contents", command)
+#board.set_kernel_disk_workload(
+#    kernel = Resource("x86-linux-kernel-5.4.49"),
+#    disk_image = Resource("x86-ubuntu-18.04-img"),
+#    readfile_contents = "m5_exit; echo 'hello'; m5_exit",
+#)
 board.set_workload(workload)
 
 # Regular sim
