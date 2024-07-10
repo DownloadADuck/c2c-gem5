@@ -49,11 +49,11 @@ cache_hierarchy = C2cCacheHierarchy(
 )
 
 # System memory
-memory = DualChannelDDR3_1600_C2C(size="2GB", range_size="1GB")
+memory = DualChannelDDR3_1600_C2C(size="3GB", range_size="1610612736")
 
 # Switchable KVM -> timing
 processor = SimpleSwitchableProcessor(
-    starting_core_type=CPUTypes.KVM,
+    starting_core_type=CPUTypes.NONCACHING_SIMPLE,
     switch_core_type=CPUTypes.TIMING,
     isa=ISA.X86,
     num_cores=2,
@@ -67,8 +67,8 @@ board = X86C2cBoard(
     cache_hierarchy=cache_hierarchy,
 )
 
-#max_ticks = 860000000000
-max_ticks = 5000000000
+#max_ticks = 957600000000
+max_ticks = 440000000000
 
 # Full System workload setup
 # The X86Board takes a kernel, a disk image and an optional command to run

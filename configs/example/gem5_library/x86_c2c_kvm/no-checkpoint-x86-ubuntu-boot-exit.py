@@ -20,7 +20,6 @@ from gem5.coherence_protocol import CoherenceProtocol
 from gem5.simulate.simulator import Simulator
 from gem5.simulate.exit_event import ExitEvent
 from gem5.resources.workload import Workload
-from gem5.resources.resource import Resource
 
 # This runs a check to ensure the gem5 binary is compiled to X86 and to the
 # CHI coherence protocol.
@@ -30,9 +29,6 @@ requires(
     kvm_required=True,
 )
 
-from gem5.components.cachehierarchies.chi.private_l1_cache_hierarchy import (
-    PrivateL1CacheHierarchy,
-)
 from gem5.components.cachehierarchies.chi.c2c_cache_hierarchy import (
     C2cCacheHierarchy,
 )
@@ -50,10 +46,8 @@ memory = DualChannelDDR3_1600_C2C(size="3GB", range_size="1610612736")
 
 # Switchable KVM -> timing
 processor = SimpleSwitchableProcessor(
-    #starting_core_type=CPUTypes.TIMING,
-    #starting_core_type=CPUTypes.KVM,
-    starting_core_type=CPUTypes.NONCACHING_SIMPLE,
-    switch_core_type=CPUTypes.TIMING,
+    starting_core_type=CPUTypes.KVM,
+    switch_core_type=CPUTypes.KVM,
     isa=ISA.X86,
     num_cores=2,
 )
@@ -69,22 +63,11 @@ board = X86C2cBoard(
 # Full System workload setup
 # The X86Board takes a kernel, a disk image and an optional command to run
 command = (
-    "m5 exit;"
-    + "echo 'This is running on Timing CPU cores.';"
-    + "sleep 1;"
-    + "m5 exit;"
+    "echo hello"
 )
-#command = (
-#    "echo hello" 
-#)
 
 workload = Workload("x86-ubuntu-18.04-boot")
-#workload.set_parameter("readfile_contents", command)
-#board.set_kernel_disk_workload(
-#    kernel = Resource("x86-linux-kernel-5.4.49"),
-#    disk_image = Resource("x86-ubuntu-18.04-img"),
-#    readfile_contents = "m5_exit; echo 'hello'; m5_exit",
-#)
+workload.set_parameter("readfile_contents", command)
 board.set_workload(workload)
 
 # Regular sim
