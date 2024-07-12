@@ -1,11 +1,16 @@
 file /home/lbertranalvarez/Work/gem5/util/m5/SConstruct,line 121:
 	Configure(confdir = build/.scons_config)
 scons: Configure: Checking for java package org.junit...
-build/.scons_config/conftest_0.java <-
-  |import org.junit.*;
-javac build/.scons_config/conftest_0.java
-sh: javac: command not found
-scons: Configure: no
+scons: Configure: "build/.scons_config/conftest_0.java" is up to date.
+scons: Configure: The original builder output was:
+  |build/.scons_config/conftest_0.java <-
+  |  |import org.junit.*;
+  |
+scons: Configure: Building "build/.scons_config/conftest_0" failed in a previous run and all its sources are up to date.
+scons: Configure: The original builder output was:
+  |javac build/.scons_config/conftest_0.java
+  |
+scons: Configure: (cached) no
 
 scons: Configure: Checking whether pkg-config program exists...
 scons: Configure: /usr/bin/pkg-config

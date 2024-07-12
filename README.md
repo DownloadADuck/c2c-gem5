@@ -2,11 +2,6 @@
 
 In `/gem5/.`
 
-- Checkout on the last branch
-```bash
-git checkout bridge-ports
-```
-
 - Compile gem5 with X86 and the CHI protocol
 - default binary
 ```bash
@@ -47,7 +42,7 @@ build/X86_CHI/gem5.opt --debug-flags=RubyGenerated config/two_tgens_se_c2c/main.
 ## Debugging
 - Run the normal simulation in a debug session using the following argument in the GDB configuration file (**gem5.debug** binary)
 ```bash
-build/X86_CHI/gem5.debug config/example/gem5_library/x86_chi_kvm/no-checkpoint-x86-ubuntu-boot-exit.py
+build/X86_CHI/gem5.debug config/example/gem5_library/x86_c2c_kvm/no-checkpoint-x86-ubuntu-boot-exit.py
 ```
 - For the working architecture using KVM, CHI and non-interleaved memory ranges:
 ```bash
