@@ -714,25 +714,27 @@ RubySystem::functionalWrite(PacketPtr pkt)
     int request_net_id = requestorToNetwork[pkt->requestorId()];
     assert(netCntrls.count(request_net_id));
 
-    for (auto& cntrl : netCntrls[request_net_id]) {
-        num_functional_writes += cntrl->functionalWriteBuffers(pkt);
+    for (size_t i = 0; i < netCntrls.size(); ++i) {
+        for (auto& cntrl : netCntrls[i]) {
+            num_functional_writes += cntrl->functionalWriteBuffers(pkt);
 
-        access_perm = cntrl->getAccessPermission(line_addr);
-        if (access_perm != AccessPermission_Invalid &&
-            access_perm != AccessPermission_NotPresent) {
-            num_functional_writes +=
-                cntrl->functionalWrite(line_addr, pkt);
-        }
+            access_perm = cntrl->getAccessPermission(line_addr);
+            if (access_perm != AccessPermission_Invalid &&
+                access_perm != AccessPermission_NotPresent) {
+                num_functional_writes +=
+                    cntrl->functionalWrite(line_addr, pkt);
+            }
 
-        // Also updates requests pending in any sequencer associated
-        // with the controller
-        if (cntrl->getCPUSequencer()) {
-            num_functional_writes +=
-                cntrl->getCPUSequencer()->functionalWrite(pkt);
-        }
-        if (cntrl->getDMASequencer()) {
-            num_functional_writes +=
-                cntrl->getDMASequencer()->functionalWrite(pkt);
+            // Also updates requests pending in any sequencer associated
+            // with the controller
+            if (cntrl->getCPUSequencer()) {
+                num_functional_writes +=
+                    cntrl->getCPUSequencer()->functionalWrite(pkt);
+            }
+            if (cntrl->getDMASequencer()) {
+                num_functional_writes +=
+                    cntrl->getDMASequencer()->functionalWrite(pkt);
+            }
         }
     }
 
