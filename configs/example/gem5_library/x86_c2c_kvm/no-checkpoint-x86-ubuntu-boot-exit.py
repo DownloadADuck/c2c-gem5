@@ -1,25 +1,28 @@
 # C2c architecture booting and exiting ubuntu with KVM enabled CPUs
 # Uses X86 and CHI
 import m5
+import argparse
+import time 
+
 from gem5.utils.requires import requires
 from gem5.components.boards.x86_c2c_board import X86C2cBoard
-from gem5.components.memory.single_channel import SingleChannelDDR3_1600
-from gem5.components.memory.multi_channel import (
-    DualChannelDDR3_1600,
-    DualChannelDDR3_1600_C2C,
-)
+from gem5.components.memory.multi_channel import DualChannelDDR3_1600_C2C
 from gem5.components.processors.simple_switchable_processor import (
     SimpleSwitchableProcessor,
 )
-# Using a non-switch processor to generate the checkpoints
-from gem5.components.processors.simple_processor import SimpleProcessor
-
+from gem5.components.cachehierarchies.chi.c2c_cache_hierarchy import (
+    C2cCacheHierarchy,
+)
 from gem5.components.processors.cpu_types import CPUTypes
 from gem5.isas import ISA
 from gem5.coherence_protocol import CoherenceProtocol
 from gem5.simulate.simulator import Simulator
 from gem5.simulate.exit_event import ExitEvent
-from gem5.resources.workload import Workload
+from gem5.resources.workload import (
+    Workload,
+    CustomWorkload,
+)
+from gem5.resources.resource import Resource, CustomDiskImageResource
 
 # This runs a check to ensure the gem5 binary is compiled to X86 and to the
 # CHI coherence protocol.
@@ -29,9 +32,47 @@ requires(
     kvm_required=True,
 )
 
-from gem5.components.cachehierarchies.chi.c2c_cache_hierarchy import (
-    C2cCacheHierarchy,
+# Parsec benchmarks
+benchmark_choices = [
+    "blackscholes",
+    "bodytrack",
+    "canneal",
+    "dedup",
+    "facesim",
+    "ferret",
+    "fluidanimate",
+    "freqmine",
+    "raytrace",
+    "streamcluster",
+    "swaptions",
+    "vips",
+    "x264",
+]
+
+# Following are the input size.
+size_choices = ["simsmall", "simmedium", "simlarge"]
+
+parser = argparse.ArgumentParser(
+    description="An example configuration script to run the npb benchmarks."
 )
+
+# The arguments accepted are the benchmark name and the simulation size.
+parser.add_argument(
+    "--benchmark",
+    type=str,
+    required=True,
+    help="Input the benchmark program to execute.",
+    choices=benchmark_choices,
+)
+
+parser.add_argument(
+    "--size",
+    type=str,
+    required=True,
+    help="Simulation size the benchmark program.",
+    choices=size_choices,
+)
+args = parser.parse_args()
 
 # Here we setup a MESI Two Level Cache Hierarchy.
 cache_hierarchy = C2cCacheHierarchy(
@@ -63,21 +104,79 @@ board = X86C2cBoard(
 # Full System workload setup
 # The X86Board takes a kernel, a disk image and an optional command to run
 command = (
-    "echo hello"
+    "cd /home/gem5/parsec-benchmark;".format(args.benchmark)
+    + "source env.sh;"
+    + "parsecmgmt -a run -p {} -c gcc-hooks -i {} \
+        -n {};".format(
+            args.benchmark, args.size, "2"
+    )
+    + "sleep 5;"
+    + "m5 exit;"
 )
 
-workload = Workload("x86-ubuntu-18.04-boot")
-workload.set_parameter("readfile_contents", command)
-board.set_workload(workload)
+#workload = Workload("x86-ubuntu-18.04-boot")
+#workload.set_parameter("readfile_contents", command)
+#board.set_workload(workload)
+
+# Custom disk image setup 
+board.set_kernel_disk_workload(
+    kernel = Resource("x86-linux-kernel-5.4.49"),
+    #disk_image = CustomDiskImageResource(
+    #    #"/home/lbertranalvarez/Work/disk-image/images/parsec"
+    #    "/home/lbertranalvarez/Work/disk-image/images/x86-ubuntu-18.04-img"
+    #),
+    disk_image = Resource("x86-parsec"),
+    readfile_contents="echo hello",
+)
+
+# Custom exit events
+def handle_workbegin():
+    print("Done booting Linux")
+    print("Resetting stats at the start of the ROI!")
+    m5.stats.reset()
+    processor.switch()
+    yield False
+
+def handle_workend():
+    print("Dump stats at the end of the ROI!")
+    m5.stats.dump()
+    yield True
 
 # Regular sim
 simulator = Simulator(
     board=board,
+    #on_exit_event={
+    #    # Overriding the default behavior for the first m5 exit event. instead
+    #    # of exiting the simulator we want to switch processor. 
+    #    ExitEvent.EXIT: (func() for func in [processor.switch])
+    #}
     on_exit_event={
-        # Overriding the default behavior for the first m5 exit event. instead
-        # of exiting the simulator we want to switch processor. 
-        ExitEvent.EXIT: (func() for func in [processor.switch])
-    }
+        ExitEvent.WORKBEGIN: handle_workbegin(),
+        ExitEvent.WORKEND: handle_workend(),
+    },
 )
+
+# Wall clock time
+globalStart = time.time()
+
+print("Running the simulation")
+print("Using KVM cpu")
+
+m5.start.reset()
 simulator.run()
-print("Exiting @ tick", m5.curTick())
+
+print("All simulation events were successful.")
+
+# Simulation statistics
+print("Done with the simulation")
+print()
+print("Performance statistics:")
+
+print("Simulated sime in ROI: " + ((str(simulator.get_roi_ticks()[0]))))
+print(
+    "Ran a total of", simulator.get_current_tick() / 1e12, "simulated seconds"
+)
+print(
+    "Total wallclock time: %.2fs %.2f min"
+    % (time.time() - globalStart, (time.time() - globalStart) / 60)
+)
