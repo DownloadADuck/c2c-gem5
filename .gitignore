@@ -1,6 +1,7 @@
 # Gem5 gitignore
 **/__pycache__/
 /build
+/parsec
 /.vscode
 /m5out/*
 /util/m5/build

@@ -50,7 +50,7 @@ benchmark_choices = [
 ]
 
 # Following are the input size.
-size_choices = ["simsmall", "simmedium", "simlarge"]
+size_choices = ["test", "simsmall", "simmedium", "simlarge"]
 
 parser = argparse.ArgumentParser(
     description="An example configuration script to run the npb benchmarks."
@@ -88,7 +88,7 @@ memory = DualChannelDDR3_1600_C2C(size="3GB", range_size="1610612736")
 # Switchable KVM -> timing
 processor = SimpleSwitchableProcessor(
     starting_core_type=CPUTypes.KVM,
-    switch_core_type=CPUTypes.NONCACHING_SIMPLE,
+    switch_core_type=CPUTypes.TIMING,
     isa=ISA.X86,
     num_cores=2,
 )
@@ -122,11 +122,10 @@ command = (
 board.set_kernel_disk_workload(
     kernel = Resource("x86-linux-kernel-5.4.49"),
     #disk_image = CustomDiskImageResource(
-    #    #"/home/lbertranalvarez/Work/disk-image/images/parsec"
     #    "/home/lbertranalvarez/Work/disk-image/images/x86-ubuntu-18.04-img"
     #),
     disk_image = Resource("x86-parsec"),
-    readfile_contents="echo hello",
+    readfile_contents=command,
 )
 
 # Custom exit events
@@ -162,7 +161,7 @@ globalStart = time.time()
 print("Running the simulation")
 print("Using KVM cpu")
 
-m5.start.reset()
+m5.stats.reset()
 simulator.run()
 
 print("All simulation events were successful.")
@@ -172,7 +171,7 @@ print("Done with the simulation")
 print()
 print("Performance statistics:")
 
-print("Simulated sime in ROI: " + ((str(simulator.get_roi_ticks()[0]))))
+print("Simulated time in ROI: " + ((str(simulator.get_roi_ticks()[0]))))
 print(
     "Ran a total of", simulator.get_current_tick() / 1e12, "simulated seconds"
 )
