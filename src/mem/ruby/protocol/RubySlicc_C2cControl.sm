@@ -32,6 +32,7 @@ enumeration(C2cRequestType, desc="...") {
   // Responses
   CompAck,    desc="CompAck";
   CompDBIDResp, desc="CompDBIDResp";
+  RetryAck, desc="RetryAck";
   Comp_I, desc="Comp_I";
   Comp_UC, desc="Comp_UC";
   SnpResp_I, desc="SnpResp_I";
