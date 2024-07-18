@@ -182,6 +182,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     C2c_CompDBIDResp, desc="";
     Net_RetryAck, desc="";
     C2c_RetryAck, desc="";
+    Net_PCrdGrant, desc="";
+    C2c_PCrdGrant, desc="";
 
     Net_SnpResp_I, desc="";
     C2c_SnpResp_I, desc="";
@@ -270,6 +272,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:Net_CompDBIDResp;
     } else if (type == CHIResponseType:RetryAck) {
       return Event:Net_RetryAck;
+    } else if (type == CHIResponseType:PCrdGrant) {
+      return Event:Net_PCrdGrant;
     } else if (type == CHIResponseType:SnpResp_I) {
       return Event:Net_SnpResp_I;
     } else if (type == CHIResponseType:SnpResp_I_Fwded_UD_PD) {
@@ -413,6 +417,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:C2c_CompDBIDResp;
     } else if (type == C2cRequestType:RetryAck) {
       return Event:C2c_RetryAck;
+    } else if (type == C2cRequestType:PCrdGrant) {
+      return Event:C2c_PCrdGrant;
     } else if (type == C2cRequestType:SnpResp_I) {
       return Event:C2c_SnpResp_I;
     } else if (type == C2cRequestType:SnpResp_I_Fwded_UD_PD) {
@@ -505,6 +511,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return CHIResponseType:Comp_I;
     } else if (type == C2cRequestType:RetryAck) {
       return CHIResponseType:RetryAck;
+    } else if (type == C2cRequestType:PCrdGrant) {
+      return CHIResponseType:PCrdGrant;
     } else if (type == C2cRequestType:Comp_UC) {
       return CHIResponseType:Comp_UC;
     } else if (type == C2cRequestType:SnpResp_I) {
@@ -628,6 +636,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return C2cRequestType:CompDBIDResp;
     } else if (type == CHIResponseType:RetryAck) {
       return C2cRequestType:RetryAck;
+    } else if (type == CHIResponseType:PCrdGrant) {
+      return C2cRequestType:PCrdGrant;
     } else if (type == CHIResponseType:SnpResp_I) {
       return C2cRequestType:SnpResp_I;
     } else if (type == CHIResponseType:SnpResp_I_Fwded_UD_PD) {
@@ -1899,6 +1909,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     assert(is_valid(tbe));
     peek(stalledInPort, CHIRequestMsg) {
       tbe.requestor := in_msg.requestor;
+      tbe.allowRetry := in_msg.allowRetry;
       if (in_msg.dataToFwdRequestor) {
         tbe.destination := in_msg.fwdRequestor;
       } else {
@@ -1976,14 +1987,14 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   // RetryAck
   transition({BLKD_SNP, STALE_SNP, SNP_FWD_2, SNP_FWD_LOCAL_DATA, SNP_FWD,
-  READY}, Net_RetryAck) {
+  READY}, {Net_RetryAck, Net_PCrdGrant}) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
     popRspInQueue;
   }
 
   transition({BLKD_SNP, READY, STALE_SNP, SNP_FWD, SNP_FWD_LOCAL_DATA
-  SENDING_SNP_DATA}, C2c_RetryAck) {
+  SENDING_SNP_DATA, WAIT_COMP}, {C2c_RetryAck, C2c_PCrdGrant}) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
     popResponseFromC2cQueue;
