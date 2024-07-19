@@ -775,6 +775,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     bool retToSrc, desc="Stores the retToSrc for snoop handling";
     bool stale, desc="Stores the stale status for responses";
     bool pending, desc="Pending off-chip requests flag";
+    bool allowRetry, desc="Stores the allowRetry field";
 
     // Storing types
     CHIRequestType to_c2c_req_type, desc="Temporarily stores the request type";
@@ -1279,6 +1280,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     assert(is_valid(tbe));
     peek(reqRdyInPort, CHIRequestMsg) {
       tbe.requestor := in_msg.requestor;
+      tbe.allowRetry := in_msg.allowRetry;
       if (in_msg.dataToFwdRequestor) {
         tbe.destination := in_msg.fwdRequestor;
       } else {
@@ -1339,6 +1341,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     peek(c2cReqRdyInPort, C2cMsg) {
       tbe.Sender := in_msg.Sender;
       tbe.size := in_msg.MessageSize;
+      tbe.allowRetry := in_msg.AllowRetry;
       tbe.to_net_req_type := in_msg.Type;
       tbe.c2c_requestor := in_msg.C2c_requestor;
     }
@@ -1463,6 +1466,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.Sender := tbe.requestor;
       out_msg.C2c_requestor := tbe.requestor;
       out_msg.MessageSize := MessageSizeType:Request_Control;
+      out_msg.AllowRetry := tbe.allowRetry;
       out_msg.Len := 0;
       out_msg.ReqAck := false;
     }
@@ -1492,7 +1496,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.c2c_requestor := tbe.c2c_requestor;
       out_msg.isSeqReqValid := true;
       out_msg.is_local_pf := false;
-      out_msg.allowRetry := true;
+      out_msg.allowRetry := tbe.allowRetry;
       out_msg.is_remote_pf := false;
       out_msg.Destination.add(mapAddressToDownstreamMachine(address));
       if (out_msg.type == CHIRequestType:Evict) {

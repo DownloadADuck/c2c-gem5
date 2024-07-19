@@ -88,6 +88,7 @@ structure(C2cMsg, desc="...", interface="Message") {
   bool RetToSrc,                desc="Affects whether or not a snoop resp return data";
   bool Stale,                   desc="Response stale status flag";
   bool ReqAck,                  desc="This message is a request to send a request";
+  bool AllowRetry,              desc="allowRetry field";
 
   DataBlock DataBlk,            desc="Data to writeback";
   MessageSizeType MessageSize,  desc="size category of the message";

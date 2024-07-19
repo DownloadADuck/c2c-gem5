@@ -112,10 +112,10 @@ AbstractController::init()
                     name(), addr_range.to_string());
             }
             downstreamAddrMap[mid.getType()].insert(addr_range, mid);
-            for (const auto &i : downstreamAddrMap) {
-                std::cout << " Machine ID: " << mid << " allocated to mem range: " << addr_range.to_string() << " this controller: " << this->getMachineID() << std::endl; 
-                //" address map first member: " << i.first << std::endl;
-            }
+            //for (const auto &i : downstreamAddrMap) {
+            //    std::cout << " Machine ID: " << mid << " allocated to mem range: " << addr_range.to_string() << " this controller: " << this->getMachineID() << std::endl; 
+            //    //" address map first member: " << i.first << std::endl;
+            //}
         }
         downstreamDestinations.add(mid);
     }
@@ -574,6 +574,7 @@ AbstractController::recvTimingReq(PacketPtr pkt)
         (*msg).m_RetToSrc = (*(pkt->c2c_msg)).m_RetToSrc;
         (*msg).m_C2c_requestor = (*(pkt->c2c_msg)).m_C2c_requestor;
         (*msg).m_ReqAck = (*(pkt->c2c_msg)).m_ReqAck;
+        (*msg).m_AllowRetry = (*(pkt->c2c_msg)).m_AllowRetry;
     } else {
         panic("Incorrect packet type received in the c2c_in_port!");
     }
