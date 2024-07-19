@@ -1112,14 +1112,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     if (reqInPort.isReady(clockEdge())) {
       printResources();
       peek(reqInPort, CHIRequestMsg) {
-        if (in_msg.allowRetry) {
-          trigger(Event:CheckAllocTBE, in_msg.addr, TBEs[in_msg.addr]);
-        } else {
-          // Only expected requests that do not allow retry are the ones that
-          // are being retried after receiving credit
-          trigger(Event:CheckAllocTBE_WithCredit,
-                  in_msg.addr, TBEs[in_msg.addr]);
-        }
+        trigger(Event:CheckAllocTBE, in_msg.addr, TBEs[in_msg.addr]);
       }
     }
   }
