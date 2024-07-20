@@ -1979,15 +1979,15 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // RetryAck
-  transition({BLKD_SNP, BLKD_REQ, STALE_SNP, SNP_FWD_2, SNP_FWD_LOCAL_DATA, SNP_FWD,
-  READY}, Net_RetryAck) {
+  transition({BLKD_SNP, BLKD_REQ, READING_MEM, STALE_SNP, SNP_FWD_2, 
+  SNP_FWD_LOCAL_DATA, SNP_FWD, READY}, Net_RetryAck) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
     popRspInQueue;
   }
 
-  transition({BLKD_SNP, BLKD_REQ, READY, STALE_SNP, SNP_FWD, SNP_FWD_LOCAL_DATA
-  SENDING_SNP_DATA, WAIT_COMP}, C2c_RetryAck) {
+  transition({BLKD_SNP, BLKD_REQ, READING_MEM, READY, STALE_SNP, SNP_FWD,
+  SNP_FWD_LOCAL_DATA, SENDING_SNP_DATA, WAIT_COMP}, C2c_RetryAck) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
     popResponseFromC2cQueue;
@@ -1995,16 +1995,16 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   // PCrdGrant 
   // We go back to default
-  transition({BLKD_SNP, BLKD_REQ, STALE_SNP, SNP_FWD_2, SNP_FWD_LOCAL_DATA, SNP_FWD,
-  READY}, Net_PCrdGrant, READY) {
+  transition({BLKD_SNP, BLKD_REQ, READING_MEM, STALE_SNP, SNP_FWD_2, 
+  SNP_FWD_LOCAL_DATA, SNP_FWD, READY}, Net_PCrdGrant, READY) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
     popRspInQueue;
     deallocateTBE;
   }
 
-  transition({BLKD_SNP, BLKD_REQ, READY, STALE_SNP, SNP_FWD, SNP_FWD_LOCAL_DATA
-  SENDING_SNP_DATA, WAIT_COMP}, C2c_PCrdGrant, READY) {
+  transition({BLKD_SNP, BLKD_REQ, READING_MEM, READY, STALE_SNP, SNP_FWD,
+  SNP_FWD_LOCAL_DATA, SENDING_SNP_DATA, WAIT_COMP}, C2c_PCrdGrant, READY) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
     popResponseFromC2cQueue;
@@ -2423,7 +2423,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     stallNetRequestQueue;
   }
 
-  transition({BLKD_REQ, SNP_FWD, WAIT_WBDATA}, CheckStalledAllocTBE) {
+  transition({BLKD_REQ, SNP_FWD, WAIT_WBDATA, SNP_FWD_2}, CheckStalledAllocTBE) {
     stallStalledRequestQueue;
   }
 
