@@ -217,6 +217,10 @@ machine(MachineType:Interface, "C2C interface controller") :
     Trigger_SendToC2c_Request, desc="Trigger the sending of requests to c2c";
     Trigger_SendToNet_Request, desc="Trigger the sending of requests to net";
 
+    // Local data snpSharedFwd
+    Trigger_LocalSnpEvent, desc="";
+    Trigger_StallSnoopQueue, desc="";
+
     // ReqAck triggers
     Trigger_InitiateReqAck, desc="Initiates the request acknowledgement";
     Trigger_SendToC2c_ReqAck, desc="Trigger the sending of the ReqAck to c2c";
@@ -1793,6 +1797,22 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
+  action(checkExpectedSnp, "ces",desc="Checks if the inbound snoop is expected") {
+    peek(snpInPort, CHIRequestMsg) {
+      if(in_msg.fwdRequestor == machineID) {
+        enqueue(triggerOutPort, TriggerMsg, 0) {
+          out_msg.addr := in_msg.addr;
+          out_msg.event := Event:Trigger_LocalSnpEvent;
+        }
+      } else {
+        enqueue(triggerOutPort, TriggerMsg, 0) {
+          out_msg.addr := in_msg.addr;
+          out_msg.event := Event:Trigger_StallSnoopQueue;
+        }
+      }
+    }
+  }
+
   action(popStalledInQueue, "psq", desc="Pop stalled in queue") {
     stalledInPort.dequeue(clockEdge());
   }
@@ -2171,10 +2191,21 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   // Allow a SnpSharedFwd after a ReadShared request
   // Means that data is local but is waiting for CompAck
-  transition(BLKD_REQ, {Net_SnpSharedFwd, Net_SnpUniqueFwd, Net_SnpOnceFwd}, SNP_FWD_LOCAL_DATA) {
+  // We check if the snoop is expected. 
+  // Yes - Trigger_LocalSnpEvent
+  // No - stall snpInPort
+  transition(BLKD_REQ, {Net_SnpSharedFwd, Net_SnpUniqueFwd, Net_SnpOnceFwd}) {
+    checkExpectedSnp;
+  }
+
+  transition(BLKD_REQ, Trigger_LocalSnpEvent, SNP_FWD_LOCAL_DATA) {
     updateTBEFromNetSnp;
     sendToC2c_Snoop;
     popSnpInQueue;
+  }
+
+  transition(BLKD_REQ, Trigger_StallSnoopQueue) {
+    stallNetSnoopQueue;
   }
 
   transition(READING_MEM, {C2c_SnpSharedFwd, C2c_SnpUniqueFwd, C2c_SnpOnceFwd}, SNP_FWD_LOCAL_DATA) {

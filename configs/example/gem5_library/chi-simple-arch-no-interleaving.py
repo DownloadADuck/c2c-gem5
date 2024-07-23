@@ -18,7 +18,7 @@ from gem5.coherence_protocol import CoherenceProtocol
 from gem5.simulate.simulator import Simulator
 from gem5.simulate.exit_event import ExitEvent
 from gem5.resources.workload import Workload
-from gem5.resources.resource import Resource
+from gem5.resources.resource import Resource, CustomResource
 from gem5.components.cachehierarchies.chi.private_l1_cache_hierarchy import (
     PrivateL1CacheHierarchy,
 )
@@ -113,7 +113,16 @@ command = (
 #board.set_workload(workload)
 
 board.set_kernel_disk_workload(
-    kernel = Resource("x86-linux-kernel-5.4.49"),
+    kernel = Resource("x86-linux-kernel-4.19.83"),
+    #disk_image = CustomResource(
+    #    "/home/lbertranalvarez/.cache/gem5/x86-parsec-2",
+    #    #metadata={
+    #    #    "type": "disk image",
+    #    #    "architecture": "x86",
+    #    #    "version": "2.0",
+    #    #    "description": "Second copy of the parsec disk image"
+    #    #}
+    #),
     disk_image = Resource("x86-parsec"),
     readfile_contents=command,
 )
