@@ -33,8 +33,9 @@ machine(MachineType:Interface, "C2C interface controller") :
   // Trigger queue for internal event
   MessageBuffer * triggerQueue;
 
-  // Queue to temporarily store requests waiting for acks
+  // Stalled messages queues
   MessageBuffer * stalled;
+  MessageBuffer * stalledSnoops;
 {
 
   ////////////////////////////////////////////////////////////////////////////
@@ -1000,6 +1001,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   out_port(reqRdyOutPort, CHIRequestMsg, reqRdy);
   out_port(c2cReqRdyOutPort, C2cMsg, c2cReqRdy);
   out_port(stalledOutPort, CHIRequestMsg, stalled);
+  out_port(stalledSnoopsOutPort, CHIRequestMsg, stalledSnoops);
   // C2c requestor c2c_out_port
   out_port(requestToC2c_out, C2cMsg, requestToC2c);
   // C2c responder c2c_in_port
@@ -1099,11 +1101,20 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // Same as the reqIn port but we use it to internally store requests
-  in_port(stalledInPort, CHIRequest, stalled, rank=1) {
+  in_port(stalledInPort, CHIRequestMsg, stalled, rank=1) {
     if (stalledInPort.isReady(clockEdge())) {
       printResources();
       peek(stalledInPort, CHIRequestMsg) {
         trigger(Event:CheckStalledAllocTBE, in_msg.addr, TBEs[in_msg.addr]);
+      }
+    }
+  }
+
+  in_port(stalledSnoopsInPort, CHIRequestMsg, stalledSnoops, rank=2) {
+    if (stalledSnoopsInPort.isReady(clockEdge())) {
+      printResources();
+      peek(stalledSnoopsInPort, CHIRequestMsg) {
+        trigger(snpToEvent(in_msg.type), in_msg.addr, TBEs[in_msg.addr]);
       }
     }
   }
@@ -1798,20 +1809,54 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   action(checkExpectedSnp, "ces",desc="Checks if the inbound snoop is expected") {
+    bool stall := true;
     peek(snpInPort, CHIRequestMsg) {
-      if(in_msg.fwdRequestor == machineID) {
+      if (in_msg.fwdRequestor == machineID) {
+        stall := false;
+      }
+    }
+    if (stall) {
+      // Snoop is not expected
+      peek(snpInPort, CHIRequestMsg) {
+        enqueue(stalledSnoopsOutPort, CHIRequestMsg, 0) {
+          out_msg := in_msg;
+        }
+      }
+      peek(stalledSnoopsInPort, CHIRequestMsg) {
+        stall_and_wait(stalledSnoopsInPort, address);
+      }
+      // Pop the snoop in queue
+      snpInPort.dequeue(clockEdge());
+    } else {
+      // Snoop is expected
+      peek(snpInPort, CHIRequestMsg) {
         enqueue(triggerOutPort, TriggerMsg, 0) {
           out_msg.addr := in_msg.addr;
           out_msg.event := Event:Trigger_LocalSnpEvent;
         }
-      } else {
-        enqueue(triggerOutPort, TriggerMsg, 0) {
-          out_msg.addr := in_msg.addr;
-          out_msg.event := Event:Trigger_StallSnoopQueue;
-        }
       }
     }
   }
+
+//  action(checkExpectedSnp, "ces",desc="Checks if the inbound snoop is expected") {
+//    peek(snpInPort, CHIRequestMsg) {
+//      if (in_msg.fwdRequestor == machineID) {
+//        // Snoop is expected
+//        enqueue(triggerOutPort, TriggerMsg, 0) {
+//          out_msg.addr := in_msg.addr;
+//          out_msg.event := Event:Trigger_LocalSnpEvent;
+//        }
+//      } else {
+//        // Snoop is not expected
+//        enqueue(stalledSnoopsOutPort, CHIRequestMsg, 0) {
+//          out_msg := in_msg;
+//        }
+//        peek(stalledSnoopsInPort, CHIRequestMsg) {
+//          stall_and_wait(stalledSnoopsInPort, address);
+//        }
+//      }
+//    }
+//  }
 
   action(popStalledInQueue, "psq", desc="Pop stalled in queue") {
     stalledInPort.dequeue(clockEdge());
@@ -2042,6 +2087,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition(BLKD_REQ, Net_Comp_I, READY) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
+    wakeUpStalled;
     deallocateTBE;
     popRspInQueue;
   }
@@ -2202,10 +2248,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     updateTBEFromNetSnp;
     sendToC2c_Snoop;
     popSnpInQueue;
-  }
-
-  transition(BLKD_REQ, Trigger_StallSnoopQueue) {
-    stallNetSnoopQueue;
   }
 
   transition(READING_MEM, {C2c_SnpSharedFwd, C2c_SnpUniqueFwd, C2c_SnpOnceFwd}, SNP_FWD_LOCAL_DATA) {

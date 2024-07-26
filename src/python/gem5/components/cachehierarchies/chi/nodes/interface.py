@@ -62,6 +62,7 @@ class InterfaceNode(Interface_Controller):
         self.c2cReqRdy = TriggerMessageBuffer()
         self.reqRdy = TriggerMessageBuffer()
         self.stalled = TriggerMessageBuffer()
+        self.stalledSnoops = TriggerMessageBuffer()
 
         self.requestToC2c=C2cMessageBuffer() 
         self.responseFromC2c=C2cMessageBuffer()
