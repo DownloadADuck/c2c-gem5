@@ -89,6 +89,7 @@ structure(C2cMsg, desc="...", interface="Message") {
   bool Stale,                   desc="Response stale status flag";
   bool ReqAck,                  desc="This message is a request to send a request";
   bool AllowRetry,              desc="allowRetry field";
+  bool Priority,                desc="This request has the priority";
 
   DataBlock DataBlk,            desc="Data to writeback";
   MessageSizeType MessageSize,  desc="size category of the message";

@@ -575,6 +575,7 @@ AbstractController::recvTimingReq(PacketPtr pkt)
         (*msg).m_C2c_requestor = (*(pkt->c2c_msg)).m_C2c_requestor;
         (*msg).m_ReqAck = (*(pkt->c2c_msg)).m_ReqAck;
         (*msg).m_AllowRetry = (*(pkt->c2c_msg)).m_AllowRetry;
+        (*msg).m_Priority = (*(pkt->c2c_msg)).m_Priority;
     } else {
         panic("Incorrect packet type received in the c2c_in_port!");
     }

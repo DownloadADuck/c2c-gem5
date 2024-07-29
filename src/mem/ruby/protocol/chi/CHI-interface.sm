@@ -218,9 +218,14 @@ machine(MachineType:Interface, "C2C interface controller") :
     Trigger_SendToC2c_Request, desc="Trigger the sending of requests to c2c";
     Trigger_SendToNet_Request, desc="Trigger the sending of requests to net";
 
+    // Priority snoop triggers
+    Trigger_Finalize, desc="";
+    Trigger_PendingRequest, desc="";
+    Trigger_PendingC2cRequest, desc="";
+
     // Local data snpSharedFwd
-    Trigger_LocalSnpEvent, desc="";
-    Trigger_StallSnoopQueue, desc="";
+    //Trigger_LocalSnpEvent, desc="";
+    //Trigger_StallSnoopQueue, desc="";
 
     // ReqAck triggers
     Trigger_InitiateReqAck, desc="Initiates the request acknowledgement";
@@ -780,6 +785,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     bool retToSrc, desc="Stores the retToSrc for snoop handling";
     bool stale, desc="Stores the stale status for responses";
     bool pending, desc="Pending off-chip requests flag";
+    bool pendingRequest, desc="Pending request waiting for a snoop to be serviced";
+    bool pendingC2cRequest, desc="Pending C2c request waiting for a snoop servicing";
     bool allowRetry, desc="Stores the allowRetry field";
 
     // Storing types
@@ -1402,6 +1409,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.C2c_sharers := tbe.c2c_sharers;
       out_msg.Len := 0;
       out_msg.RetToSrc := tbe.retToSrc;
+      out_msg.Priority := tbe.pendingRequest;
     }
   } 
 
@@ -1808,55 +1816,79 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  action(checkExpectedSnp, "ces",desc="Checks if the inbound snoop is expected") {
-    bool stall := true;
+  action(checkExpectedSnp, "ces", desc="Checks if the inbound snoop is expected") {
     peek(snpInPort, CHIRequestMsg) {
       if (in_msg.fwdRequestor == machineID) {
-        stall := false;
-      }
-    }
-    if (stall) {
-      // Snoop is not expected
-      peek(snpInPort, CHIRequestMsg) {
-        enqueue(stalledSnoopsOutPort, CHIRequestMsg, 0) {
-          out_msg := in_msg;
-        }
-      }
-      peek(stalledSnoopsInPort, CHIRequestMsg) {
-        stall_and_wait(stalledSnoopsInPort, address);
-      }
-      // Pop the snoop in queue
-      snpInPort.dequeue(clockEdge());
-    } else {
-      // Snoop is expected
-      peek(snpInPort, CHIRequestMsg) {
-        enqueue(triggerOutPort, TriggerMsg, 0) {
-          out_msg.addr := in_msg.addr;
-          out_msg.event := Event:Trigger_LocalSnpEvent;
-        }
+        // Snoop is expected
+        //enqueue(triggerOutPort, TriggerMsg, 0) {
+        //  out_msg.addr := in_msg.addr;
+        //  out_msg.event := Event:Trigger_LocalSnpEvent;
+        //}
+        tbe.pendingRequest := false;
+      } else {
+        // Snoop is not expected
+        //enqueue(stalledSnoopsOutPort, CHIRequestMsg, 0) {
+        //  out_msg := in_msg;
+        //}
+        //peek(stalledSnoopsInPort, CHIRequestMsg) {
+        //  stall_and_wait(stalledSnoopsInPort, address);
+        //}
+        //// Pop the snoop input queue
+        //snpInPort.dequeue(clockEdge());
+
+        // We trigger an event for a priority snoop
+        //enqueue(triggerOutPort, TriggerMsg, 0) {
+        //  out_msg.addr := in_msg.addr;
+        //  out_msg.event := Event:Trigger_PrioritySnoop;
+        //}
+        // We set the pendingRequest flag to true
+        tbe.pendingRequest := true;
       }
     }
   }
 
-//  action(checkExpectedSnp, "ces",desc="Checks if the inbound snoop is expected") {
-//    peek(snpInPort, CHIRequestMsg) {
-//      if (in_msg.fwdRequestor == machineID) {
-//        // Snoop is expected
-//        enqueue(triggerOutPort, TriggerMsg, 0) {
-//          out_msg.addr := in_msg.addr;
-//          out_msg.event := Event:Trigger_LocalSnpEvent;
-//        }
-//      } else {
-//        // Snoop is not expected
-//        enqueue(stalledSnoopsOutPort, CHIRequestMsg, 0) {
-//          out_msg := in_msg;
-//        }
-//        peek(stalledSnoopsInPort, CHIRequestMsg) {
-//          stall_and_wait(stalledSnoopsInPort, address);
-//        }
-//      }
-//    }
-//  }
+  action(checkC2cExpectedSnp, "cces", desc="Check if the inbound snoop is from the request or not") {
+    assert(is_valid(tbe));
+    peek(requestFromC2c_in, C2cMsg) {
+      if(in_msg.Priority) {
+        tbe.pendingC2cRequest := true;
+      } else {
+        tbe.pendingC2cRequest := false;
+      }
+    }
+  }
+
+  action(checkPendingRequest, "cpr", desc="Check is there is a pending request") {
+    assert(is_valid(tbe));
+    if(tbe.pendingRequest) {
+      enqueue(triggerOutPort, TriggerMsg, 0) {
+        out_msg.addr := tbe.addr;
+        out_msg.event := Event:Trigger_PendingRequest;
+      }
+    } else {
+      enqueue(triggerOutPort, TriggerMsg, 0) {
+        out_msg.addr := tbe.addr;
+        out_msg.event := Event:Trigger_Finalize;
+      }
+    }
+    tbe.pendingRequest := false;
+  }
+
+  action(checkPendingC2cRequest, "cpcr", desc="Check is there is a pending C2C request") {
+    assert(is_valid(tbe));
+    if(tbe.pendingC2cRequest) {
+      enqueue(triggerOutPort, TriggerMsg, 0) {
+        out_msg.addr := tbe.addr;
+        out_msg.event := Event:Trigger_PendingC2cRequest;
+      }
+    } else {
+      enqueue(triggerOutPort, TriggerMsg, 0) {
+        out_msg.addr := tbe.addr;
+        out_msg.event := Event:Trigger_Finalize;
+      }
+    }
+    tbe.pendingC2cRequest := false;
+  }
 
   action(popStalledInQueue, "psq", desc="Pop stalled in queue") {
     stalledInPort.dequeue(clockEdge());
@@ -2030,17 +2062,33 @@ machine(MachineType:Interface, "C2C interface controller") :
     updateTBE_FromNetResp;
     sendToC2c_Response;
     popRspInQueue;
+    checkPendingC2cRequest;
+  }
+
+  transition(READY, Trigger_Finalize) {
     wakeUpStalled;
     checkPending;
+    popTriggerQueue;
     deallocateTBE;
+  }
+  
+  transition(READY, Trigger_PendingC2cRequest, READING_MEM) {
+    // We go back to the request FSM
+    // We set the pendingRequest to false
+    popTriggerQueue;
   }
 
   transition(READY, C2c_CompAck) {
     updateTBE_FromC2cResp;
     sendToNet_CompAck;
     popResponseFromC2cQueue;
-    checkPending;
-    deallocateTBE;
+    checkPendingRequest;
+  }
+
+  transition(READY, Trigger_PendingRequest, BLKD_REQ) {
+    // We go back to the request FSM
+    // set pending request to false
+    popTriggerQueue;
   }
 
   // RetryAck
@@ -2177,7 +2225,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition(SNP_FWD, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD,
   C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_SD_Fwded_I, 
   C2c_SnpResp_SC_Fwded_I, C2c_SnpResp_UD_Fwded_I, C2c_SnpResp_UC_Fwded_I, 
-  C2c_SnpResp_I_Fwded_UC}, READY) {
+  C2c_SnpResp_I_Fwded_UC}) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
     wakeUpStalled;
@@ -2238,19 +2286,22 @@ machine(MachineType:Interface, "C2C interface controller") :
   // Allow a SnpSharedFwd after a ReadShared request
   // Means that data is local but is waiting for CompAck
   // We check if the snoop is expected. 
-  // Yes - Trigger_LocalSnpEvent
-  // No - stall snpInPort
-  transition(BLKD_REQ, {Net_SnpSharedFwd, Net_SnpUniqueFwd, Net_SnpOnceFwd}) {
+  transition(BLKD_REQ, {Net_SnpSharedFwd, Net_SnpUniqueFwd, Net_SnpOnceFwd}, SNP_FWD_LOCAL_DATA) {
     checkExpectedSnp;
-  }
-
-  transition(BLKD_REQ, Trigger_LocalSnpEvent, SNP_FWD_LOCAL_DATA) {
     updateTBEFromNetSnp;
     sendToC2c_Snoop;
     popSnpInQueue;
   }
 
+  //transition(BLKD_REQ, Trigger_PrioritySnoop, SNP_FWD) {
+  //  updateTBEFromNetSnp;
+  //  sendToC2c_Snoop;
+  //  popTriggerQueue;
+  //  popSnpInQueue;
+  //}
+
   transition(READING_MEM, {C2c_SnpSharedFwd, C2c_SnpUniqueFwd, C2c_SnpOnceFwd}, SNP_FWD_LOCAL_DATA) {
+    checkC2cExpectedSnp;
     updateTBEFromC2cSnp;
     sendToNet_Snoop;
     popC2cReqRdyInQueue;
