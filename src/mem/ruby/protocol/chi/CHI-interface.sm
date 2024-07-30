@@ -2072,7 +2072,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     deallocateTBE;
   }
   
-  transition(READY, Trigger_PendingC2cRequest, READING_MEM) {
+  transition(READY, Trigger_PendingC2cRequest, WAIT_COMP) {
     // We go back to the request FSM
     // We set the pendingRequest to false
     popTriggerQueue;
@@ -2300,7 +2300,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   //  popSnpInQueue;
   //}
 
-  transition(READING_MEM, {C2c_SnpSharedFwd, C2c_SnpUniqueFwd, C2c_SnpOnceFwd}, SNP_FWD_LOCAL_DATA) {
+  transition(WAIT_COMP, {C2c_SnpSharedFwd, C2c_SnpUniqueFwd, C2c_SnpOnceFwd}, SNP_FWD_LOCAL_DATA) {
     checkC2cExpectedSnp;
     updateTBEFromC2cSnp;
     sendToNet_Snoop;
