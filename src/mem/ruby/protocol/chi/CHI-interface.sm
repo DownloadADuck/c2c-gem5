@@ -1510,6 +1510,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.is_local_pf := false;
       out_msg.allowRetry := tbe.allowRetry;
       out_msg.is_remote_pf := false;
+      out_msg.c2cOrig := true;
       out_msg.Destination.add(mapAddressToDownstreamMachine(address));
       if (out_msg.type == CHIRequestType:Evict) {
         out_msg.off_chip := false;
@@ -1818,30 +1819,9 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   action(checkExpectedSnp, "ces", desc="Checks if the inbound snoop is expected") {
     peek(snpInPort, CHIRequestMsg) {
-      if (in_msg.fwdRequestor == machineID) {
-        // Snoop is expected
-        //enqueue(triggerOutPort, TriggerMsg, 0) {
-        //  out_msg.addr := in_msg.addr;
-        //  out_msg.event := Event:Trigger_LocalSnpEvent;
-        //}
+      if (in_msg.c2cOrig) {
         tbe.pendingRequest := false;
       } else {
-        // Snoop is not expected
-        //enqueue(stalledSnoopsOutPort, CHIRequestMsg, 0) {
-        //  out_msg := in_msg;
-        //}
-        //peek(stalledSnoopsInPort, CHIRequestMsg) {
-        //  stall_and_wait(stalledSnoopsInPort, address);
-        //}
-        //// Pop the snoop input queue
-        //snpInPort.dequeue(clockEdge());
-
-        // We trigger an event for a priority snoop
-        //enqueue(triggerOutPort, TriggerMsg, 0) {
-        //  out_msg.addr := in_msg.addr;
-        //  out_msg.event := Event:Trigger_PrioritySnoop;
-        //}
-        // We set the pendingRequest flag to true
         tbe.pendingRequest := true;
       }
     }

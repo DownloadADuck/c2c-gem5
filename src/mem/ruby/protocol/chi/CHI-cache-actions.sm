@@ -1463,6 +1463,7 @@ action(Send_SnpUniqueFwd, desc="") {
     out_msg.Destination.addNetDest(tbe.dir_sharers);
     out_msg.retToSrc := false;
     out_msg.c2c_sharers := tbe.c2c_sharers;
+    out_msg.c2cOrig := tbe.c2cOrig;
   }
 }
 
@@ -1533,6 +1534,7 @@ action(Send_SnpSharedFwd_ToOwner, desc="") {
     }
     out_msg.Destination.add(tbe.dir_owner);
     out_msg.c2c_sharers := tbe.c2c_sharers;
+    out_msg.c2cOrig := tbe.c2cOrig;
     out_msg.retToSrc := retToSrc;
   }
 }
@@ -1562,6 +1564,7 @@ action(Send_SnpSharedFwd_ToSharer, desc="") {
     out_msg.Destination.add(tbe.dir_sharers.smallestElement());
     out_msg.retToSrc := retToSrc;
     out_msg.c2c_sharers := tbe.c2c_sharers;
+    out_msg.c2cOrig := tbe.c2cOrig;
   }
 }
 
@@ -1628,6 +1631,7 @@ action(Send_SnpOnceFwd, desc="") {
       out_msg.Destination.add(tbe.dir_sharers.smallestElement());
     }
     out_msg.c2c_sharers := tbe.c2c_sharers;
+    out_msg.c2cOrig := tbe.c2cOrig;
     out_msg.retToSrc := false;
   }
 }
