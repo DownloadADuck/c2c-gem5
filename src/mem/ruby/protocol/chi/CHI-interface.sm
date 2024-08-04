@@ -221,7 +221,9 @@ machine(MachineType:Interface, "C2C interface controller") :
     // Priority snoop triggers
     Trigger_Finalize, desc="";
     Trigger_PendingRequest, desc="";
-    Trigger_PendingC2cRequest, desc="";
+    Trigger_PendingC2cRequest_WaitComp, desc="";
+    Trigger_PendingC2cRequest_ReadingMem, desc="";
+    Trigger_PrioritySnoop, desc="";
 
     // Local data snpSharedFwd
     //Trigger_LocalSnpEvent, desc="";
@@ -784,10 +786,13 @@ machine(MachineType:Interface, "C2C interface controller") :
 
     bool retToSrc, desc="Stores the retToSrc for snoop handling";
     bool stale, desc="Stores the stale status for responses";
-    bool pending, desc="Pending off-chip requests flag";
-    bool pendingRequest, desc="Pending request waiting for a snoop to be serviced";
-    bool pendingC2cRequest, desc="Pending C2c request waiting for a snoop servicing";
     bool allowRetry, desc="Stores the allowRetry field";
+
+    // Pending c2c request
+    bool pending, desc="Pending off-chip requests flag";
+    bool pendingRequest, default="false", desc="Pending request waiting for a snoop to be serviced";
+    bool pendingC2cRequest, default="false", desc="Pending C2c request waiting for a snoop servicing";
+    State pendingState, desc="State of the pending request";
 
     // Storing types
     CHIRequestType to_c2c_req_type, desc="Temporarily stores the request type";
@@ -1339,7 +1344,13 @@ machine(MachineType:Interface, "C2C interface controller") :
       //DPRINTF(RubyC2c, "updateReaSnpTBE: tbe.requestor: %s\n", tbe.requestor);
       // Request following a request
       tbe.requestor := in_msg.requestor;
-      tbe.destination := in_msg.requestor;
+      if (in_msg.type == CHIRequestType:SnpSharedFwd ||
+          in_msg.type == CHIRequestType:SnpUniqueFwd ||
+          in_msg.type == CHIRequestType:SnpOnceFwd) {
+        tbe.destination := in_msg.fwdRequestor;
+      } else {
+        tbe.destination := in_msg.requestor;
+      }
       tbe.accAddr := in_msg.accAddr;
       tbe.accSize := in_msg.accSize;
       tbe.to_c2c_snp_type := in_msg.type;
@@ -1366,6 +1377,9 @@ machine(MachineType:Interface, "C2C interface controller") :
       tbe.c2c_requestor := in_msg.C2c_requestor;
       tbe.c2c_sharers := in_msg.C2c_sharers;
       tbe.retToSrc := in_msg.RetToSrc;
+      if (tbe.pendingC2cRequest) {
+        tbe.requestor := machineID;
+      }
     }
   }
 
@@ -1818,20 +1832,46 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   action(checkExpectedSnp, "ces", desc="Checks if the inbound snoop is expected") {
+    assert(is_valid(tbe));
     peek(snpInPort, CHIRequestMsg) {
       if (in_msg.c2cOrig) {
         tbe.pendingRequest := false;
       } else {
         tbe.pendingRequest := true;
+        enqueue(triggerOutPort, TriggerMsg, 0) {
+          out_msg.addr := in_msg.addr;
+          out_msg.event := Event:Trigger_PrioritySnoop;
+        }
       }
     }
   }
 
-  action(checkC2cExpectedSnp, "cces", desc="Check if the inbound snoop is from the request or not") {
+  action(checkC2cExpectedSnp_WaitComp, "cceswc", desc="Check if the inbound snoop is from the request or not") {
     assert(is_valid(tbe));
+    tbe.pendingState := State:WAIT_COMP;
     peek(requestFromC2c_in, C2cMsg) {
       if(in_msg.Priority) {
         tbe.pendingC2cRequest := true;
+        enqueue(triggerOutPort, TriggerMsg, 0) {
+          out_msg.addr := in_msg.addr;
+          out_msg.event := Event:Trigger_PrioritySnoop;
+        }
+      } else {
+        tbe.pendingC2cRequest := false;
+      }
+    }
+  }
+
+  action(checkC2cExpectedSnp_ReadingMem, "ccesrm", desc="Check if the inbound snoop is from the request or not") {
+    assert(is_valid(tbe));
+    tbe.pendingState := State:READING_MEM;
+    peek(requestFromC2c_in, C2cMsg) {
+      if(in_msg.Priority) {
+        tbe.pendingC2cRequest := true;
+        enqueue(triggerOutPort, TriggerMsg, 0) {
+          out_msg.addr := in_msg.addr;
+          out_msg.event := Event:Trigger_PrioritySnoop;
+        }
       } else {
         tbe.pendingC2cRequest := false;
       }
@@ -1857,9 +1897,18 @@ machine(MachineType:Interface, "C2C interface controller") :
   action(checkPendingC2cRequest, "cpcr", desc="Check is there is a pending C2C request") {
     assert(is_valid(tbe));
     if(tbe.pendingC2cRequest) {
-      enqueue(triggerOutPort, TriggerMsg, 0) {
-        out_msg.addr := tbe.addr;
-        out_msg.event := Event:Trigger_PendingC2cRequest;
+      if(tbe.pendingState == State:WAIT_COMP) {
+        enqueue(triggerOutPort, TriggerMsg, 0) {
+          out_msg.addr := tbe.addr;
+          out_msg.event := Event:Trigger_PendingC2cRequest_WaitComp;
+        }
+      } else if (tbe.pendingState == State:READING_MEM) {
+        enqueue(triggerOutPort, TriggerMsg, 0) {
+          out_msg.addr := tbe.addr;
+          out_msg.event := Event:Trigger_PendingC2cRequest_ReadingMem;
+        }
+      } else {
+        error("Uninitialized pendingSate");
       }
     } else {
       enqueue(triggerOutPort, TriggerMsg, 0) {
@@ -2052,7 +2101,13 @@ machine(MachineType:Interface, "C2C interface controller") :
     deallocateTBE;
   }
   
-  transition(READY, Trigger_PendingC2cRequest, WAIT_COMP) {
+  transition(READY, Trigger_PendingC2cRequest_WaitComp, WAIT_COMP) {
+    // We go back to the request FSM
+    // We set the pendingRequest to false
+    popTriggerQueue;
+  }
+
+  transition(READY, Trigger_PendingC2cRequest_ReadingMem, READING_MEM) {
     // We go back to the request FSM
     // We set the pendingRequest to false
     popTriggerQueue;
@@ -2205,7 +2260,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition(SNP_FWD, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD,
   C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_SD_Fwded_I, 
   C2c_SnpResp_SC_Fwded_I, C2c_SnpResp_UD_Fwded_I, C2c_SnpResp_UC_Fwded_I, 
-  C2c_SnpResp_I_Fwded_UC}) {
+  C2c_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
     wakeUpStalled;
@@ -2273,15 +2328,21 @@ machine(MachineType:Interface, "C2C interface controller") :
     popSnpInQueue;
   }
 
-  //transition(BLKD_REQ, Trigger_PrioritySnoop, SNP_FWD) {
-  //  updateTBEFromNetSnp;
-  //  sendToC2c_Snoop;
-  //  popTriggerQueue;
-  //  popSnpInQueue;
-  //}
+  // The snoop is not generated by a previous request
+  // It means the data is not local, we go to SNP_FWD
+  transition(SNP_FWD_LOCAL_DATA, Trigger_PrioritySnoop, SNP_FWD) {
+    popTriggerQueue;
+  }
 
   transition(WAIT_COMP, {C2c_SnpSharedFwd, C2c_SnpUniqueFwd, C2c_SnpOnceFwd}, SNP_FWD_LOCAL_DATA) {
-    checkC2cExpectedSnp;
+    checkC2cExpectedSnp_WaitComp;
+    updateTBEFromC2cSnp;
+    sendToNet_Snoop;
+    popC2cReqRdyInQueue;
+  }
+
+  transition(READING_MEM, {C2c_SnpSharedFwd, C2c_SnpUniqueFwd, C2c_SnpOnceFwd}, SNP_FWD_LOCAL_DATA) {
+    checkC2cExpectedSnp_ReadingMem;
     updateTBEFromC2cSnp;
     sendToNet_Snoop;
     popC2cReqRdyInQueue;

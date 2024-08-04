@@ -2554,7 +2554,7 @@ action(Send_Data, desc="") {
     out_msg.bitMask.setMask(offset, range);
 
     out_msg.responder := machineID;
-
+    DPRINTF(RubyC2c, "send_data destination(tbe.snd_destination): %s\n", tbe.snd_destination);
     out_msg.Destination.add(tbe.snd_destination);
   }
 
