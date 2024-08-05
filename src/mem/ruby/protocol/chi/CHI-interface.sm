@@ -2091,39 +2091,18 @@ machine(MachineType:Interface, "C2C interface controller") :
     updateTBE_FromNetResp;
     sendToC2c_Response;
     popRspInQueue;
-    checkPendingC2cRequest;
-  }
-
-  transition(READY, Trigger_Finalize) {
     wakeUpStalled;
     checkPending;
-    popTriggerQueue;
     deallocateTBE;
-  }
-  
-  transition(READY, Trigger_PendingC2cRequest_WaitComp, WAIT_COMP) {
-    // We go back to the request FSM
-    // We set the pendingRequest to false
-    popTriggerQueue;
-  }
-
-  transition(READY, Trigger_PendingC2cRequest_ReadingMem, READING_MEM) {
-    // We go back to the request FSM
-    // We set the pendingRequest to false
-    popTriggerQueue;
   }
 
   transition(READY, C2c_CompAck) {
     updateTBE_FromC2cResp;
     sendToNet_CompAck;
     popResponseFromC2cQueue;
-    checkPendingRequest;
-  }
-
-  transition(READY, Trigger_PendingRequest, BLKD_REQ) {
-    // We go back to the request FSM
-    // set pending request to false
-    popTriggerQueue;
+    wakeUpStalled;
+    checkPending;
+    deallocateTBE;
   }
 
   // RetryAck
@@ -2251,11 +2230,29 @@ machine(MachineType:Interface, "C2C interface controller") :
   Net_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
-    wakeUpStalled;
     popRspInQueue;
+    checkPendingC2cRequest;
+  }
+
+  transition(READY, Trigger_Finalize) {
+    wakeUpStalled;
     checkPending;
+    popTriggerQueue;
     deallocateTBE;
   }
+
+  transition(READY, Trigger_PendingC2cRequest_WaitComp, WAIT_COMP) {
+    // We go back to the request FSM
+    // We set the pendingRequest to false
+    popTriggerQueue;
+  }
+
+  transition(READY, Trigger_PendingC2cRequest_ReadingMem, READING_MEM) {
+    // We go back to the request FSM
+    // We set the pendingRequest to false
+    popTriggerQueue;
+  }
+
 
   transition(SNP_FWD, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD,
   C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_SD_Fwded_I, 
@@ -2263,10 +2260,14 @@ machine(MachineType:Interface, "C2C interface controller") :
   C2c_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
-    wakeUpStalled;
     popResponseFromC2cQueue;
-    checkPending;
-    deallocateTBE;
+    checkPendingRequest;
+  }
+
+  transition(READY, Trigger_PendingRequest, BLKD_REQ) {
+    // We go back to the request FSM
+    // set pending request to false
+    popTriggerQueue;
   }
 
   // Snoops
