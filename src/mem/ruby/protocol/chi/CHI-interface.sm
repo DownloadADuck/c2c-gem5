@@ -793,6 +793,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     bool pendingRequest, default="false", desc="Pending request waiting for a snoop to be serviced";
     bool pendingC2cRequest, default="false", desc="Pending C2c request waiting for a snoop servicing";
     State pendingState, desc="State of the pending request";
+    bool reqAckSent, default="false", desc="Pending ReqAck";
 
     // Storing types
     CHIRequestType to_c2c_req_type, desc="Temporarily stores the request type";
@@ -1189,16 +1190,14 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
   
   action(checkStalledAllocateTBE, desc="") {
-    if (storTBEs.areNSlotsAvailable(1)) {
-      storTBEs.incrementReserved();
-
+    if (is_valid(tbe)) {
       peek(stalledInPort, CHIRequestMsg) {
         enqueue(reqRdyOutPort, CHIRequestMsg, 0) {
           out_msg := in_msg;
         }
       }
     } else {
-      error("AllowRetry not implemented yet.");
+      error("A TBE should be allocated for this request.");
     }
   }
 
@@ -1246,31 +1245,37 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   action(allocateTBE, "atbe", desc="Allocate TBEs for a miss") {
     // We must have reserved resources for this allocation
-    storTBEs.decrementReserved();
-    assert(storTBEs.areNSlotsAvailable(1));
+    if (!is_valid(tbe)) {
+      storTBEs.decrementReserved();
+      assert(storTBEs.areNSlotsAvailable(1));
 
-    TBEs.allocate(address);
-    set_tbe(TBEs[address]);
-    tbe.storSlot := storTBEs.addEntryToNewSlot();
+      TBEs.allocate(address);
+      set_tbe(TBEs[address]);
+      tbe.storSlot := storTBEs.addEntryToNewSlot();
+    }
     tbe.addr := address;
     tbe.rxtxBytes := 0;
     tbe.useDataSepResp := false;
   }
 
   action(allocateTBE_Snoop, "atbes", desc="Allocate TBE for a snoop") {
-    if (storTBEs.areNSlotsAvailable(1)) {
-      // reserve a slot for this snoop request
-      storTBEs.incrementReserved();
-    } else {
-      error("No TBE slots available for snoop request");
+    if(!is_valid(tbe)) {
+      if (storTBEs.areNSlotsAvailable(1)) {
+        // reserve a slot for this snoop request
+        storTBEs.incrementReserved();
+      } else {
+        error("No TBE slots available for snoop request");
+      }
+
+      storTBEs.decrementReserved();
+      assert(storTBEs.areNSlotsAvailable(1));
+
+      TBEs.allocate(address);
+      set_tbe(TBEs[address]);
+      tbe.storSlot := storTBEs.addEntryToNewSlot();
+    } else if (!tbe.reqAckSent) {
+      error("Allocated TBE but no ReqAck sent.");
     }
-
-    storTBEs.decrementReserved();
-    assert(storTBEs.areNSlotsAvailable(1));
-
-    TBEs.allocate(address);
-    set_tbe(TBEs[address]);
-    tbe.storSlot := storTBEs.addEntryToNewSlot();
     tbe.addr := address;
     tbe.rxtxBytes := 0;
     tbe.useDataSepResp := false;
@@ -1278,12 +1283,13 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   action(c2cReqAllocateTBE, "c2catbe", desc="") {
     // We must have reserved resource for this allocation
-    storTBEs.decrementReserved();
-    assert(storTBEs.areNSlotsAvailable(1));
+    if (!is_valid(tbe)) {
+      storTBEs.decrementReserved();
+      assert(storTBEs.areNSlotsAvailable(1));
 
-    TBEs.allocate(address);
-    set_tbe(TBEs[address]);
-
+      TBEs.allocate(address);
+      set_tbe(TBEs[address]);
+    }
     clearExpectedReqResp(tbe);
 
     tbe.storSlot := storTBEs.addEntryToNewSlot();
@@ -1744,7 +1750,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   // ReqAck actions
   action(sendToC2c_AskForReqAck, "s2cafra", desc="Sends a demand to send a request to c2c") {
-    //assert(is_valid(tbe));
+    assert(is_valid(tbe));
     enqueue(requestToC2c_out, C2cMsg, 1) {
       out_msg.addr := address;
       out_msg.Type := CHIReqToC2cMsg(tbe.to_c2c_req_type);
@@ -1754,6 +1760,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.Len := 0;
       out_msg.ReqAck := true;
     }
+    // We set the flag to true
+    tbe.reqAckSent := true;
   }
 
   action(sendToC2c_ReqAck, "s2cra", desc="Sends the ReqAck to the c2c") {
@@ -1783,16 +1791,14 @@ machine(MachineType:Interface, "C2C interface controller") :
     assert(is_valid(tbe));
     if (tbe.pending) {
       // We have a pending request, send the ReqAck
-      //enqueue(triggerOutPort, TriggerMsg, 0) {
-      //  out_msg.addr := tbe.addr;
-      //  out_msg.event := Event:Trigger_SendToC2c_ReqAck;
-      //}
-      // instead of going through a trigger, we send directly
       enqueue(responseToC2c_out, C2cMsg, 1) {
         out_msg.addr := tbe.addr;
         out_msg.Type := C2cRequestType:ReqAck;
       }
+    } else if (!tbe.reqAckSent) {
+      wakeUpAllBuffers(tbe.addr);
     }
+    tbe.reqAckSent := false;
   }
 
   action(checkC2cExpectedReq, "ccer", "Checks if the inbound request is expected") {
@@ -1917,6 +1923,11 @@ machine(MachineType:Interface, "C2C interface controller") :
       }
     }
     tbe.pendingC2cRequest := false;
+  }
+
+  action(unSetReqAckFlag, "usraf", desc="Unsets the reqAckSent flag when we receive a response") {
+    assert(is_valid(tbe));
+    tbe.reqAckSent := false;
   }
 
   action(popStalledInQueue, "psq", desc="Pop stalled in queue") {
@@ -2091,7 +2102,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     updateTBE_FromNetResp;
     sendToC2c_Response;
     popRspInQueue;
-    wakeUpStalled;
     checkPending;
     deallocateTBE;
   }
@@ -2100,7 +2110,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     updateTBE_FromC2cResp;
     sendToNet_CompAck;
     popResponseFromC2cQueue;
-    wakeUpStalled;
     checkPending;
     deallocateTBE;
   }
@@ -2149,7 +2158,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition(BLKD_REQ, Net_Comp_I, READY) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
-    wakeUpStalled;
+    checkPending;
     deallocateTBE;
     popRspInQueue;
   }
@@ -2168,7 +2177,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     updateTBE_FromNetResp;
     sendToC2c_Response;
     popRspInQueue;
-    wakeUpStalled;
     checkPending;
     deallocateTBE;
   }
@@ -2180,7 +2188,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     updateTBE_FromC2cResp;
     sendToNet_Response;
     popResponseFromC2cQueue;
-    wakeUpStalled;
     checkPending;
     deallocateTBE;
   }
@@ -2237,7 +2244,6 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition(READY, Trigger_Finalize) {
-    wakeUpStalled;
     checkPending;
     popTriggerQueue;
     deallocateTBE;
@@ -2358,7 +2364,6 @@ machine(MachineType:Interface, "C2C interface controller") :
   Net_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
-    wakeUpStalled;
     popRspInQueue;
     checkPending;
   }
@@ -2369,9 +2374,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   C2c_SnpResp_I_Fwded_UC}, READY) {
     updateTBE_FromC2cResp;
     sendToNet_Response;
-    wakeUpStalled;
     popResponseFromC2cQueue;
-    checkPending;
   }
 
   // Special case where the resp arrived between the two data packets
@@ -2394,7 +2397,6 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   transition(WAIT_WBDATA, Net_CBWrData_ReceiveDone, READY) {
     sendToC2c_Data;
-    wakeUpStalled;
     popTriggerQueue;
     checkPending;
     deallocateTBE;
@@ -2413,7 +2415,6 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition(SENDING_WBDATA, Trigger_SendDone, READY) {
-    wakeUpStalled;
     popTriggerQueue;
     checkPending;
     deallocateTBE;
@@ -2453,9 +2454,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition(SENDING_NET_DATA, Trigger_SendDone, READY) {
-    wakeUpStalled;
     popTriggerQueue;
-    checkPending;
   }
 
   // SnpSharedFwd
@@ -2496,7 +2495,6 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   transition(SNP_FWD_2, Trigger_ReceiveDataDone, READY) {
     sendToC2c_Data;
-    wakeUpStalled;
     popTriggerQueue;
     checkPending;
     deallocateTBE;
@@ -2538,9 +2536,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   transition(BLKD_REQ, Trigger_ReceiveDataDone, READY) {
     sendToC2c_Data;
-    wakeUpStalled;
     popTriggerQueue;
-    checkPending;
   }
 
   transition(BLKD_SNP, {Net_SnpRespData_I_PD, Net_SnpRespData_I, 
@@ -2553,7 +2549,6 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   transition(BLKD_SNP, Trigger_ReceiveDataDone, READY) {
     sendToC2c_Data;
-    wakeUpStalled;
     popTriggerQueue;
     checkPending;
     deallocateTBE;
@@ -2573,7 +2568,6 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition(SENDING_NET_DATA_NO_ACK, Trigger_SendDone, READY) {
-    wakeUpStalled;
     popTriggerQueue;
     checkPending;
     deallocateTBE;
@@ -2640,7 +2634,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     popRequestFromC2cQueue;
   }
 
-  transition({BLKD_REQ,READY,READING_MEM,BLKD_SNP,WAIT_COMP,SENDING_WBDATA,SENDING_NET_DATA_NO_ACK}, CheckC2cExpectedReq) {
+  transition({BLKD_REQ, READY, READING_MEM, BLKD_SNP, SNP_FWD, WAIT_COMP,
+  SENDING_WBDATA, SENDING_NET_DATA_NO_ACK}, CheckC2cExpectedReq) {
     checkC2cExpectedReq;
     popRequestFromC2cQueue;
   }
@@ -2657,7 +2652,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     allocateTBE;
     initializeFromStalledTBE;
     sendToC2c_AskForReqAck;
-    deallocateTBE;
     popTriggerQueue;
   }
 
@@ -2667,6 +2661,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition(READY, C2c_ReqAck) {
+    unSetReqAckFlag
     wakeUpStalled;
     popResponseFromC2cQueue;
   }

@@ -1,8 +1,9 @@
 # Gem5 gitignore
 **/__pycache__/
 /build
-
+/checkpoints
 /benchmark_runs
+/kvm_outdir
 
 /.vscode
 /m5out/*
