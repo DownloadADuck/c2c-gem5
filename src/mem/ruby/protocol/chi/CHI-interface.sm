@@ -90,7 +90,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     // Checks if the inbound request is expected
     CheckC2cExpectedReq, desc="";
 
-    // Checks if we quand allocate the request from the stalled queue
+    // Checks if we can allocate the request from the stalled queue
     CheckStalledAllocTBE, desc="";
 
     // Requests
@@ -1190,14 +1190,10 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
   
   action(checkStalledAllocateTBE, desc="") {
-    if (is_valid(tbe)) {
-      peek(stalledInPort, CHIRequestMsg) {
-        enqueue(reqRdyOutPort, CHIRequestMsg, 0) {
-          out_msg := in_msg;
-        }
+    peek(stalledInPort, CHIRequestMsg) {
+      enqueue(reqRdyOutPort, CHIRequestMsg, 0) {
+        out_msg := in_msg;
       }
-    } else {
-      error("A TBE should be allocated for this request.");
     }
   }
 
@@ -1926,8 +1922,9 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   action(unSetReqAckFlag, "usraf", desc="Unsets the reqAckSent flag when we receive a response") {
-    assert(is_valid(tbe));
-    tbe.reqAckSent := false;
+    if (is_valid(tbe)) {
+      tbe.reqAckSent := false;
+    }
   }
 
   action(popStalledInQueue, "psq", desc="Pop stalled in queue") {
