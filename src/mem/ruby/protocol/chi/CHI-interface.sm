@@ -69,6 +69,8 @@ machine(MachineType:Interface, "C2C interface controller") :
 
     STALE_SNP, AccessPermission:Invalid, desc="Happens when receiving a snpCleanInvalid after a request";
 
+    // Waiting for the acknowledged off-chip request
+    REQ_ACK, AccessPermission:Busy, desc="Waiting for the Acked C2C request to arrive";
 
     // Null state for debugging; allow writes
     null, AccessPermission:Backing_Store, desc="Null state";
@@ -1810,7 +1812,6 @@ machine(MachineType:Interface, "C2C interface controller") :
             // We are expecting this, trigger the ReqAck sending
             enqueue(triggerOutPort, TriggerMsg, 0) {
               out_msg.addr := in_msg.addr;
-              //out_msg.event := Event:CheckC2cReqAllocTBE;
               out_msg.event := Event:Trigger_SendToC2c_ReqAck;
             }
           } else {
@@ -1826,7 +1827,6 @@ machine(MachineType:Interface, "C2C interface controller") :
         // There is no tbe, we can service the request
         enqueue(triggerOutPort, TriggerMsg, 0) {
           out_msg.addr := in_msg.addr;
-          //out_msg.event := Event:CheckC2cReqAllocTBE;
           out_msg.event := Event:Trigger_SendToC2c_ReqAck;
         }
       }
@@ -2082,11 +2082,22 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   //Trying to have a blocked state for the Evict
-  transition(READY, {C2c_ReadShared, C2c_ReadOnce, C2c_ReadUnique, C2c_CleanUnique, C2c_Evict}, BLKD_REQ){
+  transition(READY, {C2c_ReadShared, C2c_ReadOnce, C2c_ReadUnique, 
+  C2c_CleanUnique, C2c_Evict}, BLKD_REQ) {
     c2cReqAllocateTBE;
     initializeFromC2cReqTBE;
     trigger_SendToNet_Request;
     popC2cReqRdyInQueue;
+  }
+
+  // Receiving a request that has been acked
+  transition(REQ_ACK, {C2c_ReadShared, C2c_ReadOnce, C2c_ReadUnique, 
+  C2c_CleanUnique, C2c_Evict}, BLKD_REQ) {
+    c2cReqAllocateTBE;
+    initializeFromC2cReqTBE;
+    trigger_SendToNet_Request;
+    popC2cReqRdyInQueue;
+    wakeUpStalled;
   }
 
   transition({BLKD_REQ, READY}, Trigger_SendToNet_Request) {
@@ -2578,7 +2589,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   // When receiving a request during a SNP_FWD we stall
   // HACK: We should not stall on a snpSharedFwd after ReadRequest
-  transition({BLKD_REQ, SNP_FWD, BLKD_SNP, WAIT_WBDATA}, CheckAllocTBE) {
+  transition({REQ_ACK, BLKD_REQ, SNP_FWD, BLKD_SNP, WAIT_WBDATA}, CheckAllocTBE) {
     stallNetRequestQueue;
   }
 
@@ -2591,9 +2602,10 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   //Stalling snoops
-  //transition(BLKD_REQ, Net_SnpCleanInvalid) {
-  //  stallNetSnoopQueue;
-  //}
+  transition(REQ_ACK, {Net_SnpCleanInvalid, Net_SnpSharedFwd, Net_SnpUniqueFwd,
+  Net_SnpOnceFwd}) {
+    stallNetSnoopQueue;
+  }
 
   transition({READING_MEM,WAITING_NET_DATA,SENDING_NET_DATA,READY},
               Trigger_SendRetry) {
@@ -2620,7 +2632,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popStalledInQueue;
   }
 
-  transition({BLKD_REQ,READY}, CheckC2cReqAllocTBE) {
+  transition({REQ_ACK, BLKD_REQ, READY}, CheckC2cReqAllocTBE) {
     checkC2cReqAllocateTBE;
     popRequestFromC2cQueue;
   }
@@ -2652,7 +2664,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popTriggerQueue;
   }
 
-  transition({READY}, Trigger_SendToC2c_ReqAck) {
+  transition(READY, Trigger_SendToC2c_ReqAck, REQ_ACK) {
     sendToC2c_ReqAck;
     popTriggerQueue;
   }
