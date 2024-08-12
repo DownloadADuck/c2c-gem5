@@ -1051,7 +1051,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     if (responseFromC2c_in.isReady(clockEdge())) {
       printResources();
       peek(responseFromC2c_in, C2cMsg) {
-        Addr addr := makeLineAddress(in_msg.addr);
         trigger(c2cRespToEvent(in_msg.Type), in_msg.addr, TBEs[in_msg.addr]);
       }
     }
@@ -1064,12 +1063,10 @@ machine(MachineType:Interface, "C2C interface controller") :
       peek(requestFromC2c_in, C2cMsg) {
         if (in_msg.ReqAck) {
           // in_msg is a handshake request, we need to check
-          Addr addr := makeLineAddress(in_msg.addr);
-          trigger(Event:CheckC2cExpectedReq, addr, TBEs[addr]);
+          trigger(Event:CheckC2cExpectedReq, in_msg.addr, TBEs[in_msg.addr]);
         } else {
           // in_msg is not a handshake request we service
-          Addr addr := makeLineAddress(in_msg.addr);
-          trigger(Event:CheckC2cReqAllocTBE, addr, TBEs[addr]);
+          trigger(Event:CheckC2cReqAllocTBE, in_msg.addr, TBEs[in_msg.addr]);
         }
       }
     }
@@ -1200,25 +1197,16 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   action(checkC2cReqAllocateTBE, desc="Check if we have resources, moves to c2cReqRdy") {
-    // here we need the logic that looks if the request is a reqAck and checks if it is expected or not
-    if (storTBEs.areNSlotsAvailable(1)) {
-      storTBEs.incrementReserved();
-
-      peek(requestFromC2c_in, C2cMsg) {
-        enqueue(c2cReqRdyOutPort, C2cMsg, 0) {
-          out_msg := in_msg;
-        }
+    if (!is_valid(tbe)) {
+      if (storTBEs.areNSlotsAvailable(1)) {
+        storTBEs.incrementReserved();
+      } else {
+        error("checkC2cReqAllocateTBE: no TBE slots available");
       }
-
-    } else {
-      error("No retry yet implemented");
-      peek(requestFromC2c_in, C2cMsg) {
-        enqueue(triggerOutPort, TriggerMsg, 0) {
-          out_msg.addr := in_msg.addr;
-          out_msg.event := Event:Trigger_SendRetry;
-          out_msg.retryDest := in_msg.Sender;
-          retryQueue.emplace(in_msg.addr,in_msg.Sender);
-        }
+    }
+    peek(requestFromC2c_in, C2cMsg) {
+      enqueue(c2cReqRdyOutPort, C2cMsg, 0) {
+        out_msg := in_msg;
       }
     }
   }
@@ -1287,10 +1275,10 @@ machine(MachineType:Interface, "C2C interface controller") :
 
       TBEs.allocate(address);
       set_tbe(TBEs[address]);
+      tbe.storSlot := storTBEs.addEntryToNewSlot();
     }
     clearExpectedReqResp(tbe);
 
-    tbe.storSlot := storTBEs.addEntryToNewSlot();
     tbe.addr := address;
     tbe.rxtxBytes := 0;
     tbe.useDataSepResp := false;
@@ -1829,6 +1817,12 @@ machine(MachineType:Interface, "C2C interface controller") :
           out_msg.addr := in_msg.addr;
           out_msg.event := Event:Trigger_SendToC2c_ReqAck;
         }
+        // We reserve TBE resources
+        if (storTBEs.areNSlotsAvailable(1)) {
+          storTBEs.incrementReserved();
+        } else {
+          error("No TBE slots available");
+        }
       }
     }
   }
@@ -1971,39 +1965,27 @@ machine(MachineType:Interface, "C2C interface controller") :
   // WAITING_NET_DATA state. For all other case the line should be either
   // ready or we can overlap
   action(stallReqRdyQueue, "str", desc="Stall and wait on the address") {
-    peek(reqRdyInPort, CHIRequestMsg){
-      stall_and_wait(reqRdyInPort, address);
-    }
+    stall_and_wait(reqRdyInPort, address);
   }
   
   action(stallNetRequestQueue, "snrq", desc="Stall net request queue") {
-    peek(reqInPort, CHIRequestMsg){
-      stall_and_wait(reqInPort, address);
-    }
+    stall_and_wait(reqInPort, address);
   }
 
   action(stallNetSnoopQueue, "snsq", desc="Stall net snoop queue") {
-    peek(snpInPort, CHIRequestMsg){
-      stall_and_wait(snpInPort, address);
-    }
+    stall_and_wait(snpInPort, address);
   }
 
   action(stallC2cRequestQueue, "scrq", desc="Stall c2c request queue") {
-    peek(requestFromC2c_in, C2cMsg){
-      stall_and_wait(requestFromC2c_in, address);
-    }
+    stall_and_wait(requestFromC2c_in, address);
   }
 
   action(stallC2cResponseQueue, "screspq", desc="Stall c2c response queue") {
-    peek(responseFromC2c_in, C2cMsg){
-      stall_and_wait(responseFromC2c_in, address);
-    }
+    stall_and_wait(responseFromC2c_in, address);
   }
 
   action(stallStalledRequestQueue, "ssrq", desc="Stall the stalled request queue") {
-    peek(stalledInPort, C2cMsg) {
-      stall_and_wait(stalledInPort, address);
-    }
+    stall_and_wait(stalledInPort, address);
   }
 
   action(wakeUpStalled, "wa", desc="Wake up any requests waiting for this address") {
@@ -2067,6 +2049,15 @@ machine(MachineType:Interface, "C2C interface controller") :
     initializeFromC2cReqTBE;
     trigger_SendToNet_Request;
     popC2cReqRdyInQueue;
+  }
+
+  transition(REQ_ACK, {C2c_WriteEvictFull, C2c_WriteUniqueFull, 
+              C2c_WriteBackFull}, READY) {
+    c2cReqAllocateTBE;
+    initializeFromC2cReqTBE;
+    trigger_SendToNet_Request;
+    popC2cReqRdyInQueue;
+    wakeUpStalled;
   }
 
   transition(READY, {Net_ReadShared, Net_ReadOnce, Net_ReadUnique}, READING_MEM) {
@@ -2636,13 +2627,12 @@ machine(MachineType:Interface, "C2C interface controller") :
     checkC2cReqAllocateTBE;
     popRequestFromC2cQueue;
   }
-  
+
   // Receiving a request after isuing a request
   transition({READING_MEM, BLKD_SNP, WAIT_COMP}, CheckC2cReqAllocTBE) {
     enqueueToC2cReqRdy;
     popRequestFromC2cQueue;
   }
-
   transition({BLKD_REQ, READY, READING_MEM, BLKD_SNP, SNP_FWD, WAIT_COMP,
   SENDING_WBDATA, SENDING_NET_DATA_NO_ACK}, CheckC2cExpectedReq) {
     checkC2cExpectedReq;
@@ -2666,6 +2656,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   transition(READY, Trigger_SendToC2c_ReqAck, REQ_ACK) {
     sendToC2c_ReqAck;
+    allocateTBE;
     popTriggerQueue;
   }
 
