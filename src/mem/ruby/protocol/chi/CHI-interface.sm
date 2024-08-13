@@ -2146,7 +2146,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   // RetryAck
   transition({BLKD_SNP, BLKD_REQ, READING_MEM, STALE_SNP, SNP_FWD_2, 
-  SNP_FWD_LOCAL_DATA, SNP_FWD, READY}, Net_RetryAck) {
+  SNP_FWD_LOCAL_DATA, SNP_FWD, READY, WRITE}, Net_RetryAck) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
     popRspInQueue;
@@ -2162,7 +2162,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   // PCrdGrant 
   // We go back to default
   transition({BLKD_SNP, BLKD_REQ, READING_MEM, STALE_SNP, SNP_FWD_2, 
-  SNP_FWD_LOCAL_DATA, SNP_FWD, READY}, Net_PCrdGrant, READY) {
+  SNP_FWD_LOCAL_DATA, SNP_FWD, READY, WRITE}, Net_PCrdGrant, READY) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
     popRspInQueue;
