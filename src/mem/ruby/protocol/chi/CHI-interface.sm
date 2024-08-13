@@ -1190,6 +1190,13 @@ machine(MachineType:Interface, "C2C interface controller") :
   
   action(checkStalledAllocateTBE, desc="") {
     peek(stalledInPort, CHIRequestMsg) {
+      if(!is_valid(tbe)) {
+        if (storTBEs.areNSlotsAvailable(1)) {
+          storTBEs.incrementReserved();
+        } else {
+          error("checkStalledAllocateTBE: no storTBE slots available");
+        }
+      }
       enqueue(reqRdyOutPort, CHIRequestMsg, 0) {
         out_msg := in_msg;
       }
@@ -1201,7 +1208,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       if (storTBEs.areNSlotsAvailable(1)) {
         storTBEs.incrementReserved();
       } else {
-        error("checkC2cReqAllocateTBE: no TBE slots available");
+        error("checkC2cReqAllocateTBE: no storTBE slots available");
       }
     }
     peek(requestFromC2c_in, C2cMsg) {
@@ -2291,13 +2298,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     sendToC2c_Snoop;
     popSnpInQueue;
   } 
-
-  // We allow a SnpCleanInvalid to be serviced after a CleanUnique
-  //transition(BLKD_REQ, C2c_SnpCleanInvalid, STALE_SNP){
-  //  initializeFromC2cSnpTBE;
-  //  sendToNet_Snoop;
-  //  popC2cReqRdyInQueue;
-  //}
 
   transition(READY, C2c_SnpCleanInvalid, BLKD_SNP) {
     c2cReqAllocateTBE;
