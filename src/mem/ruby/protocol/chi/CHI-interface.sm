@@ -2083,7 +2083,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition(REQ_ACK, {C2c_WriteEvictFull, C2c_WriteUniqueFull, 
-              C2c_WriteBackFull}, READY) {
+              C2c_WriteBackFull}, WRITE) {
     c2cReqAllocateTBE;
     initializeFromC2cReqTBE;
     trigger_SendToNet_Request;
@@ -2122,7 +2122,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     wakeUpStalled;
   }
 
-  transition({BLKD_REQ, READY}, Trigger_SendToNet_Request) {
+  transition({BLKD_REQ, READY, WRITE}, Trigger_SendToNet_Request) {
     sendToNet_Request;
     popTriggerQueue;
   }
