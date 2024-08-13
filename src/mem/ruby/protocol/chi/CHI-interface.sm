@@ -53,6 +53,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
     // Interface states 
     BLKD_REQ, AccessPermission:Invalid, desc="Sending request to chip1 s network";
+    WRITE, AccessPermission:Invalid, desc="Off-chip Write requests";
     SEND_CTRL_DATA, AccessPermission:Invalid, desc="Sending response data to chip0";
     WAIT_ACK, AccessPermission:Backing_Store_Busy,       desc="Waiting for a response CompAck after sending read data";
     WAIT_WBDATA, AccessPermission:Invalid, desc="Waiting for CBWrData from Net";
@@ -222,14 +223,11 @@ machine(MachineType:Interface, "C2C interface controller") :
 
     // Priority snoop triggers
     Trigger_Finalize, desc="";
-    Trigger_PendingRequest, desc="";
+    Trigger_PendingRequest_BlkdReq, desc="";
+    Trigger_PendingRequest_Write, desc="";
     Trigger_PendingC2cRequest_WaitComp, desc="";
     Trigger_PendingC2cRequest_ReadingMem, desc="";
     Trigger_PrioritySnoop, desc="";
-
-    // Local data snpSharedFwd
-    //Trigger_LocalSnpEvent, desc="";
-    //Trigger_StallSnoopQueue, desc="";
 
     // ReqAck triggers
     Trigger_InitiateReqAck, desc="Initiates the request acknowledgement";
@@ -1834,8 +1832,25 @@ machine(MachineType:Interface, "C2C interface controller") :
     }
   }
 
-  action(checkExpectedSnp, "ces", desc="Checks if the inbound snoop is expected") {
+  action(checkExpectedSnp_BlkdReq, "cesbr", desc="Checks if the inbound snoop is expected") {
     assert(is_valid(tbe));
+    tbe.pendingState := State:BLKD_REQ;
+    peek(snpInPort, CHIRequestMsg) {
+      if (in_msg.c2cOrig) {
+        tbe.pendingRequest := false;
+      } else {
+        tbe.pendingRequest := true;
+        enqueue(triggerOutPort, TriggerMsg, 0) {
+          out_msg.addr := in_msg.addr;
+          out_msg.event := Event:Trigger_PrioritySnoop;
+        }
+      }
+    }
+  }
+
+  action(checkExpectedSnp_Write, "cesw", desc="Checks if the inbound snoop is expected") {
+    assert(is_valid(tbe));
+    tbe.pendingState := State:WRITE;
     peek(snpInPort, CHIRequestMsg) {
       if (in_msg.c2cOrig) {
         tbe.pendingRequest := false;
@@ -1884,9 +1899,18 @@ machine(MachineType:Interface, "C2C interface controller") :
   action(checkPendingRequest, "cpr", desc="Check is there is a pending request") {
     assert(is_valid(tbe));
     if(tbe.pendingRequest) {
-      enqueue(triggerOutPort, TriggerMsg, 0) {
-        out_msg.addr := tbe.addr;
-        out_msg.event := Event:Trigger_PendingRequest;
+      if(tbe.pendingState == State:BLKD_REQ) {
+        enqueue(triggerOutPort, TriggerMsg, 0) {
+          out_msg.addr := tbe.addr;
+          out_msg.event := Event:Trigger_PendingRequest_BlkdReq;
+        }
+      } else if (tbe.pendingState == State:WRITE) {
+        enqueue(triggerOutPort, TriggerMsg, 0) {
+          out_msg.addr := tbe.addr;
+          out_msg.event := Event:Trigger_PendingRequest_Write;
+        }
+      } else {
+        error("Uninitialized pendingState");
       }
     } else {
       enqueue(triggerOutPort, TriggerMsg, 0) {
@@ -2051,7 +2075,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition(READY, {C2c_WriteEvictFull, C2c_WriteUniqueFull, 
-              C2c_WriteBackFull}) {
+              C2c_WriteBackFull}, WRITE) {
     c2cReqAllocateTBE;
     initializeFromC2cReqTBE;
     trigger_SendToNet_Request;
@@ -2154,7 +2178,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // waits for resp data so we don't deallocate TBE
-  transition(READY, Net_CompDBIDResp) {
+  transition(WRITE, Net_CompDBIDResp) {
     updateTBE_FromNetResp;
     sendToC2c_Response;
     popRspInQueue;
@@ -2256,14 +2280,12 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   transition(READY, Trigger_PendingC2cRequest_WaitComp, WAIT_COMP) {
-    // We go back to the request FSM
-    // We set the pendingRequest to false
+    // We go back to the pending C2C request FSM
     popTriggerQueue;
   }
 
   transition(READY, Trigger_PendingC2cRequest_ReadingMem, READING_MEM) {
-    // We go back to the request FSM
-    // We set the pendingRequest to false
+    // We go back to the pending C2C request FSM
     popTriggerQueue;
   }
 
@@ -2278,9 +2300,13 @@ machine(MachineType:Interface, "C2C interface controller") :
     checkPendingRequest;
   }
 
-  transition(READY, Trigger_PendingRequest, BLKD_REQ) {
-    // We go back to the request FSM
-    // set pending request to false
+  transition(READY, Trigger_PendingRequest_BlkdReq, BLKD_REQ) {
+    // We go back to the pending request FSM
+    popTriggerQueue;
+  }
+
+  transition(READY, Trigger_PendingRequest_Write, WRITE) {
+    // We go back to the pending request FSM
     popTriggerQueue;
   }
 
@@ -2330,7 +2356,15 @@ machine(MachineType:Interface, "C2C interface controller") :
   // Means that data is local but is waiting for CompAck
   // We check if the snoop is expected. 
   transition(BLKD_REQ, {Net_SnpSharedFwd, Net_SnpUniqueFwd, Net_SnpOnceFwd}, SNP_FWD_LOCAL_DATA) {
-    checkExpectedSnp;
+    checkExpectedSnp_BlkdReq;
+    updateTBEFromNetSnp;
+    sendToC2c_Snoop;
+    popSnpInQueue;
+  }
+
+  transition(WRITE, {Net_SnpSharedFwd, Net_SnpUniqueFwd, Net_SnpOnceFwd},
+  SNP_FWD_LOCAL_DATA) {
+    checkExpectedSnp_Write;
     updateTBEFromNetSnp;
     sendToC2c_Snoop;
     popSnpInQueue;
@@ -2401,7 +2435,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     deallocateTBE;
   }
 
-  transition(READY, {C2c_NCBWrData, C2c_CBWrData_UC, C2c_CBWrData_SC, 
+  transition(WRITE, {C2c_NCBWrData, C2c_CBWrData_UC, C2c_CBWrData_SC, 
               C2c_CBWrData_I, C2c_CBWrData_SD_PD, C2c_CBWrData_UD_PD}, SENDING_WBDATA) {
     prepareSend_Data;
     sendToNet_Data;
