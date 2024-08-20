@@ -10,7 +10,6 @@ from gem5.components.memory.multi_channel import DualChannelDDR3_1600_C2C
 from gem5.components.processors.simple_switchable_processor import (
     SimpleSwitchableProcessor,
 )
-from gem5.components.processors.simple_processor import SimpleProcessor
 from gem5.components.cachehierarchies.chi.c2c_cache_hierarchy import (
     C2cCacheHierarchy,
 )
@@ -23,11 +22,7 @@ from gem5.resources.workload import (
     Workload,
     CustomWorkload,
 )
-from gem5.resources.resource import (
-    Resource, 
-    CustomDiskImageResource,
-    get_resource,
-)
+from gem5.resources.resource import Resource, CustomDiskImageResource
 
 # This runs a check to ensure the gem5 binary is compiled to X86 and to the
 # CHI coherence protocol.
@@ -91,14 +86,10 @@ cache_hierarchy = C2cCacheHierarchy(
 memory = DualChannelDDR3_1600_C2C(size="3GB", range_size="1610612736")
 
 # Switchable KVM -> timing
-#processor = SimpleSwitchableProcessor(
-#    starting_core_type=CPUTypes.KVM,
-#    switch_core_type=CPUTypes.TIMING,
-#    isa=ISA.X86,
-#    num_cores=2,
-#)
-processor = SimpleProcessor(
-    cpu_type=CPUTypes.TIMING,
+processor = SimpleSwitchableProcessor(
+    starting_core_type=CPUTypes.TIMING,
+    switch_core_type=CPUTypes.TIMING,
+    isa=ISA.X86,
     num_cores=2,
 )
 
@@ -134,19 +125,15 @@ board.set_kernel_disk_workload(
     #    "/home/lbertranalvarez/Work/disk-image/images/x86-ubuntu-18.04-img"
     #),
     disk_image = Resource("x86-parsec"),
-    #checkpoint = get_resource("/home/lbertranalvarez/Work/gem5/checkpoints/m5.cpt"),
-    checkpoint_path = Resource(
-        resource_name="m5.cpt",
-        resource_directory="./checkpoints"
-    ),
     readfile_contents=command,
 )
 
-checkpoint_path = "/home/lbertranalvarez/Work/gem5/checkpoints/"
-
 # Custom exit events
 def handle_workbegin():
+    print("Done booting Linux")
+    print("Resetting stats at the start of the ROI!")
     m5.stats.reset()
+    processor.switch()
     yield False
 
 def handle_workend():

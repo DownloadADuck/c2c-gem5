@@ -1598,6 +1598,7 @@ action(Send_SnpOnce, desc="") {
       out_msg.Destination.add(tbe.dir_sharers.smallestElement());
     }
     out_msg.retToSrc := true;
+    out_msg.c2cOrig := tbe.c2cOrig;
   }
 }
 

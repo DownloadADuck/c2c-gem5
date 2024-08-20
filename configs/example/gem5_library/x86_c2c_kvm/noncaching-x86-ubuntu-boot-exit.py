@@ -87,7 +87,7 @@ memory = DualChannelDDR3_1600_C2C(size="3GB", range_size="1610612736")
 
 # Switchable KVM -> timing
 processor = SimpleSwitchableProcessor(
-    starting_core_type=CPUTypes.KVM,
+    starting_core_type=CPUTypes.NONCACHING_SIMPLE,
     switch_core_type=CPUTypes.TIMING,
     isa=ISA.X86,
     num_cores=2,
@@ -128,14 +128,10 @@ board.set_kernel_disk_workload(
     readfile_contents=command,
 )
 
-checkpoint_path = "/home/lbertranalvarez/Work/gem5/checkpoints/"
-
 # Custom exit events
 def handle_workbegin():
     print("Done booting Linux")
     print("Resetting stats at the start of the ROI!")
-    print("Trying to checkpoint")
-    simulator.save_checkpoint(checkpoint_path)
     m5.stats.reset()
     processor.switch()
     yield False
