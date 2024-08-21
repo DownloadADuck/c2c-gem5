@@ -1867,7 +1867,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   action(checkC2cExpectedSnp_WaitComp, "cceswc", desc="Check if the inbound snoop is from the request or not") {
     assert(is_valid(tbe));
     tbe.pendingState := State:WAIT_COMP;
-    peek(requestFromC2c_in, C2cMsg) {
+    peek(c2cReqRdyInPort, C2cMsg) {
       if(in_msg.Priority) {
         tbe.pendingC2cRequest := true;
         enqueue(triggerOutPort, TriggerMsg, 0) {
@@ -1883,7 +1883,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   action(checkC2cExpectedSnp_ReadingMem, "ccesrm", desc="Check if the inbound snoop is from the request or not") {
     assert(is_valid(tbe));
     tbe.pendingState := State:READING_MEM;
-    peek(requestFromC2c_in, C2cMsg) {
+    peek(c2cReqRdyInPort, C2cMsg) {
       if(in_msg.Priority) {
         tbe.pendingC2cRequest := true;
         enqueue(triggerOutPort, TriggerMsg, 0) {
