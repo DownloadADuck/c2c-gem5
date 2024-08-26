@@ -1446,7 +1446,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     tbe.expected_req_resp.addExpectedDataType(CHIDataType:CompData_UC);
     if (c2cMsgToCHIReq(tbe.to_net_snp_type) == CHIRequestType:SnpSharedFwd ||
         c2cMsgToCHIReq(tbe.to_net_snp_type) == CHIRequestType:SnpUniqueFwd ||
-        c2cMsgToCHIReq(tbe.to_net_snp_type) == CHIRequestType:SnpOnceFwd) {
+        c2cMsgToCHIReq(tbe.to_net_snp_type) == CHIRequestType:SnpOnceFwd   ||
+        c2cMsgToCHIReq(tbe.to_net_snp_type) == CHIRequestType:SnpCleanInvalid) {
       tbe.expected_req_resp.addExpectedCount(3);
     } else {
       tbe.expected_req_resp.addExpectedCount(1);
@@ -2572,7 +2573,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     popTriggerQueue;
   }
 
-  transition(BLKD_SNP, {Net_SnpRespData_I_PD, Net_SnpRespData_I, 
+  transition({BLKD_SNP, STALE_SNP}, {Net_SnpRespData_I_PD, Net_SnpRespData_I, 
   Net_SnpRespData_SC_PD, Net_SnpRespData_SC, Net_SnpRespData_SD, 
   Net_SnpRespData_UC, Net_SnpRespData_UD}) {
     copyDataToTBE;
@@ -2587,6 +2588,12 @@ machine(MachineType:Interface, "C2C interface controller") :
     deallocateTBE;
   }
 
+  transition(STALE_SNP, Trigger_ReceiveDataDone, WAIT_COMP) {
+    sendToC2c_Data;
+    popTriggerQueue;
+    checkPending;
+  }
+
   transition(BLKD_SNP, {C2c_SnpRespData_I_PD, C2c_SnpRespData_I, 
   C2c_SnpRespData_SC_PD, C2c_SnpRespData_SC, C2c_SnpRespData_SD, 
   C2c_SnpRespData_UC, C2c_SnpRespData_UD}, SENDING_NET_DATA_NO_ACK) {
@@ -2594,6 +2601,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     sendToNet_Data;
     popResponseFromC2cQueue;
   }
+
   // Sending loop not waiting for acks. Deallocating TBE in the end.
   transition(SENDING_NET_DATA_NO_ACK, Trigger_Send) {
     sendToNet_Data;
@@ -2604,6 +2612,23 @@ machine(MachineType:Interface, "C2C interface controller") :
     popTriggerQueue;
     checkPending;
     deallocateTBE;
+  }
+
+  transition(STALE_SNP, {C2c_SnpRespData_I_PD, C2c_SnpRespData_I, 
+  C2c_SnpRespData_SC_PD, C2c_SnpRespData_SC, C2c_SnpRespData_SD, 
+  C2c_SnpRespData_UC, C2c_SnpRespData_UD}) {
+    prepareSend_Data;
+    sendToNet_Data;
+    popResponseFromC2cQueue;
+  }
+
+  transition(STALE_SNP, Trigger_Send) {
+    sendToNet_Data;
+    popTriggerQueue;
+  }
+
+  transition(STALE_SNP, Trigger_SendDone, BLKD_REQ) {
+    popTriggerQueue;
   }
 
   // Notice we only use this here and call wakeUp when leaving this state
