@@ -67,6 +67,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     SNP_FWD_2, AccessPermission:Invalid, desc="Second part of snoop fwd handling";
     SNP_FWD_LOCAL_DATA, AccessPermission:Invalid, desc="SnpFwd but data is local to requestor";
     SNP_FWD_RESP_BETWEEN_DATA, AccessPermission:Invalid, desc="The response arrives between the two data pkts";
+    SFLD_COMPACK, AccessPermission:Invalid, desc="CompAck received before the SnpResp for a SnpFwdLocalData";
 
     STALE_SNP, AccessPermission:Invalid, desc="Happens when receiving a snpCleanInvalid after a request";
 
@@ -2409,6 +2410,40 @@ machine(MachineType:Interface, "C2C interface controller") :
     updateTBE_FromC2cResp;
     sendToNet_Response;
     popResponseFromC2cQueue;
+  }
+
+  // Special case, CompAck received before the SnpResp
+  transition(SNP_FWD_LOCAL_DATA, Net_CompAck, SFLD_COMPACK) {
+    updateTBE_FromNetResp;
+    sendToC2c_Response;
+    popRspInQueue;
+  }
+
+  transition(SNP_FWD_LOCAL_DATA, C2c_CompAck, SFLD_COMPACK) {
+    updateTBE_FromC2cResp;
+    sendToNet_CompAck;
+    popResponseFromC2cQueue;
+  }
+
+  transition(SFLD_COMPACK, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, 
+  Net_SnpResp_SC_Fwded_SC, Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_SD_Fwded_I, 
+  Net_SnpResp_SC_Fwded_I, Net_SnpResp_UD_Fwded_I, Net_SnpResp_UC_Fwded_I, 
+  Net_SnpResp_I_Fwded_UC}, READY) {
+    updateTBE_FromNetResp;
+    sendToC2c_Response;
+    popRspInQueue;
+    checkPending;
+    deallocateTBE;
+  }
+
+  transition(SFLD_COMPACK, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD, 
+  C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_SD_Fwded_I, 
+  C2c_SnpResp_SC_Fwded_I, C2c_SnpResp_UD_Fwded_I, C2c_SnpResp_UC_Fwded_I, 
+  C2c_SnpResp_I_Fwded_UC}, READY) {
+    updateTBE_FromC2cResp;
+    sendToNet_Response;
+    popResponseFromC2cQueue;
+    deallocateTBE;
   }
 
   // Special case where the resp arrived between the two data packets
