@@ -421,15 +421,22 @@ def get_resource(
                 # do so again.
                 return
             elif download_md5_mismatch:
-                if os.path.isfile(to_path):
-                    os.remove(to_path)
-                else:
-                    shutil.rmtree(to_path)
+                print("Warning: md5 mismatch.")
+            #elif download_md5_mismatch:
+            #    if os.path.isfile(to_path):
+            #        os.remove(to_path)
+            #    else:
+            #        shutil.rmtree(to_path)
             else:
-                raise Exception(
-                    "There already a file present at '{}' but "
+                #raise Exception(
+                #    "There already a file present at '{}' but "
+                #    "its md5 value is invalid.".format(to_path)
+                #)
+                print(
+                    "There is a file present at '{}' but "
                     "its md5 value is invalid.".format(to_path)
                 )
+                return
 
         download_dest = to_path
 

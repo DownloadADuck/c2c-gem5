@@ -2547,10 +2547,10 @@ machine(MachineType:Interface, "C2C interface controller") :
     trigger_SendSnpResp;
   }
 
-  transition(SNP_FWD_RESP_BETWEEN_DATA, Trigger_SendSnpResp) {
+  transition(SNP_FWD_RESP_BETWEEN_DATA, Trigger_SendSnpResp, READY) {
     sendToC2c_Response;
     popTriggerQueue;
-    deallocateTBE;
+    checkPendingC2cRequest;
   }
 
   transition(SNP_FWD_2, {Net_SnpRespData_SC_Fwded_SD_PD, 

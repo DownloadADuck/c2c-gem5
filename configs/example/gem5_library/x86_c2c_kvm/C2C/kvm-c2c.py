@@ -124,7 +124,7 @@ board.set_kernel_disk_workload(
     #disk_image = CustomDiskImageResource(
     #    "/home/lbertranalvarez/Work/disk-image/images/x86-ubuntu-18.04-img"
     #),
-    disk_image = Resource("x86-parsec"),
+    disk_image = Resource("x86-parsec", download_md5_mismatch=False),
     readfile_contents=command,
 )
 
