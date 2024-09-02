@@ -204,20 +204,20 @@ np = options0.num_cpus
 mp0_path = multiprocesses[0].executable
 
 # Memory ranges
-arv = convert.toMemorySize('2GB')
+arv = convert.toMemorySize('1610612736')
 addr_range_vaults = [AddrRange(i*arv, ((i+1)*arv-1)) for i in range(2)]
 
 system = System(
     tgens0=[
         TrafficGen(
-            config_file="./m5out/lat_mem_rd_core0.cfg",
+            config_file="./m5out/lat_mem_rd_core0_L1d.cfg",
             #config_file="./m5out/lat_mem_rd.cfg",
             progress_check="10s",
         ) for i in range(np)
     ],
     tgens1=[
         TrafficGen(
-            config_file="./m5out/lat_mem_rd_core1.cfg",
+            config_file="./m5out/lat_mem_rd_core0_L1i.cfg",
             #config_file="./m5out/lat_mem_rd.cfg",
             progress_check="10s",
         ) for i in range(np)
