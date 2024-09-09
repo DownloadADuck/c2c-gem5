@@ -1469,7 +1469,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   action(trigger_SendToC2c_Request, "ts2cr", desc="Trigger sendToC2c_Request") {
     assert(is_valid(tbe));
-    enqueue(triggerOutPort, TriggerMsg, 1200) {
+    enqueue(triggerOutPort, TriggerMsg, 1300) {
       out_msg.addr := address;
       out_msg.event := Event:Trigger_SendToC2c_Request;
     }
