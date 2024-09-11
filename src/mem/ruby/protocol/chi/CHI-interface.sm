@@ -1469,7 +1469,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   action(trigger_SendToC2c_Request, "ts2cr", desc="Trigger sendToC2c_Request") {
     assert(is_valid(tbe));
-    enqueue(triggerOutPort, TriggerMsg, 1370) {
+    enqueue(triggerOutPort, TriggerMsg, 685) {
       out_msg.addr := address;
       out_msg.event := Event:Trigger_SendToC2c_Request;
     }
@@ -1613,7 +1613,7 @@ machine(MachineType:Interface, "C2C interface controller") :
           tbe.dataBlkValid.clear();
         }
       } else {
-        enqueue(triggerOutPort, TriggerMsg, 0) {
+        enqueue(triggerOutPort, TriggerMsg, 685) {
           out_msg.addr := address;
           if (
             in_msg.type == CHIDataType:NCBWrData ||
@@ -2674,7 +2674,8 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   // When receiving a request during a SNP_FWD we stall
   // HACK: We should not stall on a snpSharedFwd after ReadRequest
-  transition({REQ_ACK, BLKD_REQ, SNP_FWD, BLKD_SNP, WAIT_WBDATA}, CheckAllocTBE) {
+  transition({REQ_ACK, BLKD_REQ, SNP_FWD, BLKD_SNP, WAIT_WBDATA,
+  SNP_FWD_RESP_BETWEEN_DATA}, CheckAllocTBE) {
     stallNetRequestQueue;
   }
 

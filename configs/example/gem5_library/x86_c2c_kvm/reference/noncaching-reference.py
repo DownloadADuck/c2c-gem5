@@ -22,6 +22,9 @@ from gem5.resources.resource import Resource, CustomResource
 from gem5.components.cachehierarchies.chi.private_l1_cache_hierarchy import (
     PrivateL1CacheHierarchy,
 )
+from gem5.components.cachehierarchies.chi.private_l1_private_l2_cache_hierarchy import (
+    PrivateL1PrivateL2CacheHierarchy,
+)
 
 requires(
     isa_required=ISA.X86,
@@ -71,9 +74,11 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-cache_hierarchy = PrivateL1CacheHierarchy(
-    size="16kB",
-    assoc=8,
+cache_hierarchy = PrivateL1PrivateL2CacheHierarchy(
+    l1_size="64kB",
+    l1_assoc=4,
+    l2_size="1MB",
+    l2_assoc=8,
 )
 
 # Memory
