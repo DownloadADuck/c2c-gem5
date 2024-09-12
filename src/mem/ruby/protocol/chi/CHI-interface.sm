@@ -2542,13 +2542,13 @@ machine(MachineType:Interface, "C2C interface controller") :
   // We send the full data packet, then the response
   transition(SNP_FWD_RESP_BETWEEN_DATA, Trigger_ReceiveDataDone) {
     sendToC2c_Data;
-    wakeUpStalled;
     popTriggerQueue;
     trigger_SendSnpResp;
   }
 
   transition(SNP_FWD_RESP_BETWEEN_DATA, Trigger_SendSnpResp, READY) {
     sendToC2c_Response;
+    wakeUpStalled;
     popTriggerQueue;
     checkPendingC2cRequest;
   }
