@@ -76,9 +76,9 @@ args = parser.parse_args()
 
 # Here we setup a MESI Two Level Cache Hierarchy.
 cache_hierarchy = C2cCacheHierarchy(
-    l1_size="32kB",
-    l1_assoc=8,
-    l2_size="64kB",
+    l1_size="64kB",
+    l1_assoc=4,
+    l2_size="1MB",
     l2_assoc=8,
 )
 

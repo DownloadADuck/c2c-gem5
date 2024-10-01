@@ -1469,7 +1469,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   action(trigger_SendToC2c_Request, "ts2cr", desc="Trigger sendToC2c_Request") {
     assert(is_valid(tbe));
-    enqueue(triggerOutPort, TriggerMsg, 0) {
+    enqueue(triggerOutPort, TriggerMsg, 685) {
       out_msg.addr := address;
       out_msg.event := Event:Trigger_SendToC2c_Request;
     }
@@ -1613,7 +1613,7 @@ machine(MachineType:Interface, "C2C interface controller") :
           tbe.dataBlkValid.clear();
         }
       } else {
-        enqueue(triggerOutPort, TriggerMsg, 0) {
+        enqueue(triggerOutPort, TriggerMsg, 685) {
           out_msg.addr := address;
           if (
             in_msg.type == CHIDataType:NCBWrData ||
