@@ -118,6 +118,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     // Snoops
     Net_SnpCleanInvalid, desc="";
     C2c_SnpCleanInvalid, desc="";
+    Net_SnpUnique, desc="";
+    C2c_SnpUnique, desc="";
     Net_SnpSharedFwd, desc="";
     C2c_SnpSharedFwd, desc="";
     Net_SnpUniqueFwd, desc="";
@@ -262,6 +264,8 @@ machine(MachineType:Interface, "C2C interface controller") :
   Event snpToEvent (CHIRequestType type) {
     if (type == CHIRequestType:SnpCleanInvalid) {
       return Event:Net_SnpCleanInvalid;
+    } else if (type == CHIRequestType:SnpUnique) {
+      return Event:Net_SnpUnique;
     } else if (type == CHIRequestType:SnpSharedFwd) {
       return Event:Net_SnpSharedFwd;
     } else if (type == CHIRequestType:SnpUniqueFwd) {
@@ -385,6 +389,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return Event:C2c_WriteBackFull;
     } else if (type == C2cRequestType:SnpCleanInvalid) {
       return Event:C2c_SnpCleanInvalid;
+    } else if (type == C2cRequestType:SnpUnique) {
+      return Event:C2c_SnpUnique;
     } else if (type == C2cRequestType:SnpSharedFwd) {
       return Event:C2c_SnpSharedFwd;
     } else if (type == C2cRequestType:SnpUniqueFwd) {
@@ -503,6 +509,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return CHIRequestType:WriteBackFull;
     } else if (type == C2cRequestType:SnpCleanInvalid) {
       return CHIRequestType:SnpCleanInvalid;
+    } else if (type == C2cRequestType:SnpUnique) {
+      return CHIRequestType:SnpUnique;
     } else if (type == C2cRequestType:SnpSharedFwd) {
       return CHIRequestType:SnpSharedFwd;
     } else if (type == C2cRequestType:SnpUniqueFwd) {
@@ -626,6 +634,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       return C2cRequestType:WriteBackFull;
     } else if (type == CHIRequestType:SnpCleanInvalid) {
       return C2cRequestType:SnpCleanInvalid;
+    } else if (type == CHIRequestType:SnpUnique) {
+      return C2cRequestType:SnpUnique;
     } else if (type == CHIRequestType:SnpSharedFwd) {
       return C2cRequestType:SnpSharedFwd;
     } else if (type == CHIRequestType:SnpUniqueFwd) {
@@ -1448,7 +1458,8 @@ machine(MachineType:Interface, "C2C interface controller") :
     if (c2cMsgToCHIReq(tbe.to_net_snp_type) == CHIRequestType:SnpSharedFwd ||
         c2cMsgToCHIReq(tbe.to_net_snp_type) == CHIRequestType:SnpUniqueFwd ||
         c2cMsgToCHIReq(tbe.to_net_snp_type) == CHIRequestType:SnpOnceFwd   ||
-        c2cMsgToCHIReq(tbe.to_net_snp_type) == CHIRequestType:SnpCleanInvalid) {
+        c2cMsgToCHIReq(tbe.to_net_snp_type) == CHIRequestType:SnpCleanInvalid ||
+        c2cMsgToCHIReq(tbe.to_net_snp_type) == CHIRequestType:SnpUnique) {
       tbe.expected_req_resp.addExpectedCount(3);
     } else {
       tbe.expected_req_resp.addExpectedCount(1);
@@ -2313,7 +2324,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // Snoops
-  transition(READY, Net_SnpCleanInvalid, BLKD_SNP) {
+  transition(READY, {Net_SnpCleanInvalid, Net_SnpUnique}, BLKD_SNP) {
     allocateTBE_Snoop;
     initializeFromSnpTBE;
     sendToC2c_Snoop;
@@ -2321,20 +2332,20 @@ machine(MachineType:Interface, "C2C interface controller") :
   }
 
   // Receiving a SnpClean after a req needs serialization 
-  transition(BLKD_REQ, Net_SnpCleanInvalid, STALE_SNP) {
+  transition(BLKD_REQ, {Net_SnpCleanInvalid, Net_SnpUnique}, STALE_SNP) {
     initializeFromSnpTBE;
     sendToC2c_Snoop;
     popSnpInQueue;
   } 
 
-  transition(READY, C2c_SnpCleanInvalid, BLKD_SNP) {
+  transition(READY, {C2c_SnpCleanInvalid, C2c_SnpUnique}, BLKD_SNP) {
     c2cReqAllocateTBE;
     initializeFromC2cSnpTBE;
     sendToNet_Snoop;
     popC2cReqRdyInQueue;
   }
 
-  transition(WAIT_COMP, C2c_SnpCleanInvalid, STALE_SNP) {
+  transition(WAIT_COMP, {C2c_SnpCleanInvalid, C2c_SnpUnique}, STALE_SNP) {
     updateTBEFromC2cSnp;
     sendToNet_Snoop;
     popC2cReqRdyInQueue;
@@ -2689,7 +2700,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   //Stalling snoops
   transition(REQ_ACK, {Net_SnpCleanInvalid, Net_SnpSharedFwd, Net_SnpUniqueFwd,
-  Net_SnpOnceFwd}) {
+  Net_SnpOnceFwd, Net_SnpUnique}) {
     stallNetSnoopQueue;
   }
 

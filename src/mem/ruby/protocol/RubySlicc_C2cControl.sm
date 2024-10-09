@@ -26,6 +26,7 @@ enumeration(C2cRequestType, desc="...") {
   WriteBackFull, desc="WriteBackFull";
   // Snoops
   SnpCleanInvalid, desc="SnpCleanInvalid";
+  SnpUnique, desc="SnpUnique";
   SnpSharedFwd, desc="SnpSharedFwd";
   SnpUniqueFwd, desc="SnpUniqueFwd";
   SnpOnceFwd, desc="SnpOnceFwd";
