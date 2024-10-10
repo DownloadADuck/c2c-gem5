@@ -45,9 +45,9 @@ def create_chip0(
     options,
     full_system,
     system,
-    dma_ports, 
-    bootmem, 
-    ruby_system, 
+    dma_ports,
+    bootmem,
+    ruby_system,
     cpus,
     network
 ):
@@ -202,7 +202,7 @@ def create_chip0(
     interface_list = [i for i in range(1)]
     CHI_Interface.createAddrRanges([sysranges[1]], system.cache_line_size.value, \
         interface_list)
-    # Fixing the idx ourself. Need to try without. 
+    # Fixing the idx ourself. Need to try without.
     ruby_system.interface0 = [CHI_Interface(0, ruby_system, None, network)]
     interface0 = ruby_system.interface0[0]
     network_nodes.append(interface0)
@@ -243,7 +243,7 @@ def create_chip0(
 
     for i, hnf in enumerate(ruby_system.hnf):
         hnf.setDownstream(mem_dests[i])
-    
+
     hnf_dests.pop(1)
     ruby_system.interface0[0].setDownstream(hnf_dests)
 
@@ -265,7 +265,7 @@ def create_chip0(
     for k in dir(params):
         if not k.startswith("__"):
             setattr(options, k, getattr(params, k))
-    
+
     if options.topology == "CustomMesh":
         topology = create_topology(network_nodes, options)
     elif options.topology in ["Crossbar", "Pt2Pt"]:
@@ -279,9 +279,9 @@ def create_chip1(
     options,
     full_system,
     system,
-    dma_ports, 
-    bootmem, 
-    ruby_system, 
+    dma_ports,
+    bootmem,
+    ruby_system,
     cpus,
     network
 ):
@@ -394,7 +394,7 @@ def create_chip1(
 
     for m in other_memories:
         sysranges.append(m.range)
-    # We want only one of the ranges for the HNF  
+    # We want only one of the ranges for the HNF
     sysranges.pop(0)
 
     hnf_list1 = [i for i in range(options.num_l3caches)]
@@ -410,7 +410,7 @@ def create_chip1(
         assert hnf.getAllControllers() == hnf.getNetworkSideControllers()
         all_cntrls.extend(hnf.getAllControllers())
         hnf_dests.extend(hnf.getAllControllers())
-    
+
     ruby_system.snf1 = [
         CHI_SNF_MainMem(ruby_system, None, network, None)
         for i in range(options.num_dirs)

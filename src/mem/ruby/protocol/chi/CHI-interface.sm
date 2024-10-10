@@ -2559,7 +2559,6 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   transition(SNP_FWD_RESP_BETWEEN_DATA, Trigger_SendSnpResp, READY) {
     sendToC2c_Response;
-    wakeUpStalled;
     popTriggerQueue;
     checkPendingC2cRequest;
   }
