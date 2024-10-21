@@ -1414,6 +1414,8 @@ action(Send_SnpUnique, desc="") {
     prepareRequest(tbe, CHIRequestType:SnpUnique, out_msg);
     out_msg.Destination.addNetDest(tbe.dir_sharers);
     out_msg.retToSrc := false;
+    out_msg.c2c_sharers := tbe.c2c_sharers;
+    out_msg.c2cOrig := tbe.c2cOrig;
   }
 }
 
@@ -1485,6 +1487,8 @@ action(Send_SnpShared, desc="") {
     prepareRequest(tbe, CHIRequestType:SnpShared, out_msg);
     out_msg.Destination.add(tbe.dir_owner);
     out_msg.retToSrc := false;
+    out_msg.c2c_sharers := tbe.c2c_sharers;
+    out_msg.c2cOrig := tbe.c2cOrig;
   }
 }
 
@@ -1598,6 +1602,7 @@ action(Send_SnpOnce, desc="") {
       out_msg.Destination.add(tbe.dir_sharers.smallestElement());
     }
     out_msg.retToSrc := true;
+    out_msg.c2c_sharers := tbe.c2c_sharers;
     out_msg.c2cOrig := tbe.c2cOrig;
   }
 }
