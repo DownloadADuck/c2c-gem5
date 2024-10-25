@@ -105,7 +105,7 @@ def generate_packets():
     cache_names = ['cache1', 'cache2', 'cache3']
     for i, cache_name in enumerate(cache_names):
         packet_info = {
-            'tick': base_tick + i * 10000,  # Delay of 10000 ticks between requests
+            'tick': base_tick + i * 1000000000,  # Delay between requests
             'addr': addr,
             'size': 64,
             'cmd': 1,  # ReadReq

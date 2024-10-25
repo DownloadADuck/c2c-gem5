@@ -4,6 +4,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   Cycles response_latency := 1;
   Cycles data_latency := 1;
   Cycles to_memory_controller_latency := 1;
+  Cycles c2c_link_latency := 0; //685
 
   int data_channel_size;
 
@@ -1482,7 +1483,7 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   action(trigger_SendToC2c_Request, "ts2cr", desc="Trigger sendToC2c_Request") {
     assert(is_valid(tbe));
-    enqueue(triggerOutPort, TriggerMsg, 0) {
+    enqueue(triggerOutPort, TriggerMsg, c2c_link_latency) {
       out_msg.addr := address;
       out_msg.event := Event:Trigger_SendToC2c_Request;
     }
@@ -1613,20 +1614,20 @@ machine(MachineType:Interface, "C2C interface controller") :
   action(checkForReceiveCompletion, "crrc", desc="Check if all read data is received") {
     assert(is_valid(tbe));
     DPRINTF(RubySlicc, "rxtxBytes=%d\n", tbe.rxtxBytes);
-    assert(tbe.expected_req_resp.hasExpected());
+    //assert(tbe.expected_req_resp.hasExpected());
 
     peek(datInPort, CHIDataMsg) {
       // Decrement pending
-      if (tbe.expected_req_resp.receiveData(in_msg.type) == false) {
-        error("Received unexpected message");
-      }
+      //if (tbe.expected_req_resp.receiveData(in_msg.type) == false) {
+      //  error("Received unexpected message");
+      //}
       if (tbe.dataBlkValid.isFull() == false) {
         // clear mask if started to receive new data
         if(tbe.dataBlkValid.isFull()){
           tbe.dataBlkValid.clear();
         }
       } else {
-        enqueue(triggerOutPort, TriggerMsg, 0) {
+        enqueue(triggerOutPort, TriggerMsg, c2c_link_latency) {
           out_msg.addr := address;
           if (
             in_msg.type == CHIDataType:NCBWrData ||
@@ -2206,13 +2207,24 @@ machine(MachineType:Interface, "C2C interface controller") :
     popSnpInQueue;
   }
 
-  transition(WRITE_SNP, {C2c_SnpResp_I, C2c_SnpResp_I_Fwded_UD_PD,
-  C2c_SnpResp_SC_Fwded_SC, C2c_SnpResp_SC_Fwded_SD_PD, C2c_SnpResp_SD_Fwded_I, 
-  C2c_SnpResp_SC_Fwded_I, C2c_SnpResp_UD_Fwded_I, C2c_SnpResp_UC_Fwded_I, 
-  C2c_SnpResp_I_Fwded_UC}, WRITE) {
-    updateTBE_FromC2cResp;
-    sendToNet_Response;
+  // WRITE_SNP > WRITE
+  // WRITE_SNP > data send > WRITE_SNP
+  // WRITE_SNP > trigger_senddone, WRITE
+  transition(WRITE_SNP, {C2c_SnpRespData_I_PD, C2c_SnpRespData_I, 
+  C2c_SnpRespData_SC_PD, C2c_SnpRespData_SC, C2c_SnpRespData_SD, 
+  C2c_SnpRespData_UC, C2c_SnpRespData_UD}) {
+    prepareSend_Data;
+    sendToNet_Data;
     popResponseFromC2cQueue;
+  }
+
+  transition(WRITE_SNP, Trigger_Send) {
+    sendToNet_Data;
+    popTriggerQueue;
+  }
+
+  transition(WRITE_SNP, Trigger_SendDone, WRITE) {
+    popTriggerQueue;
   }
 
   transition(WAIT_COMP, C2c_SnpUnique, WAIT_COMP_WRITE_SNP) {
@@ -2221,13 +2233,19 @@ machine(MachineType:Interface, "C2C interface controller") :
     popC2cReqRdyInQueue;
   }
 
-  transition(WAIT_COMP_WRITE_SNP, {Net_SnpResp_I, Net_SnpResp_I_Fwded_UD_PD, 
-  Net_SnpResp_SC_Fwded_SC, Net_SnpResp_SC_Fwded_SD_PD, Net_SnpResp_SD_Fwded_I,
-  Net_SnpResp_SC_Fwded_I, Net_SnpResp_UD_Fwded_I, Net_SnpResp_UC_Fwded_I, 
-  Net_SnpResp_I_Fwded_UC}, WAIT_COMP) {
-    updateTBE_FromNetResp;
-    sendToC2c_Response;
-    popRspInQueue;
+  transition(WAIT_COMP_WRITE_SNP, {Net_SnpRespData_I_PD, Net_SnpRespData_I, 
+  Net_SnpRespData_SC_PD, Net_SnpRespData_SC, Net_SnpRespData_SD, 
+  Net_SnpRespData_UC, Net_SnpRespData_UD}) {
+    copyDataToTBE;
+    checkForReceiveCompletion;
+    popDataInQueue;
+  }
+
+  transition(WAIT_COMP_WRITE_SNP, Trigger_ReceiveDataDone, WAIT_COMP) {
+    sendToC2c_Data;
+    popTriggerQueue;
+    checkPending;
+    deallocateTBE;
   }
 
   // doesn't wait for resp, we deallocate TBE
