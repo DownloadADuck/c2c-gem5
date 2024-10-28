@@ -29,7 +29,7 @@ class Object(object):
 
 # Needed options for the create_system method
 options = Object()
-options.cmd = "tests/test-progs/hello/bin/x86/linux/hello"
+options.cmd = "tests/test-progs/infinite-loop/bin/infinite_loop"
 options.input = ''
 options.output = ''
 options.errout = '' 
@@ -47,7 +47,6 @@ options.link_latency = 1
 options.router_latency = 1
 options.outdir = "/m5out"
 options.cpu_clock = '2GHz'
-options.l2_size = '2MB'
 options.network = 'simple'
 options.simple_physical_channels = False
 options.repeat_switch = None
@@ -58,15 +57,16 @@ options.checkpoint_restore = None
 options.fast_forward = None
 options.num_l3caches = 1
 options.chi_config = None
-options.l1i_size = '32kB'
-options.l1i_assoc = 2
+options.l1i_size = '64kB'
+options.l1i_assoc = 4
 options.l1d_size = '64kB'
-options.l1d_assoc = 2
+options.l1d_assoc = 4
+options.l2_size = '1MB'
 options.l2_assoc = 8
-options.l3_size = '32kB'
+options.l3_size = '1kB'
 options.l3_assoc = 16
 options.cacheline_size = 64
-options.num_cpus = 1
+options.num_cpus = 3
 options.network_fault_model = False
 options.checkpoint_dir = None
 options.standard_switch = None
@@ -77,12 +77,12 @@ options.override_vendor_string = None
 options.take_simpoint_checkpoints = None
 options.param = []
 options.initialize_only = False
-options.abs_max_tick = 18446744073709551615
 options.rel_max_tick = None
 options.maxtime = None
 options.restore_simpoint_checkpoint = False
 options.max_checkpoints = 5
 options.checkpoint_at_end = False
+options.abs_max_tick = 3001400000
 
 def get_processes(args):
     """Interprets provided args and returns a list of processes"""
@@ -149,7 +149,7 @@ mp0_path = multiprocesses[0].executable
 system = System(
     tgens=[
         TrafficGen(
-            config_file="./m5out/lat_mem_rd.cfg",
+            config_file=f"./m5out/lat_mem_rd_{i+1}.cfg",
             progress_check="10s",
         ) for i in range(np)
     ],

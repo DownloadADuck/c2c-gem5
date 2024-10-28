@@ -144,7 +144,8 @@ options1.num_interfaces = 1
 def get_processes(args):
     """Interprets provided args and returns a list of processes"""
 
-    multiprocesses = []
+    multiprocesses =18446744073709551615
+ []
     inputs = []
     outputs = []
     errouts = []

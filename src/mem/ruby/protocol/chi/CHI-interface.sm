@@ -2244,8 +2244,6 @@ machine(MachineType:Interface, "C2C interface controller") :
   transition(WAIT_COMP_WRITE_SNP, Trigger_ReceiveDataDone, WAIT_COMP) {
     sendToC2c_Data;
     popTriggerQueue;
-    checkPending;
-    deallocateTBE;
   }
 
   // doesn't wait for resp, we deallocate TBE
