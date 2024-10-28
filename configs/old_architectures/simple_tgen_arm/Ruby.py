@@ -45,7 +45,7 @@ from m5.util import addToPath, fatal
 from gem5.isas import ISA
 from gem5.runtime import get_runtime_isa
 
-addToPath("../")
+addToPath("../../")
 
 from common import ObjectList
 from common import MemConfig

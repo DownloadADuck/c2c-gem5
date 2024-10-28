@@ -100,7 +100,7 @@ def generate_packets():
     packets = []
     base_tick = 5000
     #addr = 2 * 1024**3  # Start at 2GB
-    addr = 2781
+    addr = 256 * 1024 * 1024 # half of the 512MB
 
     # Generate requests for three caches, with 10000 ticks delay between each
     cache_names = ['cache1', 'cache2', 'cache3']
@@ -120,9 +120,9 @@ packets = generate_packets()
 
 # Create trace files for three caches
 trace_files = {
-    'cache1': os.path.join(m5.options.outdir, "lat_mem_rd_cacheo1.trc.gz"),
-    'cache2': os.path.join(m5.options.outdir, "lat_mem_rd_cache2.trc.gz"),
-    'cache3': os.path.join(m5.options.outdir, "lat_mem_rd_cache3.trc.gz"),
+    'cache1': os.path.join(m5.options.outdir, "lat_mem_rd_1.trc.gz"),
+    'cache2': os.path.join(m5.options.outdir, "lat_mem_rd_2.trc.gz"),
+    'cache3': os.path.join(m5.options.outdir, "lat_mem_rd_3.trc.gz"),
 }
 
 burst_size = 64
@@ -137,9 +137,9 @@ def create_cfg_file(cfg_filename, trace_filename, period):
         cfg_file.write("TRANSITION 0 0 1\n")
 
 cfg_files = {
-    'cache1': os.path.join(m5.options.outdir, "lat_mem_rd_cache_1.cfg"),
-    'cache2': os.path.join(m5.options.outdir, "lat_mem_rd_cache_2.cfg"),
-    'cache3': os.path.join(m5.options.outdir, "lat_mem_rd_cache_3.cfg"),
+    'cache1': os.path.join(m5.options.outdir, "lat_mem_rd_1.cfg"),
+    'cache2': os.path.join(m5.options.outdir, "lat_mem_rd_2.cfg"),
+    'cache3': os.path.join(m5.options.outdir, "lat_mem_rd_3.cfg"),
 }
 
 itt = 150 * 1000  # 150 ns in ticks
