@@ -312,11 +312,11 @@ class CHI_HNFController(CHI_Cache_Controller):
         # MOESI / Mostly inclusive for shared / Exclusive for unique
         self.alloc_on_seq_acc = False
         self.alloc_on_seq_line_write = False
-        self.alloc_on_readshared = True
+        self.alloc_on_readshared = False
         self.alloc_on_readunique = False
-        self.alloc_on_readonce = True
-        self.alloc_on_writeback = True
-        self.dealloc_on_unique = True
+        self.alloc_on_readonce = False
+        self.alloc_on_writeback = False
+        self.dealloc_on_unique = False
         self.dealloc_on_shared = False
         self.dealloc_backinv_unique = False
         self.dealloc_backinv_shared = False

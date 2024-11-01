@@ -131,8 +131,8 @@ def create_system(
         assoc = options.l2_assoc
 
     class HNFCache(RubyCache):
-        dataAccessLatency = 10
-        tagAccessLatency = 2
+        dataAccessLatency = 0
+        tagAccessLatency = 0
         size = options.l3_size
         assoc = options.l3_assoc
 

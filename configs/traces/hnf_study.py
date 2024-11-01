@@ -104,15 +104,39 @@ def generate_packets():
 
     # Generate requests for three caches, with 10000 ticks delay between each
     cache_names = ['cache1', 'cache2', 'cache3']
-    for i, cache_name in enumerate(cache_names):
-        packet_info = {
-            'tick': base_tick + i * 1000000,  # Delay between requests
-            'addr': addr,
-            'size': 64,
-            'cmd': 1,  # ReadReq
-            'core_type': cache_name
-        }
-        packets.append(packet_info)
+    #for i, cache_name in enumerate(cache_names):
+    #    packet_info = {
+    #        'tick': base_tick + i * 1000000,  # Delay between requests
+    #        'addr': addr,
+    #        'size': 64,
+    #        'cmd': 1,  # ReadReq
+    #        'core_type': cache_name
+    #    }
+    #    packets.append(packet_info)
+    packet_info = {
+        'tick': base_tick,
+        'addr': addr,
+        'size': 64,
+        'cmd': 1, # ReadReq
+        'core_type': 'cache1'
+    }
+    packets.append(packet_info)
+    packet_info = {
+        'tick': base_tick + 1000000,
+        'addr': addr,
+        'size': 64,
+        'cmd': 1, # ReadReq
+        'core_type': 'cache2'
+    }
+    packets.append(packet_info)
+    packet_info = {
+        'tick': base_tick + 2000000,
+        'addr': addr,
+        'size': 64,
+        'cmd': 4, # WriteReq
+        'core_type': 'cache3'
+    }
+    packets.append(packet_info)
 
     return packets
 

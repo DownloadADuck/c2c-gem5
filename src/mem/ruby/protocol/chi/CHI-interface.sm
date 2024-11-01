@@ -1317,6 +1317,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       tbe.accSize := in_msg.accSize;
       tbe.to_c2c_req_type := in_msg.type;
 
+      DPRINTF(RubyGenerated, "initializeFromReqTBE, tbe.requestor: %s\n", tbe.requestor);
+
       // seting up the expected_req map
       clearExpectedReq(tbe);
 
@@ -1391,6 +1393,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       if (tbe.pendingC2cRequest) {
         tbe.requestor := machineID;
       }
+      DPRINTF(RubyGenerated, "updateTBEFromC2c, tbe.pendingC2cRequest: %s\n", tbe.pendingC2cRequest);
+      DPRINTF(RubyGenerated, "updateTBEFromC2c, tbe.requestor: %s\n", tbe.requestor);
     }
   }
 
@@ -1467,6 +1471,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     } else {
       tbe.expected_req_resp.addExpectedCount(1);
     }
+    DPRINTF(RubyGenerated, "sendToNet_Snoop, tbe.requestor: %s\n", tbe.requestor);
     enqueue(snpOutPort, CHIRequestMsg, request_latency) {
       out_msg.addr := tbe.addr;
       out_msg.accAddr := tbe.addr;
@@ -1727,6 +1732,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.c2c_sharers := tbe.c2c_sharers;
       out_msg.stale := tbe.stale;
     }
+    DPRINTF(RubyGenerated, "sendToNet_Response, tbe.requestor: %s\n", tbe.requestor);
   }
 
   action(updateTBE_FromNetResp, "utbefr", desc="Updates the TBE with response info") {
@@ -1746,6 +1752,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       tbe.c2c_sharers := in_msg.C2c_sharers;
       tbe.stale := in_msg.Stale;
     }
+    DPRINTF(RubyGenerated, "updateTBE_FromC2cResp, tbe.requestor: %s\n", tbe.requestor);
   }
 
   action(trigger_SendSnpResp, "tssr", desc="Trigger the sending of a snpfwd resp to c2c") {
