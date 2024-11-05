@@ -38,7 +38,7 @@ from m5.objects import *
 from m5.defines import buildEnv
 
 from ruby_config import create_topology
-from two_tgens_se_c2c import CHI_config as chi_defs
+from four_tgens_se_c2c import CHI_config as chi_defs
 
 
 def create_chip0(
@@ -351,7 +351,8 @@ def create_chip1(
     all_cntrls = []
 
     # Creates on RNF per cpu with priv l2 caches
-    assert len(cpus) == options.num_cpus
+    print(f"cpus -> {len(cpus)} opt.num_cpus -> {options1.num_cpus}")
+    assert len(cpus) == options1.num_cpus
     ruby_system.rnf1 = [
         CHI_RNF(
             [cpu],

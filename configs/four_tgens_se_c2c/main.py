@@ -10,7 +10,7 @@ from gem5.isas import ISA
 from gem5.runtime import get_runtime_isa
 
 addToPath("../")
-from two_tgens_se_c2c import ruby_config
+from four_tgens_se_c2c import ruby_config
 
 from common import Options
 from common import Simulation
@@ -122,7 +122,7 @@ options1.l2_assoc = 8
 options1.l3_size = '1MB'
 options1.l3_assoc = 16
 options1.cacheline_size = 64
-options1.num_cpus = 2
+options1.num_cpus = 1
 options1.network_fault_model = False
 options1.checkpoint_dir = None
 options1.standard_switch = None
@@ -144,8 +144,7 @@ options1.num_interfaces = 1
 def get_processes(args):
     """Interprets provided args and returns a list of processes"""
 
-    multiprocesses =18446744073709551615
- []
+    multiprocesses = []
     inputs = []
     outputs = []
     errouts = []
@@ -224,13 +223,9 @@ system = System(
             config_file="./traces_out/lat_mem_rd_cache3.cfg",
             progress_check="10s",
         ),
-        TrafficGen(
-            config_file="./traces_out/lat_mem_rd_cache3.cfg",
-            progress_check="10s",
-        ),
     ],
     cpus0=[CPUClass(cpu_id=0), CPUClass(cpu_id=1)],
-    cpus1=[CPUClass(cpu_id=2), CPUClass(cpu_id=3)],
+    cpus1=[CPUClass(cpu_id=2)],
     mem_mode="timing",
     mem_ranges=addr_range_vaults,
     cache_line_size=64
@@ -261,15 +256,28 @@ for cpu in system.cpus0:
 for cpu in system.cpus1:
     cpu.clk_domain = system.cpu_clk_domain
 
-for i in range(np):
-    if len(multiprocesses) == 1:
-        system.cpus0[i].workload = multiprocesses[0]
-        system.cpus1[i].workload = multiprocesses[0]
-    else:
-        system.cpus0[i].workload = multiprocesses[i]
-        system.cpus1[i].workload = multiprocesses[i]
-    system.cpus0[i].createThreads()
-    system.cpus1[i].createThreads()
+#for i in range(np):
+#    if len(multiprocesses) == 1:
+#        system.cpus0[i].workload = multiprocesses[0]
+#        system.cpus1[i].workload = multiprocesses[0]
+#    else:
+#        system.cpus0[i].workload = multiprocesses[i]
+#        system.cpus1[i].workload = multiprocesses[i]
+#    system.cpus0[i].createThreads()
+#    system.cpus1[i].createThreads()
+
+if len(multiprocesses) == 1:
+    system.cpus0[0].workload = multiprocesses[0]
+    system.cpus0[1].workload = multiprocesses[0]
+    system.cpus1[0].workload = multiprocesses[0]
+else:
+    system.cpus0[0].workload = multiprocesses[0]
+    system.cpus0[1].workload = multiprocesses[1]
+    system.cpus1[0].workload = multiprocesses[0]
+system.cpus0[0].createThreads()
+system.cpus0[1].createThreads()
+system.cpus1[0].createThreads()
+
 
 
 ruby_config.create_system(options0, options1, False, system)
@@ -277,13 +285,23 @@ ruby_config.create_system(options0, options1, False, system)
 system.ruby.clk_domain = SrcClockDomain(
     clock='2GHz', voltage_domain=system.voltage_domain
 )
-for i in range(np):
-    ruby_port = system.ruby._cpu_ports[i]
-    # Interrupt controller needs its message port conected only with x86
-    system.cpus0[i].createInterruptController()
-    system.cpus1[i].createInterruptController()
-    ruby_port.connectCpuPorts(system.cpus0[i])
-    ruby_port.connectCpuPorts(system.cpus1[i])
+#for i in range(np):
+#    ruby_port = system.ruby._cpu_ports[i]
+#    # Interrupt controller needs its message port conected only with x86
+#    system.cpus0[i].createInterruptController()
+#    system.cpus1[i].createInterruptController()
+#    ruby_port.connectCpuPorts(system.cpus0[i])
+#    ruby_port.connectCpuPorts(system.cpus1[i])
+
+ruby_port = system.ruby._cpu_ports[0]
+ruby_port = system.ruby._cpu_ports[1]
+system.cpus0[0].createInterruptController()
+system.cpus0[1].createInterruptController()
+system.cpus1[0].createInterruptController()
+ruby_port.connectCpuPorts(system.cpus0[0])
+ruby_port.connectCpuPorts(system.cpus0[1])
+ruby_port.connectCpuPorts(system.cpus1[0])
+
 
 system.workload = SEWorkload.init_compatible(mp0_path)
 
