@@ -351,9 +351,8 @@ def create_chip1(
     all_cntrls = []
 
     # Creates on RNF per cpu with priv l2 caches
-    print(f"cpus -> {len(cpus)} opt.num_cpus -> {options1.num_cpus}")
-    assert len(cpus) == options1.num_cpus
-    ruby_system.rnf1 = [
+    assert len(cpus) == options.num_cpus
+    ruby_system.rnf2 = [
         CHI_RNF(
             [cpu],
             ruby_system,
@@ -365,7 +364,7 @@ def create_chip1(
         for cpu in cpus
     ]
 
-    for rnf in ruby_system.rnf1:
+    for rnf in ruby_system.rnf2:
         rnf.addPrivL2Cache(L2Cache)
         cpu_sequencers.extend(rnf.getSequencers())
         all_cntrls.extend(rnf.getAllControllers())
@@ -400,12 +399,12 @@ def create_chip1(
 
     hnf_list1 = [i for i in range(options.num_l3caches)]
     CHI_HNF.createAddrRanges(sysranges, system.cache_line_size.value, hnf_list1)
-    ruby_system.hnf1 = [
+    ruby_system.hnf2 = [
         CHI_HNF(i, ruby_system, HNFCache, None, network)
         for i in range(options.num_l3caches)
     ]
 
-    for hnf in ruby_system.hnf1:
+    for hnf in ruby_system.hnf2:
         network_nodes.append(hnf)
         network_cntrls.extend(hnf.getNetworkSideControllers())
         assert hnf.getAllControllers() == hnf.getNetworkSideControllers()
@@ -465,14 +464,14 @@ def create_chip1(
         all_cntrls.extend(ruby_system.io_rni.getAllControllers())
 
     # Assign downstream destinations
-    for rnf in ruby_system.rnf1:
+    for rnf in ruby_system.rnf2:
         rnf.setDownstream(hnf_dests)
 
     if len(dma_ports) > 0:
         for rni in ruby_system.dma_rni1:
             rni.setDownstream(hnf_dests)
 
-    for hnf in ruby_system.hnf1:
+    for hnf in ruby_system.hnf2:
         hnf.setDownstream(mem_dests)
 
     hnf_dests.pop(1)

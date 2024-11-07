@@ -61,8 +61,8 @@ options0.l1d_size = '64kB'
 options0.l1d_assoc = 4
 options0.l2_size = '1MB'
 options0.l2_assoc = 8
-options0.l3_size = '1MB'
-options0.l3_assoc = 16
+options0.l3_size = '128'
+options0.l3_assoc = 1
 options0.cacheline_size = 64
 options0.num_cpus = 2
 options0.network_fault_model = False
@@ -204,23 +204,24 @@ np = options0.num_cpus
 mp0_path = multiprocesses[0].executable
 
 # Memory ranges
-arv = convert.toMemorySize('1610612736')
+#arv = convert.toMemorySize('1610612736')
+arv = convert.toMemorySize('200MB')
 addr_range_vaults = [AddrRange(i*arv, ((i+1)*arv-1)) for i in range(2)]
 
 system = System(
     tgens0=[
         TrafficGen(
-            config_file="./traces_out/lat_mem_rd_cache1.cfg",
+            config_file="./m5out/lat_mem_rd_1.cfg",
             progress_check="10s",
         ),
         TrafficGen(
-            config_file="./traces_out/lat_mem_rd_cache2.cfg",
+            config_file="./m5out/lat_mem_rd_2.cfg",
             progress_check="10s",
         ),
     ],
     tgens1=[
         TrafficGen(
-            config_file="./traces_out/lat_mem_rd_cache3.cfg",
+            config_file="./m5out/lat_mem_rd_3.cfg",
             progress_check="10s",
         ),
     ],
