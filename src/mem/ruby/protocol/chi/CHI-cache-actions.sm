@@ -1398,7 +1398,6 @@ action(Send_SnpCleanInvalid_NoReq, desc="") {
     tbe.expected_snp_resp.setExpectedCount(out_msg.Destination.count());
 
     // c2c_sharer
-    DPRINTF(RubyGenerated, "Send_SnpCleanInvalid_NoReq tbe.c2c_sharer: %s\n", tbe.c2c_sharers);
     out_msg.c2c_sharers := tbe.c2c_sharers;
   }
 }
