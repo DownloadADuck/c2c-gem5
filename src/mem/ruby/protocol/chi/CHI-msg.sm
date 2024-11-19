@@ -103,7 +103,7 @@ structure(CHIRequestMsg, desc="", interface="Message") {
   NetDest Destination,      desc="Message destination";
 
   // c2c off-chip sharer field
-  MachineID c2c_sharers, desc="off-chip sharer";
+  NetDest c2c_sharers, desc="off-chip sharer";
   MachineID c2c_requestor, desc="off-chip requestor";
   bool off_chip, desc="off-chip flag";
   bool c2cOrig, default="false", desc="Originates from the interface";
@@ -165,7 +165,7 @@ structure(CHIResponseMsg, desc="", interface="Message") {
   //NOTE: not in CHI and for debuging only
 
   // c2c off-chip sharer field
-  MachineID c2c_sharers, desc="Off-chip sharer";
+  NetDest c2c_sharers, desc="Off-chip sharer";
   bool off_chip,         desc="Response triggering a new off_chip response";
 
   MessageSizeType MessageSize, default="MessageSizeType_Control";
@@ -218,7 +218,7 @@ structure(CHIDataMsg, desc="", interface="Message") {
 
   MessageSizeType MessageSize, default="MessageSizeType_Data";
 
-  MachineID c2c_sharers, desc="Off-Chip sharer for snp responses";
+  NetDest c2c_sharers, desc="Off-Chip sharer for snp responses";
 
   bool functionalRead(Packet *pkt) {
     if(bitMask.isFull()) {
