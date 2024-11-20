@@ -638,7 +638,7 @@ machine(MachineType:Cache, "Cache coherency protocol") :
     MachineID dir_owner,          desc="Owner ID";
 
     // c2c fields
-    MachineID c2c_sharers,        desc="Off-chip controllers that have the line";
+    NetDest c2c_sharers,          desc="Off-chip controllers that have the line";
     MachineID c2c_requestor,      desc="Off-chip requestor in case of a snp fwd dir_sharers update";
     MachineID default_machine,    desc="Default null machine used for if statements checks";
     bool off_chip,                desc="off_chip flag for CHI requests";

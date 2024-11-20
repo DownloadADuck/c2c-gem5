@@ -1,4 +1,4 @@
-/*chi-cache-a
+/*
  * Copyright (c) 2021-2022 ARM Limited
  * All rights reserved
  *
@@ -1822,6 +1822,7 @@ action(UpdateDirState_FromSnpDataResp, desc="") {
         tbe.dir_ownerExists := false;
         tbe.dir_ownerIsExcl := false;
         tbe.dir_sharers.remove(in_msg.responder);
+        tbe.c2c_sharers.remove(in_msg.c2c_sharers);
 
       } else if (in_msg.type == CHIDataType:SnpRespData_I_PD) {
         assert(tbe.dir_ownerExists && (tbe.dir_owner == in_msg.responder));
@@ -1829,6 +1830,7 @@ action(UpdateDirState_FromSnpDataResp, desc="") {
         tbe.dir_ownerExists := false;
         tbe.dir_ownerIsExcl := false;
         tbe.dir_sharers.remove(in_msg.responder);
+        tbe.c2c_sharers.remove(in_msg.c2c_sharers);
 
       } else if ((in_msg.type == CHIDataType:SnpRespData_SC_PD) ||
                  (in_msg.type == CHIDataType:SnpRespData_SC) ||
@@ -1846,7 +1848,7 @@ action(UpdateDirState_FromSnpDataResp, desc="") {
             (in_msg.type == CHIDataType:SnpRespData_SC_Fwded_SD_PD)) {
           tbe.dir_sharers.add(tbe.requestor);
           if (tbe.c2c_requestor != tbe.default_machine) {
-            tbe.c2c_sharers := tbe.c2c_requestor;
+            tbe.c2c_sharers.add(tbe.c2c_requestor);
           }
         }
         if (in_msg.type == CHIDataType:SnpRespData_SC_Fwded_SD_PD) {
@@ -1865,8 +1867,9 @@ action(UpdateDirState_FromSnpDataResp, desc="") {
         tbe.dir_ownerIsExcl := false;
         tbe.dir_sharers.remove(in_msg.responder);
         tbe.dir_sharers.add(tbe.requestor);
+        tbe.c2c_sharers.remove(in_msg.c2c_requestor);
         if (tbe.c2c_requestor != tbe.default_machine) {
-          tbe.c2c_sharers := tbe.c2c_requestor;
+          tbe.c2c_sharers.add(tbe.c2c_requestor);
         }
         if (in_msg.type == CHIDataType:SnpRespData_I_Fwded_SD_PD) {
           tbe.dir_ownerExists := true;
@@ -1880,6 +1883,9 @@ action(UpdateDirState_FromSnpDataResp, desc="") {
         // also may get SnpRespData_SC, but handled properly above
         assert(tbe.dir_ownerExists && (tbe.dir_owner == in_msg.responder));
         assert(tbe.dir_sharers.isElement(in_msg.responder));
+
+        // This might need a c2c_responder field
+        assert(tbe.c2c_sharers.isElement(in_msg.c2c_sharers)); 
 
       } else {
         error("Unsuported data type");
@@ -2054,7 +2060,7 @@ action(UpdateDirState_FromReqResp, desc="") {
       assert(tbe.requestor == in_msg.responder);
 
       if (in_msg.c2c_sharers != tbe.default_machine) {
-        tbe.c2c_sharers := in_msg.c2c_sharers;
+        tbe.c2c_sharers.add(in_msg.c2c_sharers);
       }
       tbe.dir_sharers.add(in_msg.responder);
 
@@ -2086,6 +2092,7 @@ action(UpdateDirState_FromSnpResp, desc="") {
       // must have been a known sharer otherwise we would receive data
       assert(tbe.dir_sharers.isElement(in_msg.responder));
       tbe.dir_sharers.remove(in_msg.responder);
+      tbe.c2c_sharers.remove(in_msg.c2c_sharers);
       if (tbe.dir_ownerExists && (tbe.dir_owner == in_msg.responder)){
         tbe.dir_ownerExists := false;
       }
@@ -2105,7 +2112,7 @@ action(UpdateDirState_FromSnpResp, desc="") {
       tbe.dir_ownerIsExcl := false;
       tbe.dir_sharers.add(tbe.requestor);
       if (tbe.c2c_requestor != tbe.default_machine) {
-        tbe.c2c_sharers := tbe.c2c_requestor;
+        tbe.c2c_sharers.add(tbe.c2c_requestor);
       }
       if (in_msg.type == CHIResponseType:SnpResp_SC_Fwded_SD_PD) {
         // Requestor is new owner
@@ -2119,10 +2126,10 @@ action(UpdateDirState_FromSnpResp, desc="") {
       assert(tbe.dir_sharers.isElement(in_msg.responder));
       assert(tbe.dir_sharers.count() == 1);
       tbe.dir_sharers.remove(in_msg.responder);
+      tbe.c2c_sharers.remove(in_msg.c2c_sharers);
       // requestor is the new owner
-      tbe.c2c_sharers := tbe.c2c_requestor;
       if (tbe.c2c_requestor != tbe.default_machine) {
-        tbe.c2c_sharers := tbe.c2c_requestor;
+        tbe.c2c_sharers.add(tbe.c2c_requestor);
       }
       tbe.dir_sharers.add(tbe.requestor);
       tbe.dir_ownerExists := true;
