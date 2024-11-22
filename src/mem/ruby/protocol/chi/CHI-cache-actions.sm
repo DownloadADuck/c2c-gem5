@@ -1641,6 +1641,10 @@ action(Send_SnpSharedFwd_ToSharer, desc="") {
 
   assert(tbe.expected_snp_resp.expected() == 0);
   clearExpectedSnpResp(tbe);
+
+  MachineID local_C2CI_ID := createMachineID(MachineType:Interface,
+  intToID(local_C2CI_ID_num));
+
   // if we have a block allocated for this line, asks snoopee to forward
   // data to us as well
   bool retToSrc := tbe.doCacheFill;
@@ -1651,13 +1655,25 @@ action(Send_SnpSharedFwd_ToSharer, desc="") {
   }
   tbe.expected_snp_resp.addExpectedCount(1);
 
-  enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
-    prepareRequest(tbe, CHIRequestType:SnpSharedFwd, out_msg);
-    // TODO should be random or the closest one to the fwd dest
-    out_msg.Destination.add(tbe.dir_sharers.smallestElement());
-    out_msg.retToSrc := retToSrc;
-    out_msg.c2c_sharers := tbe.c2c_sharers;
-    out_msg.c2cOrig := tbe.c2cOrig;
+
+  if (tbe.dir_sharers.isElement(local_C2CI_ID)) {
+    for (int i=0; i >= tbe.c2c_sharers.count(); i++) {
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpSharedFwd, out_msg);
+        // TODO should be random or the closest one to the fwd dest
+        out_msg.Destination.add(tbe.dir_sharers.smallestElement());
+        out_msg.retToSrc := retToSrc;
+        out_msg.c2c_sharers := tbe.c2c_sharers[i];
+        out_msg.c2cOrig := tbe.c2cOrig;
+      }
+    }
+  } else {
+    enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+      prepareRequest(tbe, CHIRequestType:SnpSharedFwd, out_msg);
+      // TODO should be random or the closest one to the fwd dest
+      out_msg.Destination.add(tbe.dir_sharers.smallestElement());
+      out_msg.retToSrc := retToSrc;
+    }
   }
 }
 
