@@ -81,6 +81,9 @@ machine(MachineType:Cache, "Cache coherency protocol") :
   int sc_lock_multiplier_max   := 256;
   bool sc_lock_enabled;
 
+  // Node ID number of the local C2C-Interface
+  int local_C2CI_ID_num;
+
   // Recycle latency on resource stalls
   Cycles stall_recycle_lat := 1;
 
