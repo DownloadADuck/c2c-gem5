@@ -1401,18 +1401,36 @@ action(Send_SnpCleanInvalid, desc="") {
 action(Send_SnpCleanInvalid_NoReq, desc="") {
   assert(is_valid(tbe));
   assert(tbe.expected_snp_resp.hasExpected() == false);
-  enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
-    prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
-    out_msg.Destination.addNetDest(tbe.dir_sharers);
-    out_msg.Destination.remove(tbe.requestor);
-    // at least one sharer other than requestor
-    assert(out_msg.Destination.count() > 0);
-    out_msg.retToSrc := false;
-    setExpectedForInvSnoop(tbe, false);
-    tbe.expected_snp_resp.setExpectedCount(out_msg.Destination.count());
 
-    // c2c_sharer
-    out_msg.c2c_sharers := tbe.c2c_sharers;
+  MachineID local_C2CI_ID := createMachineID(MachineType:Interface,
+                                              intToID(local_C2CI_ID_num));
+  if (tbe.dir_sharers.isElement(local_C2CI_ID)) {
+    for (int i=0; i >= tbe.c2c_sharers.count(); i++) {
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
+        out_msg.Destination.addNetDest(tbe.dir_sharers);
+        out_msg.Destination.remove(tbe.requestor);
+        // at least one sharer other than requestor
+        assert(out_msg.Destination.count() > 0);
+        out_msg.retToSrc := false;
+        setExpectedForInvSnoop(tbe, false);
+        tbe.expected_snp_resp.setExpectedCount(out_msg.Destination.count());
+
+        // c2c_sharer
+        out_msg.c2c_sharers := tbe.c2c_sharers[i];
+      }
+    } 
+  } else {
+    enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+      prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
+      out_msg.Destination.addNetDest(tbe.dir_sharers);
+      out_msg.Destination.remove(tbe.requestor);
+      // at least one sharer other than requestor
+      assert(out_msg.Destination.count() > 0);
+      out_msg.retToSrc := false;
+      setExpectedForInvSnoop(tbe, false);
+      tbe.expected_snp_resp.setExpectedCount(out_msg.Destination.count());
+    }
   }
 }
 
