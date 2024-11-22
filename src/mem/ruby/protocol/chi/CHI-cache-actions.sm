@@ -1378,7 +1378,8 @@ action(Send_SnpCleanInvalid, desc="") {
   assert(tbe.dir_sharers.count() > 0);
 
   MachineID local_C2CI_ID := createMachineID(MachineType:Interface,
-                                             intToID(local_C2CI_ID_num));
+  intToID(local_C2CI_ID_num));
+
   if (tbe.dir_sharers.isElement(local_C2CI_ID)) {
     for (int i=0; i >= tbe.c2c_sharers.count(); i++) {
       enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
@@ -1440,13 +1441,26 @@ action(Send_SnpUnique, desc="") {
   assert(tbe.dir_sharers.count() > 0);
 
   setExpectedForInvSnoop(tbe, true);
+  MachineID local_C2C_ID := createMachineID(MachineType:Interface,
+  intToID(local_C2CI_ID_num));
 
-  enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
-    prepareRequest(tbe, CHIRequestType:SnpUnique, out_msg);
-    out_msg.Destination.addNetDest(tbe.dir_sharers);
-    out_msg.retToSrc := false;
-    out_msg.c2c_sharers := tbe.c2c_sharers;
-    out_msg.c2cOrig := tbe.c2cOrig;
+  if (tbe.dir_sharers.isElement(local_C2CI_ID)) {
+    for (int i=0; i >= tbe.c2c_sharers.count(); i++) {
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpUnique, out_msg);
+        out_msg.Destination.addNetDest(tbe.dir_sharers);
+        out_msg.retToSrc := false;
+        out_msg.c2c_sharers := tbe.c2c_sharers[i];
+        out_msg.c2cOrig := tbe.c2cOrig;
+      }
+    }
+  } else {
+    enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+      prepareRequest(tbe, CHIRequestType:SnpUnique, out_msg);
+      out_msg.Destination.addNetDest(tbe.dir_sharers);
+      out_msg.retToSrc := false;
+      out_msg.c2cOrig := tbe.c2cOrig;
+    }
   }
 }
 
