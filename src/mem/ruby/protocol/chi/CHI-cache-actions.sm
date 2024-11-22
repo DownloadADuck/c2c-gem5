@@ -1686,6 +1686,9 @@ action(Send_SnpOnce, desc="") {
   assert(tbe.expected_snp_resp.expected() == 0);
   clearExpectedSnpResp(tbe);
 
+  MachineID local_C2CI_ID := createMachineID(MachineType:Interface,
+  intToID(local_C2CI_ID_num));
+
   if (tbe.dir_ownerExists) {
     if (tbe.dir_ownerIsExcl) {
       tbe.expected_snp_resp.addExpectedDataType(CHIDataType:SnpRespData_UC);
@@ -1698,17 +1701,32 @@ action(Send_SnpOnce, desc="") {
   }
   tbe.expected_snp_resp.addExpectedCount(1);
 
-  enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
-    prepareRequest(tbe, CHIRequestType:SnpOnce, out_msg);
-    if (tbe.dir_ownerExists) {
-      out_msg.Destination.add(tbe.dir_owner);
-    } else {
-      // TODO should be random or the closest one
-      out_msg.Destination.add(tbe.dir_sharers.smallestElement());
+  if (tbe.dir_sharers.isElement(local_C2CI_ID)) {
+    for (int i=0; i >= tbe.c2c_sharers.count(); i++) {
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpOnce, out_msg);
+        if (tbe.dir_ownerExists) {
+          out_msg.Destination.add(tbe.dir_owner);
+        } else {
+          // TODO should be random or the closest one
+          out_msg.Destination.add(tbe.dir_sharers.smallestElement());
+        }
+        out_msg.retToSrc := true;
+        out_msg.c2c_sharers := tbe.c2c_sharers[i];
+        out_msg.c2cOrig := tbe.c2cOrig;
+      }
     }
-    out_msg.retToSrc := true;
-    out_msg.c2c_sharers := tbe.c2c_sharers;
-    out_msg.c2cOrig := tbe.c2cOrig;
+  } else {
+    enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+      prepareRequest(tbe, CHIRequestType:SnpOnce, out_msg);
+      if (tbe.dir_ownerExists) {
+        out_msg.Destination.add(tbe.dir_owner);
+      } else {
+        // TODO should be random or the closest one
+        out_msg.Destination.add(tbe.dir_sharers.smallestElement());
+      }
+      out_msg.retToSrc := true;
+    }
   }
 }
 
