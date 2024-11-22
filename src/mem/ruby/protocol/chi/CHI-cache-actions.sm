@@ -1576,6 +1576,9 @@ action(Send_SnpSharedFwd_ToOwner, desc="") {
   assert(tbe.expected_snp_resp.expected() == 0);
   clearExpectedSnpResp(tbe);
 
+  MachineID local_C2CI_ID := createMachineID(MachineType:Interface,
+  intToID(local_C2CI_ID_num));
+
   bool allowFwdSD := tbe.reqType != CHIRequestType:ReadNotSharedDirty;
 
   // get us a copy if we have allocated a cache entry for this block
@@ -1603,16 +1606,29 @@ action(Send_SnpSharedFwd_ToOwner, desc="") {
   }
   tbe.expected_snp_resp.addExpectedCount(1);
 
-  enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
-    if (allowFwdSD) {
-      prepareRequest(tbe, CHIRequestType:SnpSharedFwd, out_msg);
-    } else {
-      prepareRequest(tbe, CHIRequestType:SnpNotSharedDirtyFwd, out_msg);
-    }
-    out_msg.Destination.add(tbe.dir_owner);
-    out_msg.c2c_sharers := tbe.c2c_sharers;
-    out_msg.c2cOrig := tbe.c2cOrig;
-    out_msg.retToSrc := retToSrc;
+  if (tbe.dir_sharers.isElement(local_C2CI_ID)) {
+    for (int i=0; i >= tbe.c2c_sharers.count(); i++) {
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        if (allowFwdSD) {
+          prepareRequest(tbe, CHIRequestType:SnpSharedFwd, out_msg);
+        } else {
+          prepareRequest(tbe, CHIRequestType:SnpNotSharedDirtyFwd, out_msg);
+        }
+        out_msg.Destination.add(tbe.dir_owner);
+        out_msg.c2c_sharers := tbe.c2c_sharers[i];
+        out_msg.c2cOrig := tbe.c2cOrig;
+        out_msg.retToSrc := retToSrc;
+      }
+  } else {
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        if (allowFwdSD) {
+          prepareRequest(tbe, CHIRequestType:SnpSharedFwd, out_msg);
+        } else {
+          prepareRequest(tbe, CHIRequestType:SnpNotSharedDirtyFwd, out_msg);
+        }
+        out_msg.Destination.add(tbe.dir_owner);
+        out_msg.retToSrc := retToSrc;
+      }
   }
 }
 
