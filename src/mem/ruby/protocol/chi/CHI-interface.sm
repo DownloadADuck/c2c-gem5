@@ -4,7 +4,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   Cycles response_latency := 1;
   Cycles data_latency := 1;
   Cycles to_memory_controller_latency := 1;
-  Cycles c2c_link_latency := 0; //685
+  Cycles c2c_link_latency := 685; //685
 
   int data_channel_size;
 

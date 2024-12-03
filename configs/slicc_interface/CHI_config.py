@@ -687,6 +687,7 @@ class CHI_Interface(CHI_Node):
             reqRdy=TriggerMessageBuffer(),
             c2cReqRdy=TriggerMessageBuffer(),
             stalled=TriggerMessageBuffer(),
+            stalledSnoops=TriggerMessageBuffer(),
 
             transitions_per_cycle=1024,
         )
