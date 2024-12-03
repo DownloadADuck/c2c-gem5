@@ -1381,14 +1381,14 @@ action(Send_SnpCleanInvalid, desc="") {
   intToID(local_C2CI_ID_num));
 
   if (tbe.dir_sharers.isElement(local_C2CI_ID)) {
-    for (int i=0; i >= tbe.c2c_sharers.count(); i++) {
+    //for (int i = 0; i >= tbe.c2c_sharers.count(); i++) {
       enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
         prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
         out_msg.Destination.addNetDest(tbe.dir_sharers);
         out_msg.retToSrc := false;
         out_msg.c2c_sharers := tbe.c2c_sharers[i];
       }
-    }
+    //}
   } else {
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
       prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
