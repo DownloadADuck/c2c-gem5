@@ -1381,14 +1381,27 @@ action(Send_SnpCleanInvalid, desc="") {
   intToID(local_C2CI_ID_num));
 
   if (tbe.dir_sharers.isElement(local_C2CI_ID)) {
-    //for (int i = 0; i >= tbe.c2c_sharers.count(); i++) {
+    if (tbe.dir_sharers.count() == 1) {
       enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
         prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
         out_msg.Destination.addNetDest(tbe.dir_sharers);
         out_msg.retToSrc := false;
-        out_msg.c2c_sharers := tbe.c2c_sharers[i];
+        out_msg.c2c_sharers := tbe.c2c_sharers;
       }
-    //}
+    } else if (tbe.dir_sharers.count() == 2) {
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
+        out_msg.Destination.addNetDest(tbe.dir_sharers);
+        out_msg.retToSrc := false;
+        out_msg.c2c_sharers := tbe.c2c_sharers[0];
+      }
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
+        out_msg.Destination.addNetDest(tbe.dir_sharers);
+        out_msg.retToSrc := false;
+        out_msg.c2c_sharers := tbe.c2c_sharers[1];
+      }
+    }
   } else {
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
       prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
@@ -1406,7 +1419,7 @@ action(Send_SnpCleanInvalid_NoReq, desc="") {
   MachineID local_C2CI_ID := createMachineID(MachineType:Interface,
   intToID(local_C2CI_ID_num));
   if (tbe.dir_sharers.isElement(local_C2CI_ID)) {
-    for (int i=0; i >= tbe.c2c_sharers.count(); i++) {
+    if (tbe.dir_shares.count() == 1) {
       enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
         prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
         out_msg.Destination.addNetDest(tbe.dir_sharers);
@@ -1418,9 +1431,35 @@ action(Send_SnpCleanInvalid_NoReq, desc="") {
         tbe.expected_snp_resp.setExpectedCount(out_msg.Destination.count());
 
         // c2c_sharer
-        out_msg.c2c_sharers := tbe.c2c_sharers[i];
+        out_msg.c2c_sharers := tbe.c2c_sharers;
       }
-    } 
+    } else if (tbe.dir_sharers.count() == 2) {
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
+        out_msg.Destination.addNetDest(tbe.dir_sharers);
+        out_msg.Destination.remove(tbe.requestor);
+        // at least one sharer other than requestor
+        assert(out_msg.Destination.count() > 0);
+        out_msg.retToSrc := false;
+        setExpectedForInvSnoop(tbe, false);
+        tbe.expected_snp_resp.setExpectedCount(out_msg.Destination.count());
+        // c2c_sharer
+        out_msg.c2c_sharers := tbe.c2c_sharers[0];
+      } 
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
+        out_msg.Destination.addNetDest(tbe.dir_sharers);
+        out_msg.Destination.remove(tbe.requestor);
+        // at least one sharer other than requestor
+        assert(out_msg.Destination.count() > 0);
+        out_msg.retToSrc := false;
+        setExpectedForInvSnoop(tbe, false);
+        tbe.expected_snp_resp.setExpectedCount(out_msg.Destination.count());
+
+        // c2c_sharer
+        out_msg.c2c_sharers := tbe.c2c_sharers[1];
+      }
+    }
   } else {
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
       prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
