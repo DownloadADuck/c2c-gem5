@@ -1381,14 +1381,14 @@ action(Send_SnpCleanInvalid, desc="") {
   intToID(local_C2CI_ID_num));
 
   if (tbe.dir_sharers.isElement(local_C2CI_ID)) {
-    if (tbe.dir_sharers.count() == 1) {
+    if (tbe.c2c_sharers.count() == 1) {
       enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
         prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
         out_msg.Destination.addNetDest(tbe.dir_sharers);
         out_msg.retToSrc := false;
         out_msg.c2c_sharers := tbe.c2c_sharers;
       }
-    } else if (tbe.dir_sharers.count() == 2) {
+    } else if (tbe.c2c_sharers.count() == 2) {
       enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
         prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
         out_msg.Destination.addNetDest(tbe.dir_sharers);
@@ -1419,7 +1419,7 @@ action(Send_SnpCleanInvalid_NoReq, desc="") {
   MachineID local_C2CI_ID := createMachineID(MachineType:Interface,
   intToID(local_C2CI_ID_num));
   if (tbe.dir_sharers.isElement(local_C2CI_ID)) {
-    if (tbe.dir_shares.count() == 1) {
+    if (tbe.c2c_sharers.count() == 1) {
       enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
         prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
         out_msg.Destination.addNetDest(tbe.dir_sharers);
@@ -1433,7 +1433,7 @@ action(Send_SnpCleanInvalid_NoReq, desc="") {
         // c2c_sharer
         out_msg.c2c_sharers := tbe.c2c_sharers;
       }
-    } else if (tbe.dir_sharers.count() == 2) {
+    } else if (tbe.c2c_sharers.count() == 2) {
       enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
         prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
         out_msg.Destination.addNetDest(tbe.dir_sharers);
@@ -1484,12 +1484,27 @@ action(Send_SnpUnique, desc="") {
   intToID(local_C2CI_ID_num));
 
   if (tbe.dir_sharers.isElement(local_C2CI_ID)) {
-    for (int i=0; i >= tbe.c2c_sharers.count(); i++) {
+    if (tbe.c2c_sharers.count() == 1) {
       enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
         prepareRequest(tbe, CHIRequestType:SnpUnique, out_msg);
         out_msg.Destination.addNetDest(tbe.dir_sharers);
         out_msg.retToSrc := false;
-        out_msg.c2c_sharers := tbe.c2c_sharers[i];
+        out_msg.c2c_sharers := tbe.c2c_sharers;
+        out_msg.c2cOrig := tbe.c2cOrig;
+      }
+    } else if (tbe.c2c_sharers.count() == 2) {
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpUnique, out_msg);
+        out_msg.Destination.addNetDest(tbe.dir_sharers);
+        out_msg.retToSrc := false;
+        out_msg.c2c_sharers := tbe.c2c_sharers[0];
+        out_msg.c2cOrig := tbe.c2cOrig;
+      }
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpUnique, out_msg);
+        out_msg.Destination.addNetDest(tbe.dir_sharers);
+        out_msg.retToSrc := false;
+        out_msg.c2c_sharers := tbe.c2c_sharers[1];
         out_msg.c2cOrig := tbe.c2cOrig;
       }
     }
@@ -1548,12 +1563,27 @@ action(Send_SnpUniqueFwd, desc="") {
   intToID(local_C2CI_ID_num));
 
   if (tbe.dir_sharers.isElement(local_C2CI_ID)) {
-    for (int i=0; i >= tbe.c2c_sharers.count(); i++) {
+    if (tbe.c2c_sharers.count() == 1) {
       enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
         prepareRequest(tbe, CHIRequestType:SnpUniqueFwd, out_msg);
         out_msg.Destination.addNetDest(tbe.dir_sharers);
         out_msg.retToSrc := false;
-        out_msg.c2c_sharers := tbe.c2c_sharers[i];
+        out_msg.c2c_sharers := tbe.c2c_sharers;
+        out_msg.c2cOrig := tbe.c2cOrig;
+      }
+    } else if (tbe.c2c_sharers.count() == 2) {
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpUniqueFwd, out_msg);
+        out_msg.Destination.addNetDest(tbe.dir_sharers);
+        out_msg.retToSrc := false;
+        out_msg.c2c_sharers := tbe.c2c_sharers[0];
+        out_msg.c2cOrig := tbe.c2cOrig;
+      }
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpUniqueFwd, out_msg);
+        out_msg.Destination.addNetDest(tbe.dir_sharers);
+        out_msg.retToSrc := false;
+        out_msg.c2c_sharers := tbe.c2c_sharers[1];
         out_msg.c2cOrig := tbe.c2cOrig;
       }
     }
@@ -1585,7 +1615,22 @@ action(Send_SnpShared, desc="") {
   intToID(local_C2CI_ID_num));
 
   if (tbe.dir_sharers.isElement(local_C2CI_ID)) {
-    for (int i=0; i >= tbe.c2c_sharers.count(); i++) {
+    if (tbe.c2c_sharers.count() == 1) {
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpShared, out_msg);
+        out_msg.Destination.add(tbe.dir_owner);
+        out_msg.retToSrc := false;
+        out_msg.c2c_sharers := tbe.c2c_sharers;
+        out_msg.c2cOrig := tbe.c2cOrig;
+      }
+    } else if (tbe.c2c_sharers.count() == 2) {
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpShared, out_msg);
+        out_msg.Destination.add(tbe.dir_owner);
+        out_msg.retToSrc := false;
+        out_msg.c2c_sharers := tbe.c2c_sharers[0];
+        out_msg.c2cOrig := tbe.c2cOrig;
+      }
       enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
         prepareRequest(tbe, CHIRequestType:SnpShared, out_msg);
         out_msg.Destination.add(tbe.dir_owner);
@@ -1646,7 +1691,7 @@ action(Send_SnpSharedFwd_ToOwner, desc="") {
   tbe.expected_snp_resp.addExpectedCount(1);
 
   if (tbe.dir_sharers.isElement(local_C2CI_ID)) {
-    for (int i=0; i >= tbe.c2c_sharers.count(); i++) {
+    if (tbe.c2c_sharers.count() == 0) {
       enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
         if (allowFwdSD) {
           prepareRequest(tbe, CHIRequestType:SnpSharedFwd, out_msg);
@@ -1654,10 +1699,35 @@ action(Send_SnpSharedFwd_ToOwner, desc="") {
           prepareRequest(tbe, CHIRequestType:SnpNotSharedDirtyFwd, out_msg);
         }
         out_msg.Destination.add(tbe.dir_owner);
-        out_msg.c2c_sharers := tbe.c2c_sharers[i];
+        out_msg.c2c_sharers := tbe.c2c_sharers;
         out_msg.c2cOrig := tbe.c2cOrig;
         out_msg.retToSrc := retToSrc;
       }
+    } else if (tbe.c2c_sharers.count() == 2) {
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        if (allowFwdSD) {
+          prepareRequest(tbe, CHIRequestType:SnpSharedFwd, out_msg);
+        } else {
+          prepareRequest(tbe, CHIRequestType:SnpNotSharedDirtyFwd, out_msg);
+        }
+        out_msg.Destination.add(tbe.dir_owner);
+        out_msg.c2c_sharers := tbe.c2c_sharers[0];
+        out_msg.c2cOrig := tbe.c2cOrig;
+        out_msg.retToSrc := retToSrc;
+      }
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        if (allowFwdSD) {
+          prepareRequest(tbe, CHIRequestType:SnpSharedFwd, out_msg);
+        } else {
+          prepareRequest(tbe, CHIRequestType:SnpNotSharedDirtyFwd, out_msg);
+        }
+        out_msg.Destination.add(tbe.dir_owner);
+        out_msg.c2c_sharers := tbe.c2c_sharers[1];
+        out_msg.c2cOrig := tbe.c2cOrig;
+        out_msg.retToSrc := retToSrc;
+      }
+
+    }
   } else {
       enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
         if (allowFwdSD) {
@@ -1696,15 +1766,33 @@ action(Send_SnpSharedFwd_ToSharer, desc="") {
 
 
   if (tbe.dir_sharers.isElement(local_C2CI_ID)) {
-    for (int i=0; i >= tbe.c2c_sharers.count(); i++) {
+    if (tbe.c2c_sharers.count() == 1) {
       enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
         prepareRequest(tbe, CHIRequestType:SnpSharedFwd, out_msg);
         // TODO should be random or the closest one to the fwd dest
         out_msg.Destination.add(tbe.dir_sharers.smallestElement());
         out_msg.retToSrc := retToSrc;
-        out_msg.c2c_sharers := tbe.c2c_sharers[i];
+        out_msg.c2c_sharers := tbe.c2c_sharers;
         out_msg.c2cOrig := tbe.c2cOrig;
       }
+    } else if (tbe.c2c_sharers.count() == 2) {
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpSharedFwd, out_msg);
+        // TODO should be random or the closest one to the fwd dest
+        out_msg.Destination.add(tbe.dir_sharers.smallestElement());
+        out_msg.retToSrc := retToSrc;
+        out_msg.c2c_sharers := tbe.c2c_sharers[0];
+        out_msg.c2cOrig := tbe.c2cOrig;
+      }
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpSharedFwd, out_msg);
+        // TODO should be random or the closest one to the fwd dest
+        out_msg.Destination.add(tbe.dir_sharers.smallestElement());
+        out_msg.retToSrc := retToSrc;
+        out_msg.c2c_sharers := tbe.c2c_sharers[1];
+        out_msg.c2cOrig := tbe.c2cOrig;
+      }
+
     }
   } else {
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
@@ -1741,7 +1829,7 @@ action(Send_SnpOnce, desc="") {
   tbe.expected_snp_resp.addExpectedCount(1);
 
   if (tbe.dir_sharers.isElement(local_C2CI_ID)) {
-    for (int i=0; i >= tbe.c2c_sharers.count(); i++) {
+    if (tbe.c2c_sharers.count() == 1) {
       enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
         prepareRequest(tbe, CHIRequestType:SnpOnce, out_msg);
         if (tbe.dir_ownerExists) {
@@ -1751,7 +1839,32 @@ action(Send_SnpOnce, desc="") {
           out_msg.Destination.add(tbe.dir_sharers.smallestElement());
         }
         out_msg.retToSrc := true;
-        out_msg.c2c_sharers := tbe.c2c_sharers[i];
+        out_msg.c2c_sharers := tbe.c2c_sharers;
+        out_msg.c2cOrig := tbe.c2cOrig;
+      }
+    } else if (tbe.c2c_sharers.count() == 2) {
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpOnce, out_msg);
+        if (tbe.dir_ownerExists) {
+          out_msg.Destination.add(tbe.dir_owner);
+        } else {
+          // TODO should be random or the closest one
+          out_msg.Destination.add(tbe.dir_sharers.smallestElement());
+        }
+        out_msg.retToSrc := true;
+        out_msg.c2c_sharers := tbe.c2c_sharers[0];
+        out_msg.c2cOrig := tbe.c2cOrig;
+      }
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpOnce, out_msg);
+        if (tbe.dir_ownerExists) {
+          out_msg.Destination.add(tbe.dir_owner);
+        } else {
+          // TODO should be random or the closest one
+          out_msg.Destination.add(tbe.dir_sharers.smallestElement());
+        }
+        out_msg.retToSrc := true;
+        out_msg.c2c_sharers := tbe.c2c_sharers[1];
         out_msg.c2cOrig := tbe.c2cOrig;
       }
     }
@@ -1794,7 +1907,7 @@ action(Send_SnpOnceFwd, desc="") {
   intToID(local_C2CI_ID_num));
 
   if (tbe.dir_sharers.isElement(local_C2CI_ID)) {
-    for (int i=0; i >= tbe.c2c_sharers.count(); i++) {
+    if (tbe.c2c_sharers.count() == 1) {
       enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
         prepareRequest(tbe, CHIRequestType:SnpOnceFwd, out_msg);
         if (tbe.dir_ownerExists) {
@@ -1803,7 +1916,32 @@ action(Send_SnpOnceFwd, desc="") {
           // TODO should be random or the closest one
           out_msg.Destination.add(tbe.dir_sharers.smallestElement());
         }
-        out_msg.c2c_sharers := tbe.c2c_sharers[i];
+        out_msg.c2c_sharers := tbe.c2c_sharers;
+        out_msg.c2cOrig := tbe.c2cOrig;
+        out_msg.retToSrc := false;
+      }
+    } else if (tbe.c2c_sharers.count() == 2) {
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpOnceFwd, out_msg);
+        if (tbe.dir_ownerExists) {
+          out_msg.Destination.add(tbe.dir_owner);
+        } else {
+          // TODO should be random or the closest one
+          out_msg.Destination.add(tbe.dir_sharers.smallestElement());
+        }
+        out_msg.c2c_sharers := tbe.c2c_sharers[0];
+        out_msg.c2cOrig := tbe.c2cOrig;
+        out_msg.retToSrc := false;
+      }
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpOnceFwd, out_msg);
+        if (tbe.dir_ownerExists) {
+          out_msg.Destination.add(tbe.dir_owner);
+        } else {
+          // TODO should be random or the closest one
+          out_msg.Destination.add(tbe.dir_sharers.smallestElement());
+        }
+        out_msg.c2c_sharers := tbe.c2c_sharers[1];
         out_msg.c2cOrig := tbe.c2cOrig;
         out_msg.retToSrc := false;
       }
