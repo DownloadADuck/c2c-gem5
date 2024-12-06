@@ -4,7 +4,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   Cycles response_latency := 1;
   Cycles data_latency := 1;
   Cycles to_memory_controller_latency := 1;
-  Cycles c2c_link_latency := 685; //685
+  Cycles c2c_link_latency := 0; //685
 
   int data_channel_size;
 
@@ -1544,6 +1544,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.is_remote_pf := false;
       out_msg.c2cOrig := true;
       out_msg.Destination.add(mapAddressToDownstreamMachine(address));
+      DPRINTF(RubyC2c, "out_msg.Destination: %s\n", out_msg.Destination);
       if (out_msg.type == CHIRequestType:Evict) {
         out_msg.off_chip := false;
       } else {
