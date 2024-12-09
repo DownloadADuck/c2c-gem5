@@ -1,11 +1,4 @@
-// explicit MegaNetDest(int vect_size);
 
-// ~MegaNetDest()
-// { }
-
-// void add(int newElement);
-// void remove(int oldElement);
-// void clear();
 // int count() const;
 // bool isEmpty() const;
 // void resize();
@@ -28,10 +21,25 @@ MegaNetDest::MegaNestDest()
 }
 
 void
-MegaNetDest::add(int newElement)
+MegaNetDest::add(int newElement, int index)
 {
-
+    m_bits[index].add(newElement);
 }
+
+void
+MegaNetDest::remove(int index)
+{
+    m_bits[index].clear();
+}
+
+void
+MegaNetDest::clear()
+{
+    for (int i = 0; i < m_bits.size(); i++) {
+        m_bits[i].clear();
+    }
+}
+
 
 
 } // namespace ruby

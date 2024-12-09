@@ -23,8 +23,8 @@ class MegaNetDest
         ~MegaNetDest()
         { }
 
-        void add(int newElement);
-        void remove(int oldElement);
+        void add(int newElement, int index);
+        void remove(int index);
         void clear();
         int count() const;
         bool isEmpty() const;
