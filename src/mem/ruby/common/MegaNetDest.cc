@@ -11,28 +11,28 @@ namespace gem5
 namespace ruby
 {
 
-MegaNetDest::MegaNestDest() 
+MegaNetDest::MegaNetDest() 
 {
-    resize();
+//    resize();
 }
 
 void
 MegaNetDest::add(int newElement, int index)
 {
-    m_bits[index].add(newElement);
+    m_bits[index] = newElement;
 }
 
 void
 MegaNetDest::remove(int index)
 {
-    m_bits[index].clear();
+    m_bits[index] = 0;
 }
 
 void
 MegaNetDest::clear()
 {
     for (int i = 0; i < m_bits.size(); i++) {
-        m_bits[i].clear();
+        m_bits[i] = 0;
     }
 }
 
@@ -41,16 +41,22 @@ MegaNetDest::count() const
 {
     int counter = 0;
     for (int i = 0; i < m_bits.size(); i++) {
-        counter += m_bits[i].count();
+        counter += m_bits[i];
     }
     return counter;
 }
+
+//void 
+//NetDest::resize()
+//{
+//
+//}
 
 bool
 MegaNetDest::isEmpty() const
 {
     for (int i = 0; i < m_bits.size(); i++) {
-        if (!m_bits[i].isEmpty()) {
+        if (!m_bits[i] != 0) {
             return false;
         }
     }
@@ -58,7 +64,7 @@ MegaNetDest::isEmpty() const
 }
 
 void
-MegaNetDest::print(std:ostream& out) const
+MegaNetDest::print(std::ostream& out) const
 {
     out << "[MegaNetDest (" << m_bits.size() << ") ";
     

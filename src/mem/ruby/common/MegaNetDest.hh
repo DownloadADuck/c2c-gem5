@@ -29,6 +29,8 @@ class MegaNetDest
         int count() const;
         bool isEmpty() const;
 
+        //void resize();
+
         void print(std::ostream& out) const;
 
     private:
@@ -37,7 +39,7 @@ class MegaNetDest
 };
 
 inline std::ostream&
-operator<<(std::ostream& out, const NetDest& obj)
+operator<<(std::ostream& out, const MegaNetDest& obj)
 {
     obj.print(out);
     out << std::flush;
