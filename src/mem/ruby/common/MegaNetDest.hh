@@ -28,9 +28,8 @@ class MegaNetDest
         void clear();
         int count() const;
         bool isEmpty() const;
-        void resize();
 
-        void print(std::ostream% out) const;
+        void print(std::ostream& out) const;
 
     private:
 

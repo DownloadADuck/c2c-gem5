@@ -1,8 +1,4 @@
 
-// int count() const;
-// bool isEmpty() const;
-// void resize();
-
 // void print(std::ostream% out) const;
 #include "mem/ruby/common/MegaNetDest.hh"
 
@@ -40,7 +36,36 @@ MegaNetDest::clear()
     }
 }
 
+int
+MegaNetDest::count() const
+{
+    int counter = 0;
+    for (int i = 0; i < m_bits.size(); i++) {
+        counter += m_bits[i].count();
+    }
+    return counter;
+}
 
+bool
+MegaNetDest::isEmpty() const
+{
+    for (int i = 0; i < m_bits.size(); i++) {
+        if (!m_bits[i].isEmpty()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void
+MegaNetDest::print(std:ostream& out) const
+{
+    out << "[MegaNetDest (" << m_bits.size() << ") ";
+    
+    for (int i = 0; i < m_bits.size(); i++){
+        out << m_bits[i];
+    }
+}
 
 } // namespace ruby
 } // namespace gem5
