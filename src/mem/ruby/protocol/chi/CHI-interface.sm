@@ -1484,7 +1484,6 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.allowRetry := false;
       out_msg.is_local_pf := false;
       out_msg.Destination.add(tbe.c2c_sharers);
-      DPRINTF(RubyC2c, "out_msg.Destination: %s, machineID: %s\n", out_msg.Destination, tbe.c2c_sharers);
       out_msg.retToSrc := tbe.retToSrc;
     }
   }
@@ -1553,7 +1552,6 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.is_remote_pf := false;
       out_msg.c2cOrig := true;
       out_msg.Destination.add(mapAddressToDownstreamMachine(address));
-      DPRINTF(RubyC2c, "out_msg.Destination: %s, machineID: %s\n", out_msg.Destination, mapAddressToDownstreamMachine(address));
       if (out_msg.type == CHIRequestType:Evict) {
         out_msg.off_chip := false;
       } else {
