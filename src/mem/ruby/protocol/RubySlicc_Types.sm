@@ -125,6 +125,14 @@ structure (NetDest, external = "yes", non_obj="yes") {
   NetDest AND(NetDest);
 }
 
+structure (MegaNetDest, external = "yes", non_obj="yes") {
+  void add(int newElement, int index);
+  void remove(int index);
+  void clear();
+  int count();
+  bool isEmpty();
+}
+
 structure (Sequencer, external = "yes") {
   void readCallback(Addr, DataBlock);
   void readCallback(Addr, DataBlock, bool);

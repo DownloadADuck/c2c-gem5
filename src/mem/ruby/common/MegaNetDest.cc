@@ -19,6 +19,10 @@ MegaNetDest::MegaNetDest()
 void
 MegaNetDest::add(int newElement, int index)
 {
+    if (index >= m_bits.size()) {
+        m_bits.resize(index + 1, 0);
+    }
+
     m_bits[index] = newElement;
 }
 
@@ -45,12 +49,6 @@ MegaNetDest::count() const
     }
     return counter;
 }
-
-//void 
-//NetDest::resize()
-//{
-//
-//}
 
 bool
 MegaNetDest::isEmpty() const

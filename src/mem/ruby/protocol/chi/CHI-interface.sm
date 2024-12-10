@@ -797,6 +797,9 @@ machine(MachineType:Interface, "C2C interface controller") :
 
     MachineID c2c_sharers, desc="Stores the c2c_sharers when sending a response";
     MachineID c2c_requestor, desc="Stores the off-chip requestor";
+    
+    // MegaNetDest test object
+    MegaNetDest megaNetDest, desc="test object";
 
     bool retToSrc, desc="Stores the retToSrc for snoop handling";
     bool stale, desc="Stores the stale status for responses";
@@ -1504,6 +1507,12 @@ machine(MachineType:Interface, "C2C interface controller") :
 
   action(sendToC2c_Request, "stc2cr", desc="Send request to c2c") {
     assert(is_valid(tbe));
+
+    DPRINTF(RubyC2c, "MegaNetDest: %s\n", tbe.megaNetDest);
+    // adds the element 5 at the 2nd index
+    tbe.megaNetDest.add(5, 2);
+    DPRINTF(RubyC2c, "MegaNetDest: %s\n", tbe.megaNetDest);
+
     enqueue(requestToC2c_out, C2cMsg, to_memory_controller_latency) {
       out_msg.addr := address;
       out_msg.Type := CHIReqToC2cMsg(tbe.to_c2c_req_type);
