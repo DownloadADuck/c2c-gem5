@@ -1,4 +1,4 @@
-# C2c architecture booting and exiting ubuntu with KVM enabled CPUs
+# C2c architecture booting with NONCACHING_SIMPLE CPUs
 # Uses X86 and CHI
 import m5
 import argparse
@@ -29,7 +29,7 @@ from gem5.resources.resource import Resource, CustomDiskImageResource
 requires(
     isa_required=ISA.X86,
     coherence_protocol_required=CoherenceProtocol.CHI,
-    kvm_required=True,
+    kvm_required=False,
 )
 
 # Parsec benchmarks
@@ -48,7 +48,6 @@ benchmark_choices = [
     "vips",
     "x264",
 ]
-
 # Following are the input size.
 size_choices = ["test", "simsmall", "simmedium", "simlarge"]
 
@@ -85,7 +84,7 @@ cache_hierarchy = C2cCacheHierarchy(
 # System memory
 memory = DualChannelDDR3_1600_C2C(size="3GB", range_size="1610612736")
 
-# Switchable KVM -> timing
+# Switchable NONCACHING_SIMPLE -> timing
 processor = SimpleSwitchableProcessor(
     starting_core_type=CPUTypes.NONCACHING_SIMPLE,
     switch_core_type=CPUTypes.TIMING,
@@ -159,7 +158,7 @@ simulator = Simulator(
 globalStart = time.time()
 
 print("Running the simulation")
-print("Using KVM cpu")
+print("Using NONCACHING_SIMPLE cpu")
 
 m5.stats.reset()
 simulator.run()

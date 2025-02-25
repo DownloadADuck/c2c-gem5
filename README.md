@@ -38,7 +38,7 @@ docker run -it c2c-gem5 /bin/bash
 Once in the docker environment, you can proceed to the compilation and run.
 
 ## Compilation
-> The current version of c2c-gem5 can cause errors when adding delay to the C2C Link. For this reason, before compiling, make sure that you set the C2C Link delay to its appropriate value, depending on what you want to run (i.e., syscall emulation or full-system PARSEC workloads). See further in the **Run** section.
+> 🚨 The current version of c2c-gem5 can cause errors when adding delay to the C2C Link. For this reason, before compiling, make sure that you set the C2C Link delay to its appropriate value, depending on what you want to run (i.e., syscall emulation or full-system PARSEC workloads). See further in the **Run** section.
 
 In `/gem5/.`
 
@@ -67,18 +67,28 @@ build/X86_CHI/gem5.opt --debug-flags=RubyGenerated configs/slicc_interface/main.
     - Available benchmarks: *blackscholes, bodytrack, canneal, dedup, ferret, freqmine, raytrace, swaptions*
     - Not all benchmark run when using 0 delay on the C2C link. Refer to the explanation in the Syscall emulation mode to change the value of `c2c_link_latency` to 685.
     - Benchmarks have been tested only for the *simsmall* size and may not run to completion with bigger sizes. 
-
 ```bash
 build/X86_CHI/gem5.opt configs/example/gem5_library/x86_c2c_kvm/C2C/noncaching-c2c.py --benchmark <benchmark name> --size simsmall
 ```
-
 Exemple to run the canneal benchmark:
 ```bash
 build/X86_CHI/gem5.opt configs/example/gem5_library/x86_c2c_kvm/C2C/noncaching-c2c.py --benchmark canneal --size simsmall
 ```
-> [!IMPORTANT]
-> Simulations can take from 1h upwards to 15h. We recommend running them in a *tmux* session or similar.
+**🚨 Simulations can take from 1h upwards to 15h. We recommend running them in a *tmux* session or similar.**
 
+- This configuration script uses the *gem5 standard library* and its resources. It should download the needed resources automatically in your `~/.cache/gem5` folder. If you want to run multiple simulations in parallel, you will need to use multiple copies of the ressources. You can impose a resource folder to gem5 as follows: 
+```bash
+GEM5_RESOURCE_DIR=~/.cache/gem5/ build/X86_CHI/gem5.opt configs/example/gem5_library/x86_c2c_kvm/C2C/noncaching-c2c.py --benchmark canneal --size simsmall
+```
 
 ## Debug
 This project is in development and is unstable. Some benchmark applications will run and some will cause issues. This section describe the most common **runtime** issues and where to look at. 
+
+### Invalid transition
+When running a wide array of benchmarks, the most probable runtime error is an invalid transition. This means that a controller of the architecture received a message that was not expected at that time. This will mostly impact the C2CI controllers. 
+
+The most effective way of understanding the issue is to generate a trace of the transitions. You will need to start the trace a couple of millions of ticks before the error. 
+
+```bash
+build/X86_CHI/gem5.opt --debug-flags=RubyGenerated --debug-start=<your tick number minus a value> configs/example/gem5_library/x86_c2c_kvm/C2C/noncaching-c2c.py --benchmark canneal --size simsmall > invalid_transition.log
+```
