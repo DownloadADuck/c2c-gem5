@@ -92,3 +92,6 @@ The most effective way of understanding the issue is to generate a trace of the 
 ```bash
 build/X86_CHI/gem5.opt --debug-flags=RubyGenerated --debug-start=<your tick number minus a value> configs/example/gem5_library/x86_c2c_kvm/C2C/noncaching-c2c.py --benchmark canneal --size simsmall > invalid_transition.log
 ```
+## Contacts
+Luis Bertran Alvarez - [luis.bertran-alvarez@lirmm.fr](mailto:luis.bertran-alvarez@lirmm.fr)
+David Novo - [david.novo@lirmm.fr](mailto:david.novo@lirmm.fr)
