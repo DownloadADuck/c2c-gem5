@@ -94,4 +94,5 @@ build/X86_CHI/gem5.opt --debug-flags=RubyGenerated --debug-start=<your tick numb
 ```
 ## Contacts
 Luis Bertran Alvarez - [luis.bertran-alvarez@lirmm.fr](mailto:luis.bertran-alvarez@lirmm.fr)
+
 David Novo - [david.novo@lirmm.fr](mailto:david.novo@lirmm.fr)
