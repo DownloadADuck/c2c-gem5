@@ -92,6 +92,16 @@ The most effective way of understanding the issue is to generate a trace of the 
 ```bash
 build/X86_CHI/gem5.opt --debug-flags=RubyGenerated --debug-start=<your tick number minus a value> configs/example/gem5_library/x86_c2c_kvm/C2C/noncaching-c2c.py --benchmark canneal --size simsmall > invalid_transition.log
 ```
+## Citation
+```
+@inproceedings{alvarez2025c2c,
+  title={c2c-gem5: Full System Simulation of Cache-Coherent Chip-to-Chip Interconnects},
+  author={Alvarez, Luis Bertran and Chehaibar, Ghassan and Busch, Stephen and Benoit, Pascal and Novo, David},
+  booktitle={DATE 2025-28th Design, Automation and Test in Europe Conference and Exhibition},
+  pages={In--press},
+  year={2025}
+}
+```
 ## Contacts
 Luis Bertran Alvarez - [luis.bertran-alvarez@lirmm.fr](mailto:luis.bertran-alvarez@lirmm.fr)
 
