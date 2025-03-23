@@ -1,5 +1,5 @@
 # c2c-gem5
-This project is an extension of gem5 v22.01 allowing the modeling of **two chips interconnected and extending their cache coherence**. It allows to run syscall emulation simulations of user application benchmarks, trace injection simulation using gem5's tgens, as well as full-system simulations running workloads from the PARSEC suite. This work is explained in the following paper: [c2c-gem5: Full System Simulation of Cache-Coherent Chip-to-Chip Interconnects]().
+This project is an extension of gem5 v22.01 allowing the modeling of **two chips interconnected and extending their cache coherence**. It allows to run syscall emulation simulations of user application benchmarks, trace injection simulation using gem5's tgens, as well as full-system simulations running workloads from the PARSEC suite. This work is explained in the following paper: [c2c-gem5: Full System Simulation of Cache-Coherent Chip-to-Chip Interconnects](https://hal.science/hal-04993538/).
 
 This project includes the tools to: 
 - Compile and run a docker image to prepare the environment for gem5
