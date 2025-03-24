@@ -98,7 +98,6 @@ build/X86_CHI/gem5.opt --debug-flags=RubyGenerated --debug-start=<your tick numb
   title={c2c-gem5: Full System Simulation of Cache-Coherent Chip-to-Chip Interconnects},
   author={Alvarez, Luis Bertran and Chehaibar, Ghassan and Busch, Stephen and Benoit, Pascal and Novo, David},
   booktitle={DATE 2025-28th Design, Automation and Test in Europe Conference and Exhibition},
-  pages={In--press},
   year={2025}
 }
 ```
