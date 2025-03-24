@@ -1,4 +1,4 @@
-# c2c-gem5
+# c2c-gem5: Full system simulation of cache-coherent chip-to-chip interconnects
 c2c-gem5 extends the gem5 simulator to model chiplet-based systems composed of multiple cache-coherent multi-core chips that maintain coherency across all interconnected chips. It supports:
 - Syscall emulation mode for running user-level application benchmarks
 - Trace-driven simulation using gem5's traffic generators (tgens)
