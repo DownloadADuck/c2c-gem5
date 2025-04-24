@@ -115,7 +115,7 @@ def generate_packets():
     #    packets.append(packet_info)
     packet_info = {
         'tick': base_tick,
-        'addr': addr,
+        'addr': addr, #0x10000000
         'size': 64,
         'cmd': 1, # ReadReq
         'core_type': 'cache1'
