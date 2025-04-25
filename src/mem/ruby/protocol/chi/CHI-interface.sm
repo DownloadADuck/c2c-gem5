@@ -795,7 +795,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     MachineID destination, desc="Where we are sending data";
     bool useDataSepResp, desc="Replies with DataSepResp instead of CompData";
 
-    MachineID c2c_sharers, desc="Stores the c2c_sharers when sending a response";
+    NetDest c2c_sharers, desc="Stores the c2c_sharers when sending a response";
     MachineID c2c_requestor, desc="Stores the off-chip requestor";
     
     // MegaNetDest test object
@@ -1483,7 +1483,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.type := c2cMsgToCHIReq(tbe.to_net_snp_type);
       out_msg.allowRetry := false;
       out_msg.is_local_pf := false;
-      out_msg.Destination.add(tbe.c2c_sharers);
+      out_msg.Destination.addNetDest(tbe.c2c_sharers);
       out_msg.retToSrc := tbe.retToSrc;
     }
   }
@@ -1678,7 +1678,7 @@ machine(MachineType:Interface, "C2C interface controller") :
         out_msg.addr := address;
         out_msg.Type := C2cRequestType:CompAck;
         out_msg.MessageSize := MessageSizeType:Response_Control;
-        out_msg.C2c_sharers := in_msg.responder;
+        out_msg.C2c_sharers.add(in_msg.responder);
       }
     }
   }
@@ -1748,7 +1748,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     peek(rspInPort, CHIResponseMsg) {
       tbe.to_c2c_rsp_type := in_msg.type;
       tbe.destination := in_msg.responder;
-      tbe.c2c_sharers := in_msg.responder;
+      tbe.c2c_sharers.add(in_msg.responder);
       tbe.stale := in_msg.stale;
     }
   }
