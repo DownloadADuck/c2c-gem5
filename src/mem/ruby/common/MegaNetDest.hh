@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "mem/ruby/common/MachineID.hh"
+#include "mem/ruby/common/NetDest.hh"
 
 namespace gem5
 {
@@ -17,34 +18,41 @@ class MegaNetDest
 {
     public:
 
-        MegaNetDest();
-        explicit MegaNetDest(int vect_size);
+        explicit MegaNetDest(int numChips, int nodesPerNet);
 
         ~MegaNetDest()
         { }
 
-        void add(int newElement, int index);
-        void remove(int index);
+        // Single destination ops
+        void add(int chip, MachineID dest);
+        void remove(int chip, MachineID dest);
+        void isPresent(int chip, MachineID dest) const;
+
+        // bulk ops across chips
+        void addMega(const MegaNetDest& others);
+        void removeMega(const MegaNetDest& other);
         void clear();
-        int count() const;
+
+        // queries
+        int totalCount() const;
         bool isEmpty() const;
+        bool isBroadcast() const;
+        std::string print() const;
 
-        //void resize();
-
-        void print(std::ostream& out) const;
+        //void print(std::ostream& out) const;
 
     private:
-
-        std::vector<int> m_bits; // for now use ints to try
+        int m_numChips;
+        std::vector<NetDest> m_data;
 };
 
-inline std::ostream&
-operator<<(std::ostream& out, const MegaNetDest& obj)
-{
-    obj.print(out);
-    out << std::flush;
-    return out;
-}
+//inline std::ostream&
+//operator<<(std::ostream& out, const MegaNetDest& obj)
+//{
+//    obj.print(out);
+//    out << std::flush;
+//    return out;
+//}
 
 } // namespace ruby
 } // namespace gem5
