@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <algorithm>
+#include <sstream>
 
 namespace gem5
 {
@@ -11,14 +12,19 @@ namespace gem5
 namespace ruby
 {
 
-MegaNetDest::MegaNetDest(int numChips, int nodesPerNet) 
- : m_numChips(numChips) 
+//MegaNetDest::MegaNetDest(int numChips, int nodesPerNet) 
+// : m_numChips(numChips) 
+//{
+//    m_data.reserve(numChips);
+//    for (int i = 0; i < numChips; ++i)
+//        m_data.emplace_back(nodesPerNet);
+//}
+MegaNetDest::MegaNetDest()
 {
-    m_data.reserve(numChips);
-    for (int i = 0; i < numChips; ++i)
-        m_data.emplace_back(nodesPerNet);
+    resize();
 }
 
+// adding a single NetDest
 void
 MegaNetDest::add(int chip, MachineID dest) 
 {
@@ -26,6 +32,16 @@ MegaNetDest::add(int chip, MachineID dest)
     m_data[chip].add(dest);
 }
 
+// merging an entire MegaNetDest
+void 
+MegaNetDest::add(const MegaNetDest& mega) 
+{
+    assert(mega.m_numChips == m_numChips);
+    for (int i = 0; i < m_numChips; ++i)
+        m_data[i].addNetDest(mega.m_data[i]);
+}
+
+// removes a single dest
 void 
 MegaNetDest::remove(int chip, MachineID dest) 
 {
@@ -33,60 +49,67 @@ MegaNetDest::remove(int chip, MachineID dest)
     m_data[chip].remove(dest);
 }
 
+// removes a MegaNetDest
 void
+MegaNetDest::remove(const MegaNetDest& mega)
+{
+    assert(mega.m_numChips == m_numChips);
+    for (int i = 0; i < m_numChips; ++i)
+        m_data[i].removeNetDest(mega.m_data[i]);
+}
+
+void
+MegaNetDest::resize()
+{
+
+}
+
+bool
 MegaNetDest::isPresent(int chip, MachineID dest) const 
 {
-
-}
-
-void 
-MegaNetDest::addMega(const MegaNetDest& mega) 
-{
-
-}
-
-void
-MegaNetDest::removeMega(const MegaNetDest& mega)
-{
-
+    assert(chip >= 0 && chip < m_numChips);
+    return m_data[chip].isElement(dest);
 }
 
 void
 MegaNetDest::clear()
 {
-    for (int i = 0; i < m_bits.size(); i++) {
-        m_bits[i] = 0;
-    }
+    for (auto &nd : m_data) nd.clear();
 }
 
 int
-MegaNetDest::count() const
+MegaNetDest::totalCount() const
 {
-    int counter = 0;
-    for (int i = 0; i < m_bits.size(); i++) {
-        counter += m_bits[i];
-    }
-    return counter;
+    int sum = 0;
+    for (auto &nd : m_data) sum += nd.count();
+    return sum;
 }
 
 bool
 MegaNetDest::isEmpty() const
 {
-    for (int i = 0; i < m_bits.size(); i++) {
-        if (!m_bits[i] != 0) {
-            return false;
-        }
-    }
+    for (auto &nd : m_data) if (!nd.isEmpty()) return false;
+    //for (int i = 0; i < m_bits.size(); i++) {
+    //    if (!m_bits[i] != 0) {
+    //        return false;
+    //    }
+    //}
+    return true;
+}
+
+bool
+MegaNetDest::isBroadcast() const
+{
+    for (auto &nd : m_data) if (!nd.isBroadcast()) return false;
     return true;
 }
 
 void
 MegaNetDest::print(std::ostream& out) const
 {
-    out << "[MegaNetDest (" << m_bits.size() << ") ";
-    
-    for (int i = 0; i < m_bits.size(); i++){
-        out << m_bits[i];
+    out << "[MegaNetDest with " << m_numChips << " chips]\n";
+    for (int i = 0; i < m_numChips; ++i) {
+        out << "  Chip " << i << ": " << m_data[i] << "\n";
     }
 }
 

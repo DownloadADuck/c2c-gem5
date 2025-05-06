@@ -18,7 +18,10 @@ class MegaNetDest
 {
     public:
 
-        explicit MegaNetDest(int numChips, int nodesPerNet);
+        MegaNetDest();
+        //explicit MegaNetDest(); // Need to finish the explicit
+
+        MegaNetDest& operator=(const Set& obj);
 
         ~MegaNetDest()
         { }
@@ -26,18 +29,19 @@ class MegaNetDest
         // Single destination ops
         void add(int chip, MachineID dest);
         void remove(int chip, MachineID dest);
-        void isPresent(int chip, MachineID dest) const;
+        bool isPresent(int chip, MachineID dest) const;
 
         // bulk ops across chips
-        void addMega(const MegaNetDest& others);
-        void removeMega(const MegaNetDest& other);
+        void add(const MegaNetDest& others);
+        void remove(const MegaNetDest& other);
         void clear();
+        void resize();
 
         // queries
         int totalCount() const;
         bool isEmpty() const;
         bool isBroadcast() const;
-        std::string print() const;
+        void print(std::ostream& out) const;
 
         //void print(std::ostream& out) const;
 
@@ -46,13 +50,14 @@ class MegaNetDest
         std::vector<NetDest> m_data;
 };
 
-//inline std::ostream&
-//operator<<(std::ostream& out, const MegaNetDest& obj)
-//{
-//    obj.print(out);
-//    out << std::flush;
-//    return out;
-//}
+// TODO: adapt to MegaNetDest 
+inline std::ostream&
+operator<<(std::ostream& out, const MegaNetDest& obj)
+{
+    obj.print(out);
+    out << std::flush;
+    return out;
+}
 
 } // namespace ruby
 } // namespace gem5

@@ -1507,10 +1507,10 @@ machine(MachineType:Interface, "C2C interface controller") :
   action(sendToC2c_Request, "stc2cr", desc="Send request to c2c") {
     assert(is_valid(tbe));
 
-    DPRINTF(RubyC2c, "MegaNetDest: %s\n", tbe.megaNetDest);
+    //DPRINTF(RubyC2c, "MegaNetDest: %s\n", tbe.megaNetDest);
     // adds the element 5 at the 2nd index
-    tbe.megaNetDest.add(5, 2);
-    DPRINTF(RubyC2c, "MegaNetDest: %s\n", tbe.megaNetDest);
+    //tbe.megaNetDest.add(5, 2);
+    //DPRINTF(RubyC2c, "MegaNetDest: %s\n", tbe.megaNetDest);
 
     enqueue(requestToC2c_out, C2cMsg, to_memory_controller_latency) {
       out_msg.addr := address;
