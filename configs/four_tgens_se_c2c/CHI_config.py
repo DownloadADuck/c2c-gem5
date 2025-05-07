@@ -233,7 +233,10 @@ class CHI_L1Controller(CHI_Cache_Controller):
         self.cache = cache
         self.use_prefetcher = False
         self.send_evictions = True
+
         self.is_HN = False
+        self.is_multiChip = False # Uses the multi-chip or not 
+
         self.enable_DMT = False
         self.enable_DCT = False
         # Strict inclusive MOESI
@@ -269,7 +272,10 @@ class CHI_L2Controller(CHI_Cache_Controller):
         self.cache = cache
         self.use_prefetcher = False
         self.allow_SD = True
+
         self.is_HN = False
+        self.is_multiChip = False
+
         self.enable_DMT = False
         self.enable_DCT = False
         self.send_evictions = False
@@ -305,7 +311,10 @@ class CHI_HNFController(CHI_Cache_Controller):
         self.use_prefetcher = False
         self.addr_ranges = addr_ranges
         self.allow_SD = True
+
         self.is_HN = True
+        self.is_multiChip = False
+
         self.enable_DMT = True
         self.enable_DCT = True
         self.send_evictions = False
@@ -391,7 +400,10 @@ class CHI_DMAController(CHI_Cache_Controller):
         # All allocations are false
         # Deallocations are true (don't really matter)
         self.allow_SD = False
+
         self.is_HN = False
+        self.is_multiChip = False
+
         self.enable_DMT = False
         self.enable_DCT = False
         self.alloc_on_seq_acc = False

@@ -110,6 +110,7 @@ machine(MachineType:Cache, "Cache coherency protocol") :
   // Set when this is used as the home node and point of coherency of the
   // system. Must be false for every other cache level.
   bool is_HN;
+  bool is_multiChip;
 
   // Enables direct memory transfers between SNs and RNs when the data is
   // not cache in the HN.

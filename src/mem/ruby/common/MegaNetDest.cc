@@ -12,13 +12,6 @@ namespace gem5
 namespace ruby
 {
 
-//MegaNetDest::MegaNetDest(int numChips, int nodesPerNet) 
-// : m_numChips(numChips) 
-//{
-//    m_data.reserve(numChips);
-//    for (int i = 0; i < numChips; ++i)
-//        m_data.emplace_back(nodesPerNet);
-//}
 MegaNetDest::MegaNetDest()
 {
     resize();
@@ -61,14 +54,21 @@ MegaNetDest::remove(const MegaNetDest& mega)
 void
 MegaNetDest::resize()
 {
-
+    m_data.resize(m_numChips);
+    for (int i = 0; i < m_numChips; ++i) {
+        m_data[i].resize();
+    }
 }
 
 bool
-MegaNetDest::isPresent(int chip, MachineID dest) const 
+MegaNetDest::isPresent(MachineID dest) const 
 {
-    assert(chip >= 0 && chip < m_numChips);
-    return m_data[chip].isElement(dest);
+    for (int chip = 0; chip < m_numChips; ++chip) {
+        if (m_data[chip].isElement(dest)){
+            return true;
+        }
+    }
+    return false;
 }
 
 void

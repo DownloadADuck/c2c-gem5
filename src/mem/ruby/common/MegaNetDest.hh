@@ -19,7 +19,6 @@ class MegaNetDest
     public:
 
         MegaNetDest();
-        //explicit MegaNetDest(); // Need to finish the explicit
 
         MegaNetDest& operator=(const Set& obj);
 
@@ -29,7 +28,7 @@ class MegaNetDest
         // Single destination ops
         void add(int chip, MachineID dest);
         void remove(int chip, MachineID dest);
-        bool isPresent(int chip, MachineID dest) const;
+        bool isPresent(MachineID element) const;
 
         // bulk ops across chips
         void add(const MegaNetDest& others);
@@ -38,12 +37,10 @@ class MegaNetDest
         void resize();
 
         // queries
-        int totalCount() const;
+        int totalCount() const; // Count
         bool isEmpty() const;
         bool isBroadcast() const;
         void print(std::ostream& out) const;
-
-        //void print(std::ostream& out) const;
 
     private:
         int m_numChips;
