@@ -27,7 +27,7 @@ MegaNetDest::add(int chip, MachineID dest)
 
 // merging an entire MegaNetDest
 void 
-MegaNetDest::add(const MegaNetDest& mega) 
+MegaNetDest::addMegaNetDest(const MegaNetDest& mega) 
 {
     assert(mega.m_numChips == m_numChips);
     for (int i = 0; i < m_numChips; ++i)

@@ -535,7 +535,7 @@ machine(MachineType:Cache, "Cache coherency protocol") :
   structure(DirEntry, interface="AbstractCacheEntry", main="false") {
     NetDest sharers,   desc="All upstream controllers that have this line (includes ownwer)";
     MachineID owner,   desc="Controller that has the line in UD,UC, or SD state";
-    NetDest c2c_sharers, desc="All off-chip controllers that have this line";
+    MegaNetDest c2c_sharers, desc="All off-chip controllers that have this line";
     bool ownerExists, default="false", desc="true if owner exists";
     bool ownerIsExcl, default="false", desc="true if owner is UD or UC";
     State state,       desc="SLICC line state";
@@ -639,7 +639,7 @@ machine(MachineType:Cache, "Cache coherency protocol") :
     MachineID dir_owner,          desc="Owner ID";
 
     // c2c fields
-    NetDest c2c_sharers,        desc="Off-chip controllers that have the line";
+    MegaNetDest c2c_sharers,        desc="Off-chip controllers that have the line";
     MachineID c2c_requestor,      desc="Off-chip requestor in case of a snp fwd dir_sharers update";
     MachineID default_machine,    desc="Default null machine used for if statements checks";
     bool off_chip,                desc="off_chip flag for CHI requests";

@@ -7,6 +7,7 @@ machine(MachineType:Interface, "C2C interface controller") :
   Cycles c2c_link_latency := 0; //685
 
   int data_channel_size;
+  int chipID;
 
   // Communicating with the network
   MessageBuffer * reqOut,   network="To", virtual_network="0", vnet_type="none";
@@ -795,7 +796,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     MachineID destination, desc="Where we are sending data";
     bool useDataSepResp, desc="Replies with DataSepResp instead of CompData";
 
-    NetDest c2c_sharers, desc="Stores the c2c_sharers when sending a response";
+    MegaNetDest c2c_sharers, desc="Stores the c2c_sharers when sending a response";
     MachineID c2c_requestor, desc="Stores the off-chip requestor";
     
     // MegaNetDest test object
@@ -1483,7 +1484,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.type := c2cMsgToCHIReq(tbe.to_net_snp_type);
       out_msg.allowRetry := false;
       out_msg.is_local_pf := false;
-      out_msg.Destination.addNetDest(tbe.c2c_sharers);
+      out_msg.Destination.addMegaNetDest(tbe.c2c_sharers);
       out_msg.retToSrc := tbe.retToSrc;
     }
   }
