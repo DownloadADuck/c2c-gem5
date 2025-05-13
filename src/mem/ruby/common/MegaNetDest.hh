@@ -26,12 +26,12 @@ class MegaNetDest
         { }
 
         // Single destination ops
-        void add(int chip, MachineID dest);
-        void remove(int chip, MachineID dest);
+        void add(int chipID, MachineID dest);
+        void remove(int chipID, MachineID dest);
         bool isPresent(MachineID element) const;
 
         // bulk ops across chips
-        void addMegaNetDest(const MegaNetDest& others);
+        void addMegaNetDest(int chipID, const MegaNetDest& others);
         void remove(const MegaNetDest& other);
         void clear();
         void resize();

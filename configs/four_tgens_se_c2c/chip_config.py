@@ -179,6 +179,7 @@ def create_chip0(
 
     for hnf in ruby_system.hnf:
         network_nodes.append(hnf)
+        hnf.chipID = 0
         network_cntrls.extend(hnf.getNetworkSideControllers())
         assert hnf.getAllControllers() == hnf.getNetworkSideControllers()
         all_cntrls.extend(hnf.getAllControllers())
@@ -205,6 +206,7 @@ def create_chip0(
     # Fixing the idx ourself. Need to try without.
     ruby_system.interface0 = [CHI_Interface(0, ruby_system, None, network)]
     interface0 = ruby_system.interface0[0]
+    interface0.chipID = 0
     network_nodes.append(interface0)
     network_cntrls.extend(interface0.getNetworkSideControllers())
     assert interface0.getAllControllers() == interface0.getNetworkSideControllers()
@@ -406,6 +408,7 @@ def create_chip1(
 
     for hnf in ruby_system.hnf2:
         network_nodes.append(hnf)
+        hnf.chipID = 1
         network_cntrls.extend(hnf.getNetworkSideControllers())
         assert hnf.getAllControllers() == hnf.getNetworkSideControllers()
         all_cntrls.extend(hnf.getAllControllers())
@@ -429,6 +432,7 @@ def create_chip1(
         interface_list)
     ruby_system.interface1 = [CHI_Interface(0, ruby_system, None, network)]
     interface1 = ruby_system.interface1[0]
+    interface1.chipID = 1
     network_nodes.append(interface1)
     network_cntrls.extend(interface1.getNetworkSideControllers())
     assert interface1.getAllControllers() == interface1.getNetworkSideControllers()

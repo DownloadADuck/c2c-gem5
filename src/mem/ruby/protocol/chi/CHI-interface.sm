@@ -1484,7 +1484,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.type := c2cMsgToCHIReq(tbe.to_net_snp_type);
       out_msg.allowRetry := false;
       out_msg.is_local_pf := false;
-      out_msg.Destination.addMegaNetDest(tbe.c2c_sharers);
+      out_msg.Destination.addMegaNetDest(chipID, tbe.c2c_sharers);
       out_msg.retToSrc := tbe.retToSrc;
     }
   }
@@ -1679,7 +1679,7 @@ machine(MachineType:Interface, "C2C interface controller") :
         out_msg.addr := address;
         out_msg.Type := C2cRequestType:CompAck;
         out_msg.MessageSize := MessageSizeType:Response_Control;
-        out_msg.C2c_sharers.add(in_msg.responder);
+        out_msg.C2c_sharers.add(chipID, in_msg.responder);
       }
     }
   }
@@ -1749,7 +1749,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     peek(rspInPort, CHIResponseMsg) {
       tbe.to_c2c_rsp_type := in_msg.type;
       tbe.destination := in_msg.responder;
-      tbe.c2c_sharers.add(in_msg.responder);
+      tbe.c2c_sharers.add(chipID, in_msg.responder);
       tbe.stale := in_msg.stale;
     }
   }

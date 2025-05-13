@@ -59,6 +59,12 @@ NetDest::addNetDest(const NetDest& netDest)
 }
 
 void
+NetDest::addMegaNetDest(int chipID, const MegaNetDest& megaNetDest);
+{
+    m_data[chipID].addNetDest(mega.m_data[chipID]);
+}
+
+void
 NetDest::setNetDest(MachineType machine, const Set& set)
 {
     // assure that there is only one set of destinations for this machine

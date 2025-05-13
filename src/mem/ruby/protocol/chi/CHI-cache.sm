@@ -111,6 +111,8 @@ machine(MachineType:Cache, "Cache coherency protocol") :
   // system. Must be false for every other cache level.
   bool is_HN;
   bool is_multiChip;
+  // Used in multi-chip mode
+  int chipID;
 
   // Enables direct memory transfers between SNs and RNs when the data is
   // not cache in the HN.

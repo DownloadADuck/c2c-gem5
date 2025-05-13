@@ -19,19 +19,18 @@ MegaNetDest::MegaNetDest()
 
 // adding a single NetDest
 void
-MegaNetDest::add(int chip, MachineID dest) 
+MegaNetDest::add(int chipID, MachineID dest) 
 {
-    assert(chip >= 0 && chip < m_numChips);
-    m_data[chip].add(dest);
+    assert(chipID >= 0 && chipID < m_numChips);
+    m_data[chipID].add(dest);
 }
 
 // merging an entire MegaNetDest
 void 
-MegaNetDest::addMegaNetDest(const MegaNetDest& mega) 
+MegaNetDest::addMegaNetDest(int chipID, const MegaNetDest& mega) 
 {
     assert(mega.m_numChips == m_numChips);
-    for (int i = 0; i < m_numChips; ++i)
-        m_data[i].addNetDest(mega.m_data[i]);
+    m_data[chipID].addNetDest(mega.m_data[chipID]);
 }
 
 // removes a single dest
