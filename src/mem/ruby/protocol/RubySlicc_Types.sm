@@ -94,19 +94,6 @@ structure (Set, external = "yes", non_obj="yes") {
   NodeID smallestElement();
 }
 
-structure (MegaNetDest, external = "yes", non_obj="yes") {
-  void add(int, MachineID);
-  void remove(int, MachineID);
-  bool isPresent(MachineID);
-  void addMegaNetDest(int, MegaNetDest);
-  void remove(MegaNetDest);
-  void clear();
-  void resize();
-  int totalCount();
-  bool isEmpty();
-  bool isBroadcast();
-}
-
 structure (NetDest, external = "yes", non_obj="yes") {
   void setSize(int);
   void setSize(int, int);
@@ -114,7 +101,6 @@ structure (NetDest, external = "yes", non_obj="yes") {
   void add(MachineID);
   void addSet(Set);
   void addNetDest(NetDest);
-  void addMegaNetDest(int, MegaNetDest);
   void setNetDest(MachineType, Set);
   void remove(NodeID);
   void remove(MachineID);
@@ -137,6 +123,20 @@ structure (NetDest, external = "yes", non_obj="yes") {
   MachineID smallestElement(MachineType);
   NetDest OR(NetDest);
   NetDest AND(NetDest);
+}
+
+structure (MegaNetDest, external = "yes", non_obj="yes") {
+  void add(int, MachineID);
+  void remove(int, MachineID);
+  bool isPresent(MachineID);
+  void addMegaNetDest(int, MegaNetDest);
+  NetDest extractNetDest(int);
+  void remove(MegaNetDest);
+  void clear();
+  void resize();
+  int totalCount();
+  bool isEmpty();
+  bool isBroadcast();
 }
 
 structure (Sequencer, external = "yes") {

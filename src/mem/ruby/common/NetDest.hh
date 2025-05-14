@@ -34,7 +34,6 @@
 
 #include "mem/ruby/common/Set.hh"
 #include "mem/ruby/common/MachineID.hh"
-#include "mem/ruby/common/MegaNetDest.hh"
 
 namespace gem5
 {
@@ -58,7 +57,6 @@ class NetDest
 
     void add(MachineID newElement);
     void addNetDest(const NetDest& netDest);
-    void addMegaNetDest(int chipID, const MegaNetDest& megaNetDest);
     void setNetDest(MachineType machine, const Set& set);
     void remove(MachineID oldElement);
     void removeNetDest(const NetDest& netDest);

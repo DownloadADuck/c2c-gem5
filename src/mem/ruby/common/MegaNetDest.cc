@@ -1,6 +1,9 @@
+// MegaNetDest
+// Vector of NetDest allowing to track off-chip sharers of a
+// cache line in multi-chip architecture
 
-// void print(std::ostream% out) const;
 #include "mem/ruby/common/MegaNetDest.hh"
+#include "mem/ruby/common/NetDest.hh"
 
 #include <iostream>
 #include <algorithm>
@@ -17,7 +20,7 @@ MegaNetDest::MegaNetDest()
     resize();
 }
 
-// adding a single NetDest
+// adding a single machine to a NetDest 
 void
 MegaNetDest::add(int chipID, MachineID dest) 
 {
@@ -31,6 +34,13 @@ MegaNetDest::addMegaNetDest(int chipID, const MegaNetDest& mega)
 {
     assert(mega.m_numChips == m_numChips);
     m_data[chipID].addNetDest(mega.m_data[chipID]);
+}
+
+NetDest
+MegaNetDest::extractNetDest(int chipID)
+{
+    assert(chipID >= 0 && chipID < m_numChips);
+    return m_data[chipID];
 }
 
 // removes a single dest

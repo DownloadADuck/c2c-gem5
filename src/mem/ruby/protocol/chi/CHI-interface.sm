@@ -1484,7 +1484,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.type := c2cMsgToCHIReq(tbe.to_net_snp_type);
       out_msg.allowRetry := false;
       out_msg.is_local_pf := false;
-      out_msg.Destination.addMegaNetDest(chipID, tbe.c2c_sharers);
+      out_msg.Destination.addNetDest(tbe.c2c_sharers.extractNetDest(chipID));
       out_msg.retToSrc := tbe.retToSrc;
     }
   }
