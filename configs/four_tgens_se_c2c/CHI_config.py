@@ -234,6 +234,9 @@ class CHI_L1Controller(CHI_Cache_Controller):
         self.use_prefetcher = False
         self.send_evictions = True
 
+        # Setting the unused chipID to 0
+        self.chipID = 0
+
         self.is_HN = False
         self.is_multiChip = False # Uses the multi-chip or not 
 
@@ -275,6 +278,8 @@ class CHI_L2Controller(CHI_Cache_Controller):
 
         self.is_HN = False
         self.is_multiChip = False
+        # Setting the unused chipID to 0
+        self.chipID = 0
 
         self.enable_DMT = False
         self.enable_DCT = False
@@ -304,7 +309,7 @@ class CHI_HNFController(CHI_Cache_Controller):
     Default parameters for a coherent home node (HNF) cache controller
     """
 
-    def __init__(self, ruby_system, cache, prefetcher, addr_ranges):
+    def __init__(self, ruby_system, cache, prefetcher, addr_ranges, chipID):
         super(CHI_HNFController, self).__init__(ruby_system)
         self.sequencer = NULL
         self.cache = cache
@@ -314,6 +319,7 @@ class CHI_HNFController(CHI_Cache_Controller):
 
         self.is_HN = True
         self.is_multiChip = False
+        self.chipID = chipID
 
         self.enable_DMT = True
         self.enable_DCT = True
@@ -338,12 +344,13 @@ class CHI_HNFController(CHI_Cache_Controller):
         self.unify_repl_TBEs = False
 
 class CHI_InterfaceController(Interface_Controller):
-    def __init__(self, ruby_system, addr_ranges):
+    def __init__(self, ruby_system, addr_ranges, chipID):
         super(CHI_InterfaceController, self).__init__(
             version=Versions.getVersion(Interface_Controller)
         )
         self.ruby_system = ruby_system
         self.addr_ranges = addr_ranges
+        self.chipID = chipID
 
 
 class CHI_MNController(MiscNode_Controller):
@@ -403,6 +410,8 @@ class CHI_DMAController(CHI_Cache_Controller):
 
         self.is_HN = False
         self.is_multiChip = False
+        # Setting the unused chipID to 0
+        self.chipID = 0
 
         self.enable_DMT = False
         self.enable_DCT = False
@@ -493,7 +502,6 @@ class CHI_RNF(CHI_Node):
         self._ll_cntrls = []
 
         self._cpus = cpus
-        #self._network = network
 
         # First creates L1 caches and sequencers
         for cpu in self._cpus:
@@ -623,7 +631,7 @@ class CHI_HNF(CHI_Node):
 
     # The CHI controller can be a child of this object or another if
     # 'parent' if specified
-    def __init__(self, hnf_idx, ruby_system, llcache_type, parent, network):
+    def __init__(self, hnf_idx, ruby_system, llcache_type, parent, network, chipID):
         super(CHI_HNF, self).__init__(ruby_system, network)
 
         addr_ranges, intlvHighBit = self.getAddrRanges(hnf_idx)
@@ -632,7 +640,7 @@ class CHI_HNF(CHI_Node):
 
         ll_cache = llcache_type(start_index_bit=intlvHighBit + 1)
         self._cntrl = CHI_HNFController(
-            ruby_system, ll_cache, NULL, addr_ranges
+            ruby_system, ll_cache, NULL, addr_ranges, chipID
         )
 
         if parent == None:
@@ -679,7 +687,7 @@ class CHI_Interface(CHI_Node):
         assert len(cls._addr_ranges) != 0
         return cls._addr_ranges[interface_idx]
 
-    def __init__(self, interface_idx, ruby_system, parent, network):
+    def __init__(self, interface_idx, ruby_system, parent, network, chipID):
         super(CHI_Interface, self).__init__(ruby_system, network)
 
         addr_ranges, intlvHighBit = self.getAddrRanges(interface_idx)
@@ -701,6 +709,7 @@ class CHI_Interface(CHI_Node):
             stalled=TriggerMessageBuffer(),
             stalledSnoops=TriggerMessageBuffer(),
             transitions_per_cycle=1024,
+            chipID=chipID,
         )
 
         if parent == None:
