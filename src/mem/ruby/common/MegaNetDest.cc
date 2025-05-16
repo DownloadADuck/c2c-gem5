@@ -24,7 +24,8 @@ MegaNetDest::MegaNetDest()
 void
 MegaNetDest::add(int chipID, MachineID dest) 
 {
-    assert(chipID >= 0 && chipID < m_numChips);
+    int numChips = MachineType_base_count(MachineType_Interface);
+    assert(chipID >= 0 && chipID < numChips);
     m_data[chipID].add(dest);
 }
 
@@ -32,14 +33,16 @@ MegaNetDest::add(int chipID, MachineID dest)
 void 
 MegaNetDest::addMegaNetDest(int chipID, const MegaNetDest& mega) 
 {
-    assert(mega.m_numChips == m_numChips);
+    int numChips = MachineType_base_count(MachineType_Interface);
+    assert(mega.m_data.size() == numChips);
     m_data[chipID].addNetDest(mega.m_data[chipID]);
 }
 
 NetDest
 MegaNetDest::extractNetDest(int chipID)
 {
-    assert(chipID >= 0 && chipID < m_numChips);
+    int numChips = MachineType_base_count(MachineType_Interface);
+    assert(chipID >= 0 && chipID < numChips);
     return m_data[chipID];
 }
 
@@ -47,7 +50,8 @@ MegaNetDest::extractNetDest(int chipID)
 void 
 MegaNetDest::remove(int chip, MachineID dest) 
 {
-    assert(chip >= 0 && chip < m_numChips);
+    int numChips = MachineType_base_count(MachineType_Interface);
+    assert(chip >= 0 && chip < numChips);
     m_data[chip].remove(dest);
 }
 
@@ -55,16 +59,18 @@ MegaNetDest::remove(int chip, MachineID dest)
 void
 MegaNetDest::remove(const MegaNetDest& mega)
 {
-    assert(mega.m_numChips == m_numChips);
-    for (int i = 0; i < m_numChips; ++i)
+    int numChips = MachineType_base_count(MachineType_Interface);
+    assert(mega.m_data.size() == numChips);
+    for (int i = 0; i < numChips; ++i)
         m_data[i].removeNetDest(mega.m_data[i]);
 }
 
 void
 MegaNetDest::resize()
 {
-    m_data.resize(m_numChips);
-    for (int i = 0; i < m_numChips; ++i) {
+    int numChips = MachineType_base_count(MachineType_Interface);
+    m_data.resize(numChips);
+    for (int i = 0; i < numChips; ++i) {
         m_data[i].resize();
     }
 }
@@ -72,7 +78,8 @@ MegaNetDest::resize()
 bool
 MegaNetDest::isPresent(MachineID dest) const 
 {
-    for (int chip = 0; chip < m_numChips; ++chip) {
+    int numChips = MachineType_base_count(MachineType_Interface);
+    for (int chip = 0; chip < numChips; ++chip) {
         if (m_data[chip].isElement(dest)){
             return true;
         }
@@ -98,11 +105,6 @@ bool
 MegaNetDest::isEmpty() const
 {
     for (auto &nd : m_data) if (!nd.isEmpty()) return false;
-    //for (int i = 0; i < m_bits.size(); i++) {
-    //    if (!m_bits[i] != 0) {
-    //        return false;
-    //    }
-    //}
     return true;
 }
 
@@ -116,8 +118,9 @@ MegaNetDest::isBroadcast() const
 void
 MegaNetDest::print(std::ostream& out) const
 {
-    out << "[MegaNetDest with " << m_numChips << " chips]\n";
-    for (int i = 0; i < m_numChips; ++i) {
+    int numChips = MachineType_base_count(MachineType_Interface);
+    out << "[MegaNetDest with " << numChips << " chips]\n";
+    for (int i = 0; i < numChips; ++i) {
         out << "  Chip " << i << ": " << m_data[i] << "\n";
     }
 }

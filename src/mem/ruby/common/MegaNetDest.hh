@@ -44,7 +44,6 @@ class MegaNetDest
         void print(std::ostream& out) const;
 
     private:
-        int m_numChips;
         std::vector<NetDest> m_data;
 };
 
