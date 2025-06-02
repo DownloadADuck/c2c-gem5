@@ -102,6 +102,7 @@ structure(CHIRequestMsg, desc="", interface="Message") {
   bool allowRetry,          desc="This request can be retried";
   NetDest Destination,      desc="Message destination";
   MegaNetDest MegaDestination, desc="Message destination of type MegaNetDest";
+  NetDest c2c_destination, desc="off-chip destination";
 
   // c2c off-chip sharer field
   MegaNetDest c2c_sharers, desc="off-chip sharer";
