@@ -638,6 +638,7 @@ machine(MachineType:Cache, "Cache coherency protocol") :
     bool dataToBeInvalid,         desc="Local copy will be invalidated at the end of transaction";
     bool dataToBeSharedClean,     desc="Local copy will become SC at the end of transaction";
     NetDest dir_sharers,          desc="Upstream controllers that have the line (includes owner)";
+    MegaNetDest mega_dir_sharers, desc="Upstream controllers that have the line";
     MachineID dir_owner,          desc="Owner ID";
 
     // c2c fields

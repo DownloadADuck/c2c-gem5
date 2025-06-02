@@ -101,6 +101,7 @@ structure(CHIRequestMsg, desc="", interface="Message") {
   bool retToSrc,            desc="Affects whether or not a snoop resp returns data";
   bool allowRetry,          desc="This request can be retried";
   NetDest Destination,      desc="Message destination";
+  MegaNetDest MegaDestination, desc="Message destination of type MegaNetDest";
 
   // c2c off-chip sharer field
   MegaNetDest c2c_sharers, desc="off-chip sharer";
@@ -159,6 +160,7 @@ structure(CHIResponseMsg, desc="", interface="Message") {
   CHIResponseType type, desc="Response type";
   MachineID responder,  desc="Responder ID";
   NetDest Destination,  desc="Response destination";
+  MegaNetDest MegaDestination, desc="Message destination of type MegaNetDest";
   bool stale,           desc="Response to a stale request";
   bool usesTxnId,       desc="True if using a Transaction ID", default="false";
   Addr txnId,           desc="Transaction ID", default="0";
@@ -211,6 +213,7 @@ structure(CHIDataMsg, desc="", interface="Message") {
   CHIDataType type,     desc="Response type";
   MachineID responder,  desc="Responder ID";
   NetDest Destination,  desc="Response destination";
+  MegaNetDest MegaDestination, desc="Message destination of type MegaNetDest";
   DataBlock dataBlk,    desc="Line data";
   WriteMask bitMask,    desc="Which bytes in the data block are valid";
   bool usesTxnId,       desc="True if using a Transaction ID", default="false";

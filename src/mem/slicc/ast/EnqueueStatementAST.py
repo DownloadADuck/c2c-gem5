@@ -65,26 +65,47 @@ class EnqueueStatementAST(StatementAST):
         self.symtab.newSymbol(v)
 
         # Declare message
-        code(
-            "std::shared_ptr<${{msg_type.c_ident}}> out_msg = "
-            "std::make_shared<${{msg_type.c_ident}}>(clockEdge());"
-        )
 
-        # The other statements
-        t = self.statements.generate(code, None)
-        self.queue_name.assertType("OutPort")
-
-        if self.latexpr != None:
-            ret_type, rcode = self.latexpr.inline(True)
+        statements_str = str(self.statements)
+        if 'addMegaNetDest' in statements_str:
+            code("for (int i = 0; i <= (*m_tbe_ptr).m_mega_dir_sharers.totalCount(); ++i) {")
+            code.indent()
             code(
-                "(${{self.queue_name.var.code}}).enqueue("
-                "out_msg, clockEdge(), cyclesToTicks(Cycles($rcode)));"
+                "std::shared_ptr<${{msg_type.c_ident}}> out_msg = "
+                "std::make_shared<${{msg_type.c_ident}}>(clockEdge());"
             )
+            t = self.statements.generate(code, None)
+            self.queue_name.assertType("OutPort")
+
+            code("if (i == m_chipID) {")
+            code.indent()
+            code("prepareRequest(m_tbe_ptr, CHIRequestType_SnpCleanInvalid, *out_msg);")
+            code("((*out_msg).m_Destination).addNetDest((*m_tbe_ptr).m_mega_dir_sharers.extractNetDest(i));")
+            code("(*out_msg).m_retToSrc = false;")
+            code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
+            code.dedent()
+            code("}}")
+            code.dedent()
         else:
             code(
-                "(${{self.queue_name.var.code}}).enqueue(out_msg, "
-                "clockEdge(), cyclesToTicks(Cycles(1)));"
+                "std::shared_ptr<${{msg_type.c_ident}}> out_msg = "
+                "std::make_shared<${{msg_type.c_ident}}>(clockEdge());"
             )
+
+            # The other statements
+            t = self.statements.generate(code, None)
+            self.queue_name.assertType("OutPort")
+            if self.latexpr != None:
+                ret_type, rcode = self.latexpr.inline(True)
+                code(
+                    "(${{self.queue_name.var.code}}).enqueue("
+                    "out_msg, clockEdge(), cyclesToTicks(Cycles($rcode)));"
+                )
+            else:
+                code(
+                    "(${{self.queue_name.var.code}}).enqueue(out_msg, "
+                    "clockEdge(), cyclesToTicks(Cycles(1)));"
+                )
 
         # End scope
         self.symtab.popFrame()

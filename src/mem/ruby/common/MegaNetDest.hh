@@ -31,7 +31,8 @@ class MegaNetDest
         bool isPresent(MachineID element) const;
 
         // bulk ops across chips
-        void addMegaNetDest(int chipID, const MegaNetDest& others);
+        MegaNetDest addMegaNetDest(MegaNetDest mega);
+        //void addMegaNetDest(int chipID, const MegaNetDest& others);
         NetDest extractNetDest(int chipID);
         void remove(const MegaNetDest& other);
         void clear();

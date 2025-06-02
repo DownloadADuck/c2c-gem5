@@ -21,22 +21,27 @@ MegaNetDest::MegaNetDest()
 }
 
 // adding a single machine to a NetDest 
-void
-MegaNetDest::add(int chipID, MachineID dest) 
+//void
+//MegaNetDest::add(int chipID, MachineID dest) 
+//{
+//    int numChips = MachineType_base_count(MachineType_Interface);
+//    assert(chipID >= 0 && chipID < numChips);
+//    m_data[chipID].add(dest);
+//}
+MegaNetDest
+MegaNetDest::addMegaNetDest(MegaNetDest mega)
 {
-    int numChips = MachineType_base_count(MachineType_Interface);
-    assert(chipID >= 0 && chipID < numChips);
-    m_data[chipID].add(dest);
+    return mega;
 }
 
 // merging an entire MegaNetDest
-void 
-MegaNetDest::addMegaNetDest(int chipID, const MegaNetDest& mega) 
-{
-    int numChips = MachineType_base_count(MachineType_Interface);
-    assert(mega.m_data.size() == numChips);
-    m_data[chipID].addNetDest(mega.m_data[chipID]);
-}
+//void 
+//MegaNetDest::addMegaNetDest(int chipID, const MegaNetDest& mega) 
+//{
+//    int numChips = MachineType_base_count(MachineType_Interface);
+//    assert(mega.m_data.size() == numChips);
+//    m_data[chipID].addNetDest(mega.m_data[chipID]);
+//}
 
 NetDest
 MegaNetDest::extractNetDest(int chipID)

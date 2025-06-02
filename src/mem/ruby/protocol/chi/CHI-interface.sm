@@ -1484,7 +1484,9 @@ machine(MachineType:Interface, "C2C interface controller") :
       out_msg.type := c2cMsgToCHIReq(tbe.to_net_snp_type);
       out_msg.allowRetry := false;
       out_msg.is_local_pf := false;
+      DPRINTF(RubyC2c, "c2c_sharers before sending snp: %s\n", tbe.c2c_sharers);
       out_msg.Destination.addNetDest(tbe.c2c_sharers.extractNetDest(chipID));
+      DPRINTF(RubyC2c, "c2c_sharers after sending snp: %s\n", tbe.c2c_sharers);
       out_msg.retToSrc := tbe.retToSrc;
     }
   }
@@ -1752,6 +1754,7 @@ machine(MachineType:Interface, "C2C interface controller") :
       tbe.c2c_sharers.add(chipID, in_msg.responder);
       tbe.stale := in_msg.stale;
     }
+    DPRINTF(RubyC2c, "c2c_sharers: %s\n", tbe.c2c_sharers);
   }
 
   action(updateTBE_FromC2cResp, "utbefc2cr", desc="Update the TBE with response from c2c") {
