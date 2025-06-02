@@ -84,8 +84,21 @@ class EnqueueStatementAST(StatementAST):
             code("(*out_msg).m_retToSrc = false;")
             code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
             code.dedent()
-            code("}}")
+            code("} else {")
+            code.indent()
+            code(
+                "std::shared_ptr<${{msg_type.c_ident}}> out_msg = "
+                "std::make_shared<${{msg_type.c_ident}}>(clockEdge());"
+            )
+            code("prepareRequest(m_tbe_ptr, CHIRequestType_SnpCleanInvalid, *out_msg);")
+            code("((*out_msg).m_Destination).add(mapAddressToC2CI((*m_tbe_ptr).m_addr));")
+            code("(*out_msg).m_c2c_destination.addNetDest((*m_tbe_ptr).m_dir_sharers.extractNetDest(i));")
+            code("(*out_msg).m_retToSrc = false;")
+            code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
             code.dedent()
+            code("}") # end if
+            code.dedent()
+            code("}") # end for
         else:
             code(
                 "std::shared_ptr<${{msg_type.c_ident}}> out_msg = "
