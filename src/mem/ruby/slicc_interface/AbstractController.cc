@@ -112,10 +112,6 @@ AbstractController::init()
                     name(), addr_range.to_string());
             }
             downstreamAddrMap[mid.getType()].insert(addr_range, mid);
-            //for (const auto &i : downstreamAddrMap) {
-            //    std::cout << " Machine ID: " << mid << " allocated to mem range: " << addr_range.to_string() << " this controller: " << this->getMachineID() << std::endl; 
-            //    //" address map first member: " << i.first << std::endl;
-            //}
         }
         downstreamDestinations.add(mid);
     }
@@ -125,6 +121,8 @@ AbstractController::init()
     upstreamDestinations.resize();
     for (auto abs_cntrl : params().upstream_destinations) {
         upstreamDestinations.add(abs_cntrl->getMachineID());
+        std::cout << "Hello from AbstractController init!" << std::endl;
+        std::cout << "abs_cntrl: " << abs_cntrl << std::endl;
     }
 }
 
@@ -621,6 +619,13 @@ const
     }
     fatal("%s: couldn't find mapping for address %x mtype=%s\n",
         name(), addr, mtype);
+}
+
+MachineID
+AbstractController::mapAddressToUpstreamMachine(Addr addr)
+const
+{
+    // TODO: Implementation
 }
 
 // Used to check is inbound request is local or not

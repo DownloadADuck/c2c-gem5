@@ -224,6 +224,19 @@ class AbstractController : public ClockedObject, public Consumer
      */
     MachineID mapAddressToDownstreamMachine(Addr addr,
                                     MachineType mtype = MachineType_NUM) const;
+                                    
+    /**
+     * Map an address to the correct upstream MachineID
+     *
+     * This function querries the network for the MachineID of the
+     * chip-to-chip interface (C2CI) destination for a given request using 
+     * its address. For example for a request with a given address it will 
+     * return the MachineID of the authorative C2CI.
+     *
+     * @param the destination address
+     * @return the MachineID of the destination C2CI
+     */
+    MachineID mapAddressToUpstreamMachine(Addr addr) const;
 
     /** Check if the address has a downstream client */
     bool hasDownstreamClient(Addr addr, 
@@ -477,6 +490,9 @@ class AbstractController : public ClockedObject, public Consumer
 
     std::unordered_map<MachineType, AddrRangeMap<MachineID, 3>>
       downstreamAddrMap;
+    /** Address map for routing snoops to C2C-interface controllers */
+    std::unordered_map<MachineType, AddrRangeMap<MachineID, 3>>
+      upstreamAddrMap;
 
     NetDest downstreamDestinations;
     NetDest upstreamDestinations;

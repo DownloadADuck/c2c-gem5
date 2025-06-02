@@ -86,7 +86,7 @@ class EnqueueStatementAST(StatementAST):
             code.dedent()
             code("} else {")
             code.indent()
-            code("((*out_msg).m_Destination).add(mapAddressToC2CI((*m_tbe_ptr).m_addr));")
+            code("((*out_msg).m_Destination).add(mapAddressToUpstreamMachine((*m_tbe_ptr).m_addr));")
             code("(*out_msg).m_c2c_destination.addNetDest((*m_tbe_ptr).m_mega_dir_sharers.extractNetDest(i));")
             code("(*out_msg).m_retToSrc = false;")
             code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
