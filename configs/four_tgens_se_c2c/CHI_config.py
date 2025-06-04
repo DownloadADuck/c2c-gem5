@@ -140,6 +140,14 @@ class CHI_Node(SubSystem):
         for c in self.getNetworkSideControllers():
             c.downstream_destinations = cntrls
 
+    def setC2cHopMap(self, chip_to_c2c_interface):
+        """
+        Sets the lists to map ChipID to corresponding C2CI
+        """
+        for c in self.getNetworkSideControllers():
+            c.c2cHopList = list(chip_to_c2c_interface.values())
+            c.chipIDList = list(chip_to_c2c_interface.keys())
+
     def connectController(self, cntrl):
         """
         Creates and configures the messages buffers for the CHI input/output
