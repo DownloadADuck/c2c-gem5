@@ -211,6 +211,9 @@ def create_chip0(
     mem_cntrls.extend(interface0.getAllControllers())
     all_cntrls.extend(interface0.getAllControllers())
     hnf_dests.extend(interface0.getAllControllers())
+    
+    # Used to populate the chipID -> C2CI routing table of the HNF
+    chip_to_c2c_interface = {1:interface0}
 
     if len(other_memories) > 0:
         ruby_system.rom_snf = [
@@ -243,6 +246,7 @@ def create_chip0(
 
     for i, hnf in enumerate(ruby_system.hnf):
         hnf.setDownstream(mem_dests[i])
+        hnf.setC2cHopMap(chip_to_c2c_interface)
 
     hnf_dests.pop(1)
     ruby_system.interface0[0].setDownstream(hnf_dests)
@@ -436,6 +440,9 @@ def create_chip1(
     all_cntrls.extend(interface1.getAllControllers())
     hnf_dests.extend(interface1.getAllControllers())
 
+    # Used to populate the chipID -> C2CI routing table of the HNF
+    chip_to_c2c_interface = {0:interface1}
+
     if len(other_memories) > 0:
         ruby_system.rom_snf1 = [
             CHI_SNF_BootMem(ruby_system, None, m) for m in other_memories
@@ -473,6 +480,7 @@ def create_chip1(
 
     for hnf in ruby_system.hnf2:
         hnf.setDownstream(mem_dests)
+        hnf.setC2cHopMap(chip_to_c2c_interface)
 
     hnf_dests.pop(1)
     ruby_system.interface1[0].setDownstream(hnf_dests)
