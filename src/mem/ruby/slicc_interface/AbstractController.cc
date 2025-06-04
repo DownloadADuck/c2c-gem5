@@ -121,17 +121,20 @@ AbstractController::init()
     upstreamDestinations.resize();
     for (auto abs_cntrl : params().upstream_destinations) {
         upstreamDestinations.add(abs_cntrl->getMachineID());
-        std::cout << "Hello from AbstractController init!" << std::endl;
-        std::cout << "abs_cntrl: " << abs_cntrl << std::endl;
     }
 
     // Initialize the chipID->C2CI map
     if (params().chipIDList.size() != 0) {
+        //for (auto abs_cntrl : params().c2cHopList) {
+        //    MachineID mid = abs_cntrl->getMachineID();
+        //}
         for (int i = 0; i < params().chipIDList.size(); ++i) {
+            MachineID mid = params().c2cHopList[i];
             int chip_id = params().chipIDList[i];
-            c2cHopMap[chip_id] = params().c2cHopList[i];
+            c2cHopMap[chip_id] = mid;
         }
     }
+    std::cout << "c2cHopMap: " << c2cHopMap << std::endl;
 }
 
 void
@@ -635,7 +638,7 @@ const
 {
     auto it = c2cHopMap.find(ChipID);
     assert(it != c2cHopMap.end());
-    return it->second.getMachineID();
+    return it->second;
 }
 
 // Used to check is inbound request is local or not

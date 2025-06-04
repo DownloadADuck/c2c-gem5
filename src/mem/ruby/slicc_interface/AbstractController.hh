@@ -490,9 +490,9 @@ class AbstractController : public ClockedObject, public Consumer
 
     std::unordered_map<MachineType, AddrRangeMap<MachineID, 3>>
       downstreamAddrMap;
-    /** Address map for routing snoops to C2C-interface controllers */
-    std::unordered_map<MachineType, AddrRangeMap<MachineID, 3>>
-      upstreamAddrMap;
+    /** ChipID -> C2CI map */
+    std::map<int, MachineID>
+      c2cHopMap;
 
     NetDest downstreamDestinations;
     NetDest upstreamDestinations;
