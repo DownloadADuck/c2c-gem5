@@ -233,10 +233,10 @@ class AbstractController : public ClockedObject, public Consumer
      * its address. For example for a request with a given address it will 
      * return the MachineID of the authorative C2CI.
      *
-     * @param the destination address
+     * @param the destination chip
      * @return the MachineID of the destination C2CI
      */
-    MachineID mapAddressToUpstreamMachine(Addr addr) const;
+    MachineID AbstractController::mapChipIDToC2CI(int ChipID) const;
 
     /** Check if the address has a downstream client */
     bool hasDownstreamClient(Addr addr, 

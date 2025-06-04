@@ -124,6 +124,14 @@ AbstractController::init()
         std::cout << "Hello from AbstractController init!" << std::endl;
         std::cout << "abs_cntrl: " << abs_cntrl << std::endl;
     }
+
+    // Initialize the chipID->C2CI map
+    if (params().chipIDList.size() != 0) {
+        for (int i = 0; i < params().chipIDList.size(); ++i) {
+            int chip_id = params().chipIDList[i];
+            c2cHopMap[chip_id] = params().c2cHopList[i];
+        }
+    }
 }
 
 void
@@ -622,10 +630,12 @@ const
 }
 
 MachineID
-AbstractController::mapAddressToUpstreamMachine(Addr addr)
+AbstractController::mapChipIDToC2CI(int ChipID)
 const
 {
-    // TODO: Implementation
+    auto it = c2cHopMap.find(ChipID);
+    assert(it != c2cHopMap.end());
+    return it->second.getMachineID();
 }
 
 // Used to check is inbound request is local or not
