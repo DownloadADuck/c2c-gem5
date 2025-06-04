@@ -93,3 +93,12 @@ class RubyController(ClockedObject):
     downstream_destinations = VectorParam.RubyController(
         [], "Possible destinations for requests sent towards memory"
     )
+
+    # Used in multi-chip architectures
+    # Builds the ChipID --> C2C-Interface map
+    c2cHopList = VectorParam.RubyController(
+        [], "Local C2C-Interfaces for off-chip routing"
+    )
+    chipIDList = VectorParam.Int(
+        [], "List of chipIDs corresponding to the c2cHopList"
+    )
