@@ -236,7 +236,7 @@ class AbstractController : public ClockedObject, public Consumer
      * @param the destination chip
      * @return the MachineID of the destination C2CI
      */
-    MachineID AbstractController::mapChipIDToC2CI(int ChipID) const;
+    MachineID mapChipIDToC2CI(int ChipID) const;
 
     /** Check if the address has a downstream client */
     bool hasDownstreamClient(Addr addr, 
