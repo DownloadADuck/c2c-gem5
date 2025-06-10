@@ -124,7 +124,7 @@ def create_chip0(
     hnf_dests = []
     all_cntrls = []
 
-    c2cHopList = []
+    #c2cHopList = []
 
     # Creates on RNF per cpu with priv l2 caches
     assert len(cpus) == options.num_cpus
@@ -215,7 +215,8 @@ def create_chip0(
     hnf_dests.extend(interface0.getAllControllers())
     
     # Used to populate the chipID -> C2CI routing table of the HNF
-    c2cHopList.extend(interface0.getAllControllers())
+    #c2cHopList.extend(interface0.getAllControllers())
+    c2cHopList = [0]
     chipIDList = [1]
 
     if len(other_memories) > 0:
@@ -358,7 +359,7 @@ def create_chip1(
     hnf_dests = []
     all_cntrls = []
 
-    c2cHopList = []
+    #c2cHopList = []
 
     # Creates on RNF per cpu with priv l2 caches
     assert len(cpus) == options.num_cpus
@@ -447,7 +448,8 @@ def create_chip1(
     hnf_dests.extend(interface1.getAllControllers())
 
     # Used to populate the chipID -> C2CI routing table of the HNF
-    c2cHopList.extend(interface1.getAllControllers())
+    #c2cHopList.extend(interface1.getAllControllers())
+    c2cHopList = [1]
     chipIDList = [0]
 
     if len(other_memories) > 0:

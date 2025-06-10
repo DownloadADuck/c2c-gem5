@@ -125,16 +125,9 @@ AbstractController::init()
 
     // Initialize the chipID->C2CI map
     if (params().chipIDList.size() != 0) {
-        //for (auto abs_cntrl : params().c2cHopList) {
-        //    MachineID mid = abs_cntrl->getMachineID();
-        //}
         for (int i = 0; i < params().chipIDList.size(); ++i) {
-            MachineID mid = params().c2cHopList[i]->getMachineID();
-            int chip_id = params().chipIDList[i];
-            c2cHopMap[chip_id] = mid;
-            std::cout << "c2cHopMap[chip_id]: " << c2cHopMap[chip_id] << std::endl;
-            std::cout << "chip_id" << chip_id << std::endl;
-            std::cout << "mid" << mid << std::endl;
+            MachineID mid(MachineType::MachineType_Interface, params().c2cHopList[i]);
+            c2cHopMap[params().chipIDList[i]] = mid;
         }
     }
 }
