@@ -1589,7 +1589,12 @@ action(Send_SnpSharedFwd_ToSharer, desc="") {
   // send to onde of the sharers with shared clean data
   assert(tbe.dataMaybeDirtyUpstream == false);
   assert(tbe.dir_ownerExists == false);
-  assert(tbe.dir_sharers.count() > 0);
+
+  if (is_multiChip) {
+    assert(tbe.mega_dir_sharers.totalCount() > 0);
+  } else {
+    assert(tbe.dir_sharers.count() > 0);
+  }
 
   assert(tbe.expected_snp_resp.expected() == 0);
   clearExpectedSnpResp(tbe);
@@ -1601,15 +1606,31 @@ action(Send_SnpSharedFwd_ToSharer, desc="") {
   } else {
     tbe.expected_snp_resp.addExpectedRespType(CHIResponseType:SnpResp_SC_Fwded_SC);
   }
-  tbe.expected_snp_resp.addExpectedCount(1);
 
-  enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
-    prepareRequest(tbe, CHIRequestType:SnpSharedFwd, out_msg);
-    // TODO should be random or the closest one to the fwd dest
-    out_msg.Destination.add(tbe.dir_sharers.smallestElement());
-    out_msg.retToSrc := retToSrc;
-    out_msg.c2c_sharers := tbe.c2c_sharers;
-    out_msg.c2cOrig := tbe.c2cOrig;
+  if (is_multiChip) {
+    tbe.expected_snp_resp.addExpectedCount(tbe.mega_dir_sharers.totalCount());
+  } else {
+    tbe.expected_snp_resp.addExpectedCount(1);
+  }
+
+  if (if_multiChip) {
+    enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+      prepareRequest(tbe, CHIRequestType:SnpSharedFwd, out_msg);
+      // TODO should be random or the closest one to the fwd dest
+      out_msg.Destination.addMegaNetDest(tbe.mega_dir_sharers.smallestElement());
+      out_msg.retToSrc := retToSrc;
+      out_msg.c2c_sharers := tbe.c2c_sharers;
+      out_msg.c2cOrig := tbe.c2cOrig;
+    }
+  } else {
+    enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+      prepareRequest(tbe, CHIRequestType:SnpSharedFwd, out_msg);
+      // TODO should be random or the closest one to the fwd dest
+      out_msg.Destination.add(tbe.dir_sharers.smallestElement());
+      out_msg.retToSrc := retToSrc;
+      out_msg.c2c_sharers := tbe.c2c_sharers;
+      out_msg.c2cOrig := tbe.c2cOrig;
+    }
   }
 }
 
@@ -1672,10 +1693,19 @@ action(Send_SnpOnceFwd, desc="") {
   enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
     prepareRequest(tbe, CHIRequestType:SnpOnceFwd, out_msg);
     if (tbe.dir_ownerExists) {
-      out_msg.Destination.add(tbe.dir_owner);
+      if (tbe.dir_ownerExists) {
+        out_msg.Destination.addMegaNetDest(tbe.mega_dir_owner);
+      } else {
+        // TODO should be random or the closest one
+        out_msg.Destination.addMegaNetDest(tbe.mgea_dir_sharers.smallestElement());
+      }
     } else {
-      // TODO should be random or the closest one
-      out_msg.Destination.add(tbe.dir_sharers.smallestElement());
+      if (tbe.dir_ownerExists) {
+        out_msg.Destination.add(tbe.mega_dir_owner);
+      } else {
+        // TODO should be random or the closest one
+        out_msg.Destination.add(tbe.dir_sharers.smallestElement());
+      }
     }
     out_msg.c2c_sharers := tbe.c2c_sharers;
     out_msg.c2cOrig := tbe.c2cOrig;
