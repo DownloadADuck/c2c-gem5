@@ -1838,42 +1838,77 @@ action(UpdateDirState_FromReqDataResp, desc="") {
     peek(datInPort, CHIDataMsg) {
 
       if (in_msg.type == CHIDataType:CBWrData_UC) {
-        assert(tbe.dir_ownerExists && tbe.dir_ownerIsExcl && (tbe.dir_owner == in_msg.responder));
-        assert(tbe.dir_sharers.isElement(in_msg.responder));
+        if (is_multiChip) {
+          assert(tbe.dir_ownerExists && tbe.dir_ownerIsExcl && (tbe.mega_dir_owner == in_msg.responder));
+          assert(tbe.mega_dir_sharers.isElement(in_msg.responder));
+          tbe.mega_dir_sharers.remove(in_msg.responder);
+        } else {
+          assert(tbe.dir_ownerExists && tbe.dir_ownerIsExcl && (tbe.dir_owner == in_msg.responder));
+          assert(tbe.dir_sharers.isElement(in_msg.responder));
+          tbe.dir_sharers.remove(in_msg.responder);
+        }
         tbe.dir_ownerExists := false;
         tbe.dir_ownerIsExcl := false;
-        tbe.dir_sharers.remove(in_msg.responder);
 
       } else if (in_msg.type == CHIDataType:CBWrData_UD_PD) {
-        assert(tbe.dir_ownerExists && tbe.dir_ownerIsExcl && (tbe.dir_owner == in_msg.responder));
-        assert(tbe.dir_sharers.isElement(in_msg.responder));
-        if (tbe.reqType != CHIRequestType:WriteCleanFull) {
-          tbe.dir_ownerExists := false;
-          tbe.dir_ownerIsExcl := false;
-          tbe.dir_sharers.remove(in_msg.responder);
+        if (is_multiChip) {
+          assert(tbe.dir_ownerExists && tbe.dir_ownerIsExcl && (tbe.mega_dir_owner == in_msg.responder));
+          assert(tbe.mega_dir_sharers.isElement(in_msg.responder));
+          if (tbe.reqType != CHIRequestType:WriteCleanFull) {
+            tbe.dir_ownerExists := false;
+            tbe.dir_ownerIsExcl := false;
+            tbe.mega_dir_sharers.remove(in_msg.responder);
+          }
+        } else {
+          assert(tbe.dir_ownerExists && tbe.dir_ownerIsExcl && (tbe.dir_owner == in_msg.responder));
+          assert(tbe.dir_sharers.isElement(in_msg.responder));
+          if (tbe.reqType != CHIRequestType:WriteCleanFull) {
+            tbe.dir_ownerExists := false;
+            tbe.dir_ownerIsExcl := false;
+            tbe.dir_sharers.remove(in_msg.responder);
+          }
         }
-
       } else if (in_msg.type == CHIDataType:CBWrData_SC) {
-        assert((tbe.dir_ownerExists == false) || (tbe.dir_owner != in_msg.responder));
-        // Do not remove the responder in case of stale WriteCleanFull
-        if (tbe.reqType != CHIRequestType:WriteCleanFull) {
-          tbe.dir_sharers.remove(in_msg.responder);
+        if (is_multiChip) {
+          assert((tbe.dir_ownerExists == false) || (tbe.mega_dir_owner != in_msg.responder));
+          // Do not remove the responder in case of stale WriteCleanFull
+          if (tbe.reqType != CHIRequestType:WriteCleanFull) {
+            tbe.mega_dir_sharers.remove(in_msg.responder);
+          }
+        } else {
+          assert((tbe.dir_ownerExists == false) || (tbe.dir_owner != in_msg.responder));
+          // Do not remove the responder in case of stale WriteCleanFull
+          if (tbe.reqType != CHIRequestType:WriteCleanFull) {
+            tbe.dir_sharers.remove(in_msg.responder);
+          }
         }
-
       } else if (in_msg.type == CHIDataType:CBWrData_SD_PD) {
-        assert(tbe.dir_ownerExists && (tbe.dir_ownerIsExcl == false) && (tbe.dir_owner == in_msg.responder));
-        assert(tbe.dir_sharers.isElement(in_msg.responder));
-        tbe.dir_ownerExists := false;
-        tbe.dir_ownerIsExcl := false;
-        if (tbe.reqType != CHIRequestType:WriteCleanFull) {
-          tbe.dir_sharers.remove(in_msg.responder);
+        if (is_multiChip) {
+          assert(tbe.dir_ownerExists && (tbe.dir_ownerIsExcl == false) && (tbe.mega_dir_owner == in_msg.responder));
+          assert(tbe.mega_dir_sharers.isElement(in_msg.responder));
+          if (tbe.reqType != CHIRequestType:WriteCleanFull) {
+            tbe.dir_ownerExists := false;
+            tbe.dir_ownerIsExcl := false;
+            tbe.mega_dir_sharers.remove(in_msg.responder);
+          }
+        } else {
+          assert(tbe.dir_ownerExists && (tbe.dir_ownerIsExcl == false) && (tbe.dir_owner == in_msg.responder));
+          assert(tbe.dir_sharers.isElement(in_msg.responder));
+          if (tbe.reqType != CHIRequestType:WriteCleanFull) {
+            tbe.dir_ownerExists := false;
+            tbe.dir_ownerIsExcl := false;
+            tbe.dir_sharers.remove(in_msg.responder);
+          }
         }
-
       } else if (in_msg.type == CHIDataType:CBWrData_I) {
         // nothing to do here; just check
-        assert((tbe.dir_ownerExists == false) || (tbe.dir_owner != in_msg.responder));
-        assert(tbe.dir_sharers.isElement(in_msg.responder) == false);
-
+        if (is_multiChip) {
+          assert((tbe.dir_ownerExists == false) || (tbe.mega_dir_owner != in_msg.responder));
+          assert(tbe.mega_dir_sharers.isElement(in_msg.responder) == false);
+        } else {
+          assert((tbe.dir_ownerExists == false) || (tbe.dir_owner != in_msg.responder));
+          assert(tbe.dir_sharers.isElement(in_msg.responder) == false);
+        }
       } else {
         error("Unsuported data type");
       }
