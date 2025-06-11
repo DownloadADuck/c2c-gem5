@@ -32,7 +32,7 @@ class MegaNetDest
 
         // bulk ops across chips
         MegaNetDest addMegaNetDest(MegaNetDest mega);
-        //void addMegaNetDest(int chipID, const MegaNetDest& others);
+        void mergeMegaNetDest(int chipID, const MegaNetDest& others);
         NetDest extractNetDest(int chipID);
         void remove(const MegaNetDest& other);
         void clear();

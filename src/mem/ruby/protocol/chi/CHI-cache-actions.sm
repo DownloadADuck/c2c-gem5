@@ -1515,7 +1515,12 @@ action(Send_SnpSharedFwd_ToOwner, desc="") {
   // the dirty snoopee must go to SC and send data
   assert(tbe.dataMaybeDirtyUpstream);
   assert(tbe.dir_ownerExists);
-  assert(tbe.dir_sharers.count() > 0);
+
+  if (is_multiChip) {
+    assert(tbe.mega_dir_sharers.totalCount() > 0);
+  } else {
+    assert(tbe.dir_sharers.count() > 0);
+  }
 
   assert(tbe.expected_snp_resp.expected() == 0);
   clearExpectedSnpResp(tbe);
@@ -1545,18 +1550,37 @@ action(Send_SnpSharedFwd_ToOwner, desc="") {
     tbe.expected_snp_resp.addExpectedDataType(CHIDataType:SnpRespData_SC_PD_Fwded_SC);
     tbe.expected_snp_resp.addExpectedDataType(CHIDataType:SnpRespData_I_PD_Fwded_SC);
   }
-  tbe.expected_snp_resp.addExpectedCount(1);
 
-  enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
-    if (allowFwdSD) {
-      prepareRequest(tbe, CHIRequestType:SnpSharedFwd, out_msg);
-    } else {
-      prepareRequest(tbe, CHIRequestType:SnpNotSharedDirtyFwd, out_msg);
+  if (is_multiChip) {
+    tbe.expected_snp_resp.addExpectedCount(tbe.mega_dir_sharers.totalCount());
+  } else {
+    tbe.expected_snp_resp.addExpectedCount(1);
+  }
+
+  if (is_multiChip) {
+    enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+      if (allowFwdSD) {
+        prepareRequest(tbe, CHIRequestType:SnpSharedFwd, out_msg);
+      } else {
+        prepareRequest(tbe, CHIRequestType:SnpNotSharedDirtyFwd, out_msg);
+      }
+      out_msg.Destination.addMegaNetDest(tbe.mega_dir_owner);
+      out_msg.c2c_sharers := tbe.c2c_sharers;
+      out_msg.c2cOrig := tbe.c2cOrig;
+      out_msg.retToSrc := retToSrc;
     }
-    out_msg.Destination.add(tbe.dir_owner);
-    out_msg.c2c_sharers := tbe.c2c_sharers;
-    out_msg.c2cOrig := tbe.c2cOrig;
-    out_msg.retToSrc := retToSrc;
+  } else {
+    enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+      if (allowFwdSD) {
+        prepareRequest(tbe, CHIRequestType:SnpSharedFwd, out_msg);
+      } else {
+        prepareRequest(tbe, CHIRequestType:SnpNotSharedDirtyFwd, out_msg);
+      }
+      out_msg.Destination.add(tbe.dir_owner);
+      out_msg.c2c_sharers := tbe.c2c_sharers;
+      out_msg.c2cOrig := tbe.c2cOrig;
+      out_msg.retToSrc := retToSrc;
+    }
   }
 }
 
@@ -2071,11 +2095,12 @@ action(UpdateDirState_FromReqResp, desc="") {
     if ((in_msg.type == CHIResponseType:CompAck) && tbe.updateDirOnCompAck) {
       assert(tbe.requestor == in_msg.responder);
 
-      //if (in_msg.c2c_sharers != tbe.default_machine) {
-      //  tbe.c2c_sharers := in_msg.c2c_sharers;
-      //}
-      tbe.c2c_sharers := in_msg.c2c_sharers;
-      tbe.dir_sharers.add(in_msg.responder);
+      if (is_multiChip) {
+        tbe.mega_dir_sharers.addMegaNetdest(in_msg.c2c_sharers)
+      {
+        tbe.c2c_sharers := in_msg.c2c_sharers;
+        tbe.dir_sharers.add(in_msg.responder);
+      }
 
       if (tbe.requestorToBeOwner) {
         assert(tbe.dataMaybeDirtyUpstream);

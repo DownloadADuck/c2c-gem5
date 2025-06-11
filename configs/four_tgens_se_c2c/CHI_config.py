@@ -332,7 +332,7 @@ class CHI_HNFController(CHI_Cache_Controller):
         self.allow_SD = True
 
         self.is_HN = True
-        self.is_multiChip = False
+        self.is_multiChip = True
         self.chipID = chipID
 
         self.enable_DMT = True

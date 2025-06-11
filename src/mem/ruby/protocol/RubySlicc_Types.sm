@@ -129,7 +129,7 @@ structure (MegaNetDest, external = "yes", non_obj="yes") {
   void add(int, MachineID);
   void remove(int, MachineID);
   bool isPresent(MachineID);
-  //void addMegaNetDest(int, MegaNetDest);
+  void mergeMegaNetDest(int, MegaNetDest);
   MegaNetDest addMegaNetDest(MegaNetDest);
   NetDest extractNetDest(int);
   void remove(MegaNetDest);

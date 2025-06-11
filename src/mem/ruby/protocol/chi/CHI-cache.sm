@@ -640,6 +640,7 @@ machine(MachineType:Cache, "Cache coherency protocol") :
     NetDest dir_sharers,          desc="Upstream controllers that have the line (includes owner)";
     MegaNetDest mega_dir_sharers, desc="Upstream controllers that have the line";
     MachineID dir_owner,          desc="Owner ID";
+    MegaNetDest mega_dir_owner,   desc="dir_owner with mega_net_dest type for multi-chip";
 
     // c2c fields
     MegaNetDest c2c_sharers,        desc="Off-chip controllers that have the line";
