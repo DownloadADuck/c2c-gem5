@@ -133,7 +133,7 @@ AbstractController::init()
 
     // Initialize the MachineID->ChipID map
     if (params().cntrlList.size() % 3 != 0) {
-        throw std::runtime_error("cntrlList size must be divisible by 3");
+        fatal("cntrlList size must be divisible by 3");
     } else {
         int numChips = params().cntrlList.size() / 3;
     }
@@ -657,6 +657,15 @@ const
     auto it = c2cHopMap.find(ChipID);
     assert(it != c2cHopMap.end());
     return it->second;
+}
+
+int 
+AbstractController::mapMachineIDToChipID(MachineID mach)
+const
+{
+    auto it = machineToChipMap.find(mach);
+    assert(it != machineToChipMap.end());
+    return it->second; // chipID
 }
 
 // Used to check is inbound request is local or not
