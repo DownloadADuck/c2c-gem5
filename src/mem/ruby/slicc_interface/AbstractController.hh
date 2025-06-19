@@ -238,6 +238,8 @@ class AbstractController : public ClockedObject, public Consumer
      */
     MachineID mapChipIDToC2CI(int ChipID) const;
 
+    int mapMachineIDToChipID(MachineID mach) const;
+
     /** Check if the address has a downstream client */
     bool hasDownstreamClient(Addr addr, 
                                     MachineType mtype = MachineType_NUM) const;
@@ -493,6 +495,10 @@ class AbstractController : public ClockedObject, public Consumer
     /** ChipID -> C2CI map */
     std::map<int, MachineID>
       c2cHopMap;
+
+    /** MachineID -> ChipID map */
+    std::map<MachineID, int>
+       machineToChipMap;
 
     NetDest downstreamDestinations;
     NetDest upstreamDestinations;

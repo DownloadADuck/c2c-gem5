@@ -146,7 +146,7 @@ def create_chip0(
         all_cntrls.extend(rnf.getAllControllers())
         network_nodes.append(rnf)
         network_cntrls.extend(rnf.getNetworkSideControllers())
-
+    
     # Creates one Misc Node
     ruby_system.mn = [CHI_MN(ruby_system, [cpu.l1d for cpu in cpus], network)]
     for mn in ruby_system.mn:
@@ -247,11 +247,17 @@ def create_chip0(
     if len(dma_ports) > 0:
         for rni in ruby_system.dma_rni:
             rni.setDownstream(hnf_dests)
+    
+    # Chip-0 -> 4 L1s, 2 L2s, 1 HNF
+    # Chip-1 -> 2 L1s, 1 L2,  1 HNF
+    # cntrlList vector -> [4, 2, 1, 2, 1, 1]
+    cntrlList = [4, 2, 1, 2, 1, 1]
 
     for i, hnf in enumerate(ruby_system.hnf):
         hnf.setDownstream(mem_dests)
         hnf.setC2cHopList(c2cHopList)
         hnf.setChipIDList(chipIDList)
+        hnf.setCntrlList(cntrlList)
 
     hnf_dests.pop(1)
     ruby_system.interface0[0].setDownstream(hnf_dests)
@@ -449,8 +455,8 @@ def create_chip1(
 
     # Used to populate the chipID -> C2CI routing table of the HNF
     #c2cHopList.extend(interface1.getAllControllers())
-    c2cHopList = [1]
-    chipIDList = [0]
+    c2cHopList = [1] #C2CI1
+    chipIDList = [0] #chip-0
 
     if len(other_memories) > 0:
         ruby_system.rom_snf1 = [
@@ -486,12 +492,15 @@ def create_chip1(
     if len(dma_ports) > 0:
         for rni in ruby_system.dma_rni1:
             rni.setDownstream(hnf_dests)
+    
+    cntrlList = [4, 2, 1, 2, 1, 1]
 
     for hnf in ruby_system.hnf2:
         print(f"mem_dests -> {mem_dests}")
         hnf.setDownstream(mem_dests)
         hnf.setC2cHopList(c2cHopList)
         hnf.setChipIDList(chipIDList)
+        hnf.setCntrlList(cntrlList)
 
     hnf_dests.pop(1)
     ruby_system.interface1[0].setDownstream(hnf_dests)

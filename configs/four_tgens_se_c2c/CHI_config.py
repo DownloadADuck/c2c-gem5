@@ -153,6 +153,13 @@ class CHI_Node(SubSystem):
         """
         for c in self.getNetworkSideControllers():
             c.chipIDList = chipIDList
+    
+    def setCntrlList(self, cntrlList):
+        """
+        Sets the cntrl list to map MachineID to corresponding ChipID
+        """
+        for c in self.getNetworkSideControllers():
+            c.cntrlList = cntrlList
 
     def connectController(self, cntrl):
         """

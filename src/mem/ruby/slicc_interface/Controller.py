@@ -96,11 +96,8 @@ class RubyController(ClockedObject):
 
     # Used in multi-chip architectures
     # Builds the ChipID --> C2C-Interface map
-    #c2cHopList = VectorParam.RubyController(
-    #    [], "Local C2C-Interfaces for off-chip routing"
-    #)
-    #chipIDList = VectorParam.Int(
-    #    [], "List of chipIDs corresponding to the c2cHopList"
-    #)
     c2cHopList = VectorParam.Int([], "Local C2C-Interface ID for off-chip routing")
     chipIDList = VectorParam.Int([], "List of chipIDs corresponding to the c2cHopList")
+
+    # Builds the MachineID --> ChipID map
+    cntrlList = VectorParam.Char([], "Vector of each MachineType of the system, in order")

@@ -130,6 +130,29 @@ AbstractController::init()
             c2cHopMap[params().chipIDList[i]] = mid;
         }
     }
+
+    // Initialize the MachineID->ChipID map
+    if (params().cntrlList.size() % 3 != 0) {
+        throw std::runtime_error("cntrlList size must be divisible by 3");
+    } else {
+        int numChips = params().cntrlList.size() / 3;
+    }
+
+    for (int chipID = 0; chipID < numChips; ++chipID) {
+        int l1Count = params().cntrlList[chipID * 3];
+        int l2Count = params().cntrlList[chipID * 3 + 1];
+        int hnfCount = params().cntrlList[chipID * 3 + 2];
+
+        for (int i = 0; i < l1Count; ++i)
+            machineToChipMap.emplace(MachineID
+                (MachineType::MachineType_L1Cache, i), chipID);
+        for (int i = 0; i < l2Count; ++i)
+            machineToChipMap.emplace(MachineID
+                (MachineType::MachineType_L2Cache, i), chipID);
+        for (int i = 0; i < hnfCount; ++i)
+            machineToChipMap.emplace(MachineID
+                (MachineType::MachineType_Cache, i), chipID);
+    }
 }
 
 void

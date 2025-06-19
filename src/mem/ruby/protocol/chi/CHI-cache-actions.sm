@@ -2266,7 +2266,7 @@ action(UpdateDirState_FromSnpResp, desc="") {
         assert((tbe.dir_ownerExists == false) ||
                (tbe.dir_ownerExists && (tbe.mega_dir_owner == in_msg.responder)));
         assert(tbe.mega_dir_sharers.isElement(in_msg.responder));
-        tbe.dir_sharers.add(tbe.requestor);
+        tbe.mega_dir_sharers.add(tbe.requestor);
 
       } else {
         assert((tbe.dir_ownerExists == false) ||
