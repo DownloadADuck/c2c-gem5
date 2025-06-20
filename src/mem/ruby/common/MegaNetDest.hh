@@ -26,7 +26,7 @@ class MegaNetDest
         { }
 
         // Single destination ops
-        void add(int chipID, MachineID dest);
+        void add(MachineID dest, int chipID);
         void remove(int chipID, MachineID dest);
         bool isPresent(MachineID element) const;
 

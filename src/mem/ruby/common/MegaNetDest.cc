@@ -22,7 +22,7 @@ MegaNetDest::MegaNetDest()
 
 // adding a single machine to a NetDest 
 void
-MegaNetDest::add(int chipID, MachineID dest) 
+MegaNetDest::add(MachineID dest, int chipID) 
 {
     int numChips = MachineType_base_count(MachineType_Interface);
     assert(chipID >= 0 && chipID < numChips);
