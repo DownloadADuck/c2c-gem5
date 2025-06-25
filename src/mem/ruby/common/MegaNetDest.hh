@@ -38,8 +38,8 @@ class MegaNetDest
         void clear();
         void resize();
 
-        MachineID smallestElement() const;
-        MachineID smallestElement(MachineType achine) const;
+        MegaNetDest smallestElement() const;
+        MegaNetDest smallestElement(MachineType achine) const;
 
         // queries
         int totalCount() const; // Count

@@ -132,8 +132,8 @@ structure (MegaNetDest, external = "yes", non_obj="yes") {
   void mergeMegaNetDest(int, MegaNetDest);
   MegaNetDest addMegaNetDest(MegaNetDest);
   NetDest extractNetDest(int);
-  MachineID smallestElement();
-  MachineID smallestElement(MachineType);
+  MegaNetDest smallestElement();
+  MegaNetDest smallestElement(MachineType);
   void remove(MegaNetDest);
   void clear();
   void resize();
