@@ -28,7 +28,7 @@ class MegaNetDest
         // Single destination ops
         void add(MachineID dest, int chipID);
         void remove(int chipID, MachineID dest);
-        bool isPresent(MachineID element) const;
+        bool isElement(MachineID element) const;
 
         // bulk ops across chips
         MegaNetDest addMegaNetDest(MegaNetDest mega);
@@ -37,6 +37,9 @@ class MegaNetDest
         void remove(const MegaNetDest& other);
         void clear();
         void resize();
+
+        MachineID smallestElement() const;
+        MachineID smallestElement(MachineType achine) const;
 
         // queries
         int totalCount() const; // Count

@@ -81,8 +81,33 @@ MegaNetDest::resize()
     }
 }
 
+MachineID
+MegaNetDest::smallestElement() const
+{
+    assert(totalCount() > 0);
+    int numChips = MachineType_base_count(MachineType_Interface);
+    for (int i = 0; i < numChips; ++i) {
+        if (!m_data[i].isEmpty()) {
+            return m_data[i].smallestElement();
+        }
+    }
+    panic("No smallest element of an empty set.");
+}
+
+MachineID
+MegaNetDest::smallestElement(MachineType machine) const
+{
+    int numChips = MachineType_base_count(MachineType_Interface);
+    for (int i = 0; i < numChips; ++i) {
+        if (!m_data[i].isEmpty()) {
+            return m_data[i].smallestElement(machine);
+        }
+    }
+    panic("No smallest elemtn of given MachineType.");
+}
+
 bool
-MegaNetDest::isPresent(MachineID dest) const 
+MegaNetDest::isElement(MachineID dest) const 
 {
     int numChips = MachineType_base_count(MachineType_Interface);
     for (int chip = 0; chip < numChips; ++chip) {
