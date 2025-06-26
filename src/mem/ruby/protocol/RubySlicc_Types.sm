@@ -138,7 +138,7 @@ structure (MegaNetDest, external = "yes", non_obj="yes") {
   MegaNetDest smallestElement(MachineType);
   int totalCount();
   bool isEmpty();
-  bool isPresent(int, MachineID);
+  bool isElement(int, MachineID);
   bool isBroadcast();
 }
 

@@ -1840,8 +1840,8 @@ action(UpdateDirState_FromReqDataResp, desc="") {
       if (in_msg.type == CHIDataType:CBWrData_UC) {
         if (is_multiChip) {
           assert(tbe.dir_ownerExists && tbe.dir_ownerIsExcl && (tbe.mega_dir_owner.isElement(mapMachineIDToChipID(in_msg.responder), in_msg.responder)));
-          assert(tbe.mega_dir_sharers.isElement(in_msg.responder));
-          tbe.mega_dir_sharers.remove(in_msg.responder);
+          assert(tbe.mega_dir_sharers.isElement(mapMachineIDToChipID(in_msg.responder), in_msg.responder));
+          tbe.mega_dir_sharers.remove(mapMachineIDToChipID(in_msg.responder), in_msg.responder);
         } else {
           assert(tbe.dir_ownerExists && tbe.dir_ownerIsExcl && (tbe.dir_owner == in_msg.responder));
           assert(tbe.dir_sharers.isElement(in_msg.responder));
