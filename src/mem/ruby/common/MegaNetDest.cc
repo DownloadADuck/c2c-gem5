@@ -124,13 +124,10 @@ MegaNetDest::smallestElement(MachineType machine) const
 }
 
 bool
-MegaNetDest::isElement(MachineID dest) const 
+MegaNetDest::isElement(int chipID, MachineID dest) const 
 {
-    int numChips = MachineType_base_count(MachineType_Interface);
-    for (int chip = 0; chip < numChips; ++chip) {
-        if (m_data[chip].isElement(dest)){
-            return true;
-        }
+    if (m_data[chipID].isElement(dest)){
+        return true;
     }
     return false;
 }

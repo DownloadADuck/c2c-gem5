@@ -128,17 +128,17 @@ structure (NetDest, external = "yes", non_obj="yes") {
 structure (MegaNetDest, external = "yes", non_obj="yes") {
   void add(int, MachineID);
   void remove(int, MachineID);
-  bool isPresent(MachineID);
   void mergeMegaNetDest(int, MegaNetDest);
+  void remove(MegaNetDest);
+  void clear();
+  void resize();
   MegaNetDest addMegaNetDest(MegaNetDest);
   NetDest extractNetDest(int);
   MegaNetDest smallestElement();
   MegaNetDest smallestElement(MachineType);
-  void remove(MegaNetDest);
-  void clear();
-  void resize();
   int totalCount();
   bool isEmpty();
+  bool isPresent(int, MachineID);
   bool isBroadcast();
 }
 

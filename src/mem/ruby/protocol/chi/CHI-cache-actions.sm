@@ -1692,16 +1692,16 @@ action(Send_SnpOnceFwd, desc="") {
 
   enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
     prepareRequest(tbe, CHIRequestType:SnpOnceFwd, out_msg);
-    if (tbe.dir_ownerExists) {
+    if (is_multiChip) {
       if (tbe.dir_ownerExists) {
-        out_msg.Destination.addMegaNetDest(tbe.mega_dir_owner);
+        out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_owner);
       } else {
         // TODO should be random or the closest one
-        out_msg.Destination.addMegaNetDest(tbe.mgea_dir_sharers.smallestElement());
+        out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers.smallestElement());
       }
     } else {
       if (tbe.dir_ownerExists) {
-        out_msg.Destination.add(tbe.mega_dir_owner);
+        out_msg.Destination.add(tbe.dir_owner);
       } else {
         // TODO should be random or the closest one
         out_msg.Destination.add(tbe.dir_sharers.smallestElement());
@@ -1839,7 +1839,7 @@ action(UpdateDirState_FromReqDataResp, desc="") {
 
       if (in_msg.type == CHIDataType:CBWrData_UC) {
         if (is_multiChip) {
-          assert(tbe.dir_ownerExists && tbe.dir_ownerIsExcl && (tbe.mega_dir_owner == in_msg.responder));
+          assert(tbe.dir_ownerExists && tbe.dir_ownerIsExcl && (tbe.mega_dir_owner.isElement(mapMachineIDToChipID(in_msg.responder), in_msg.responder)));
           assert(tbe.mega_dir_sharers.isElement(in_msg.responder));
           tbe.mega_dir_sharers.remove(in_msg.responder);
         } else {

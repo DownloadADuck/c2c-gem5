@@ -25,25 +25,25 @@ class MegaNetDest
         ~MegaNetDest()
         { }
 
-        // Single destination ops
+        // Operations on the MegaNetDest
         void add(MachineID dest, int chipID);
         void remove(int chipID, MachineID dest);
-        bool isElement(MachineID element) const;
-
-        // bulk ops across chips
-        MegaNetDest addMegaNetDest(MegaNetDest mega);
         void mergeMegaNetDest(int chipID, const MegaNetDest& others);
-        NetDest extractNetDest(int chipID);
         void remove(const MegaNetDest& other);
         void clear();
         void resize();
 
+        // Use of MegaNetDest
+        NetDest extractNetDest(int chipID);
+        MegaNetDest addMegaNetDest(MegaNetDest mega);
+
         MegaNetDest smallestElement() const;
-        MegaNetDest smallestElement(MachineType achine) const;
+        MegaNetDest smallestElement(MachineType machine) const;
 
         // queries
         int totalCount() const; // Count
         bool isEmpty() const;
+        bool isElement(int chipID, MachineID element) const;
         bool isBroadcast() const;
         void print(std::ostream& out) const;
 

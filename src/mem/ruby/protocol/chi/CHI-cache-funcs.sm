@@ -53,6 +53,7 @@ void set_tbe(TBE b);
 void unset_tbe();
 MachineID mapAddressToDownstreamMachine(Addr addr);
 MachineID mapAddressToMachine(Addr addr, MachineType mtype);
+int mapMachineIDToChipID(MachineID mach);
 
 void incomingTransactionStart(Addr, Event, State, bool);
 void incomingTransactionEnd(Addr, State);
@@ -838,7 +839,7 @@ void copyCacheAndDir(CacheEntry cache_entry, DirEntry dir_entry,
 
   // have usable data
   if (is_valid(cache_entry) &&
-      ((initialState == State:UD) || (initialState == State:SD) ||
+      ((initialState == State:UD) || (initialState == State:SD) ||)
         (initialState == State:UC) || (initialState == State:SC) ||
         (initialState == State:UD_RSC) || (initialState == State:SD_RSC) ||
         (initialState == State:UC_RSC) || (initialState == State:SC_RSC) ||
