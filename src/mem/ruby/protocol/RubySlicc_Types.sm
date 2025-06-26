@@ -126,7 +126,7 @@ structure (NetDest, external = "yes", non_obj="yes") {
 }
 
 structure (MegaNetDest, external = "yes", non_obj="yes") {
-  void add(int, MachineID);
+  void add(MachineID, int);
   void remove(int, MachineID);
   void mergeMegaNetDest(int, MegaNetDest);
   void remove(MegaNetDest);
