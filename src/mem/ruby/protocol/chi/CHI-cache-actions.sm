@@ -2141,7 +2141,7 @@ action(UpdateDataState_FromCUResp, desc="") {
     assert(in_msg.type == CHIResponseType:Comp_UC);
     assert(tbe.dataUnique == false);
     if (is_multiChip) {
-      tbe.dataUnique := tbe.dataValid || (tbe.mega_dir_sharers.count() > 0);
+      tbe.dataUnique := tbe.dataValid || (tbe.mega_dir_sharers.totalCount() > 0);
     } else {
       tbe.dataUnique := tbe.dataValid || (tbe.dir_sharers.count() > 0);
     }
@@ -2203,7 +2203,7 @@ action(UpdateDirState_FromReqResp, desc="") {
       assert(tbe.requestor == in_msg.responder);
 
       if (is_multiChip) {
-        tbe.mega_dir_sharers.addMegaNetdest(in_msg.responder);
+        tbe.mega_dir_sharers.add(in_msg.responder, mapMachineIDToChipID(in_msg.responder));
       } else {
         tbe.dir_sharers.add(in_msg.responder);
       }
@@ -2235,9 +2235,9 @@ action(UpdateDirState_FromSnpResp, desc="") {
     if (in_msg.type == CHIResponseType:SnpResp_I) {
       // must have been a known sharer otherwise we would receive data
       if (is_multiChip) {
-        assert(tbe.mega_dir_sharers.isElement(in_msg.responder));
-        tbe.mega_dir_sharers.remove(in_msg.responder);
-        if (tbe.dir_ownerExists && (tbe.mega_dir_owner == in_msg.responder)){
+        assert(tbe.mega_dir_sharers.isElement(mapMachineIDToChipID(in_msg.responder), in_msg.responder));
+        tbe.mega_dir_sharers.remove(mapMachineIDToChipID(in_msg.responder), in_msg.responder);
+        if (tbe.dir_ownerExists && (tbe.mega_dir_owner.isElement(mapMachineIDToChipID(in_msg.responder), in_msg.responder))){
           tbe.dir_ownerExists := false;
         }
       } else {
@@ -2251,8 +2251,8 @@ action(UpdateDirState_FromSnpResp, desc="") {
     } else if (in_msg.type == CHIResponseType:SnpResp_SC) {
       // expected from a sharer that already has it in shared state
       if(is_multiChip) {
-        assert(tbe.mega_dir_sharers.isElement(in_msg.responder));
-        assert((tbe.dir_ownerExists == false) || (tbe.mega_dir_owner != in_msg.responder));
+        assert(tbe.mega_dir_sharers.isElement(mapMachineIDToChipID(in_msg.responder), in_msg.responder));
+        assert((tbe.dir_ownerExists == false) || (tbe.mega_dir_owner.isElement(mapMachineIDToChipID(in_msg.responder), in_msg.responder) == false));
       } else {
         assert(tbe.dir_sharers.isElement(in_msg.responder));
         assert((tbe.dir_ownerExists == false) || (tbe.dir_owner != in_msg.responder));
@@ -2263,9 +2263,9 @@ action(UpdateDirState_FromSnpResp, desc="") {
       // the SnpSharedFwd must have been sent to the owner if there was one
       if (is_multiChip) {
         assert((tbe.dir_ownerExists == false) ||
-               (tbe.dir_ownerExists && (tbe.mega_dir_owner == in_msg.responder)));
-        assert(tbe.mega_dir_sharers.isElement(in_msg.responder));
-        tbe.mega_dir_sharers.add(tbe.requestor);
+               (tbe.dir_ownerExists && (tbe.mega_dir_owner.isElement(mapMachineIDToChipID(in_msg.responder), in_msg.responder))));
+        assert(tbe.mega_dir_sharers.isElement(mapMachineIDToChipID(in_msg.responder), in_msg.responder));
+        tbe.mega_dir_sharers.add(tbe.requestor, mapMachineIDToChipID(tbe.requestor));
 
       } else {
         assert((tbe.dir_ownerExists == false) ||
@@ -2280,7 +2280,7 @@ action(UpdateDirState_FromSnpResp, desc="") {
         // Requestor is new owner
         if(is_multiChip) {
           tbe.dir_ownerExists := true;
-          tbe.mega_dir_owner := tbe.requestor;
+          tbe.mega_dir_owner.isElement(mapMachineIDToChipID(tbe.requestor), tbe.requestor);
 
         } else {
           tbe.dir_ownerExists := true;
@@ -2293,11 +2293,11 @@ action(UpdateDirState_FromSnpResp, desc="") {
                (in_msg.type == CHIResponseType:SnpResp_I_Fwded_UD_PD)) {
       // must have been a single sharer that received SnpUniqueFwd
       if (is_multiChip) {
-        assert(tbe.mega_dir_sharers.isElement(in_msg.responder));
-        assert(tbe.mega_dir_sharers.count() == 1);
-        tbe.mega_dir_sharers.remove(in_msg.responder);
-        tbe.mega_dir_sharers.add(tbe.requestor);
-        tbe.mega_dir_owner := tbe.requestor;
+        assert(tbe.mega_dir_sharers.isElement(mapMachineIDToChipID(in_msg.responder), in_msg.responder));
+        assert(tbe.mega_dir_sharers.totalCount() == 1);
+        tbe.mega_dir_sharers.remove(mapMachineIDToChipID(in_msg.responder), in_msg.responder);
+        tbe.mega_dir_sharers.add(tbe.requestor, mapMachineIDToChipID(tbe.requestor));
+        tbe.mega_dir_owner.add(tbe.requestor, mapMachineIDToChipID(tbe.requestor));
       } else {
         assert(tbe.dir_sharers.isElement(in_msg.responder));
         assert(tbe.dir_sharers.count() == 1);
@@ -2314,18 +2314,18 @@ action(UpdateDirState_FromSnpResp, desc="") {
                (in_msg.type == CHIResponseType:SnpResp_SD_Fwded_I)) {
       // SnpSharedFwd; just confirm
       if (is_multiChip) {
-        assert(tbe.mega_dir_sharers.isElement(in_msg.responder));
-        assert(tbe.dir_ownerExists && (tbe.mega_dir_owner == in_msg.responder));
+        assert(tbe.mega_dir_sharers.isElement(mapMachineIDToChipID(in_msg.responder), in_msg.responder));
+        assert(tbe.dir_ownerExists && (tbe.mega_dir_owner.isElement(mapMachineIDToChipID(in_msg.responder), in_msg.responder)));
       } else {
-        assert(tbe.mega_dir_sharers.isElement(in_msg.responder));
-        assert(tbe.dir_ownerExists && (tbe.mega_dir_owner == in_msg.responder));
+        assert(tbe.dir_sharers.isElement(in_msg.responder));
+        assert(tbe.dir_ownerExists && (tbe.dir_owner == in_msg.responder));
       }
 
     } else if (in_msg.type == CHIResponseType:SnpResp_SC_Fwded_I) {
       // SnpSharedFwd; just confirm
       if (is_multiChip) {
-        assert(tbe.mega_dir_sharers.isElement(in_msg.responder));
-        assert((tbe.dir_ownerExists == false) || (tbe.mega_dir_owner != in_msg.responder));
+        assert(tbe.mega_dir_sharers.isElement(mapMachineIDToChipID(in_msg.responder), in_msg.responder));
+        assert((tbe.dir_ownerExists == false) || (tbe.mega_dir_owner.isElement(mapMachineIDToChipID(in_msg.responder), in_msg.responder)));
       } else {
         assert(tbe.dir_sharers.isElement(in_msg.responder));
         assert((tbe.dir_ownerExists == false) || (tbe.dir_owner != in_msg.responder));
