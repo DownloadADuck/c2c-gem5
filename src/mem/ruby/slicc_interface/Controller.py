@@ -100,4 +100,4 @@ class RubyController(ClockedObject):
     chipIDList = VectorParam.Int([], "List of chipIDs corresponding to the c2cHopList")
 
     # Builds the MachineID --> ChipID map
-    cntrlList = VectorParam.Char([], "Vector of each MachineType of the system, in order")
+    cntrlList = VectorParam.Int([], "Vector of each MachineType of the system, in order")

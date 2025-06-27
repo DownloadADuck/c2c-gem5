@@ -134,9 +134,9 @@ AbstractController::init()
     // Initialize the MachineID->ChipID map
     if (params().cntrlList.size() % 3 != 0) {
         fatal("cntrlList size must be divisible by 3");
-    } else {
-        int numChips = params().cntrlList.size() / 3;
     }
+    
+    int numChips = params().cntrlList.size() / 3;
 
     for (int chipID = 0; chipID < numChips; ++chipID) {
         int l1Count = params().cntrlList[chipID * 3];
