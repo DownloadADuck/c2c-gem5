@@ -1681,7 +1681,7 @@ machine(MachineType:Interface, "C2C interface controller") :
         out_msg.addr := address;
         out_msg.Type := C2cRequestType:CompAck;
         out_msg.MessageSize := MessageSizeType:Response_Control;
-        out_msg.C2c_sharers.add(in_msg.responder, chipID);
+        out_msg.C2c_sharers.add(chipID, in_msg.responder);
       }
     }
   }
