@@ -663,9 +663,14 @@ int
 AbstractController::mapMachineIDToChipID(MachineID mach)
 const
 {
-    auto it = machineToChipMap.find(mach);
-    assert(it != machineToChipMap.end());
-    return it->second; // chipID
+    //auto it = machineToChipMap.find(mach);
+    //assert(it != machineToChipMap.end());
+    for (const auto& i : machineToChipMap) {
+        if (i.first == mach) {
+            return i.second;
+        }
+    }
+    panic("MachineID not found in map");
 }
 
 // Used to check is inbound request is local or not

@@ -503,11 +503,11 @@ class AbstractController : public ClockedObject, public Consumer
     std::unordered_map<MachineType, AddrRangeMap<MachineID, 3>>
       downstreamAddrMap;
     /** ChipID -> C2CI map */
-    std::map<int, MachineID>
+    std::unordered_map<int, MachineID>
       c2cHopMap;
 
     /** MachineID -> ChipID map */
-    std::map<MachineID, int>
+    std::unordered_map<MachineID, int>
        machineToChipMap;
 
     NetDest downstreamDestinations;
