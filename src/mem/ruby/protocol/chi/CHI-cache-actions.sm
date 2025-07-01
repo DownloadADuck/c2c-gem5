@@ -1045,7 +1045,11 @@ action(Initiate_SnpShared, desc="") {
 action(Initiate_SnpOnce, desc="") {
   tbe.actions.push(Event:SnpOncePipe);
   if (tbe.dataValid == false) {
-    assert(tbe.dir_sharers.count() > 0);
+    if (is_multiChip) {
+      assert(tbe.mega_dir_sharers.totalCount() > 0);
+    } else {
+      assert(tbe.dir_sharers.count() > 0);
+    }
     tbe.actions.push(Event:SendSnpOnce);
   } else {
     tbe.actions.push(Event:DataArrayRead);

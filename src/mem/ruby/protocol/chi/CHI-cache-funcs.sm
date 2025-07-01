@@ -1046,17 +1046,26 @@ State makeFinalState(TBE tbe, CacheEntry cache_entry, DirEntry dir_entry) {
     assert(is_valid(dir_entry));
     assert(tbe.dataMaybeDirtyUpstream);
     if (tbe.dir_ownerIsExcl) {
-      assert(tbe.dir_sharers.count() == 1);
+      if (is_multiChip) {
+        assert(tbe.mega_dir_sharers.totalCount() == 1);
+      } else {
+        assert(tbe.dir_sharers.count() == 1);
+      }
       dir_state := State:RU;
     } else {
-      assert(tbe.dir_sharers.count() >= 1);
+      if (is_multiChip) {
+        assert(tbe.mega_dir_sharers.totalCount() >= 1);
+      } else {
+        assert(tbe.dir_sharers.count() >= 1);
+      }
       if (tbe.dataUnique) {
         dir_state := State:RUSD;
       } else {
         dir_state := State:RSD;
       }
     }
-  } else if (tbe.dir_sharers.count() > 0) {
+  } else if (tbe.dir_sharers.count() > 0 || 
+              tbe.mega_dir_sharers.totalCount() > 0) {
     assert(is_valid(dir_entry));
     assert(tbe.dataMaybeDirtyUpstream == false);
     if (tbe.dataUnique) {
