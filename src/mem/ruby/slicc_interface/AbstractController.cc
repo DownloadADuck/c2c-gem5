@@ -138,6 +138,8 @@ AbstractController::init()
     
     int numChips = params().cntrlList.size() / 3;
 
+    int globalIdx = 0;
+
     for (int chipID = 0; chipID < numChips; ++chipID) {
         int l1Count = params().cntrlList[chipID * 3];
         int l2Count = params().cntrlList[chipID * 3 + 1];
@@ -145,14 +147,25 @@ AbstractController::init()
 
         for (int i = 0; i < l1Count; ++i)
             machineToChipMap.emplace(MachineID
-                (MachineType::MachineType_L1Cache, i), chipID);
+                (MachineType::MachineType_Cache, globalIdx++), chipID);
         for (int i = 0; i < l2Count; ++i)
             machineToChipMap.emplace(MachineID
-                (MachineType::MachineType_L2Cache, i), chipID);
+                (MachineType::MachineType_Cache, globalIdx++), chipID);
         for (int i = 0; i < hnfCount; ++i)
             machineToChipMap.emplace(MachineID
-                (MachineType::MachineType_Cache, i), chipID);
+                (MachineType::MachineType_Cache, globalIdx++), chipID);
     }
+
+    std::cout << "machineToChipMap contents:\n";
+    for (const auto& entry : machineToChipMap) {
+        const MachineID& id = entry.first;
+        int chipID = entry.second;
+    
+        std::cout << "  MachineID(Type: " << MachineType_to_string(id.type)
+                  << ", Num: " << id.num
+                  << ") -> ChipID: " << chipID << "\n";
+    }
+
 }
 
 void
@@ -665,10 +678,12 @@ const
 {
     //auto it = machineToChipMap.find(mach);
     //assert(it != machineToChipMap.end());
+    std::cout << std::endl;
     for (const auto& i : machineToChipMap) {
         if (i.first == mach) {
             return i.second;
         }
+        std::cout << "MachineID : " << i.first << " - chipID : " << i.second << std::endl;
     }
     panic("MachineID not found in map");
 }
