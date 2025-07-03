@@ -572,6 +572,7 @@ AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
     if (pkt->isRead()) {
         (*msg).m_Type = (*(pkt->c2c_msg)).m_Type;
         (*msg).m_DataBlk = (*(pkt->c2c_msg)).m_DataBlk;
+        (*msg).m_Responder = (*(pkt->c2c_msg)).m_Responder;
 
         (*msg).m_Stale = (*(pkt->c2c_msg)).m_Stale;
         (*msg).m_C2c_sharers = (*(pkt->c2c_msg)).m_C2c_sharers;
@@ -605,6 +606,7 @@ AbstractController::recvTimingReq(PacketPtr pkt)
         (*msg).m_ReqAck = (*(pkt->c2c_msg)).m_ReqAck;
         (*msg).m_AllowRetry = (*(pkt->c2c_msg)).m_AllowRetry;
         (*msg).m_Priority = (*(pkt->c2c_msg)).m_Priority;
+        (*msg).m_Responder = (*(pkt->c2c_msg)).m_Responder;
     } else {
         panic("Incorrect packet type received in the c2c_in_port!");
     }

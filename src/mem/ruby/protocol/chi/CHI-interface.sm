@@ -794,6 +794,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     int rxtxBytes, desc="Bytes sent or received";
     MachineID requestor, desc="Requestor that originated this request";
     MachineID destination, desc="Where we are sending data";
+    MachineID responder, desc="Who is sending the response";
     bool useDataSepResp, desc="Replies with DataSepResp instead of CompData";
 
     MegaNetDest c2c_sharers, desc="Stores the c2c_sharers when sending a response";
@@ -1679,8 +1680,6 @@ machine(MachineType:Interface, "C2C interface controller") :
     peek(rspInPort, CHIResponseMsg) {
       enqueue(responseToC2c_out, C2cMsg, response_latency) {
         out_msg.addr := address;
-        out_msg.Responder := tbe.destination;
-        DPRINTF(RubyGenerated, "sendToC2c_CompAck - out_msg.Responder -> %s\n", out_msg.Responder);
         out_msg.Type := C2cRequestType:CompAck;
         out_msg.MessageSize := MessageSizeType:Response_Control;
         out_msg.C2c_sharers.add(chipID, in_msg.responder);
@@ -1693,7 +1692,10 @@ machine(MachineType:Interface, "C2C interface controller") :
       enqueue(rspOutPort, CHIResponseMsg, response_latency) {
         out_msg.addr := address;
         out_msg.type := CHIResponseType:CompAck;
-        out_msg.responder := machineID;
+        //out_msg.responder := machineID;
+        out_msg.responder := in_msg.Responder;
+        DPRINTF(RubyGenerated, "sendToNet_CompAck - out_msg.responder -> %s\n", out_msg.responder);
+
         // adding the c2c_sharer 
         out_msg.c2c_sharers := in_msg.C2c_sharers;
         out_msg.Destination.add(mapAddressToDownstreamMachine(address));
@@ -1720,6 +1722,7 @@ machine(MachineType:Interface, "C2C interface controller") :
     assert(is_valid(tbe));
     enqueue(responseToC2c_out, C2cMsg, response_latency) {
       out_msg.addr := tbe.addr;
+      out_msg.Responder := tbe.destination;
       out_msg.Type := CHIRspToC2cMsg(tbe.to_c2c_rsp_type);
       out_msg.MessageSize := MessageSizeType:Response_Control;
       out_msg.C2c_sharers := tbe.c2c_sharers;
@@ -1740,18 +1743,18 @@ machine(MachineType:Interface, "C2C interface controller") :
     enqueue(rspOutPort, CHIResponseMsg, response_latency) {
       out_msg.addr := tbe.addr;
       out_msg.type := c2cMsgToCHIRsp(tbe.to_net_rsp_type);
-      out_msg.responder := machineID;
+      //out_msg.responder := machineID;
+      out_msg.responder := tbe.responder;
       out_msg.Destination.add(tbe.requestor);
       out_msg.c2c_sharers := tbe.c2c_sharers;
       out_msg.stale := tbe.stale;
     }
-    DPRINTF(RubyGenerated, "sendToNet_Response, tbe.requestor: %s\n", tbe.requestor);
+    DPRINTF(RubyGenerated, "sendToNet_Response - tbe.responder: %s\n", tbe.responder);
   }
 
   action(updateTBE_FromNetResp, "utbefr", desc="Updates the TBE with response info") {
     assert(is_valid(tbe));
     peek(rspInPort, CHIResponseMsg) {
-      DPRINTF(RubyGenerated, "updateTBE_FromNetResp - in_msg.responder --> %s\n", in_msg.responder);
       tbe.to_c2c_rsp_type := in_msg.type;
       tbe.destination := in_msg.responder;
       tbe.c2c_sharers.add(chipID, in_msg.responder);
@@ -1766,8 +1769,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       tbe.to_net_rsp_type := in_msg.Type;
       tbe.c2c_sharers := in_msg.C2c_sharers;
       tbe.stale := in_msg.Stale;
+      tbe.responder := in_msg.Responder;
     }
-    DPRINTF(RubyGenerated, "updateTBE_FromC2cResp, tbe.requestor: %s\n", tbe.requestor);
   }
 
   action(trigger_SendSnpResp, "tssr", desc="Trigger the sending of a snpfwd resp to c2c") {
