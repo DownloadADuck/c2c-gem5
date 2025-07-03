@@ -3001,12 +3001,17 @@ action(Finalize_UpdateDirectoryFromTBE, desc="") {
       (final == State:RUSC)) {
     DirEntry dir_entry := getDirEntry(address);
     assert(is_valid(dir_entry));
-    assert(tbe.dir_sharers.count() > 0);
+    if (is_multiChip) {
+      assert(tbe.mega_dir_sharers.totalCount() > 0);
+      dir_entry.mega_owner := tbe.mega_dir_owner;
+      dir_entry.mega_sharers := tbe.mega_dir_sharers;
+    } else {
+      assert(tbe.dir_sharers.count() > 0);
+      dir_entry.owner := tbe.dir_owner;
+      dir_entry.sharers := tbe.dir_sharers;
+    }
     dir_entry.ownerExists := tbe.dir_ownerExists;
     dir_entry.ownerIsExcl := tbe.dir_ownerIsExcl;
-    dir_entry.owner := tbe.dir_owner;
-    dir_entry.sharers := tbe.dir_sharers;
-    dir_entry.c2c_sharers := tbe.c2c_sharers;
   } else {
     assert((tbe.dir_ownerExists == false) && tbe.dir_sharers.isEmpty());
     if(directory.isTagPresent(address)) {

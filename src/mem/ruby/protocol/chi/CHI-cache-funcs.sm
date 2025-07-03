@@ -820,7 +820,6 @@ void copyCacheAndDir(CacheEntry cache_entry, DirEntry dir_entry,
             (initialState == State:RUSC) ||
             (initialState == State:UD_RSD) || (initialState == State:SD_RSD));
     tbe.dir_sharers := dir_entry.sharers;
-    tbe.c2c_sharers := dir_entry.c2c_sharers;
     tbe.dir_owner := dir_entry.owner;
     tbe.dir_ownerExists := dir_entry.ownerExists;
     tbe.dir_ownerIsExcl := dir_entry.ownerIsExcl;

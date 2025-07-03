@@ -155,17 +155,6 @@ AbstractController::init()
             machineToChipMap.emplace(MachineID
                 (MachineType::MachineType_Cache, globalIdx++), chipID);
     }
-
-    std::cout << "machineToChipMap contents:\n";
-    for (const auto& entry : machineToChipMap) {
-        const MachineID& id = entry.first;
-        int chipID = entry.second;
-    
-        std::cout << "  MachineID(Type: " << MachineType_to_string(id.type)
-                  << ", Num: " << id.num
-                  << ") -> ChipID: " << chipID << "\n";
-    }
-
 }
 
 void
@@ -676,14 +665,10 @@ int
 AbstractController::mapMachineIDToChipID(MachineID mach)
 const
 {
-    //auto it = machineToChipMap.find(mach);
-    //assert(it != machineToChipMap.end());
-    std::cout << std::endl;
     for (const auto& i : machineToChipMap) {
         if (i.first == mach) {
             return i.second;
         }
-        std::cout << "MachineID : " << i.first << " - chipID : " << i.second << std::endl;
     }
     panic("MachineID not found in map");
 }
