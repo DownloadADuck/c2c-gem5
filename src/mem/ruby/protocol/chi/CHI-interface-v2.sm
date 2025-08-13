@@ -1,0 +1,81 @@
+machine(MachineType:Interface, "Forwarding C2CI") :
+
+  Cycles request_latency := 1;
+  Cycles response_latency := 1;
+  Cycles data_latency := 1;
+  Cycles to_memory_controller_latency := 1;
+  Cycles c2c_link_latency := 0; //685
+
+  int data_channel_size;
+  int chipID;
+
+  // Communicating with the network
+  MessageBuffer * reqOut,   network="To", virtual_network="0", vnet_type="none";
+  MessageBuffer * snpOut,   network="To", virtual_network="1", vnet_type="none";
+  MessageBuffer * rspOut,   network="To", virtual_network="2", vnet_type="none";
+  MessageBuffer * datOut,   network="To", virtual_network="3", vnet_type="response";
+
+  MessageBuffer * reqIn,   network="From", virtual_network="0", vnet_type="none";
+  MessageBuffer * snpIn,   network="From", virtual_network="1", vnet_type="none";
+  MessageBuffer * rspIn,   network="From", virtual_network="2", vnet_type="none";
+  MessageBuffer * datIn,   network="From", virtual_network="3", vnet_type="response";
+
+  // Requests that can allocate a TBE
+  MessageBuffer * reqRdy;
+  MessageBuffer * c2cReqRdy;
+
+  // C2c out port
+  MessageBuffer * requestToC2c;
+  MessageBuffer * responseFromC2c;
+
+  // C2c in port
+  MessageBuffer * requestFromC2c;
+  MessageBuffer * responseToC2c;
+
+  // Trigger queue for internal event
+  MessageBuffer * triggerQueue;
+
+  // Stalled messages queues
+  MessageBuffer * stalled;
+  MessageBuffer * stalledSnoops;
+{
+
+  ////////////////////////////////////////////////////////////////////////////
+  // States
+  ////////////////////////////////////////////////////////////////////////////
+
+  state_declaration(State, desc="C2CI states", default="Interface_State_READY") {
+    READY, AccessPermission:Backing_Store,  desc="Ready - default state";
+
+    NET_REQ, AccessPermission:Invalid,      desc="Network-side request";
+    NET_DAT, AccessPermisison:Invalid,      desc="Network-side data";
+    NET_RES, AccessPermisison:Invalid,      desc="Network-side response";
+
+    C2C_REQ, AccessPermisison:Invalid,      desc="C2C-side request";
+    C2C_DAT, AccessPermisison:Invalid,      desc="C2C-side data";
+    C2C_RES, AccessPermisison:Invalid,      desc="C2C-side response";
+
+    null, AccessPermission:Backing_Store,   desc="Null state";
+  }
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Events
+  ////////////////////////////////////////////////////////////////////////////
+
+  enumaration(Event, desc="C2CI events") {
+    CheckAllocTBE, desc="Network-side check - available resources";
+    CheckC2cReqAllocTBE, desc="C2C-side check - available resources";
+
+    Net_Request, desc="Inbound network-side request";
+    Net_Data, desc="Inbound network-side data";
+    Net_Response, desc="Inbound network-side response";
+
+    C2c_Request, desc="Inbound c2c-side request";
+    C2c_Data, desc="Inbound c2c-side data";
+    C2c_Response, desc="Inbound c2c-side response";
+
+    Trigger_Send, desc="Trigger message send";
+  }
+
+  ///// POSSIBLE EVENT MANAGEMENT METHODS HERE
+

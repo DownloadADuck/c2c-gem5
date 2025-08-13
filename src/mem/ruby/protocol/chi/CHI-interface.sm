@@ -1692,8 +1692,8 @@ machine(MachineType:Interface, "C2C interface controller") :
       enqueue(rspOutPort, CHIResponseMsg, response_latency) {
         out_msg.addr := address;
         out_msg.type := CHIResponseType:CompAck;
-        //out_msg.responder := machineID;
-        out_msg.responder := in_msg.Responder;
+        out_msg.responder := machineID;
+        //out_msg.responder := in_msg.Responder;
         DPRINTF(RubyGenerated, "sendToNet_CompAck - out_msg.responder -> %s\n", out_msg.responder);
 
         // adding the c2c_sharer 
