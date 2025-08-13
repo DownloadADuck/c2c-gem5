@@ -63,19 +63,227 @@ machine(MachineType:Interface, "Forwarding C2CI") :
   ////////////////////////////////////////////////////////////////////////////
 
   enumaration(Event, desc="C2CI events") {
-    CheckAllocTBE, desc="Network-side check - available resources";
-    CheckC2cReqAllocTBE, desc="C2C-side check - available resources";
+    CheckAllocTBE,        desc="Network-side check - available resources";
+    CheckC2cReqAllocTBE,  desc="C2C-side check - available resources";
 
-    Net_Request, desc="Inbound network-side request";
-    Net_Data, desc="Inbound network-side data";
-    Net_Response, desc="Inbound network-side response";
+    Net_Request,          desc="Inbound network-side request";
+    Net_Data,             desc="Inbound network-side data";
+    Net_Response,         desc="Inbound network-side response";
 
-    C2c_Request, desc="Inbound c2c-side request";
-    C2c_Data, desc="Inbound c2c-side data";
-    C2c_Response, desc="Inbound c2c-side response";
+    C2c_Request,          desc="Inbound c2c-side request";
+    C2c_Data,             desc="Inbound c2c-side data";
+    C2c_Response,         desc="Inbound c2c-side response";
 
-    Trigger_Send, desc="Trigger message send";
+    Trigger_Send,         desc="Trigger message send";
   }
 
   ///// POSSIBLE EVENT MANAGEMENT METHODS HERE
 
+  // Cache block size
+  int blockSize, default="RubySystem::getBlockSizeBytes()";
+
+  structure(TBE, desc="TBE for temporary storage") {
+    int storSlot,   desc="Slot in the storage tracker occupied by this entry";
+    Addr addr,      desc="Line address for this TBE";
+    Addr accAddr,   desc="Original access address. Set only for Write*Ptl";
+    int  accSize,   desc="Access size. Set only for Write*Ptl";
+    State state,    desc="Current line state";
+    DataBlock dataBlk, desc="Transaction data";
+    WriteMask dataBlkValid, desc="valid bytes in dataBlk";
+    int rxtxBytes, desc="Bytes sent or received";
+
+    MachineID requestor, desc="Requestor that originated this request";
+    MachineID destination, desc="Where we are sending data";
+    MachineID responder, desc="Who is sending the response";
+    bool useDataSepResp, desc="Replies with DataSepResp instead of CompData";
+
+    MegaNetDest c2c_sharers, desc="Stores the c2c_sharers when sending a response";
+    MachineID c2c_requestor, desc="Stores the off-chip requestor";
+    
+    // MegaNetDest test object
+    MegaNetDest megaNetDest, desc="test object";
+
+    bool retToSrc, desc="Stores the retToSrc for snoop handling";
+    bool stale, desc="Stores the stale status for responses";
+
+    // Storing types
+    CHIRequestType to_c2c_req_type, desc="Temporarily stores the request type";
+    C2cRequestType to_net_req_type, desc="Temporarily stores the c2c request type";
+
+    CHIRequestType to_c2c_snp_type, desc="Temporarily stores the snoop type";
+    C2cRequestType to_net_snp_type, desc="Temporarily stores the c2c snoop type";
+
+    CHIResponseType to_c2c_rsp_type, desc="Temporarily stores the net resp type";
+    C2cRequestType to_net_rsp_type, desc="Temporarily stores the c2c resp type";
+
+    CHIDataType snd_msgType, desc="used to send the right response data type";
+    CHIDataType net_dat_type, desc="Temporatily store the net data type";
+
+    MachineID Sender, desc="Original request for this request";
+    MessageSizeType size, desc="Message size";
+  }
+
+  structure(TBETable, external="yes") {
+    TBE lookup(Addr);
+    void allocate(Addr);
+    void deallocate(Addr);
+    bool isPresent(Addr);
+    bool areNSlotsAvailable(int n, Tick curTime);
+  }
+
+  structure(TBEStorage, external ="yes") {
+    int size();
+    int capacity();
+    int reserved();
+    int slotsAvailable();
+    bool areNSlotsAvailable(int n);
+    void incrementReserved();
+    void decrementReserved();
+    int addEntryToNewSlot();
+    void removeEntryFromSlot(int slot);
+  }
+
+  TBETable TBEs, template="<Interface_TBE>", constructor="m_number_of_TBEs";
+  TBEStorage storTBEs, constructor="this, m_number_of_TBEs";
+
+  // TriggerMsg, might not be needed
+  structure(TriggerMsg, desc="Trigger internal events", interface="Message") {
+    Addr addr;
+    Event event;
+    MachineID retryDest;
+
+    bool functionalRead(Packet *pkt) { return false; }
+    bool functionalRead(Packet *pkt, WriteMask &mask) { return false; }
+    bool functionalWrite(Packet *pkt) { return falsel }
+  }
+
+  ////////////////////////////////////////////////////////////////////////////
+  // External functions
+  ////////////////////////////////////////////////////////////////////////////
+
+  Tick clockEdge();
+  Tick curTick();
+  Tick cyclesToTicks(Cycles c);
+  void set_tbe(TBE b);
+  void unset_tbe();
+  void wakeUpAllBuffers(Addr a);
+  bool respondsTo(Addr addr);
+  // Used by the requestor side
+  MachineID mapAddressToDownstreamMachine(Addr addr);
+
+  // Used to check if an inbound request is local 
+  bool hasDownstreamClient(Addr addr); 
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Interface functions required by SLICC
+  ////////////////////////////////////////////////////////////////////////////
+
+  State getState(TBE tbe, Addr addr) {
+    if (is_valid(tbe)) {
+        assert(tbe.addr == addr);
+        return tbe.state;
+    } else {
+        return State:READY;
+    }
+  }
+
+  void setState(TBE tbe, Addr addr, State state) {
+    if (is_valid(tbe)) {
+      assert(tbe.addr == addr);
+      tbe.state := state;
+    }
+  }
+
+  AccessPermission getAccessPermission(Addr addr) {
+    if (respondsTo(addr)) {
+      TBE tbe := TBEs[addr];
+      if (is_valid(tbe)) {
+        DPRINTF(RubySlicc, "%x %s,%s\n", addr, tbe.state, Interface_State_to_permission(tbe.state));
+        return Interface_State_to_permission(tbe.state);
+      } else {
+        // This might not work
+        DPRINTF(RubySlicc, "%x %s\n", addr, AccessPermission:Invalid);
+        return AccessPermission:Invalid;
+      }
+    } else {
+      DPRINTF(RubySlicc, "%x %s\n", addr, AccessPermission:NotPresent);
+      return AccessPermission:NotPresent;
+    }
+  }
+
+  void setAccessPermission(Addr addr, State state) {
+  }
+
+  void functionalRead(Addr addr, Packet *pkt, WriteMask &mask) {
+    if (respondsTo(addr)) {
+      DPRINTF(RubySlicc, "functionalRead %x\n", addr);
+      TBE tbe := TBEs[addr];
+
+      if (mask.isEmpty()) {
+        functionalMemoryRead(pkt);
+        mask.fillMask();
+        DPRINTF(RubySlicc, "functionalRead mem %x %s\n", addr, mask);
+      }
+
+      // Update with any transient data
+      //TODO additional handling of partial data ??
+      if (is_valid(tbe)) {
+        WriteMask read_mask;
+        read_mask.setMask(addressOffset(tbe.accAddr, tbe.addr), tbe.accSize);
+        read_mask.andMask(tbe.dataBlkValid);
+        if (read_mask.isEmpty() == false) {
+          testAndReadMask(addr, tbe.dataBlk, read_mask, pkt);
+          DPRINTF(RubySlicc, "functionalRead tbe %x %s %s %s\n", addr, tbe.dataBlk, read_mask, mask);
+          mask.orMask(read_mask);
+        }
+      }
+    }
+  }
+
+  int functionalWrite(Addr addr, Packet *pkt) {
+    if(respondsTo(addr)) {
+      int num_functional_writes := 0;
+      TBE tbe := TBEs[addr];
+      if (is_valid(tbe)) {
+        num_functional_writes := num_functional_writes +
+          testAndWrite(addr, tbe.dataBlk, pkt);
+        DPRINTF(RubySlicc, "functionalWrite tbe %x %s\n", addr, tbe.dataBlk);
+      }
+      num_functional_writes := num_functional_writes + functionalMemoryWrite(pkt);
+      DPRINTF(RubySlicc, "functionalWrite mem %x\n", addr);
+      return num_functional_writes;
+    } else {
+      return 0;
+    }
+  }
+
+  void clearExpectedReqResp(TBE tbe) {
+    assert(blockSize >= data_channel_size);
+    assert((blockSize % data_channel_size) == 0);
+    tbe.expected_req_resp.clear(blockSize / data_channel_size);
+  }
+
+  void clearExpectedReq(TBE tbe) {
+    assert(blockSize >= data_channel_size);
+    assert((blockSize % data_channel_size) == 0);
+    tbe.expected_req.clear(blockSize / data_channel_size);
+  }
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Helper functions
+  ////////////////////////////////////////////////////////////////////////////
+
+  void printResources() {
+    DPRINTF(RubySlicc, "Resources(avail/max): TBEs=%d/%d\n",
+                  storTBEs.size(), storTBEs.capacity());
+    DPRINTF(RubySlicc, "Resources(in/out size): rdy=%d req=%d/%d rsp=%d/%d dat=%d/%d snp=%d/%d\n",
+                  reqRdy.getSize(curTick()),
+                  reqIn.getSize(curTick()), reqOut.getSize(curTick()),
+                  rspIn.getSize(curTick()), rspOut.getSize(curTick()),
+                  datIn.getSize(curTick()), datOut.getSize(curTick()),
+                  snpIn.getSize(curTick()), snpOut.getSize(curTick()));
+  }
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Input/output ports definitions
+  ////////////////////////////////////////////////////////////////////////////
