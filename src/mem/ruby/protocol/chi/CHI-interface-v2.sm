@@ -3,7 +3,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
   Cycles request_latency := 1;
   Cycles response_latency := 1;
   Cycles data_latency := 1;
-  Cycles to_memory_controller_latency := 1;
+  Cycles c2c_req_latency := 1;
   Cycles c2c_link_latency := 0; //685
 
   int data_channel_size;
@@ -474,12 +474,12 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     assert(is_valid(tbe));
     peek(reqRdyInPort, CHIRequestMsg) {
       // Saving multiple fields for message forwarding
-      tbe.netType := in_msg.type;
+      tbe.netType := in_msg.type; //TODO: add netType to tbe
       tbe.requestor := in_msg.requestor;
       tbe.allowRetry := in_msg.allowRetry;
       tbe.size := in_msg.messageSize;
-      tbe.dataToFwdRequestor := in_msg.dataToFwdRequestor;
-      tbe.fwdRequestor := in_msg.fwdRequestor;
+      tbe.dataToFwdRequestor := in_msg.dataToFwdRequestor; //TODO: add to tbe
+      tbe.fwdRequestor := in_msg.fwdRequestor; //TODO: add to tbe
       tbe.accAddr := in_msg.accAddr;
       tbe.accSize := in_msg.accSize;
       tbe.resToSrc := in_msg.retToSrc;
@@ -489,7 +489,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
   action(initializeTBEFromC2cReq, "itbefc2cr", desc="Initialize TBE fields from c2c-size req") {
     assert(is_valid(tbe));
     peek(c2cReqRdyInPort, C2cMsg) {
-      tbe.c2cType := in_msg.Type;
+      tbe.c2cType := in_msg.Type; //TODO: add c2cType to tbe
       tbe.requestor := in_msg.Requestor;
       tbe.allowRetry := in_msg.AllorRetry;
       tbe.size := in_msg.MessageSize;
@@ -500,3 +500,138 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.resToSrc := in_msg.retToSrc;
     }
   }
+
+  action(deallocateTBE, "dtbe", desc="Deallocates TBE") {
+    assert(is_valid(tbe));
+    storTBEs.removeEntryFromSlot(tbe.storSlot);
+    TBEs.deallocate(address);
+    unset_tbe();
+  }
+
+  // Message-sending actions
+  action(sendToNet_request, "stnreq", desc="Sends requests to the network") {
+    assert(is_valid(tbe));
+    enqueue(reqOutPort, CHIRequestMsg, request_latency) {
+      out_msg.addr := address;
+      out_msg.accAddr := tbe.accAddr;
+      out_msg.accSize := tbe.accSize;
+      out_msg.type := c2cMsgToCHIReq(tbe.c2c_type);
+      out_msg.requestor := machineID;
+      out_msg.fwdRequestor := machineID;
+      out_msg.isSeqReqValid := tbe.isSeqReqValid;
+      out_msg.is_local_pf := tbe.is_loval_pf;
+      out_msg.allowRetry := tbe.allowRetry;
+      out_msg.is_remote_pf := tbe.is_remote_pf;
+      out_msg.retToSrc := tbe.retToSrc;
+      out_msg.Destination.add(mapAddressToDownstreamMachine(address));
+    }
+  }
+
+  action(sendToNet_snoop, "stns", desc="Sends snoop to the network") {
+    assert(is_valid(tbe));
+    enqueue(snpOutPort, CHIRequestMsg, request_latency) {
+      out_msg.addr := address;
+      out_msg.accAddr := tbe.accAddr;
+      out_msg.accSize := tbe.accSize;
+      out_msg.type := c2cMsgToCHIReq(tbe.c2c_type);
+      out_msg.requestor := machineID;
+      out_msg.fwdRequestor := machineID;
+      out_msg.isSeqReqValid := tbe.isSeqReqValid;
+      out_msg.is_local_pf := tbe.is_loval_pf;
+      out_msg.allowRetry := tbe.allowRetry;
+      out_msg.is_remote_pf := tbe.is_remote_pf;
+      out_msg.retToSrc := tbe.retToSrc;
+      out_msg.Destination := tbe.localDest;
+    }
+  }
+
+  action(sendToNet_response, "stnrsp", desc="Sends response to the network") {
+    assert(is_valid(tbe));
+    enqueue(rspOutPort, CHIResponseMsg, response_latency) {
+      out_msg.addr := address;
+      out_msg.type := c2cMsgToCHIRsp(tbe.c2cType);
+      out_msg.responder := tbe.responder;
+      out_msg.Destination.add(tbe.originalRequestor);
+      out_msg.stale := tbe.stale;
+    }
+  }
+
+  action(sendToNet_data, "stnd", desc="Sends data to the network") {
+    assert(is_valid(tbe));
+    enqueue(datOutPort, CHIDataMsg, data_latency) {
+      out_msg.addr := address;
+      out_msg.type := tbe.c2cMsgToCHIDat(c2cType); //TODO: add the method
+      out_msg.dataBlk := tbe.dataBlk;
+      out_msg.responder := tbe.machineID;
+      out_msg.usesTxnId := tbe.usesTxnId; //TODO: add to tbe
+      out_msg.txnId := tbe.txnId; //TODO: add to tbe
+      // If there is an alignment issue look here
+      // out_msg.bitMask.setMask(...)
+      out_msg.Destination := tbe.localDest; //TODO: Where does localDest come from
+    }
+  }
+
+  action(sendToC2c_request, "stcreq", desc="Sends requests to the c2c link") {
+    assert(is_valid(tbe));
+    enqueue(requestToC2c_out, C2cMsg, c2c_req_latency) {
+      out_msg.addr := address;
+      out_msg.Type := CHIReqToC2cMsg(tbe.netType);
+      out_msg.Sender := tbe.requestor;
+      out_msg.C2c_requestor := tbe.requestor;
+      out_msg.MessageSize := tbe.messageSize; //TODO: add to tbe (?)
+      out_msg.AllowRetry := tbe.allowRetry;
+    }
+  }
+
+  action(sendToC2c_response, "stcrsp", desc="Sends responses to the c2c link") {
+    assert(is_valid(tbe));
+    enqueue(responseToC2c_out, C2cMsg, response_latency) {
+      //TODO: lacks fields
+      out_msg.addr := tbe.addr;
+      out_msg.Responder := tbe.destination;
+      out_msg.Type := CHIRspToC2cMsg(tbe.netType);
+      out_msg.MessageSize := tbe.messageSize;
+      out_msg.Stale := tbe.stale;
+    }
+  }
+
+  // Dequeueing actions
+  action(popReqInQueue, "priq", desc="Pop request in queue.") {
+    reqInPort.dequeue(clockEdge());
+  }
+
+  action(popReqRdyInQueue, "prreq", desc="Pop request queue.") {
+    reqRdyInPort.dequeue(clockEdge());
+  }
+
+  action(popSnpInQueue, "psnp", desc="Pop snoop queue.") {
+    snpInPort.dequeue(clockEdge());
+  }
+
+  action(popC2cReqRdyInQueue, "pcreq", decs="Pop c2c request queue.") {
+    c2cReqRdyInPort.dequeue(clockEdge());
+  }
+
+  action(popDataInQueue, "pdata", desc="Pop data queue.") {
+    datInPort.dequeue(clockEdge());
+  }
+
+  action(popRspInQueue, "presp", desc="Pop resp queue.") {
+    rspInPort.dequeue(clockEdge());
+  }
+
+  action(popTriggerQueue, "ptrigger", desc="Pop trigger queue.") {
+    triggerInPort.dequeue(clockEdge());
+  }
+
+  action(popResponseFromC2cQueue, "pmem", desc="Pop memory queue.") {
+    responseFromC2c_in.dequeue(clockEdge());
+  }
+
+  action(popRequestFromC2cQueue, "prfc2c", desc="Pop request from c2c queue.") {
+    requestFromC2c_in.dequeue(clockEdge());
+  }
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Transitions
+  ////////////////////////////////////////////////////////////////////////////
