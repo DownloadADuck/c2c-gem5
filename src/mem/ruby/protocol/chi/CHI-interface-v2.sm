@@ -287,3 +287,60 @@ machine(MachineType:Interface, "Forwarding C2CI") :
   ////////////////////////////////////////////////////////////////////////////
   // Input/output ports definitions
   ////////////////////////////////////////////////////////////////////////////
+
+  // Output ports
+  out_port(reqOurPort, CHIRequestMsg, reqOut);
+  out_port(snpOurPort, CHIRequestMsg, snpOut);
+  out_port(rspOutPort, CHIResponseMsg, rspOut);
+  out_port(datOutPort, CHIDataMsg, datOut);
+
+    // C2C output ports
+  out_port(requestToC2c_out, C2cMsg, requestToC2c);
+  out_port(responseToC2c_out, C2cMsg, responseToC2c);
+
+    // Internal queues
+  out_port(triggerOutPort, TriggerMsg, triggerQueue);
+
+  // Input ports 
+  //// Requests
+  ////// Raw chi request input 
+  in_port(reqInPort, CHIRequestMsg, reqIn, rank=0) {
+
+  }
+  ////// Raw c2c request input
+  in_port(requestFromC2c_in, C2cMsg, requestFromC2c, rank=1) {
+
+  }
+  ////// Internal chi request queue
+  in_port(reqRdyInPort, CHIRequestMsg, reqRdy, rank=1) {
+
+  }
+  ////// Internal c2c request queue
+  in_port(c2cReqRdyInPort, C2cMsg, c2cReqRdy, rank=1) {
+
+  }
+
+  //// Snoops
+  in_port(snpInPort, CHIRequestMsg, snpIn, rank=1) {
+
+  }
+
+  //// Responses
+  ////// chi response input
+  in_port(rspInPort, CHIResponseMsg, rspIn, rank=1) {
+
+  }
+  ////// c2c response input
+  in_port(responseFromC2c_in, C2cMsg, responseFromC2c, rank=1) {
+
+  }
+
+  //// Data
+  in_port(datInPort, CHIDataMsg, datIn, rank=1) {
+
+  }
+
+  // Internal queues
+  in_port(triggerInPort, TriggerMsg, triggerQueue, rank=1) {
+
+  }
