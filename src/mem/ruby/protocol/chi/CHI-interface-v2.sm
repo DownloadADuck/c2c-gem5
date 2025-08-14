@@ -157,6 +157,16 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     bool functionalWrite(Packet *pkt) { return falsel }
   }
 
+  structure(TriggerQueue, external="yes") {
+    void pop();
+    bool empty();
+    void emplace(Addr, MachineID);
+    RetryQueueEntry next();
+  }
+
+  // No TBE slots available - Retry the request
+  TriggerQueue retryQueue, template="<Interface_RetryQueueEntry>";
+
   ////////////////////////////////////////////////////////////////////////////
   // External functions
   ////////////////////////////////////////////////////////////////////////////
@@ -388,6 +398,33 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       printResources();
       peek(triggerInPort, TriggerMsg) {
         trigger(in_msg.event, in_msg.addr, TBEs[in_msg.addr]);
+      }
+    }
+  }
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Actions
+  ////////////////////////////////////////////////////////////////////////////
+
+  action(checkAllocateTBE, desc="Check if TBE slots are available") {
+    if (storTBEs.areNSlotsAvailable(1)) {
+      storTBEs.incrementReserved();
+
+      // Enqueues the request in the internal queue
+      peek(reqInPort, CHIRequestMsg) {
+        enqueue(reqRdyOutPort, CHIRequestMsg, 0) {
+          out_msg := in_msg;
+        }
+      }
+    } else {
+      peek(reqInPort, CHIRequestMsg) {
+        assert(in_msg.allowRetry);
+        enqueue(triggerOutPort, TriggerMsg, 0) {
+          out_msg.addr := in_msg.addr;
+          out_msg.event := Event:Trigger_SendRetry;
+          out_msg.retryDest := in_msg.requestor;
+          retryQueue.emplace(in_msg.addr, in_msg.requestor);
+        }
       }
     }
   }
