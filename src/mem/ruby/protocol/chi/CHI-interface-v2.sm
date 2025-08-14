@@ -305,42 +305,89 @@ machine(MachineType:Interface, "Forwarding C2CI") :
   //// Requests
   ////// Raw chi request input 
   in_port(reqInPort, CHIRequestMsg, reqIn, rank=0) {
-
+    if (reqInPort.isReady(clockEdge())) {
+      printResources();
+      peek(reqInPort, CHIRequestMsg) {
+        trigger(Event:CheckAllocTBE, in_msg.addr, TBEs[in_msg.addr]);
+      }
+    }
   }
   ////// Raw c2c request input
   in_port(requestFromC2c_in, C2cMsg, requestFromC2c, rank=1) {
-
+    if (requestFromC2c_in.isReady(clockEdge())) {
+      printResources();
+      peek(requestFromC2c_in, C2cMsg) {
+        trigger(Event:CheckC2cReqAllocTBE, in_msg.addr, TBEs[in_msg.addr]);
+      }
+    }
   }
   ////// Internal chi request queue
   in_port(reqRdyInPort, CHIRequestMsg, reqRdy, rank=1) {
-
+    if (reqRdyInPort.isReady(clockEdge())) {
+      printResources();
+      peek(reqRdyInPort, CHIRequestMsg) {
+        trigger(Event:Net_Request, in_msg.addr, TBEs[in_msg.addr]);
+      }
+    }
   }
   ////// Internal c2c request queue
   in_port(c2cReqRdyInPort, C2cMsg, c2cReqRdy, rank=1) {
-
+    if (c2cReqRdyInPort.isReady(clockEdge())) {
+      printResources();
+      peek(c2cReqRdyInPort, C2cMsg) {
+        trigger(Event:C2c_Request, in_msg.addr, TBEs[in_msg.addr]);
+      }
+    }
   }
 
   //// Snoops
   in_port(snpInPort, CHIRequestMsg, snpIn, rank=1) {
-
+    if (snpInPort.isRead(clockEdge())) {
+      printResources();
+      peek(snpInPort, CHIRequestMsg) {
+        trigger(Event:CheckAllocTBE, in_msg.addr, TBEs[in_msg.addr]);
+      }
+    }
   }
 
   //// Responses
   ////// chi response input
   in_port(rspInPort, CHIResponseMsg, rspIn, rank=1) {
-
+    if (rspInPort.isReady(clockEdge())) {
+      printResources();
+      peek(rspInPort, CHIResponseMsg) {
+        trigger(Event:Net_Response, in_msg.addr, TBEs[in_msg.addr]);
+      }
+    }
   }
   ////// c2c response input
   in_port(responseFromC2c_in, C2cMsg, responseFromC2c, rank=1) {
-
+    if (responseFromC2c_in.isReady(clockEdge())) {
+      printResources();
+      peek(responseFromC2c_in, C2cMsg) {
+        trigger(Event:C2c_Response, in_msg.addr, TBEs[in_msg.addr]);
+      }
+    }
   }
 
   //// Data
   in_port(datInPort, CHIDataMsg, datIn, rank=1) {
-
+    if (datInPort.isReady(clockEdge())) {
+      printResources();
+      peek(datInPort, CHIDataMsg) {
+        assert((in_msg.bitMask.count() <= data_channel_size)
+            && (in_msg.bitMask.count() > 0);
+        trigger(Event:Net_Data, in_msg.addr, TBEs[in_msg.addr]);
+      }
+    }
   }
 
   // Internal queues
   in_port(triggerInPort, TriggerMsg, triggerQueue, rank=1) {
-
+    if (triggerInPort.isReady(clockEdge())) {
+      printResources();
+      peek(triggerInPort, TriggerMsg) {
+        trigger(in_msg.event, in_msg.addr, TBEs[in_msg.addr]);
+      }
+    }
   }
