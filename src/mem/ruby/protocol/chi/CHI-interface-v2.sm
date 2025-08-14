@@ -406,7 +406,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
   // Actions
   ////////////////////////////////////////////////////////////////////////////
 
-  action(checkAllocateTBE, desc="Check if TBE slots are available") {
+  action(checkAllocateTBE, desc="Check if TBE slots are available for net req") {
     if (storTBEs.areNSlotsAvailable(1)) {
       storTBEs.incrementReserved();
 
@@ -426,5 +426,77 @@ machine(MachineType:Interface, "Forwarding C2CI") :
           retryQueue.emplace(in_msg.addr, in_msg.requestor);
         }
       }
+    }
+  }
+
+  action(checkC2cReqAllocateTBE, desc="Check if TBE slots are available for c2c req") {
+    if (storTBEs.areNSlotsAvailable(1)) {
+      storTBEs.incrementReserved();
+      peek(requestFromC2c_in, C2cMsg) {
+        enqueue(c2cReqRdyOutPort, C2cMsg, 0) {
+          out_msg := in_msg;
+        }
+      }
+    } else {
+      error("checkC2cReqAllocateTBE: No TBE slots available on C2C-side request.");
+    }
+  }
+
+  action(allocateTBE, "atbe", desc="Allocates a new TBE slot for net-side") {
+    if (!is_valid(tbe)) {
+      storTBEs.decrementReserved();
+      assert(storTBEs.areNSlotsAvailable(1));
+
+      TBEs.allocate(address);
+      set_tbe(TBEs[address]);
+      tbe.storSlot := storTBEs.addEntryToNewSlot();
+    }
+    tbe.addr := address;
+    tbe.rxtxBytes := 0;
+    tbe.useDataSepResp := false;
+  }
+
+  action(c2cReqAllocateTBE, "c2catbe", desc="Allocates a new TBE slot for c2c-side") {
+    if(!is_valid(tbe)) {
+      storTBEs.decrementReserved();
+      assert(storTBEs.areNSlotsAvailable(1));
+
+      TBEs.allocate(address);
+      set_tbe(TBEs[address]);
+      tbe.storSlots := storTBEs.addEntryToNewSlot();
+    }
+    tbe.addr := address;
+    tbe.rxtxBytes := 0;
+    tbe.useDataSepResp := false;
+  }
+
+  action(initializeTBEFromReq, "itbefr", desc="Initialize TBE fields from net-side req") {
+    assert(is_valid(tbe));
+    peek(reqRdyInPort, CHIRequestMsg) {
+      // Saving multiple fields for message forwarding
+      tbe.netType := in_msg.type;
+      tbe.requestor := in_msg.requestor;
+      tbe.allowRetry := in_msg.allowRetry;
+      tbe.size := in_msg.messageSize;
+      tbe.dataToFwdRequestor := in_msg.dataToFwdRequestor;
+      tbe.fwdRequestor := in_msg.fwdRequestor;
+      tbe.accAddr := in_msg.accAddr;
+      tbe.accSize := in_msg.accSize;
+      tbe.resToSrc := in_msg.retToSrc;
+    }
+  }
+
+  action(initializeTBEFromC2cReq, "itbefc2cr", desc="Initialize TBE fields from c2c-size req") {
+    assert(is_valid(tbe));
+    peek(c2cReqRdyInPort, C2cMsg) {
+      tbe.c2cType := in_msg.Type;
+      tbe.requestor := in_msg.Requestor;
+      tbe.allowRetry := in_msg.AllorRetry;
+      tbe.size := in_msg.MessageSize;
+      tbe.dataToFwdRequestor := in_msg.DataToFwdRequestor;
+      tbe.fwdRequestor := in_msg.fwdRequestor;
+      tbe.accAddr := in_msg.accAddr;
+      tbe.accSize := in_msg.accSize;
+      tbe.resToSrc := in_msg.retToSrc;
     }
   }
