@@ -509,7 +509,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
   }
 
   // Message-sending actions
-  action(sendToNet_request, "stnreq", desc="Sends requests to the network") {
+  action(sendToNet_Request, "stnreq", desc="Sends requests to the network") {
     assert(is_valid(tbe));
     enqueue(reqOutPort, CHIRequestMsg, request_latency) {
       out_msg.addr := address;
@@ -571,7 +571,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     }
   }
 
-  action(sendToC2c_request, "stcreq", desc="Sends requests to the c2c link") {
+  action(sendToC2c_Request, "stcreq", desc="Sends requests to the c2c link") {
     assert(is_valid(tbe));
     enqueue(requestToC2c_out, C2cMsg, c2c_req_latency) {
       out_msg.addr := address;
@@ -635,3 +635,36 @@ machine(MachineType:Interface, "Forwarding C2CI") :
   ////////////////////////////////////////////////////////////////////////////
   // Transitions
   ////////////////////////////////////////////////////////////////////////////
+
+  // Req
+  //// Net
+  transition(READY, Net_Request, READY) {
+    allocateTBE;
+    initializeTBEFromNetRequest; // TOTO: Add 
+    sendToC2c_Request;
+    popReqInQueue;
+    deallocateTBE;
+  }
+  //// C2c
+  transition(READY, C2c_Request, READY) {
+    allocateTBE;
+    initializeTBEFromC2cRequest; // TODO: Add
+    sendToNet_Request;
+    popC2cReqInQueue; // TODO: Add + Bypass the ReqRdyQueue ?
+    deallocateTBE;
+  }
+
+  // Snp
+  //// Net
+
+  //// C2c
+
+  // Rsp
+  //// Net
+
+  //// C2c
+
+  // Dat
+  //// Net
+
+  //// C2c

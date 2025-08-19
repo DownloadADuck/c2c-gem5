@@ -67,7 +67,9 @@ class EnqueueStatementAST(StatementAST):
         # Declare message
 
         statements_str = str(self.statements)
+        # Whenever the user uses a MegaNetDest as destination, the code is generated as follows
         if 'addMegaNetDest' in statements_str:
+            # We send one message per available sharer in MegaNetDest
             code("for (int i = 0; i <= (*m_tbe_ptr).m_mega_dir_sharers.totalCount(); ++i) {")
             code.indent()
             code(
@@ -77,13 +79,14 @@ class EnqueueStatementAST(StatementAST):
             t = self.statements.generate(code, None)
             self.queue_name.assertType("OutPort")
             code("prepareRequest(m_tbe_ptr, CHIRequestType_SnpCleanInvalid, *out_msg);")
-
+            # If the sharer is local, extract the NetDest from MegaNetDest
             code("if (i == m_chipID) {")
             code.indent()
             code("((*out_msg).m_Destination).addNetDest((*m_tbe_ptr).m_mega_dir_sharers.extractNetDest(i));")
             code("(*out_msg).m_retToSrc = false;")
             code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
             code.dedent()
+            # If the sharer is remote, send to local C2CI
             code("} else {")
             code.indent()
             code("((*out_msg).m_Destination).add(mapChipIDToC2CI(i));")
