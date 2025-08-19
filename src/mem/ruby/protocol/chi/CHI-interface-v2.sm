@@ -91,6 +91,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     DataBlock dataBlk, desc="Transaction data";
     WriteMask dataBlkValid, desc="valid bytes in dataBlk";
     int rxtxBytes, desc="Bytes sent or received";
+    bool dataToFwdRequestor, desc="Is the Data to be fwded to requestor";
 
     MachineID requestor, desc="Requestor that originated this request";
     MachineID destination, desc="Where we are sending data";
@@ -108,7 +109,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
 
     // Storing types
     CHIRequestType toC2cReqType, desc="Temporarily stores the request type";
-    C2cRequestType to_net_req_type, desc="Temporarily stores the c2c request type";
+    C2cRequestType toNetReqType, desc="Temporarily stores the c2c request type";
 
     CHIRequestType to_c2c_snp_type, desc="Temporarily stores the snoop type";
     C2cRequestType to_net_snp_type, desc="Temporarily stores the c2c snoop type";
@@ -293,7 +294,260 @@ machine(MachineType:Interface, "Forwarding C2CI") :
                   datIn.getSize(curTick()), datOut.getSize(curTick()),
                   snpIn.getSize(curTick()), snpOut.getSize(curTick()));
   }
+  
+  ////////////////////////////////////////////////////////////////////////////
+  // C2C <-> CHI type translation functions
+  ////////////////////////////////////////////////////////////////////////////
 
+  CHIRequestType c2cMsgToCHIReq(C2cRequestType type){
+    if (type == C2cRequestType:ReadShared) {
+      return CHIRequestType:ReadShared;
+    } else if (type == C2cRequestType:ReadOnce) {
+      return CHIRequestType:ReadOnce;
+    } else if (type == C2cRequestType:ReadUnique) {
+      return CHIRequestType:ReadUnique;
+    } else if (type == C2cRequestType:CleanUnique) {
+      return CHIRequestType:CleanUnique;
+    } else if (type == C2cRequestType:Evict) {
+      return CHIRequestType:Evict;
+    } else if (type == C2cRequestType:WriteEvictFull) {
+      return CHIRequestType:WriteEvictFull;
+    } else if (type == C2cRequestType:WriteUniqueFull) {
+      return CHIRequestType:WriteUniqueFull;
+    } else if (type == C2cRequestType:WriteBackFull) {
+      return CHIRequestType:WriteBackFull;
+    } else if (type == C2cRequestType:SnpCleanInvalid) {
+      return CHIRequestType:SnpCleanInvalid;
+    } else if (type == C2cRequestType:SnpUnique) {
+      return CHIRequestType:SnpUnique;
+    } else if (type == C2cRequestType:SnpSharedFwd) {
+      return CHIRequestType:SnpSharedFwd;
+    } else if (type == C2cRequestType:SnpUniqueFwd) {
+      return CHIRequestType:SnpUniqueFwd;
+    } else if (type == C2cRequestType:SnpOnceFwd) {
+      return CHIRequestType:SnpOnceFwd;
+    } else {
+      DPRINTF(RubyC2c, "Type: %s\n", type);
+      error("Unexpected C2cMsg request type");
+    }
+  }
+
+  CHIResponseType c2cMsgToCHIRsp(C2cRequestType type) {
+    if(type == C2cRequestType:CompDBIDResp) {
+      return CHIResponseType:CompDBIDResp;
+    } else if (type == C2cRequestType:CompAck) {
+      return CHIResponseType:CompAck;
+    } else if (type == C2cRequestType:Comp_I) {
+      return CHIResponseType:Comp_I;
+    } else if (type == C2cRequestType:RetryAck) {
+      return CHIResponseType:RetryAck;
+    } else if (type == C2cRequestType:PCrdGrant) {
+      return CHIResponseType:PCrdGrant;
+    } else if (type == C2cRequestType:Comp_UC) {
+      return CHIResponseType:Comp_UC;
+    } else if (type == C2cRequestType:SnpResp_I) {
+      return CHIResponseType:SnpResp_I;
+    } else if (type == C2cRequestType:SnpResp_I_Fwded_UD_PD) {
+      return CHIResponseType:SnpResp_I_Fwded_UD_PD;
+    } else if (type == C2cRequestType:SnpResp_I_Fwded_UC) {
+      return CHIResponseType:SnpResp_I_Fwded_UC;
+    } else if (type == C2cRequestType:SnpResp_SC_Fwded_SC) {
+      return CHIResponseType:SnpResp_SC_Fwded_SC;
+    } else if (type == C2cRequestType:SnpResp_SC_Fwded_SD_PD) {
+      return CHIResponseType:SnpResp_SC_Fwded_SD_PD;
+    } else if (type == C2cRequestType:SnpResp_SD_Fwded_I) {
+      return CHIResponseType:SnpResp_SD_Fwded_I;
+    } else if (type == C2cRequestType:SnpResp_SC_Fwded_I) {
+      return CHIResponseType:SnpResp_SC_Fwded_I;
+    } else if (type == C2cRequestType:SnpResp_UD_Fwded_I) {
+      return CHIResponseType:SnpResp_UD_Fwded_I;
+    } else if (type == C2cRequestType:SnpResp_UC_Fwded_I) {
+      return CHIResponseType:SnpResp_UC_Fwded_I;
+    } else {
+      DPRINTF(RubyC2c, "Type: %s\n", type);
+      error ("Unexpected C2cMsg response type");
+    }
+  }
+
+  CHIDataType c2cMsgToCHIData(C2cRequestType type) {
+    if (type == C2cRequestType:CompData_UC) {
+      return CHIDataType:CompData_UC;
+    } else if (type == C2cRequestType:CompData_I) {
+      return CHIDataType:CompData_I;
+    } else if (type == C2cRequestType:CompData_SC) {
+      return CHIDataType:CompData_SC;
+    } else if (type == C2cRequestType:CompData_SD_PD) {
+      return CHIDataType:CompData_SD_PD;
+    } else if (type == C2cRequestType:CompData_UD_PD) {
+      return CHIDataType:CompData_UD_PD;
+    } else if (type == C2cRequestType:NCBWrData) {
+      return CHIDataType:NCBWrData;
+    } else if (type == C2cRequestType:CBWrData_UC) {
+      return CHIDataType:CBWrData_UC;
+    } else if (type == C2cRequestType:CBWrData_SC) {
+      return CHIDataType:CBWrData_SC;
+    } else if (type == C2cRequestType:CBWrData_I) {
+      return CHIDataType:CBWrData_I;
+    } else if (type == C2cRequestType:CBWrData_SD_PD) {
+      return CHIDataType:CBWrData_SD_PD;
+    } else if (type == C2cRequestType:CBWrData_UD_PD) {
+      return CHIDataType:CBWrData_UD_PD;
+    } else if (type == C2cRequestType:SnpRespData_I_PD) {
+      return CHIDataType:SnpRespData_I_PD;
+    } else if (type == C2cRequestType:SnpRespData_I) {
+      return CHIDataType:SnpRespData_I;
+    } else if (type == C2cRequestType:SnpRespData_SC_PD) {
+      return CHIDataType:SnpRespData_SC_PD;
+    } else if (type == C2cRequestType:SnpRespData_SC) {
+      return CHIDataType:SnpRespData_SC;
+    } else if (type == C2cRequestType:SnpRespData_SD) {
+      return CHIDataType:SnpRespData_SD;
+    } else if (type == C2cRequestType:SnpRespData_UC) {
+      return CHIDataType:SnpRespData_UC;
+    } else if (type == C2cRequestType:SnpRespData_UD) {
+      return CHIDataType:SnpRespData_UD;
+    } else if (type == C2cRequestType:SnpRespData_SC_Fwded_SD_PD) {
+      return CHIDataType:SnpRespData_SC_Fwded_SD_PD;
+    } else if (type == C2cRequestType:SnpRespData_SC_Fwded_SC) {
+      return CHIDataType:SnpRespData_SC_Fwded_SC;
+    } else if (type == C2cRequestType:SnpRespData_SC_PD_Fwded_SC) {
+      return CHIDataType:SnpRespData_SC_PD_Fwded_SC;
+    } else if (type == C2cRequestType:SnpRespData_I_Fwded_SD_PD) {
+      return CHIDataType:SnpRespData_I_Fwded_SD_PD;
+    } else if (type == C2cRequestType:SnpRespData_I_PD_Fwded_SC) {
+      return CHIDataType:SnpRespData_I_PD_Fwded_SC;
+    } else if (type == C2cRequestType:SnpRespData_I_Fwded_SC) {
+      return CHIDataType:SnpRespData_I_Fwded_SC;
+    } else {
+      DPRINTF(RubyC2c, "Type: %s\n", type);
+      error("Unexpected C2cMsg data type");
+    }
+  }
+
+  C2cRequestType CHIReqToC2cMsg(CHIRequestType type) {
+    if (type == CHIRequestType:ReadShared) {
+      return C2cRequestType:ReadShared;
+    } else if (type == CHIRequestType:ReadOnce) {
+      return C2cRequestType:ReadOnce;
+    } else if (type == CHIRequestType:ReadUnique) {
+      return C2cRequestType:ReadUnique;
+    } else if (type == CHIRequestType:CleanUnique) {
+      return C2cRequestType:CleanUnique;
+    } else if (type == CHIRequestType:Evict) {
+      return C2cRequestType:Evict;
+    } else if (type == CHIRequestType:WriteEvictFull) {
+      return C2cRequestType:WriteEvictFull;
+    } else if (type == CHIRequestType:WriteUniqueFull) {
+      return C2cRequestType:WriteUniqueFull;
+    } else if (type == CHIRequestType:WriteBackFull) {
+      return C2cRequestType:WriteBackFull;
+    } else if (type == CHIRequestType:SnpCleanInvalid) {
+      return C2cRequestType:SnpCleanInvalid;
+    } else if (type == CHIRequestType:SnpUnique) {
+      return C2cRequestType:SnpUnique;
+    } else if (type == CHIRequestType:SnpSharedFwd) {
+      return C2cRequestType:SnpSharedFwd;
+    } else if (type == CHIRequestType:SnpUniqueFwd) {
+      return C2cRequestType:SnpUniqueFwd;
+    } else if (type == CHIRequestType:SnpOnceFwd) {
+      return C2cRequestType:SnpOnceFwd;
+    } else {
+      DPRINTF(RubyC2c, "Type: %s\n", type);
+      error("Unexpected CHIRequest type");
+    }
+  }
+
+  C2cRequestType CHIRspToC2cMsg(CHIResponseType type) {
+    if (type == CHIResponseType:CompAck) {
+      return C2cRequestType:CompAck;
+    } else if (type == CHIResponseType:Comp_I) {
+      return C2cRequestType:Comp_I;
+    } else if (type == CHIResponseType:Comp_UC) {
+      return C2cRequestType:Comp_UC;
+    } else if (type == CHIResponseType:CompDBIDResp) {
+      return C2cRequestType:CompDBIDResp;
+    } else if (type == CHIResponseType:RetryAck) {
+      return C2cRequestType:RetryAck;
+    } else if (type == CHIResponseType:PCrdGrant) {
+      return C2cRequestType:PCrdGrant;
+    } else if (type == CHIResponseType:SnpResp_I) {
+      return C2cRequestType:SnpResp_I;
+    } else if (type == CHIResponseType:SnpResp_I_Fwded_UD_PD) {
+      return C2cRequestType:SnpResp_I_Fwded_UD_PD;
+    } else if (type == CHIResponseType:SnpResp_I_Fwded_UC) {
+      return C2cRequestType:SnpResp_I_Fwded_UC;
+    } else if (type == CHIResponseType:SnpResp_SC_Fwded_SC) {
+      return C2cRequestType:SnpResp_SC_Fwded_SC;
+    } else if (type == CHIResponseType:SnpResp_SC_Fwded_SD_PD) {
+      return C2cRequestType:SnpResp_SC_Fwded_SD_PD;
+    } else if (type == CHIResponseType:SnpResp_SD_Fwded_I) {
+      return C2cRequestType:SnpResp_SD_Fwded_I;
+    } else if (type == CHIResponseType:SnpResp_SC_Fwded_I) {
+      return C2cRequestType:SnpResp_SC_Fwded_I;
+    } else if (type == CHIResponseType:SnpResp_UD_Fwded_I) {
+      return C2cRequestType:SnpResp_UD_Fwded_I;
+    } else if (type == CHIResponseType:SnpResp_UC_Fwded_I) {
+      return C2cRequestType:SnpResp_UC_Fwded_I;
+    } else {
+      DPRINTF(RubyC2c, "Type: %s\n", type);
+      error("Unexpected CHIResponse type");
+    }
+  }
+
+  C2cRequestType CHIDatToC2cMsg(CHIDataType type) {
+    if (type == CHIDataType:CompData_UC) {
+      return C2cRequestType:CompData_UC;
+    } else if (type == CHIDataType:CompData_SC) {
+      return C2cRequestType:CompData_SC;
+    } else if (type == CHIDataType:CompData_I) {
+      return C2cRequestType:CompData_I;
+    } else if (type == CHIDataType:CompData_SD_PD) {
+      return C2cRequestType:CompData_SD_PD;
+    } else if (type == CHIDataType:CompData_UD_PD) {
+      return C2cRequestType:CompData_UD_PD;
+    } else if (type == CHIDataType:NCBWrData) {
+      return C2cRequestType:NCBWrData;
+    } else if (type == CHIDataType:CBWrData_UC) {
+      return C2cRequestType:CBWrData_UC;
+    } else if (type == CHIDataType:CBWrData_SC) {
+      return C2cRequestType:CBWrData_SC;
+    } else if (type == CHIDataType:CBWrData_I) {
+      return C2cRequestType:CBWrData_I;
+    } else if (type == CHIDataType:CBWrData_SD_PD) {
+      return C2cRequestType:CBWrData_SD_PD;
+    } else if (type == CHIDataType:CBWrData_UD_PD) {
+      return C2cRequestType:CBWrData_UD_PD;
+    } else if (type == CHIDataType:SnpRespData_I_PD) {
+      return C2cRequestType:SnpRespData_I_PD;
+    } else if (type == CHIDataType:SnpRespData_I) {
+      return C2cRequestType:SnpRespData_I;
+    } else if (type == CHIDataType:SnpRespData_SC_PD) {
+      return C2cRequestType:SnpRespData_SC_PD;
+    } else if (type == CHIDataType:SnpRespData_SC) {
+      return C2cRequestType:SnpRespData_SC;
+    } else if (type == CHIDataType:SnpRespData_SD) {
+      return C2cRequestType:SnpRespData_SD;
+    } else if (type == CHIDataType:SnpRespData_UC) {
+      return C2cRequestType:SnpRespData_UC;
+    } else if (type == CHIDataType:SnpRespData_UD) {
+      return C2cRequestType:SnpRespData_UD;
+    } else if (type == CHIDataType:SnpRespData_SC_Fwded_SD_PD) {
+      return C2cRequestType:SnpRespData_SC_Fwded_SD_PD;
+    } else if (type == CHIDataType:SnpRespData_SC_Fwded_SC) {
+      return C2cRequestType:SnpRespData_SC_Fwded_SC;
+    } else if (type == CHIDataType:SnpRespData_SC_PD_Fwded_SC) {
+      return C2cRequestType:SnpRespData_SC_PD_Fwded_SC;
+    } else if (type == CHIDataType:SnpRespData_I_Fwded_SD_PD) {
+      return C2cRequestType:SnpRespData_I_Fwded_SD_PD;
+    } else if (type == CHIDataType:SnpRespData_I_PD_Fwded_SC) {
+      return C2cRequestType:SnpRespData_I_PD_Fwded_SC;
+    } else if (type == CHIDataType:SnpRespData_I_Fwded_SC) {
+      return C2cRequestType:SnpRespData_I_Fwded_SC;
+    } else {
+      DPRINTF(RubyC2c, "Type: %s\n", type);
+      error("Unexpected CHIData type");
+    }
+  }
   ////////////////////////////////////////////////////////////////////////////
   // Input/output ports definitions
   ////////////////////////////////////////////////////////////////////////////
@@ -478,8 +732,9 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.requestor := in_msg.requestor;
       tbe.allowRetry := in_msg.allowRetry;
       tbe.size := in_msg.messageSize;
-      tbe.dataToFwdRequestor := in_msg.dataToFwdRequestor; //TODO: add to tbe
-      tbe.fwdRequestor := in_msg.fwdRequestor; //TODO: add to tbe
+      tbe.dataToFwdRequestor := in_msg.dataToFwdRequestor;
+      // Doesn't make sense to keep the fwdRequestor field
+      //tbe.fwdRequestor := in_msg.fwdRequestor;
       tbe.accAddr := in_msg.accAddr;
       tbe.accSize := in_msg.accSize;
       tbe.resToSrc := in_msg.retToSrc;
@@ -489,7 +744,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
   action(initializeTBEFromC2cReq, "itbefc2cr", desc="Initialize TBE fields from c2c-size req") {
     assert(is_valid(tbe));
     peek(c2cReqRdyInPort, C2cMsg) {
-      tbe.c2cType := in_msg.Type; //TODO: add c2cType to tbe
+      tbe.toNetReqType := in_msg.Type;
       tbe.requestor := in_msg.Requestor;
       tbe.allowRetry := in_msg.AllorRetry;
       tbe.size := in_msg.MessageSize;
@@ -560,7 +815,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     assert(is_valid(tbe));
     enqueue(datOutPort, CHIDataMsg, data_latency) {
       out_msg.addr := address;
-      out_msg.type := tbe.c2cMsgToCHIDat(c2cType); //TODO: add the method
+      out_msg.type := tbe.c2cMsgToCHIData(c2cType); 
       out_msg.dataBlk := tbe.dataBlk;
       out_msg.responder := tbe.machineID;
       out_msg.usesTxnId := tbe.usesTxnId; //TODO: add to tbe
