@@ -107,7 +107,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     bool stale, desc="Stores the stale status for responses";
 
     // Storing types
-    CHIRequestType to_c2c_req_type, desc="Temporarily stores the request type";
+    CHIRequestType toC2cReqType, desc="Temporarily stores the request type";
     C2cRequestType to_net_req_type, desc="Temporarily stores the c2c request type";
 
     CHIRequestType to_c2c_snp_type, desc="Temporarily stores the snoop type";
@@ -474,7 +474,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     assert(is_valid(tbe));
     peek(reqRdyInPort, CHIRequestMsg) {
       // Saving multiple fields for message forwarding
-      tbe.netType := in_msg.type; //TODO: add netType to tbe
+      tbe.toC2cReqType := in_msg.type; 
       tbe.requestor := in_msg.requestor;
       tbe.allowRetry := in_msg.allowRetry;
       tbe.size := in_msg.messageSize;
