@@ -527,7 +527,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     }
   }
 
-  action(sendToNet_snoop, "stns", desc="Sends snoop to the network") {
+  action(sendToNet_Rnoop, "stns", desc="Sends snoop to the network") {
     assert(is_valid(tbe));
     enqueue(snpOutPort, CHIRequestMsg, request_latency) {
       out_msg.addr := address;
@@ -545,7 +545,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     }
   }
 
-  action(sendToNet_response, "stnrsp", desc="Sends response to the network") {
+  action(sendToNet_Response, "stnrsp", desc="Sends response to the network") {
     assert(is_valid(tbe));
     enqueue(rspOutPort, CHIResponseMsg, response_latency) {
       out_msg.addr := address;
@@ -656,15 +656,54 @@ machine(MachineType:Interface, "Forwarding C2CI") :
 
   // Snp
   //// Net
-
+  transition(Ready, Net_Snoop, READY) {
+    allocateTBE;
+    initializeTBEFromNetRequest;
+    sendToC2c_Snoop; // TODO: Add
+    popSnpInQueue;
+    deallocateTBE;
+  }
   //// C2c
+  transition(Ready, C2c_Snoop, READY) {
+    allocateTBE;
+    initializeTBEFromC2cRequest;
+    sendToNet_Snoop;
+    popC2cReqInQueue;
+    deallocateTBE;
+  }
 
   // Rsp
   //// Net
-
+  transition(Ready, Net_Response, READY) {
+    allocateTBE;
+    initializeTBEFromNetResponse; // TODO: Add
+    sendToC2c_Response; // TODO: Add
+    popRspInQueue;
+    deallocateTBE;
+  }
   //// C2c
+  transition(Ready, C2c_Response, READY) {
+    allocateTBE;
+    initializeTBEFromC2cResponse; // TODO: Add
+    sendToNet_Response;
+    popC2cRspInQueue;
+    deallocateTBE;
+  }
 
   // Dat
   //// Net
-
+  transition(Ready, Net_Data, READY) {
+    allocateTBE;
+    initalizeTBEFromNetData; // TODO: Add
+    sendToC2c_Data;
+    popDatInQueue;
+    deallocateTBE;
+  }
   //// C2c
+  transition(Ready, C2c_Data, READY) { //TODO: Add C2c_Data
+    allocateTBE;
+    initalizeTBEFromC2cData; // TODO: Add
+    sendToNet_Data;
+    popC2cRespInQueue;
+    deallocateTBE;
+  }
