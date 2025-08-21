@@ -48,12 +48,12 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     READY, AccessPermission:Backing_Store,  desc="Ready - default state";
 
     NET_REQ, AccessPermission:Invalid,      desc="Network-side request";
-    NET_DAT, AccessPermissison:Invalid,      desc="Network-side data";
-    NET_RES, AccessPermissison:Invalid,      desc="Network-side response";
+    NET_DAT, AccessPermission:Invalid,      desc="Network-side data";
+    NET_RES, AccessPermission:Invalid,      desc="Network-side response";
 
-    C2C_REQ, AccessPermissison:Invalid,      desc="C2C-side request";
-    C2C_DAT, AccessPermissison:Invalid,      desc="C2C-side data";
-    C2C_RES, AccessPermissison:Invalid,      desc="C2C-side response";
+    C2C_REQ, AccessPermission:Invalid,      desc="C2C-side request";
+    C2C_DAT, AccessPermission:Invalid,      desc="C2C-side data";
+    C2C_RES, AccessPermission:Invalid,      desc="C2C-side response";
 
     null, AccessPermission:Backing_Store,   desc="Null state";
   }
