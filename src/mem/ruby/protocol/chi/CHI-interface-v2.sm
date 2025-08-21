@@ -738,7 +738,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     tbe.useDataSepResp := false;
   }
 
-  action(initializeTBEFromReq, "itbefr", desc="Initialize TBE fields from net-side req") {
+  action(initializeTBEFromNetRequest, "itbefr", desc="Initialize TBE fields from net-side req") {
     assert(is_valid(tbe));
     peek(reqRdyInPort, CHIRequestMsg) {
       // Saving multiple fields for message forwarding
@@ -755,7 +755,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     }
   }
 
-  action(initializeTBEFromC2cReq, "itbefc2cr", desc="Initialize TBE fields from c2c-size req") {
+  action(initializeTBEFromC2cRequest, "itbefc2cr", desc="Initialize TBE fields from c2c-size req") {
     assert(is_valid(tbe));
     peek(c2cReqRdyInPort, C2cMsg) {
       tbe.to_net_req_type := in_msg.Type;
@@ -843,12 +843,12 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.addr := address;
       out_msg.type := tbe.to_net_dat_type; 
       out_msg.dataBlk := tbe.dataBlk;
-      out_msg.responder := tbe.machineID;
+      out_msg.responder := machineID;
       out_msg.usesTxnId := tbe.usesTxnId; 
       out_msg.txnId := tbe.txnId;
       // If there is an alignment issue look here
       // out_msg.bitMask.setMask(...)
-      out_msg.Destination := tbe.originalC2cRequestor; // --> This info should be in the fields of the inbound C2C response Data
+      out_msg.Destination := tbe.originalRequestor; // --> This info should be in the fields of the inbound C2C response Data
     }
   }
 
@@ -877,39 +877,39 @@ machine(MachineType:Interface, "Forwarding C2CI") :
   }
 
   // Dequeueing actions
-  action(popReqInQueue, "priq", desc="Pop request in queue.") {
+  action(popReqInQueue, "priq", desc="Pop request in queue") {
     reqInPort.dequeue(clockEdge());
   }
 
-  action(popReqRdyInQueue, "prreq", desc="Pop request queue.") {
+  action(popReqRdyInQueue, "prreq", desc="Pop request queue") {
     reqRdyInPort.dequeue(clockEdge());
   }
 
-  action(popSnpInQueue, "psnp", desc="Pop snoop queue.") {
+  action(popSnpInQueue, "psnp", desc="Pop snoop queue") {
     snpInPort.dequeue(clockEdge());
   }
 
-  action(popC2cReqRdyInQueue, "pcreq", decs="Pop c2c request queue.") {
+  action(popC2cReqRdyInQueue, "pcreq", decs="Pop c2c request queue") {
     c2cReqRdyInPort.dequeue(clockEdge());
   }
 
-  action(popDataInQueue, "pdata", desc="Pop data queue.") {
+  action(popDataInQueue, "pdata", desc="Pop data queue") {
     datInPort.dequeue(clockEdge());
   }
 
-  action(popRspInQueue, "presp", desc="Pop resp queue.") {
+  action(popRspInQueue, "presp", desc="Pop resp queue") {
     rspInPort.dequeue(clockEdge());
   }
 
-  action(popTriggerQueue, "ptrigger", desc="Pop trigger queue.") {
+  action(popTriggerQueue, "ptrigger", desc="Pop trigger queue") {
     triggerInPort.dequeue(clockEdge());
   }
 
-  action(popResponseFromC2cQueue, "pmem", desc="Pop memory queue.") {
+  action(popResponseFromC2cQueue, "pmem", desc="Pop memory queue") {
     responseFromC2c_in.dequeue(clockEdge());
   }
 
-  action(popRequestFromC2cQueue, "prfc2c", desc="Pop request from c2c queue.") {
+  action(popRequestFromC2cQueue, "prfc2c", desc="Pop request from c2c queue") {
     requestFromC2c_in.dequeue(clockEdge());
   }
 
@@ -921,7 +921,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
   //// Net
   transition(READY, Net_Request, READY) {
     allocateTBE;
-    initializeTBEFromNetRequest; // TOTO: Add 
+    initializeTBEFromNetRequest;
     sendToC2c_Request;
     popReqInQueue;
     deallocateTBE;
@@ -929,9 +929,10 @@ machine(MachineType:Interface, "Forwarding C2CI") :
   //// C2c
   transition(READY, C2c_Request, READY) {
     allocateTBE;
-    initializeTBEFromC2cRequest; // TODO: Add
+    initializeTBEFromC2cRequest;
     sendToNet_Request;
-    popC2cReqInQueue; // TODO: Add + Bypass the ReqRdyQueue ?
+    popRequestFromC2cQueue;
+    //popC2cReqInQueue; // TODO: Add + Bypass the ReqRdyQueue ?
     deallocateTBE;
   }
 
@@ -949,7 +950,8 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     allocateTBE;
     initializeTBEFromC2cRequest;
     sendToNet_Snoop;
-    popC2cReqInQueue;
+    popRequestFromC2cQueue;
+    //popC2cReqRdyInQueue;
     deallocateTBE;
   }
 
@@ -967,7 +969,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     allocateTBE;
     initializeTBEFromC2cResponse; // TODO: Add
     sendToNet_Response;
-    popC2cRspInQueue;
+    popResponseFromC2cQueue;
     deallocateTBE;
   }
 
@@ -985,7 +987,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     allocateTBE;
     initalizeTBEFromC2cData; // TODO: Add
     sendToNet_Data;
-    popC2cRespInQueue;
+    popResponseFromC2cQueue;
     deallocateTBE;
   }
 }
