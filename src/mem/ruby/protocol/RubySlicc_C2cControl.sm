@@ -96,6 +96,9 @@ structure(C2cMsg, desc="...", interface="Message") {
   bool Priority,                desc="This request has the priority";
   bool DataToFwdRequestor,      desc="Indicated that data needs forwarding";
 
+  Addr AccAddr,                 desc="Original access address. Set for Write*Ptl and requests from the sequencer";
+  int AccSize,                  desc="Access size. Set for Write*Ptl and requests from the sequencer";
+
   DataBlock DataBlk,            desc="Data to writeback";
   MessageSizeType MessageSize,  desc="size category of the message";
   int Len,                      desc="size of the memory/dma request";
