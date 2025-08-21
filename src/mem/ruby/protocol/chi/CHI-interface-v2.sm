@@ -92,6 +92,9 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     WriteMask dataBlkValid, desc="valid bytes in dataBlk";
     int rxtxBytes, desc="Bytes sent or received";
     bool dataToFwdRequestor, desc="Is the Data to be fwded to requestor";
+    bool usesTxnId, desc="Uses a transaction ID instead of an address (for DMV)";
+    Addr txnId,           desc="Transaction ID", default="0";
+    MessageSizeType messageSize, default="MessageSizeType_Control";
 
     MachineID requestor, desc="Requestor that originated this request";
     MachineID destination, desc="Where we are sending data";
@@ -99,7 +102,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     bool useDataSepResp, desc="Replies with DataSepResp instead of CompData";
 
     MegaNetDest c2c_sharers, desc="Stores the c2c_sharers when sending a response";
-    MachineID c2c_requestor, desc="Stores the off-chip requestor";
+    MachineID originalC2cRequestor, desc="Stores the off-chip requestor";
     
     // MegaNetDest test object
     MegaNetDest megaNetDest, desc="test object";
@@ -773,16 +776,20 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.type := c2cMsgToCHIReq(tbe.c2c_type);
       out_msg.requestor := machineID;
       out_msg.fwdRequestor := machineID;
+      out_msg.dataToFwdRequestor := tbe.dataToFwdRequestor; // TODO: Add to TBE
+      out_msg.retToSrc := tbe.retToSrc;
+      out_msg.allowRetry := tbe.allowRetry;
+      out_msg.Destination.add(mapAddressToDownstreamMachine(address));
+      out_msg.seqReq := tbe.seqReq; // TODO: Add to TBE
       out_msg.isSeqReqValid := tbe.isSeqReqValid;
       out_msg.is_local_pf := tbe.is_loval_pf;
-      out_msg.allowRetry := tbe.allowRetry;
       out_msg.is_remote_pf := tbe.is_remote_pf;
-      out_msg.retToSrc := tbe.retToSrc;
-      out_msg.Destination.add(mapAddressToDownstreamMachine(address));
+      out_msg.usesTxnId := tbe.usesTxnId;
+      out_msg.MessageSize := tbe.MessageSize;
     }
   }
 
-  action(sendToNet_Rnoop, "stns", desc="Sends snoop to the network") {
+  action(sendToNet_Snoop, "stns", desc="Sends snoop to the network") {
     assert(is_valid(tbe));
     enqueue(snpOutPort, CHIRequestMsg, request_latency) {
       out_msg.addr := address;
@@ -791,12 +798,17 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.type := c2cMsgToCHIReq(tbe.c2c_type);
       out_msg.requestor := machineID;
       out_msg.fwdRequestor := machineID;
+      out_msg.dataToFwdRequestor := tbe.dataToFwdRequestor; 
+      out_msg.retToSrc := tbe.retToSrc;
+      out_msg.allowRetry := tbe.allowRetry;
+      out_msg.Destination := tbe.localDest;
+      out_msg.seqReq := tbe.seqReq; 
       out_msg.isSeqReqValid := tbe.isSeqReqValid;
       out_msg.is_local_pf := tbe.is_loval_pf;
-      out_msg.allowRetry := tbe.allowRetry;
       out_msg.is_remote_pf := tbe.is_remote_pf;
-      out_msg.retToSrc := tbe.retToSrc;
-      out_msg.Destination := tbe.localDest;
+      out_msg.usesTxnId := tbe.usesTxnId;
+      out_msg.MessageSize := tbe.MessageSize;
+
     }
   }
 
@@ -808,6 +820,9 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.responder := tbe.responder;
       out_msg.Destination.add(tbe.originalRequestor);
       out_msg.stale := tbe.stale;
+      out_msg.usesTxnId := tbe.usesTxnId;
+      out_msg.txnId := tbe.txnId;
+      out_msg.MessageSize := tbe.MessageSize;
     }
   }
 
@@ -818,11 +833,11 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.type := tbe.c2cMsgToCHIData(c2cType); 
       out_msg.dataBlk := tbe.dataBlk;
       out_msg.responder := tbe.machineID;
-      out_msg.usesTxnId := tbe.usesTxnId; //TODO: add to tbe
-      out_msg.txnId := tbe.txnId; //TODO: add to tbe
+      out_msg.usesTxnId := tbe.usesTxnId; 
+      out_msg.txnId := tbe.txnId;
       // If there is an alignment issue look here
       // out_msg.bitMask.setMask(...)
-      out_msg.Destination := tbe.localDest; //TODO: Where does localDest come from
+      out_msg.Destination := tbe.originalC2cRequestor; // --> This info should be in the fields of the inbound C2C response Data
     }
   }
 
@@ -833,7 +848,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.Type := CHIReqToC2cMsg(tbe.netType);
       out_msg.Sender := tbe.requestor;
       out_msg.C2c_requestor := tbe.requestor;
-      out_msg.MessageSize := tbe.messageSize; //TODO: add to tbe (?)
+      out_msg.MessageSize := tbe.messageSize; 
       out_msg.AllowRetry := tbe.allowRetry;
     }
   }

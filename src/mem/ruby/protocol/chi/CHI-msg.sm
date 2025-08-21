@@ -101,14 +101,18 @@ structure(CHIRequestMsg, desc="", interface="Message") {
   bool retToSrc,            desc="Affects whether or not a snoop resp returns data";
   bool allowRetry,          desc="This request can be retried";
   NetDest Destination,      desc="Message destination";
+
+
+  // c2c-specific field
+  // TODO: Clean what's needed or not here
   MegaNetDest MegaDestination, desc="Message destination of type MegaNetDest";
   NetDest c2c_destination, desc="off-chip destination";
 
-  // c2c off-chip sharer field
   MegaNetDest c2c_sharers, desc="off-chip sharer";
   MachineID c2c_requestor, desc="off-chip requestor";
   bool off_chip, desc="off-chip flag";
   bool c2cOrig, default="false", desc="Originates from the interface";
+  /////////
 
   RequestPtr seqReq,        default="nullptr", desc="Pointer to original request from CPU/sequencer (nullptr if not valid)";
   bool isSeqReqValid,       default="false",   desc="Set if seqReq is valid (not nullptr)";
