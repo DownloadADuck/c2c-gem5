@@ -81,7 +81,8 @@ structure(C2cMsg, desc="...", interface="Message") {
   C2cRequestType Type,          desc="Type of memory request (MEMORY_READ or MEMORY_WB)";
   MachineID Sender,             desc="What component sent the data";
   MachineID OriginalRequestorMachId, desc="What component originally requested";
-
+  MachineID Requestor,          desc="Request initiator";
+  MachineID FwdRequestor,       desc="Destination for forwarded data";
   MachineID Responder,          desc="Responder that sent the response msg";
 
   // C2c sharer field
@@ -93,6 +94,7 @@ structure(C2cMsg, desc="...", interface="Message") {
   bool ReqAck,                  desc="This message is a request to send a request";
   bool AllowRetry,              desc="allowRetry field";
   bool Priority,                desc="This request has the priority";
+  bool DataToFwdRequestor,      desc="Indicated that data needs forwarding";
 
   DataBlock DataBlk,            desc="Data to writeback";
   MessageSizeType MessageSize,  desc="size category of the message";

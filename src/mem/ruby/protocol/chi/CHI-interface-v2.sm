@@ -34,10 +34,6 @@ machine(MachineType:Interface, "Forwarding C2CI") :
 
   // Trigger queue for internal event
   MessageBuffer * triggerQueue;
-
-  // Stalled messages queues
-  MessageBuffer * stalled;
-  MessageBuffer * stalledSnoops;
 {
 
   ////////////////////////////////////////////////////////////////////////////
@@ -62,7 +58,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
   // Events
   ////////////////////////////////////////////////////////////////////////////
 
-  enumaration(Event, desc="C2CI events") {
+  enumeration(Event, desc="C2CI events") {
     CheckAllocTBE,        desc="Network-side check - available resources";
     CheckC2cReqAllocTBE,  desc="C2C-side check - available resources";
 
@@ -75,6 +71,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     C2c_Response,         desc="Inbound c2c-side response";
 
     Trigger_Send,         desc="Trigger message send";
+    Trigger_SendRetry,    desc="Trigger sending a retry message";
   }
 
   ///// POSSIBLE EVENT MANAGEMENT METHODS HERE
@@ -93,6 +90,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     int rxtxBytes, desc="Bytes sent or received";
     bool dataToFwdRequestor, desc="Is the Data to be fwded to requestor";
     bool usesTxnId, desc="Uses a transaction ID instead of an address (for DMV)";
+    bool allowRetry, desc="Message field - allows retry";
     Addr txnId,           desc="Transaction ID", default="0";
     MessageSizeType messageSize, default="MessageSizeType_Control";
 
@@ -158,7 +156,12 @@ machine(MachineType:Interface, "Forwarding C2CI") :
 
     bool functionalRead(Packet *pkt) { return false; }
     bool functionalRead(Packet *pkt, WriteMask &mask) { return false; }
-    bool functionalWrite(Packet *pkt) { return falsel }
+    bool functionalWrite(Packet *pkt) { return false; }
+  }
+
+  structure(RetryQueueEntry) {
+    Addr addr,            desc="Line address";
+    MachineID retryDest,  desc="Retry destination";
   }
 
   structure(TriggerQueue, external="yes") {
@@ -271,17 +274,17 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     }
   }
 
-  void clearExpectedReqResp(TBE tbe) {
-    assert(blockSize >= data_channel_size);
-    assert((blockSize % data_channel_size) == 0);
-    tbe.expected_req_resp.clear(blockSize / data_channel_size);
-  }
+  //void clearExpectedReqResp(TBE tbe) {
+  //  assert(blockSize >= data_channel_size);
+  //  assert((blockSize % data_channel_size) == 0);
+  //  tbe.expected_req_resp.clear(blockSize / data_channel_size);
+  //}
 
-  void clearExpectedReq(TBE tbe) {
-    assert(blockSize >= data_channel_size);
-    assert((blockSize % data_channel_size) == 0);
-    tbe.expected_req.clear(blockSize / data_channel_size);
-  }
+  //void clearExpectedReq(TBE tbe) {
+  //  assert(blockSize >= data_channel_size);
+  //  assert((blockSize % data_channel_size) == 0);
+  //  tbe.expected_req.clear(blockSize / data_channel_size);
+  //}
 
   ////////////////////////////////////////////////////////////////////////////
   // Helper functions
@@ -567,6 +570,8 @@ machine(MachineType:Interface, "Forwarding C2CI") :
 
     // Internal queues
   out_port(triggerOutPort, TriggerMsg, triggerQueue);
+  out_port(reqRdyOutPort, CHIRequestMsg, reqRdy);
+  out_port(c2cReqRdyOutPort, C2cMsg, c2cReqRdy);
 
   // Input ports 
   //// Requests
@@ -609,7 +614,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
 
   //// Snoops
   in_port(snpInPort, CHIRequestMsg, snpIn, rank=1) {
-    if (snpInPort.isRead(clockEdge())) {
+    if (snpInPort.isReady(clockEdge())) {
       printResources();
       peek(snpInPort, CHIRequestMsg) {
         trigger(Event:CheckAllocTBE, in_msg.addr, TBEs[in_msg.addr]);
@@ -643,7 +648,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       printResources();
       peek(datInPort, CHIDataMsg) {
         assert((in_msg.bitMask.count() <= data_channel_size)
-            && (in_msg.bitMask.count() > 0);
+            && (in_msg.bitMask.count() > 0));
         trigger(Event:Net_Data, in_msg.addr, TBEs[in_msg.addr]);
       }
     }
@@ -720,7 +725,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
 
       TBEs.allocate(address);
       set_tbe(TBEs[address]);
-      tbe.storSlots := storTBEs.addEntryToNewSlot();
+      tbe.storSlot := storTBEs.addEntryToNewSlot();
     }
     tbe.addr := address;
     tbe.rxtxBytes := 0;
@@ -734,13 +739,13 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.toC2cReqType := in_msg.type; 
       tbe.requestor := in_msg.requestor;
       tbe.allowRetry := in_msg.allowRetry;
-      tbe.size := in_msg.messageSize;
+      tbe.size := in_msg.MessageSize;
       tbe.dataToFwdRequestor := in_msg.dataToFwdRequestor;
       // Doesn't make sense to keep the fwdRequestor field
       //tbe.fwdRequestor := in_msg.fwdRequestor;
       tbe.accAddr := in_msg.accAddr;
       tbe.accSize := in_msg.accSize;
-      tbe.resToSrc := in_msg.retToSrc;
+      tbe.retToSrc := in_msg.retToSrc;
     }
   }
 
@@ -749,10 +754,10 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     peek(c2cReqRdyInPort, C2cMsg) {
       tbe.toNetReqType := in_msg.Type;
       tbe.requestor := in_msg.Requestor;
-      tbe.allowRetry := in_msg.AllorRetry;
+      tbe.allowRetry := in_msg.AllowRetry;
       tbe.size := in_msg.MessageSize;
       tbe.dataToFwdRequestor := in_msg.DataToFwdRequestor;
-      tbe.fwdRequestor := in_msg.fwdRequestor;
+      tbe.fwdRequestor := in_msg.FwdRequestor;
       tbe.accAddr := in_msg.accAddr;
       tbe.accSize := in_msg.accSize;
       tbe.resToSrc := in_msg.retToSrc;
@@ -977,3 +982,4 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     popC2cRespInQueue;
     deallocateTBE;
   }
+}
