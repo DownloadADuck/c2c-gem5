@@ -100,6 +100,7 @@ structure(C2cMsg, desc="...", interface="Message") {
   int AccSize,                  desc="Access size. Set for Write*Ptl and requests from the sequencer";
 
   DataBlock DataBlk,            desc="Data to writeback";
+  WriteMask BitMask,            desc="Which bytes in the data block are valid";
   MessageSizeType MessageSize,  desc="size category of the message";
   int Len,                      desc="size of the memory/dma request";
 
