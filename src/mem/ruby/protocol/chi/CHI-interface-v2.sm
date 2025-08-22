@@ -63,10 +63,12 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     CheckC2cReqAllocTBE,  desc="C2C-side check - available resources";
 
     Net_Request,          desc="Inbound network-side request";
+    Net_Snoop,            desc="Inbound network-side snoop";
     Net_Data,             desc="Inbound network-side data";
     Net_Response,         desc="Inbound network-side response";
 
     C2c_Request,          desc="Inbound c2c-side request";
+    C2c_Snoop,            desc="Inbound c2c-side snoop";
     C2c_Data,             desc="Inbound c2c-side data";
     C2c_Response,         desc="Inbound c2c-side response";
 
@@ -78,7 +80,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
 
   // Cache block size
   int blockSize, default="RubySystem::getBlockSizeBytes()";
-
+  // TBE fields
   structure(TBE, desc="TBE for temporary storage") {
     int storSlot,   desc="Slot in the storage tracker occupied by this entry";
     Addr addr,      desc="Line address for this TBE";
@@ -755,6 +757,19 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     }
   }
 
+  action(initializeTBEFromNetResponse, "itfnr", desc="Initialize TBE fields from net-side rsp") {
+    assert(is_valid(tbe));
+    peek(rspInPort, CHIResponseMsg) {
+      tbe.to_c2c_rsp_type := in_msg.type;
+      tbe.responder := in_msg.responder;
+      tbe.stale := in_msg.stale;
+      tbe.usesTxnId := in_msg.usesTxnId;
+      tbe.txnId := in_msg.txnId;
+      tbe.c2c_sharers := in_msg.c2c_sharers;
+      tbe.MessageSize := in_msg.MessageSize;
+    }
+  }
+
   action(initializeTBEFromC2cRequest, "itbefc2cr", desc="Initialize TBE fields from c2c-size req") {
     assert(is_valid(tbe));
     peek(c2cReqRdyInPort, C2cMsg) {
@@ -864,6 +879,28 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     }
   }
 
+  action(sendToC2c_Snoop, "stcs", desc="Sends a snoop to the c2c link") {
+    assert(is_valid(tbe));
+    enqueue(requestToC2c_out, C2cMsg, c2c_req_latency) {
+      out_msg.addr := address;
+      out_msg.AccAddr := tbe.accAddr;
+      out_msg.AccSize := tbe.accSize;
+      out_msg.Sender := tbe.requestor;
+      out_msg.Type := CHIReqToC2cMsg(tbe.to_c2c_snp_type);
+      out_msg.Requestor := machineID;
+      out_msg.FwdRequestor := machineID;
+      out_msg.DataToFwdRequestor := tbe.dataToFwdRequestor; 
+      out_msg.RetToSrc := tbe.retToSrc;
+      out_msg.AllowRetry := tbe.allowRetry;
+      out_msg.SeqReq := tbe.seqReq; 
+      out_msg.IsSeqReqValid := tbe.isSeqReqValid;
+      out_msg.Is_local_pf := tbe.is_local_pf;
+      out_msg.Is_remote_pf := tbe.is_remote_pf;
+      out_msg.UsesTxnId := tbe.usesTxnId;
+      out_msg.MessageSize := tbe.MessageSize;
+    }
+  }
+
   action(sendToC2c_response, "stcrsp", desc="Sends responses to the c2c link") {
     assert(is_valid(tbe));
     enqueue(responseToC2c_out, C2cMsg, response_latency) {
@@ -938,7 +975,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
 
   // Snp
   //// Net
-  transition(Ready, Net_Snoop, READY) {
+  transition(READY, Net_Snoop, READY) {
     allocateTBE;
     initializeTBEFromNetRequest;
     sendToC2c_Snoop; // TODO: Add
@@ -946,7 +983,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     deallocateTBE;
   }
   //// C2c
-  transition(Ready, C2c_Snoop, READY) {
+  transition(READY, C2c_Snoop, READY) {
     allocateTBE;
     initializeTBEFromC2cRequest;
     sendToNet_Snoop;
@@ -957,7 +994,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
 
   // Rsp
   //// Net
-  transition(Ready, Net_Response, READY) {
+  transition(READY, Net_Response, READY) {
     allocateTBE;
     initializeTBEFromNetResponse; // TODO: Add
     sendToC2c_Response; // TODO: Add
@@ -965,7 +1002,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     deallocateTBE;
   }
   //// C2c
-  transition(Ready, C2c_Response, READY) {
+  transition(READY, C2c_Response, READY) {
     allocateTBE;
     initializeTBEFromC2cResponse; // TODO: Add
     sendToNet_Response;
@@ -975,7 +1012,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
 
   // Dat
   //// Net
-  transition(Ready, Net_Data, READY) {
+  transition(READY, Net_Data, READY) {
     allocateTBE;
     initalizeTBEFromNetData; // TODO: Add
     sendToC2c_Data;
@@ -983,7 +1020,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     deallocateTBE;
   }
   //// C2c
-  transition(Ready, C2c_Data, READY) { //TODO: Add C2c_Data
+  transition(READY, C2c_Data, READY) { //TODO: Add C2c_Data
     allocateTBE;
     initalizeTBEFromC2cData; // TODO: Add
     sendToNet_Data;
