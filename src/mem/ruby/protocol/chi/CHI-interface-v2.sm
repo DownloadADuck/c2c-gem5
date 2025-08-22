@@ -590,7 +590,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     if (reqInPort.isReady(clockEdge())) {
       printResources();
       peek(reqInPort, CHIRequestMsg) {
-        trigger(Event:CheckAllocTBE, in_msg.addr, TBEs[in_msg.addr]);
+        trigger(Event:Net_Request, in_msg.addr, TBEs[in_msg.addr]);
       }
     }
   }
@@ -599,7 +599,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     if (requestFromC2c_in.isReady(clockEdge())) {
       printResources();
       peek(requestFromC2c_in, C2cMsg) {
-        trigger(Event:CheckC2cReqAllocTBE, in_msg.addr, TBEs[in_msg.addr]);
+        trigger(Event:C2c_Request, in_msg.addr, TBEs[in_msg.addr]);
       }
     }
   }
@@ -681,34 +681,14 @@ machine(MachineType:Interface, "Forwarding C2CI") :
   action(checkAllocateTBE, desc="Check if TBE slots are available for net req") {
     if (storTBEs.areNSlotsAvailable(1)) {
       storTBEs.incrementReserved();
-
-      // Enqueues the request in the internal queue
-      peek(reqInPort, CHIRequestMsg) {
-        enqueue(reqRdyOutPort, CHIRequestMsg, 0) {
-          out_msg := in_msg;
-        }
-      }
     } else {
-      peek(reqInPort, CHIRequestMsg) {
-        assert(in_msg.allowRetry);
-        enqueue(triggerOutPort, TriggerMsg, 0) {
-          out_msg.addr := in_msg.addr;
-          out_msg.event := Event:Trigger_SendRetry;
-          out_msg.retryDest := in_msg.requestor;
-          retryQueue.emplace(in_msg.addr, in_msg.requestor);
-        }
-      }
+      error("checkAllocateTBE: No TBE slots available on network-side request.");
     }
   }
 
-  action(checkC2cReqAllocateTBE, desc="Check if TBE slots are available for c2c req") {
+  action(checkC2cAllocateTBE, desc="Check if TBE slots are available for c2c req") {
     if (storTBEs.areNSlotsAvailable(1)) {
       storTBEs.incrementReserved();
-      peek(requestFromC2c_in, C2cMsg) {
-        enqueue(c2cReqRdyOutPort, C2cMsg, 0) {
-          out_msg := in_msg;
-        }
-      }
     } else {
       error("checkC2cReqAllocateTBE: No TBE slots available on C2C-side request.");
     }
@@ -744,7 +724,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
 
   action(initializeTBEFromNetRequest, "itbefr", desc="Initialize TBE fields from net-side req") {
     assert(is_valid(tbe));
-    peek(reqRdyInPort, CHIRequestMsg) {
+    peek(reqInPort, CHIRequestMsg) {
       // Saving multiple fields for message forwarding
       tbe.to_c2c_req_type := in_msg.type; 
       tbe.requestor := in_msg.requestor;
@@ -788,7 +768,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
 
   action(initializeTBEFromC2cRequest, "itbefc2cr", desc="Initialize TBE fields from c2c-size req") {
     assert(is_valid(tbe));
-    peek(c2cReqRdyInPort, C2cMsg) {
+    peek(requestFromC2c_in, C2cMsg) {
       tbe.to_net_req_type := in_msg.Type;
       tbe.requestor := in_msg.Requestor;
       tbe.allowRetry := in_msg.AllowRetry;
@@ -1002,7 +982,8 @@ machine(MachineType:Interface, "Forwarding C2CI") :
 
   // Req
   //// Net
-  transition(READY, Net_Request, READY) {
+  transition(READY, Net_Request) {
+    checkAllocateTBE;
     allocateTBE;
     initializeTBEFromNetRequest;
     sendToC2c_Request;
@@ -1010,7 +991,8 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     deallocateTBE;
   }
   //// C2c
-  transition(READY, C2c_Request, READY) {
+  transition(READY, C2c_Request) {
+    checkC2cAllocateTBE;
     allocateTBE;
     initializeTBEFromC2cRequest;
     sendToNet_Request;
@@ -1021,7 +1003,8 @@ machine(MachineType:Interface, "Forwarding C2CI") :
 
   // Snp
   //// Net
-  transition(READY, Net_Snoop, READY) {
+  transition(READY, Net_Snoop) {
+    checkAllocateTBE;
     allocateTBE;
     initializeTBEFromNetRequest;
     sendToC2c_Snoop;
@@ -1029,7 +1012,8 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     deallocateTBE;
   }
   //// C2c
-  transition(READY, C2c_Snoop, READY) {
+  transition(READY, C2c_Snoop) {
+    checkC2cAllocateTBE;
     allocateTBE;
     initializeTBEFromC2cRequest;
     sendToNet_Snoop;
@@ -1040,7 +1024,8 @@ machine(MachineType:Interface, "Forwarding C2CI") :
 
   // Rsp
   //// Net
-  transition(READY, Net_Response, READY) {
+  transition(READY, Net_Response) {
+    checkAllocateTBE;
     allocateTBE;
     initializeTBEFromNetResponse; 
     sendToC2c_Response;
@@ -1048,7 +1033,8 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     deallocateTBE;
   }
   //// C2c
-  transition(READY, C2c_Response, READY) {
+  transition(READY, C2c_Response) {
+    checkC2cAllocateTBE;
     allocateTBE;
     initializeTBEFromC2cResponse; 
     sendToNet_Response;
@@ -1058,7 +1044,8 @@ machine(MachineType:Interface, "Forwarding C2CI") :
 
   // Dat
   //// Net
-  transition(READY, Net_Data, READY) {
+  transition(READY, Net_Data) {
+    checkAllocateTBE;
     allocateTBE;
     initializeTBEFromNetData; 
     sendToC2c_Data;
@@ -1066,7 +1053,8 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     deallocateTBE;
   }
   //// C2c
-  transition(READY, C2c_Data, READY) { 
+  transition(READY, C2c_Data) { 
+    checkC2cAllocateTBE;
     allocateTBE;
     initializeTBEFromC2cResponse;
     // We don't need a specific initialization for C2cMsg with Data
