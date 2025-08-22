@@ -901,15 +901,18 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     }
   }
 
-  action(sendToC2c_response, "stcrsp", desc="Sends responses to the c2c link") {
+  action(sendToC2c_Response, "stcrsp", desc="Sends responses to the c2c link") {
     assert(is_valid(tbe));
     enqueue(responseToC2c_out, C2cMsg, response_latency) {
       //TODO: lacks fields
       out_msg.addr := tbe.addr;
-      out_msg.Responder := tbe.destination;
       out_msg.Type := CHIRspToC2cMsg(tbe.to_c2c_rsp_type);
-      out_msg.MessageSize := tbe.messageSize;
+      out_msg.Responder := tbe.destination;
       out_msg.Stale := tbe.stale;
+      out_msg.UsesTxnId := tbe.usesTxnId;
+      out_msg.TxnId := tbe.txnId;
+      out_msg.C2c_sharers := tbe.c2c_sharers;
+      out_msg.MessageSize := tbe.messageSize;
     }
   }
 
