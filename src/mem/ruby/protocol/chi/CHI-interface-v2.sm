@@ -88,8 +88,10 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     int  accSize,   desc="Access size. Set only for Write*Ptl";
     State state,    desc="Current line state";
     DataBlock dataBlk, desc="Transaction data";
-    WriteMask dataBlkValid, desc="valid bytes in dataBlk";
+    WriteMask dataBlkValid, desc="valid bytes in dataBlk"; // TODO: might not be needed
+    WriteMask bitMask, desc="Which bytes in the data block are valid";
     int rxtxBytes, desc="Bytes sent or received";
+
     bool dataToFwdRequestor, desc="Is the Data to be fwded to requestor";
     bool usesTxnId, desc="Uses a transaction ID instead of an address (for DMV)";
     bool allowRetry, desc="Message field - allows retry";
@@ -770,6 +772,20 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     }
   }
 
+  action(initializeTBEFromNetData, "itfnd", desc="Initialize TBE fields from net-side dat") {
+    assert(is_valid(tbe));
+    peek(datInPort, CHIDataMsg) {
+      tbe.to_c2c_dat_type := in_msg.type;
+      tbe.responder := in_msg.responder;
+      tbe.dataBlk := in_msg.dataBlk;
+      tbe.bitMask := in_msg.bitMask;
+      tbe.usesTxnId := in_msg.usesTxnId;
+      tbe.txnId := in_msg.txnId;
+      tbe.messageSize := in_msg.MessageSize;
+      tbe.c2c_sharers := in_msg.c2c_sharers;
+    }
+  }
+
   action(initializeTBEFromC2cRequest, "itbefc2cr", desc="Initialize TBE fields from c2c-size req") {
     assert(is_valid(tbe));
     peek(c2cReqRdyInPort, C2cMsg) {
@@ -782,6 +798,19 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.accAddr := in_msg.AccAddr;
       tbe.accSize := in_msg.AccSize;
       tbe.retToSrc := in_msg.RetToSrc;
+    }
+  }
+
+  action(initializeTBEFromC2cResponse, "itbefc2crsp", desc="Initialize TBE fields from c2c-side rsp") {
+    assert(is_valid(tbe));
+    peek(responseFromC2c_in, C2cMsg) {
+      tbe.to_net_rsp_type := in_msg.Type;
+      tbe.responder := in_msg.Responder;
+      tbe.stale := in_msg.Stale;
+      tbe.usesTxnId := in_msg.UsesTxnId;
+      tbe.txnId := in_msg.TxnId;
+      tbe.c2c_sharers := in_msg.C2c_sharers;
+      tbe.messageSize := in_msg.MessageSize;
     }
   }
 
@@ -972,7 +1001,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     initializeTBEFromC2cRequest;
     sendToNet_Request;
     popRequestFromC2cQueue;
-    //popC2cReqInQueue; // TODO: Add + Bypass the ReqRdyQueue ?
+    //popC2cReqInQueue; 
     deallocateTBE;
   }
 
@@ -981,7 +1010,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
   transition(READY, Net_Snoop, READY) {
     allocateTBE;
     initializeTBEFromNetRequest;
-    sendToC2c_Snoop; // TODO: Add
+    sendToC2c_Snoop;
     popSnpInQueue;
     deallocateTBE;
   }
@@ -999,15 +1028,15 @@ machine(MachineType:Interface, "Forwarding C2CI") :
   //// Net
   transition(READY, Net_Response, READY) {
     allocateTBE;
-    initializeTBEFromNetResponse; // TODO: Add
-    sendToC2c_Response; // TODO: Add
+    initializeTBEFromNetResponse; 
+    sendToC2c_Response;
     popRspInQueue;
     deallocateTBE;
   }
   //// C2c
   transition(READY, C2c_Response, READY) {
     allocateTBE;
-    initializeTBEFromC2cResponse; // TODO: Add
+    initializeTBEFromC2cResponse; 
     sendToNet_Response;
     popResponseFromC2cQueue;
     deallocateTBE;
@@ -1017,15 +1046,15 @@ machine(MachineType:Interface, "Forwarding C2CI") :
   //// Net
   transition(READY, Net_Data, READY) {
     allocateTBE;
-    initalizeTBEFromNetData; // TODO: Add
+    initializeTBEFromNetData; 
     sendToC2c_Data;
     popDatInQueue;
     deallocateTBE;
   }
   //// C2c
-  transition(READY, C2c_Data, READY) { //TODO: Add C2c_Data
+  transition(READY, C2c_Data, READY) { 
     allocateTBE;
-    initalizeTBEFromC2cData; // TODO: Add
+    initializeTBEFromC2cData; // TODO: Add
     sendToNet_Data;
     popResponseFromC2cQueue;
     deallocateTBE;
