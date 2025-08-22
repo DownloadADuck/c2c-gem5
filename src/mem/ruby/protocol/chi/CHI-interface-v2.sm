@@ -856,7 +856,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.dataToFwdRequestor := tbe.dataToFwdRequestor; 
       out_msg.retToSrc := tbe.retToSrc;
       out_msg.allowRetry := tbe.allowRetry;
-      out_msg.Destination := tbe.localDest;
+      out_msg.Destination := tbe.localDest.extractNetDest(chipID);
       out_msg.seqReq := tbe.seqReq; 
       out_msg.isSeqReqValid := tbe.isSeqReqValid;
       out_msg.is_local_pf := tbe.is_local_pf;
@@ -881,7 +881,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     }
   }
 
-  action(sendToNet_data, "stnd", desc="Sends data to the network") {
+  action(sendToNet_Data, "stnd", desc="Sends data to the network") {
     assert(is_valid(tbe));
     enqueue(datOutPort, CHIDataMsg, data_latency) {
       out_msg.addr := address;
@@ -892,7 +892,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.txnId := tbe.txnId;
       // If there is an alignment issue look here
       // out_msg.bitMask.setMask(...)
-      out_msg.Destination := tbe.originalRequestor; // --> This info should be in the fields of the inbound C2C response Data
+      out_msg.Destination.add(tbe.originalRequestor); // --> This info should be in the fields of the inbound C2C response Data
     }
   }
 
@@ -976,7 +976,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     c2cReqRdyInPort.dequeue(clockEdge());
   }
 
-  action(popDataInQueue, "pdata", desc="Pop data queue") {
+  action(popDatInQueue, "pdata", desc="Pop data queue") {
     datInPort.dequeue(clockEdge());
   }
 
@@ -1068,7 +1068,9 @@ machine(MachineType:Interface, "Forwarding C2CI") :
   //// C2c
   transition(READY, C2c_Data, READY) { 
     allocateTBE;
-    initializeTBEFromC2cData; // TODO: Add
+    initializeTBEFromC2cResponse;
+    // We don't need a specific initialization for C2cMsg with Data
+    //initializeTBEFromC2cData; // TODO: Add
     sendToNet_Data;
     popResponseFromC2cQueue;
     deallocateTBE;
