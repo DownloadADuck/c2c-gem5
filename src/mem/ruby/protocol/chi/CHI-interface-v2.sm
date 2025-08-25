@@ -808,6 +808,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.dataToFwdRequestor := in_msg.dataToFwdRequestor;
       // Doesn't make sense to keep the fwdRequestor field
       //tbe.fwdRequestor := in_msg.fwdRequestor;
+      tbe.originalRequestor := in_msg.requestor;
       tbe.accAddr := in_msg.accAddr;
       tbe.accSize := in_msg.accSize;
       tbe.retToSrc := in_msg.retToSrc;
@@ -823,6 +824,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.usesTxnId := in_msg.usesTxnId;
       tbe.txnId := in_msg.txnId;
       tbe.c2c_sharers := in_msg.c2c_sharers;
+      tbe.originalRequestor := in_msg.originalRequestor;
       tbe.MessageSize := in_msg.MessageSize;
     }
   }
@@ -846,6 +848,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     peek(requestFromC2c_in, C2cMsg) {
       tbe.to_net_req_type := in_msg.Type;
       tbe.requestor := in_msg.Requestor;
+      tbe.originalRequestor := in_msg.OriginalRequestor;
       tbe.allowRetry := in_msg.AllowRetry;
       tbe.size := in_msg.MessageSize;
       tbe.dataToFwdRequestor := in_msg.DataToFwdRequestor;
@@ -865,6 +868,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.usesTxnId := in_msg.UsesTxnId;
       tbe.txnId := in_msg.TxnId;
       tbe.c2c_sharers := in_msg.C2c_sharers;
+      tbe.originalRequestor := in_msg.OriginalRequestor;
       tbe.messageSize := in_msg.MessageSize;
     }
   }
@@ -885,6 +889,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.accSize := tbe.accSize;
       out_msg.type := c2cMsgToCHIReq(tbe.to_net_req_type);
       out_msg.requestor := machineID;
+      out_msg.originalRequestor := tbe.originalRequestor;
       out_msg.fwdRequestor := machineID;
       out_msg.dataToFwdRequestor := tbe.dataToFwdRequestor; // TODO: Add to TBE
       out_msg.retToSrc := tbe.retToSrc;
@@ -920,7 +925,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.MessageSize := tbe.MessageSize;
 
     }
-  }
+}
 
   action(sendToNet_Response, "stnrsp", desc="Sends response to the network") {
     assert(is_valid(tbe));
@@ -957,7 +962,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.addr := address;
       out_msg.Type := CHIReqToC2cMsg(tbe.to_c2c_req_type);
       out_msg.Sender := tbe.requestor;
-      out_msg.C2c_requestor := tbe.requestor;
+      out_msg.OriginalRequestor := tbe.originalRequestor;
       out_msg.MessageSize := tbe.messageSize; 
       out_msg.AllowRetry := tbe.allowRetry;
     }
@@ -995,6 +1000,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.UsesTxnId := tbe.usesTxnId;
       out_msg.TxnId := tbe.txnId;
       out_msg.C2c_sharers := tbe.c2c_sharers;
+      out_msg.OriginalRequestor := tbe.originalRequestor;
       out_msg.MessageSize := tbe.messageSize;
     }
   }

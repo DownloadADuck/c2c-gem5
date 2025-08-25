@@ -87,7 +87,7 @@ structure(C2cMsg, desc="...", interface="Message") {
 
   // C2c sharer field
   MegaNetDest C2c_sharers,      desc="Off-chip sharer";
-  MachineID C2c_requestor,      desc="Off-chip requestor";
+  MachineID OriginalRequestor,      desc="Off-chip requestor";
 
   bool RetToSrc,                desc="Affects whether or not a snoop resp return data";
   bool Stale,                   desc="Response stale status flag";

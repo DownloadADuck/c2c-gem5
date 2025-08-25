@@ -602,7 +602,7 @@ AbstractController::recvTimingReq(PacketPtr pkt)
         (*msg).m_Type = (*(pkt->c2c_msg)).m_Type;
         (*msg).m_C2c_sharers = (*(pkt->c2c_msg)).m_C2c_sharers;
         (*msg).m_RetToSrc = (*(pkt->c2c_msg)).m_RetToSrc;
-        (*msg).m_C2c_requestor = (*(pkt->c2c_msg)).m_C2c_requestor;
+        (*msg).m_OriginalRequestor = (*(pkt->c2c_msg)).m_OriginalRequestor;
         (*msg).m_ReqAck = (*(pkt->c2c_msg)).m_ReqAck;
         (*msg).m_AllowRetry = (*(pkt->c2c_msg)).m_AllowRetry;
         (*msg).m_Priority = (*(pkt->c2c_msg)).m_Priority;

@@ -109,7 +109,7 @@ structure(CHIRequestMsg, desc="", interface="Message") {
   NetDest c2c_destination, desc="off-chip destination";
 
   MegaNetDest c2c_sharers, desc="off-chip sharer";
-  MachineID c2c_requestor, desc="off-chip requestor";
+  MachineID originalRequestor, desc="off-chip requestor";
   bool off_chip, desc="off-chip flag";
   bool c2cOrig, default="false", desc="Originates from the interface";
   /////////
@@ -173,6 +173,7 @@ structure(CHIResponseMsg, desc="", interface="Message") {
 
   // c2c off-chip sharer field
   MegaNetDest c2c_sharers, desc="Off-chip sharer";
+  MachineID originalRequestor, desc="Sender of the original request";
   bool off_chip,         desc="Response triggering a new off_chip response";
 
   MessageSizeType MessageSize, default="MessageSizeType_Control";
@@ -227,6 +228,7 @@ structure(CHIDataMsg, desc="", interface="Message") {
   MessageSizeType MessageSize, default="MessageSizeType_Data";
 
   MegaNetDest c2c_sharers, desc="Off-Chip sharer for snp responses";
+  MachineID originalRequestor, desc="Original requestor";
 
   bool functionalRead(Packet *pkt) {
     if(bitMask.isFull()) {

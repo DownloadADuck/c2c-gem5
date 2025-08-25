@@ -429,7 +429,7 @@ TBE allocateRequestTBE(Addr addr, CHIRequestMsg in_msg), return_by_pointer="yes"
   tbe.hasUseTimeout := false;
 
   // field used on fwdSnpResp dir_sharers update
-  tbe.c2c_requestor := in_msg.c2c_requestor;
+  tbe.originalRequestor := in_msg.originalRequestor;
   tbe.off_chip := in_msg.off_chip;
   tbe.c2cOrig := in_msg.c2cOrig;
 
@@ -620,6 +620,7 @@ void prepareRequest(TBE tbe, CHIRequestType type, CHIRequestMsg & out_msg) {
   out_msg.accSize := blockSize;
   out_msg.requestor := machineID;
   out_msg.fwdRequestor := tbe.requestor;
+  out_msg.originalRequestor := tbe.originalRequestor;
   out_msg.type := type;
   out_msg.allowRetry := false;
   tbe.pendReqAllowRetry := false;
