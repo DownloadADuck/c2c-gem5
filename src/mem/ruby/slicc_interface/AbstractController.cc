@@ -576,6 +576,7 @@ AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
 
         (*msg).m_Stale = (*(pkt->c2c_msg)).m_Stale;
         (*msg).m_C2c_sharers = (*(pkt->c2c_msg)).m_C2c_sharers;
+        (*msg).m_OriginalRequestor = (*(pkt->c2c_msg)).m_OriginalRequestor;
     } else {
         panic("Incorrect packet type received in the c2c_out_port!");
     }

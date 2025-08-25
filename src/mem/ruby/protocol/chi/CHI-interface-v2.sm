@@ -834,6 +834,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     peek(datInPort, CHIDataMsg) {
       tbe.to_c2c_dat_type := in_msg.type;
       tbe.responder := in_msg.responder;
+      tbe.originalRequestor := in_msg.originalRequestor;
       tbe.dataBlk := in_msg.dataBlk;
       tbe.bitMask := in_msg.bitMask;
       tbe.usesTxnId := in_msg.usesTxnId;
@@ -1017,6 +1018,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.TxnId := tbe.txnId;
       out_msg.MessageSize := tbe.MessageSize;
       out_msg.C2c_sharers := tbe.c2c_sharers;
+      out_msg.OriginalRequestor := tbe.originalRequestor;
     }
   }
 

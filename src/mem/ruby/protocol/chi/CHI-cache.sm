@@ -648,7 +648,7 @@ machine(MachineType:Cache, "Cache coherency protocol") :
 
     // c2c fields
     MegaNetDest c2c_sharers,        desc="Off-chip controllers that have the line";
-    MachineID c2c_requestor,      desc="Off-chip requestor in case of a snp fwd dir_sharers update";
+    MachineID originalRequestor,      desc="Off-chip requestor in case of a snp fwd dir_sharers update";
     MachineID default_machine,    desc="Default null machine used for if statements checks";
     bool off_chip,                desc="off_chip flag for CHI requests";
     bool c2cOrig,                 desc="Request originating from a C2C interface";
