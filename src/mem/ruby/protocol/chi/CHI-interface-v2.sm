@@ -570,15 +570,14 @@ machine(MachineType:Interface, "Forwarding C2CI") :
   ////////////////////////////////////////////////////////////////////////////
 
   Event c2cReqToEvent (C2cRequestType type) {
-    if (type == C2cRequestType:ReadShared) {
-      return Event:C2c_ReadShared;
-    } else if (type == C2cRequestType:ReadOnce ||
-                type == C2cRequestType:ReadUnique ||
-                type == C2cRequestType:CleanUnique ||
-                type == C2cRequestType:Evict ||
-                type == C2cRequestType:WriteEvictFull ||
-                type == C2cRequestType:WriteUniqueFull ||
-                type == C2cRequestType:WriteBackFull) {
+    if (type == C2cRequestType:ReadShared ||
+        type == C2cRequestType:ReadOnce ||
+        type == C2cRequestType:ReadUnique ||
+        type == C2cRequestType:CleanUnique ||
+        type == C2cRequestType:Evict ||
+        type == C2cRequestType:WriteEvictFull ||
+        type == C2cRequestType:WriteUniqueFull ||
+        type == C2cRequestType:WriteBackFull) {
       return Event:C2c_Request;
     } else if (type == C2cRequestType:SnpCleanInvalid ||
                 type == C2cRequestType:SnpUnique ||
@@ -603,7 +602,20 @@ machine(MachineType:Interface, "Forwarding C2CI") :
         type == C2cRequestType:CBWrData_SC ||
         type == C2cRequestType:CBWrData_I ||
         type == C2cRequestType:CBWrData_SD_PD ||
-        type == C2cRequestType:CBWrData_UD_PD) {
+        type == C2cRequestType:CBWrData_UD_PD ||
+        type == C2cRequestType:SnpRespData_I_PD ||
+        type == C2cRequestType:SnpRespData_I ||
+        type == C2cRequestType:SnpRespData_SC_PD ||
+        type == C2cRequestType:SnpRespData_SC ||
+        type == C2cRequestType:SnpRespData_SD ||
+        type == C2cRequestType:SnpRespData_UC ||
+        type == C2cRequestType:SnpRespData_UD ||
+        type == C2cRequestType:SnpRespData_SC_Fwded_SD_PD ||
+        type == C2cRequestType:SnpRespData_SC_Fwded_SC ||
+        type == C2cRequestType:SnpRespData_SC_PD_Fwded_SC ||
+        type == C2cRequestType:SnpRespData_I_Fwded_SD_PD ||
+        type == C2cRequestType:SnpRespData_I_PD_Fwded_SC ||
+        type == C2cRequestType:SnpRespData_I_Fwded_SC) {
       return Event:C2c_Data;
     } else if (type == C2cRequestType:CompAck ||
                 type == C2cRequestType:Comp_I ||
@@ -617,41 +629,11 @@ machine(MachineType:Interface, "Forwarding C2CI") :
                 type == C2cRequestType:SnpResp_SC_Fwded_SC ||
                 type == C2cRequestType:SnpResp_SC_Fwded_SD_PD ||
                 type == C2cRequestType:SnpResp_SD_Fwded_I ||
-                type == C2cRequestType:SnpResp_SC_Fwded_I
-                ) {
+                type == C2cRequestType:SnpResp_SC_Fwded_I ||
+                type == C2cRequestType:SnpResp_UD_Fwded_I ||
+                type == C2cRequestType:SnpResp_UC_Fwded_I ||
+                type == C2cRequestType:ReqAck) {
       return Event:C2c_Response;
-    } else if (type == C2cRequestType:SnpResp_UD_Fwded_I) {
-      return Event:C2c_SnpResp_UD_Fwded_I;
-    } else if (type == C2cRequestType:SnpResp_UC_Fwded_I) {
-      return Event:C2c_SnpResp_UC_Fwded_I;
-    } else if (type == C2cRequestType:SnpRespData_I_PD) {
-      return Event:C2c_SnpRespData_I_PD;
-    } else if (type == C2cRequestType:SnpRespData_I) {
-      return Event:C2c_SnpRespData_I;
-    } else if (type == C2cRequestType:SnpRespData_SC_PD) {
-      return Event:C2c_SnpRespData_SC_PD;
-    } else if (type == C2cRequestType:SnpRespData_SC) {
-      return Event:C2c_SnpRespData_SC;
-    } else if (type == C2cRequestType:SnpRespData_SD) {
-      return Event:C2c_SnpRespData_SD;
-    } else if (type == C2cRequestType:SnpRespData_UC) {
-      return Event:C2c_SnpRespData_UC;
-    } else if (type == C2cRequestType:SnpRespData_UD) {
-      return Event:C2c_SnpRespData_UD;
-    } else if (type == C2cRequestType:SnpRespData_SC_Fwded_SD_PD) {
-      return Event:C2c_SnpRespData_SC_Fwded_SD_PD;
-    } else if (type == C2cRequestType:SnpRespData_SC_Fwded_SC) {
-      return Event:C2c_SnpRespData_SC_Fwded_SC;
-    } else if (type == C2cRequestType:SnpRespData_SC_PD_Fwded_SC) {
-      return Event:C2c_SnpRespData_SC_PD_Fwded_SC;
-    } else if (type == C2cRequestType:SnpRespData_I_Fwded_SD_PD) {
-      return Event:C2c_SnpRespData_I_Fwded_SD_PD;
-    } else if (type == C2cRequestType:SnpRespData_I_PD_Fwded_SC) {
-      return Event:C2c_SnpRespData_I_PD_Fwded_SC;
-    } else if (type == C2cRequestType:SnpRespData_I_Fwded_SC) {
-      return Event:C2c_SnpRespData_I_Fwded_SC;
-    } else if (type == C2cRequestType:ReqAck) {
-      return Event:C2c_ReqAck;
     } else {
       DPRINTF(RubyC2c, "c2cRespToEvent C2cRequestType: %s\n", type);
       error("Invalid C2cResponseType");
@@ -692,11 +674,11 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     if (requestFromC2c_in.isReady(clockEdge())) {
       printResources();
       peek(requestFromC2c_in, C2cMsg) {
-        trigger(Event:C2c_Request, in_msg.addr, TBEs[in_msg.addr]);
+        trigger(c2cReqToEvent(in_msg.Type), in_msg.addr, TBEs[in_msg.addr]);
       }
     }
   }
-  ////// Internal chi request queue
+  ////// Internal chi request queue - Not used for now
   in_port(reqRdyInPort, CHIRequestMsg, reqRdy, rank=1) {
     if (reqRdyInPort.isReady(clockEdge())) {
       printResources();
@@ -705,7 +687,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       }
     }
   }
-  ////// Internal c2c request queue
+  ////// Internal c2c request queue - Not used for now
   in_port(c2cReqRdyInPort, C2cMsg, c2cReqRdy, rank=1) {
     if (c2cReqRdyInPort.isReady(clockEdge())) {
       printResources();
@@ -740,7 +722,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     if (responseFromC2c_in.isReady(clockEdge())) {
       printResources();
       peek(responseFromC2c_in, C2cMsg) {
-        trigger(Event:C2c_Response, in_msg.addr, TBEs[in_msg.addr]);
+        trigger(c2cRespToEvent(in_msg.Type), in_msg.addr, TBEs[in_msg.addr]);
       }
     }
   }
