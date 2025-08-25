@@ -572,6 +572,7 @@ AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
     if (pkt->isRead()) {
         (*msg).m_Type = (*(pkt->c2c_msg)).m_Type;
         (*msg).m_DataBlk = (*(pkt->c2c_msg)).m_DataBlk;
+        (*msg).m_BitMask = (*(pkt->c2c_msg)).m_BitMask;
         (*msg).m_Responder = (*(pkt->c2c_msg)).m_Responder;
 
         (*msg).m_Stale = (*(pkt->c2c_msg)).m_Stale;

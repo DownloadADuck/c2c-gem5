@@ -125,7 +125,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     C2cRequestType to_net_rsp_type, desc="Temporarily stores the c2c resp type";
 
     CHIDataType to_c2c_dat_type, desc="used to send the right response data type";
-    CHIDataType to_net_dat_type, desc="Temporatily store the net data type";
+    C2cRequestType to_net_dat_type, desc="Temporatily store the net data type";
 
     MachineID Sender, desc="Original request for this request";
     MessageSizeType size, desc="Message size";
@@ -385,7 +385,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     }
   }
 
-  CHIDataType c2cMsgToCHIData(C2cRequestType type) {
+  CHIDataType c2cMsgToCHIDat(C2cRequestType type) {
     if (type == C2cRequestType:CompData_UC) {
       return CHIDataType:CompData_UC;
     } else if (type == C2cRequestType:CompData_I) {
@@ -874,6 +874,21 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     }
   }
 
+  action(initializeTBEFromC2cData, "itbefc2cd", desc="Initialize TBE fields from c2c-side dat") {
+    assert(is_valid(tbe));
+    peek(responseFromC2c_in, C2cMsg) {
+      tbe.to_net_dat_type := in_msg.Type;
+      tbe.responder := in_msg.Responder;
+      tbe.usesTxnId := in_msg.UsesTxnId;
+      tbe.txnId := in_msg.TxnId;
+      tbe.dataBlk := in_msg.DataBlk;
+      tbe.bitMask := in_msg.BitMask;
+      tbe.c2c_sharers := in_msg.C2c_sharers;
+      tbe.originalRequestor := in_msg.OriginalRequestor;
+      tbe.messageSize := in_msg.MessageSize;
+    }
+  }
+
   action(deallocateTBE, "dtbe", desc="Deallocates TBE") {
     assert(is_valid(tbe));
     storTBEs.removeEntryFromSlot(tbe.storSlot);
@@ -946,7 +961,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     assert(is_valid(tbe));
     enqueue(datOutPort, CHIDataMsg, data_latency) {
       out_msg.addr := address;
-      out_msg.type := tbe.to_net_dat_type; 
+      out_msg.type := c2cMsgToCHIDat(tbe.to_net_dat_type); 
       out_msg.dataBlk := tbe.dataBlk;
       out_msg.responder := machineID;
       out_msg.usesTxnId := tbe.usesTxnId; 
@@ -1139,9 +1154,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
   transition(READY, C2c_Data) { 
     checkC2cAllocateTBE;
     allocateTBE;
-    initializeTBEFromC2cResponse;
-    // We don't need a specific initialization for C2cMsg with Data
-    //initializeTBEFromC2cData; // TODO: Add
+    initializeTBEFromC2cData; 
     sendToNet_Data;
     popResponseFromC2cQueue;
     deallocateTBE;
