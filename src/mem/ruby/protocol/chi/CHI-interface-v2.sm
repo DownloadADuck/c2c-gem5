@@ -963,12 +963,11 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.addr := address;
       out_msg.type := c2cMsgToCHIDat(tbe.to_net_dat_type); 
       out_msg.dataBlk := tbe.dataBlk;
+      out_msg.bitMask := tbe.bitMask;
       out_msg.responder := machineID;
       out_msg.usesTxnId := tbe.usesTxnId; 
       out_msg.txnId := tbe.txnId;
-      // If there is an alignment issue look here
-      // out_msg.bitMask.setMask(...)
-      out_msg.Destination.add(tbe.originalRequestor); // --> This info should be in the fields of the inbound C2C response Data
+      out_msg.Destination.add(tbe.originalRequestor); 
     }
   }
 
