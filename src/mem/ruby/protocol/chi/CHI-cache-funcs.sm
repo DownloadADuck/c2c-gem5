@@ -620,7 +620,6 @@ void prepareRequest(TBE tbe, CHIRequestType type, CHIRequestMsg & out_msg) {
   out_msg.accSize := blockSize;
   out_msg.requestor := machineID;
   out_msg.fwdRequestor := tbe.requestor;
-  out_msg.originalRequestor := tbe.originalRequestor;
   out_msg.type := type;
   out_msg.allowRetry := false;
   tbe.pendReqAllowRetry := false;
@@ -631,6 +630,9 @@ void prepareRequest(TBE tbe, CHIRequestType type, CHIRequestMsg & out_msg) {
   out_msg.seqReq := tbe.seqReq;
   out_msg.is_local_pf := false;
   out_msg.is_remote_pf := tbe.is_local_pf || tbe.is_remote_pf;
+  // C2c-specific fields
+  out_msg.originalRequestor := tbe.originalRequestor;
+  out_msg.localRequestor := machineID;
 }
 
 void allowRequestRetry(TBE tbe, CHIRequestMsg & out_msg) {

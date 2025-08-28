@@ -497,7 +497,6 @@ machine(MachineType:Memory, "Memory controller interface") :
   action(initializeFromReqTBE, "itbe", desc="Initialize TBE fields") {
     peek(reqRdyInPort, CHIRequestMsg) {
       tbe.requestor := in_msg.requestor;
-      tbe.originalRequestor := in_msg.originalRequestor;
       if (in_msg.dataToFwdRequestor) {
         tbe.destination := in_msg.fwdRequestor;
       } else {
@@ -505,6 +504,9 @@ machine(MachineType:Memory, "Memory controller interface") :
       }
       tbe.accAddr := in_msg.accAddr;
       tbe.accSize := in_msg.accSize;
+      // C2c-specific tbe fields
+      tbe.originalRequestor := in_msg.originalRequestor;
+      tbe.localRequestor := in_msg.localRequestor;
     }
   }
 
@@ -616,7 +618,9 @@ machine(MachineType:Memory, "Memory controller interface") :
         out_msg.type := CHIDataType:CompData_UC;
       }
       out_msg.dataBlk := tbe.dataBlk;
+      // C2c-specific fields
       out_msg.originalRequestor := tbe.originalRequestor;
+      out_msg.localRequestor := tbe.localRequestor;
       // Called in order for the whole block so use rxtxBytes as offset
       out_msg.bitMask.setMask(tbe.rxtxBytes, data_channel_size);
       out_msg.Destination.add(tbe.destination);
