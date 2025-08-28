@@ -2044,7 +2044,8 @@ action(UpdateDataState_FromReqDataResp, desc="") {
   if (tbe.expected_req_resp.hasReceivedData()) {
     assert(tbe.dataBlkValid.isFull());
     peek(datInPort, CHIDataMsg) {
-
+      // C2c-specific field
+      tbe.localRequestor := in_msg.localRequestor;
       if ((in_msg.type == CHIDataType:CompData_UC) ||
           (in_msg.type == CHIDataType:DataSepResp_UC)) {
         assert(tbe.dataUnique == false);

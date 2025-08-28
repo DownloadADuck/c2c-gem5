@@ -171,6 +171,7 @@ machine(MachineType:Memory, "Memory controller interface") :
     int rxtxBytes, desc="Bytes sent or received";
     MachineID requestor, desc="Requestor that originated this request";
     MachineID originalRequestor, desc="Off-chip requestor that originated this request";
+    MachineID localRequestor, desc="local or secondary requestor";
     MachineID destination, desc="Where we are sending data";
     bool useDataSepResp, desc="Replies with DataSepResp instead of CompData";
   }

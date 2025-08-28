@@ -107,6 +107,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
 
     MegaNetDest c2c_sharers, desc="Stores the c2c_sharers when sending a response";
     MachineID originalRequestor, desc="Stores the off-chip requestor";
+    MachineID localRequestor, desc="local or secondary requestor";
     // TODO: Not sure yet that this should be MegaNetDest
     MegaNetDest localDest,    desc="Local final destination for the message";
 
@@ -825,6 +826,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.txnId := in_msg.txnId;
       tbe.c2c_sharers := in_msg.c2c_sharers;
       tbe.originalRequestor := in_msg.originalRequestor;
+      tbe.localRequestor := in_msg.localRequestor;
       tbe.MessageSize := in_msg.MessageSize;
     }
   }
@@ -871,6 +873,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.txnId := in_msg.TxnId;
       tbe.c2c_sharers := in_msg.C2c_sharers;
       tbe.originalRequestor := in_msg.OriginalRequestor;
+      tbe.localRequestor := in_msg.LocalRequestor;
       tbe.messageSize := in_msg.MessageSize;
     }
   }
@@ -951,7 +954,12 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.addr := address;
       out_msg.type := c2cMsgToCHIRsp(tbe.to_net_rsp_type);
       out_msg.responder := tbe.responder;
-      out_msg.Destination.add(tbe.originalRequestor); 
+      // If response is a CompAck, we route using only the address
+      if (c2cMsgToCHIRsp(tbe.to_net_rsp_type) == CHIResponseType:CompAck) {
+        out_msg.Destination.add(mapAddressToDownstreamMachine(address));
+      } else {
+        out_msg.Destination.add(tbe.localRequestor); 
+      }
       out_msg.stale := tbe.stale;
       out_msg.usesTxnId := tbe.usesTxnId;
       out_msg.txnId := tbe.txnId;
@@ -1019,6 +1027,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.TxnId := tbe.txnId;
       out_msg.C2c_sharers := tbe.c2c_sharers;
       out_msg.OriginalRequestor := tbe.originalRequestor;
+      out_msg.LocalRequestor := tbe.localRequestor;
       out_msg.MessageSize := tbe.messageSize;
     }
   }

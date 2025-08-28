@@ -110,7 +110,7 @@ structure(CHIRequestMsg, desc="", interface="Message") {
 
   MegaNetDest c2c_sharers,      desc="off-chip sharer";
   MachineID originalRequestor,  desc="off-chip requestor";
-  MachineID localRequestorm     desc="original or secondary requestor";
+  MachineID localRequestor,     desc="original or secondary requestor";
   bool off_chip, desc="off-chip flag";
   bool c2cOrig, default="false", desc="Originates from the interface";
   /////////
@@ -173,9 +173,10 @@ structure(CHIResponseMsg, desc="", interface="Message") {
   //NOTE: not in CHI and for debuging only
 
   // c2c off-chip sharer field
-  MegaNetDest c2c_sharers, desc="Off-chip sharer";
-  MachineID originalRequestor, desc="Sender of the original request";
-  bool off_chip,         desc="Response triggering a new off_chip response";
+  MegaNetDest c2c_sharers,      desc="Off-chip sharer";
+  MachineID originalRequestor,  desc="Sender of the original request";
+  MachineID localRequestor,     desc="local or secondary requestor";
+  bool off_chip,                desc="Response triggering a new off_chip response";
 
   MessageSizeType MessageSize, default="MessageSizeType_Control";
 
