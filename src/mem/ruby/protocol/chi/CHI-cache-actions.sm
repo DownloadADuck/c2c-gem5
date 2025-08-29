@@ -2836,6 +2836,8 @@ action(Send_CompAck, desc="") {
     out_msg.addr := address;
     out_msg.type := CHIResponseType:CompAck;
     out_msg.responder := machineID;
+    // MegaNetDest ID for sharer tracking in the HNF
+    out_msg.c2c_sharers.add(chipID, machineID); 
     out_msg.Destination.add(mapAddressToDownstreamMachine(tbe.addr));
   }
 }

@@ -953,13 +953,14 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     enqueue(rspOutPort, CHIResponseMsg, response_latency) {
       out_msg.addr := address;
       out_msg.type := c2cMsgToCHIRsp(tbe.to_net_rsp_type);
-      out_msg.responder := tbe.responder;
+      out_msg.responder := machineID; 
       // If response is a CompAck, we route using only the address
       if (c2cMsgToCHIRsp(tbe.to_net_rsp_type) == CHIResponseType:CompAck) {
         out_msg.Destination.add(mapAddressToDownstreamMachine(address));
       } else {
         out_msg.Destination.add(tbe.localRequestor); 
       }
+      out_msg.c2c_sharers := tbe.c2c_sharers;
       out_msg.stale := tbe.stale;
       out_msg.usesTxnId := tbe.usesTxnId;
       out_msg.txnId := tbe.txnId;
