@@ -2229,7 +2229,7 @@ action(UpdateDirState_FromReqResp, desc="") {
       } else if (tbe.requestorToBeExclusiveOwner) {
         if (is_multiChip) {
           assert(tbe.mega_dir_sharers.totalCount() == 1);
-          tbe.mega_dir_owner.mergeMegaNetdest(in_msg.c2c_sharers);
+          tbe.mega_dir_owner.mergeMegaNetDest(in_msg.c2c_sharers);
         } else {
           assert(tbe.dir_sharers.count() == 1);
           tbe.dir_owner := in_msg.responder;
