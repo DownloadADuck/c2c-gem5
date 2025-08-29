@@ -27,6 +27,7 @@ class MegaNetDest
 
         // Operations on the MegaNetDest
         void add(int chipID, MachineID dest);
+        void mergeMegaNetDest(const MegaNetDest& others);
         void mergeMegaNetDest(int chipID, const MegaNetDest& others);
         void remove(int chipID, MachineID dest);
         void remove(const MegaNetDest& other);

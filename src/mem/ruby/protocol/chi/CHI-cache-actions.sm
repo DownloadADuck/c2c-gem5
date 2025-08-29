@@ -2209,14 +2209,14 @@ action(UpdateDirState_FromReqResp, desc="") {
 
       if (is_multiChip) {
         DPRINTF(RubyGenerated, "in_msg.responder: %s", in_msg.responder);
-        tbe.mega_dir_sharers.add(mapMachineIDToChipID(in_msg.responder), in_msg.responder);
+        tbe.mega_dir_sharers.mergeMegaNetDest(in_msg.c2c_sharers);
       } else {
         tbe.dir_sharers.add(in_msg.responder);
       }
 
       if (tbe.requestorToBeOwner) {
         if (is_multiChip) {
-          tbe.mega_dir_owner.add(mapMachineIDToChipID(in_msg.responder), in_msg.responder);
+          tbe.mega_dir_owner.mergeMegaNetDest(in_msg.c2c_sharers);
         } else {
           tbe.dir_owner := in_msg.responder;
         }
@@ -2229,7 +2229,7 @@ action(UpdateDirState_FromReqResp, desc="") {
       } else if (tbe.requestorToBeExclusiveOwner) {
         if (is_multiChip) {
           assert(tbe.mega_dir_sharers.totalCount() == 1);
-          tbe.mega_dir_owner.add(mapMachineIDToChipID(in_msg.responder), in_msg.responder);
+          tbe.mega_dir_owner.mergeMegaNetdest(in_msg.c2c_sharers);
         } else {
           assert(tbe.dir_sharers.count() == 1);
           tbe.dir_owner := in_msg.responder;

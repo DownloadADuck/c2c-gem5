@@ -36,6 +36,18 @@ MegaNetDest::addMegaNetDest(MegaNetDest mega)
 }
 
 // merging an entire MegaNetDest
+void
+MegaNetDest::mergeMegaNetDest(const MegaNetDest& mega)
+{
+    // ensure recipient is big enough
+    if (m_data.size() < mega.m_data.size()) {
+        m_data.resize(mega.m_data.size());
+    }
+    // merge
+    for (size_t i=0; i < mega.m_data.size(); ++i) {
+        m_data[i].addNetDest(mega.m_data[i]);
+    }
+}
 void 
 MegaNetDest::mergeMegaNetDest(int chipID, const MegaNetDest& mega) 
 {
