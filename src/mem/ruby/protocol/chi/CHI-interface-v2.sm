@@ -703,7 +703,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     if (snpInPort.isReady(clockEdge())) {
       printResources();
       peek(snpInPort, CHIRequestMsg) {
-        trigger(Event:CheckAllocTBE, in_msg.addr, TBEs[in_msg.addr]);
+        trigger(Event:Net_Snoop, in_msg.addr, TBEs[in_msg.addr]);
       }
     }
   }
