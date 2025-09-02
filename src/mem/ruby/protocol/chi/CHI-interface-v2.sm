@@ -815,6 +815,21 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.retToSrc := in_msg.retToSrc;
     }
   }
+  
+  action(initializeTBEFromNetSnoop, "itbefns", desc="Initialize TBE fields from net-side req") {
+    assert(is_valid(tbe));
+    peek(snpInPort, CHIRequestMsg) {
+      tbe.to_c2c_req_type := in_msg.type; 
+      tbe.requestor := in_msg.requestor;
+      tbe.allowRetry := in_msg.allowRetry;
+      tbe.size := in_msg.MessageSize;
+      tbe.dataToFwdRequestor := in_msg.dataToFwdRequestor;
+      tbe.originalRequestor := in_msg.requestor;
+      tbe.accAddr := in_msg.accAddr;
+      tbe.accSize := in_msg.accSize;
+      tbe.retToSrc := in_msg.retToSrc;
+    }
+  }
 
   action(initializeTBEFromNetResponse, "itfnr", desc="Initialize TBE fields from net-side rsp") {
     assert(is_valid(tbe));
@@ -1117,7 +1132,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
   transition(READY, Net_Snoop) {
     checkAllocateTBE;
     allocateTBE;
-    initializeTBEFromNetRequest;
+    initializeTBEFromNetSnoop;
     sendToC2c_Snoop;
     popSnpInQueue;
     deallocateTBE;
