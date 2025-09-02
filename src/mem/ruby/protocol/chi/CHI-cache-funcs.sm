@@ -826,7 +826,14 @@ void copyCacheAndDir(CacheEntry cache_entry, DirEntry dir_entry,
     tbe.dir_owner := dir_entry.owner;
     tbe.dir_ownerExists := dir_entry.ownerExists;
     tbe.dir_ownerIsExcl := dir_entry.ownerIsExcl;
-    assert(tbe.dir_sharers.count() > 0);
+    // C2c-specific fields
+    tbe.mega_dir_sharers := dir_entry.mega_sharers;
+    tbe.mega_dir_owner := dir_entry.mega_owner;
+    if(is_multiChip) {
+      assert(tbe.mega_dir_sharers.count() > 0);
+    } else {
+      assert(tbe.dir_sharers.count() > 0);
+    }
   } else {
     tbe.dir_sharers.clear();
     tbe.dir_ownerExists := false;
@@ -907,6 +914,9 @@ void copyCacheAndDirTBEs(TBE src, TBE dst) {
   dst.dir_owner := src.dir_owner;
   dst.dir_ownerExists := src.dir_ownerExists;
   dst.dir_ownerIsExcl := src.dir_ownerIsExcl;
+  // C2c-specific fields
+  dst.mega_dir_sharers := src.mega_dir_sharers;
+  dst.mega_dir_owner := src.mega_dir_owner;
   printTBEState(dst);
 }
 
