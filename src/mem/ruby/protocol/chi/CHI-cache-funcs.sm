@@ -830,7 +830,7 @@ void copyCacheAndDir(CacheEntry cache_entry, DirEntry dir_entry,
     tbe.mega_dir_sharers := dir_entry.mega_sharers;
     tbe.mega_dir_owner := dir_entry.mega_owner;
     if(is_multiChip) {
-      assert(tbe.mega_dir_sharers.count() > 0);
+      assert(tbe.mega_dir_sharers.totalCount() > 0);
     } else {
       assert(tbe.dir_sharers.count() > 0);
     }
