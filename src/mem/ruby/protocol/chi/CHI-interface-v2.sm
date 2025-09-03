@@ -819,7 +819,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
   action(initializeTBEFromNetSnoop, "itbefns", desc="Initialize TBE fields from net-side req") {
     assert(is_valid(tbe));
     peek(snpInPort, CHIRequestMsg) {
-      tbe.to_c2c_req_type := in_msg.type; 
+      tbe.to_c2c_snp_type := in_msg.type; 
       tbe.requestor := in_msg.requestor;
       tbe.allowRetry := in_msg.allowRetry;
       tbe.size := in_msg.MessageSize;
@@ -866,6 +866,22 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     assert(is_valid(tbe));
     peek(requestFromC2c_in, C2cMsg) {
       tbe.to_net_req_type := in_msg.Type;
+      tbe.requestor := in_msg.Requestor;
+      tbe.originalRequestor := in_msg.OriginalRequestor;
+      tbe.allowRetry := in_msg.AllowRetry;
+      tbe.size := in_msg.MessageSize;
+      tbe.dataToFwdRequestor := in_msg.DataToFwdRequestor;
+      tbe.fwdRequestor := in_msg.FwdRequestor;
+      tbe.accAddr := in_msg.AccAddr;
+      tbe.accSize := in_msg.AccSize;
+      tbe.retToSrc := in_msg.RetToSrc;
+    }
+  }
+
+  action(initializeTBEFromC2cSnoop, "itbefc2cs", desc="Initialize TBE fields from c2c-size req") {
+    assert(is_valid(tbe));
+    peek(requestFromC2c_in, C2cMsg) {
+      tbe.to_net_snp_type := in_msg.Type;
       tbe.requestor := in_msg.Requestor;
       tbe.originalRequestor := in_msg.OriginalRequestor;
       tbe.allowRetry := in_msg.AllowRetry;
@@ -1141,7 +1157,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
   transition(READY, C2c_Snoop) {
     checkC2cAllocateTBE;
     allocateTBE;
-    initializeTBEFromC2cRequest;
+    initializeTBEFromC2cSnoop;
     sendToNet_Snoop;
     popRequestFromC2cQueue;
     //popC2cReqRdyInQueue;
