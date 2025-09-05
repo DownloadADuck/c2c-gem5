@@ -105,7 +105,8 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     MachineID fwdRequestor, desc="Message field - destination for forwarded data";
     MessageSizeType MessageSize, default="MessageSizeType_Control";
 
-    MegaNetDest c2c_sharers, desc="Stores the c2c_sharers when sending a response";
+    //MegaNetDest c2c_sharers, desc="Stores the c2c_sharers when sending a response";
+    MegaNetDest c2c_destination, decs="Final off-chip destination";
     MachineID originalRequestor, desc="Stores the off-chip requestor";
     MachineID localRequestor, desc="local or secondary requestor";
     // TODO: Not sure yet that this should be MegaNetDest
@@ -821,6 +822,9 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     peek(snpInPort, CHIRequestMsg) {
       tbe.to_c2c_snp_type := in_msg.type; 
       tbe.requestor := in_msg.requestor;
+      DPRINTF(RubyGenerated, "initializeNetSnoop - c2c_sharers: %s\n", in_msg.c2c_sharers);
+      //tbe.c2c_sharers := in_msg.c2c_sharers;
+      tbe.c2c_destination := in_msg.c2c_destination;
       tbe.allowRetry := in_msg.allowRetry;
       tbe.size := in_msg.MessageSize;
       tbe.dataToFwdRequestor := in_msg.dataToFwdRequestor;
@@ -839,7 +843,8 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.stale := in_msg.stale;
       tbe.usesTxnId := in_msg.usesTxnId;
       tbe.txnId := in_msg.txnId;
-      tbe.c2c_sharers := in_msg.c2c_sharers;
+      //tbe.c2c_sharers := in_msg.c2c_sharers;
+      tbe.c2c_destination := in_msg.c2c_destination;
       tbe.originalRequestor := in_msg.originalRequestor;
       tbe.localRequestor := in_msg.localRequestor;
       tbe.MessageSize := in_msg.MessageSize;
@@ -858,7 +863,8 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.usesTxnId := in_msg.usesTxnId;
       tbe.txnId := in_msg.txnId;
       tbe.messageSize := in_msg.MessageSize;
-      tbe.c2c_sharers := in_msg.c2c_sharers;
+      //tbe.c2c_sharers := in_msg.c2c_sharers;
+      tbe.c2c_destination := in_msg.c2c_destination;
     }
   }
 
@@ -884,6 +890,9 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.to_net_snp_type := in_msg.Type;
       tbe.requestor := in_msg.Requestor;
       tbe.originalRequestor := in_msg.OriginalRequestor;
+      DPRINTF(RubyGenerated, "initializeC2cSnoop - c2c_destination: %s\n", in_msg.C2c_destination);
+      //tbe.c2c_sharers := in_msg.C2c_sharers;
+      tbe.c2c_destination := in_msg.C2c_destination;
       tbe.allowRetry := in_msg.AllowRetry;
       tbe.size := in_msg.MessageSize;
       tbe.dataToFwdRequestor := in_msg.DataToFwdRequestor;
@@ -902,7 +911,8 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.stale := in_msg.Stale;
       tbe.usesTxnId := in_msg.UsesTxnId;
       tbe.txnId := in_msg.TxnId;
-      tbe.c2c_sharers := in_msg.C2c_sharers;
+      //tbe.c2c_sharers := in_msg.C2c_sharers;
+      tbe.c2c_destination := in_msg.C2c_destination;
       tbe.originalRequestor := in_msg.OriginalRequestor;
       tbe.localRequestor := in_msg.LocalRequestor;
       tbe.messageSize := in_msg.MessageSize;
@@ -918,7 +928,8 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.txnId := in_msg.TxnId;
       tbe.dataBlk := in_msg.DataBlk;
       tbe.bitMask := in_msg.BitMask;
-      tbe.c2c_sharers := in_msg.C2c_sharers;
+      //tbe.c2c_sharers := in_msg.C2c_sharers;
+      tbe.c2c_destination := in_msg.C2c_destination;
       tbe.originalRequestor := in_msg.OriginalRequestor;
       tbe.localRequestor := in_msg.LocalRequestor;
       tbe.messageSize := in_msg.MessageSize;
@@ -968,7 +979,8 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.dataToFwdRequestor := tbe.dataToFwdRequestor; 
       out_msg.retToSrc := tbe.retToSrc;
       out_msg.allowRetry := tbe.allowRetry;
-      out_msg.Destination := tbe.localDest.extractNetDest(chipID);
+      DPRINTF(RubyGenerated, "sendToNet_Snoop - c2c_destination.extractNetDest: %s\n", tbe.destination.extractNetDest(chipID));
+      out_msg.Destination := tbe.c2c_destination.extractNetDest(chipID);
       out_msg.seqReq := tbe.seqReq; 
       out_msg.isSeqReqValid := tbe.isSeqReqValid;
       out_msg.is_local_pf := tbe.is_local_pf;
@@ -1036,6 +1048,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.Type := CHIReqToC2cMsg(tbe.to_c2c_snp_type);
       out_msg.Requestor := machineID;
       out_msg.FwdRequestor := machineID;
+      out_msg.C2c_sharers := tbe.c2c_sharers;
       out_msg.DataToFwdRequestor := tbe.dataToFwdRequestor; 
       out_msg.RetToSrc := tbe.retToSrc;
       out_msg.AllowRetry := tbe.allowRetry;

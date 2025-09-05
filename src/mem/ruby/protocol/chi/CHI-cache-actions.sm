@@ -1419,8 +1419,8 @@ action(Send_SnpCleanInvalid_NoReq, desc="") {
     setExpectedForInvSnoop(tbe, false);
     tbe.expected_snp_resp.setExpectedCount(out_msg.Destination.count());
 
-    // c2c_sharer
-    out_msg.c2c_sharers := tbe.c2c_sharers;
+    // c2c_destination
+    out_msg.c2c_destination := tbe.c2c_destination;
   }
 }
 
@@ -1433,9 +1433,13 @@ action(Send_SnpUnique, desc="") {
 
   enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
     prepareRequest(tbe, CHIRequestType:SnpUnique, out_msg);
-    out_msg.Destination.addNetDest(tbe.dir_sharers);
+    if (is_multiChip) {
+      out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers);
+    } else {
+      out_msg.Destination.addNetDest(tbe.dir_sharers);
+    }
     out_msg.retToSrc := false;
-    out_msg.c2c_sharers := tbe.c2c_sharers;
+    out_msg.c2c_destination := tbe.c2c_destination;
     out_msg.c2cOrig := tbe.c2cOrig;
   }
 }
@@ -1569,7 +1573,8 @@ action(Send_SnpSharedFwd_ToOwner, desc="") {
         prepareRequest(tbe, CHIRequestType:SnpNotSharedDirtyFwd, out_msg);
       }
       out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_owner);
-      out_msg.c2c_sharers := tbe.c2c_sharers;
+      DPRINTF(RubyGenerated, "send_SnpSharedFwd_ToOwner - mega_dir_owner: %s\n", tbe.mega_dir_owner);
+      out_msg.c2c_destination := tbe.c2c_destination;
       out_msg.c2cOrig := tbe.c2cOrig;
       out_msg.retToSrc := retToSrc;
     }
@@ -1581,8 +1586,6 @@ action(Send_SnpSharedFwd_ToOwner, desc="") {
         prepareRequest(tbe, CHIRequestType:SnpNotSharedDirtyFwd, out_msg);
       }
       out_msg.Destination.add(tbe.dir_owner);
-      out_msg.c2c_sharers := tbe.c2c_sharers;
-      out_msg.c2cOrig := tbe.c2cOrig;
       out_msg.retToSrc := retToSrc;
     }
   }
@@ -1623,7 +1626,7 @@ action(Send_SnpSharedFwd_ToSharer, desc="") {
       // TODO should be random or the closest one to the fwd dest
       out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers.smallestElement());
       out_msg.retToSrc := retToSrc;
-      out_msg.c2c_sharers := tbe.c2c_sharers;
+      out_msg.c2c_destination := tbe.c2c_destination;
       out_msg.c2cOrig := tbe.c2cOrig;
     }
   } else {
@@ -1632,8 +1635,6 @@ action(Send_SnpSharedFwd_ToSharer, desc="") {
       // TODO should be random or the closest one to the fwd dest
       out_msg.Destination.add(tbe.dir_sharers.smallestElement());
       out_msg.retToSrc := retToSrc;
-      out_msg.c2c_sharers := tbe.c2c_sharers;
-      out_msg.c2cOrig := tbe.c2cOrig;
     }
   }
 }
@@ -1662,7 +1663,11 @@ action(Send_SnpOnce, desc="") {
   enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
     prepareRequest(tbe, CHIRequestType:SnpOnce, out_msg);
     if (tbe.dir_ownerExists) {
-      out_msg.Destination.add(tbe.dir_owner);
+      if (is_multiChip) {
+        out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_owner);
+      } else {
+        out_msg.Destination.add(tbe.dir_owner);
+      }
     } else {
       // TODO should be random or the closest one
       out_msg.Destination.add(tbe.dir_sharers.smallestElement());
@@ -2208,7 +2213,6 @@ action(UpdateDirState_FromReqResp, desc="") {
       assert(tbe.requestor == in_msg.responder);
 
       if (is_multiChip) {
-        DPRINTF(RubyGenerated, "in_msg.responder: %s", in_msg.responder);
         tbe.mega_dir_sharers.mergeMegaNetDest(in_msg.c2c_sharers);
       } else {
         tbe.dir_sharers.add(in_msg.responder);
@@ -2229,7 +2233,7 @@ action(UpdateDirState_FromReqResp, desc="") {
       } else if (tbe.requestorToBeExclusiveOwner) {
         if (is_multiChip) {
           assert(tbe.mega_dir_sharers.totalCount() == 1);
-          tbe.mega_dir_owner.mergeMegaNetDest(in_msg.c2c_sharers);
+          tbe.mega_dir_owner.mergeMegaNetDest(in_msg.c2c_destination);
         } else {
           assert(tbe.dir_sharers.count() == 1);
           tbe.dir_owner := in_msg.responder;
@@ -2837,7 +2841,7 @@ action(Send_CompAck, desc="") {
     out_msg.type := CHIResponseType:CompAck;
     out_msg.responder := machineID;
     // MegaNetDest ID for sharer tracking in the HNF
-    out_msg.c2c_sharers.add(chipID, machineID); 
+    out_msg.c2c_destination.add(chipID, machineID); 
     out_msg.Destination.add(mapAddressToDownstreamMachine(tbe.addr));
   }
 }

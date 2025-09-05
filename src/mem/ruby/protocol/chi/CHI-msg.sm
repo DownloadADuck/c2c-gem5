@@ -173,7 +173,8 @@ structure(CHIResponseMsg, desc="", interface="Message") {
   //NOTE: not in CHI and for debuging only
 
   // c2c off-chip sharer field
-  MegaNetDest c2c_sharers,      desc="Off-chip sharer";
+  //MegaNetDest c2c_sharers,      desc="Off-chip sharer";
+  MegaNetDest c2c_destination,  desc="Final off-chip destination";
   MachineID originalRequestor,  desc="Sender of the original request";
   MachineID localRequestor,     desc="local or secondary requestor";
   bool off_chip,                desc="Response triggering a new off_chip response";

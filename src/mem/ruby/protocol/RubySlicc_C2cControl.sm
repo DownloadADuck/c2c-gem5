@@ -86,7 +86,8 @@ structure(C2cMsg, desc="...", interface="Message") {
   MachineID Responder,          desc="Responder that sent the response msg";
 
   // C2c sharer field
-  MegaNetDest C2c_sharers,      desc="Off-chip sharer";
+  //MegaNetDest C2c_sharers,      desc="Off-chip sharer";
+  MegaNetDest C2c_destination,  desc="Final off-chip destination";
   MachineID OriginalRequestor,  desc="Off-chip requestor";
   MachineID LocalRequestor,     desc="Secondary or local requestor";
 
