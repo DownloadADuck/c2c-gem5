@@ -104,9 +104,8 @@ structure(CHIRequestMsg, desc="", interface="Message") {
 
 
   // c2c-specific field
-  // TODO: Clean what's needed or not here
   MegaNetDest MegaDestination, desc="Message destination of type MegaNetDest";
-  NetDest c2c_destination, desc="off-chip destination";
+  MegaNetDest c2c_destination, desc="off-chip destination";
 
   MegaNetDest c2c_sharers,      desc="off-chip sharer";
   MachineID originalRequestor,  desc="off-chip requestor";
@@ -231,7 +230,7 @@ structure(CHIDataMsg, desc="", interface="Message") {
   MessageSizeType MessageSize, default="MessageSizeType_Data";
 
   // C2c-specific fields
-  MegaNetDest c2c_sharers,      desc="Off-Chip sharer for snp responses";
+  MegaNetDest c2c_destination,  desc="Off-Chip destination";
   MachineID originalRequestor,  desc="Original requestor";
   MachineID localRequestor,     desc="Local or secondary requestor";
 

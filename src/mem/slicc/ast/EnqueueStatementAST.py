@@ -90,7 +90,7 @@ class EnqueueStatementAST(StatementAST):
             code("} else {")
             code.indent()
             code("((*out_msg).m_Destination).add(mapChipIDToC2CI(i));")
-            code("(*out_msg).m_c2c_destination.addNetDest((*m_tbe_ptr).m_mega_dir_sharers.extractNetDest(i));")
+            code("(*out_msg).m_c2c_destination.addMegaNetDest((*m_tbe_ptr).m_mega_dir_sharers);")
             code("(*out_msg).m_retToSrc = false;")
             code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
             code.dedent()
