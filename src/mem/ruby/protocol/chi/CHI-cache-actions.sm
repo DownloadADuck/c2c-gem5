@@ -1487,10 +1487,14 @@ action(Send_SnpUniqueFwd, desc="") {
 
   enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
     prepareRequest(tbe, CHIRequestType:SnpUniqueFwd, out_msg);
-    out_msg.Destination.addNetDest(tbe.dir_sharers);
+    if (is_multiChip) {
+      out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers);
+      out_msg.c2cOrig := tbe.c2cOrig;
+      out_msg.c2c_destination := tbe.c2c_destination;
+    } else {
+      out_msg.Destination.addNetDest(tbe.dir_sharers);
+    }
     out_msg.retToSrc := false;
-    out_msg.c2c_sharers := tbe.c2c_sharers;
-    out_msg.c2cOrig := tbe.c2cOrig;
   }
 }
 
@@ -1510,10 +1514,14 @@ action(Send_SnpShared, desc="") {
 
   enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
     prepareRequest(tbe, CHIRequestType:SnpShared, out_msg);
-    out_msg.Destination.add(tbe.dir_owner);
+    if (is_multiChip) {
+      out_msg.MegaDestination.add(tbe.mega_dir_owner);
+      out_msg.c2c_destination := tbe.c2c_destination;
+      out_msg.c2cOrig := tbe.c2cOrig;
+    } else {
+      out_msg.Destination.add(tbe.dir_owner);
+    }
     out_msg.retToSrc := false;
-    out_msg.c2c_sharers := tbe.c2c_sharers;
-    out_msg.c2cOrig := tbe.c2cOrig;
   }
 }
 
@@ -1669,11 +1677,14 @@ action(Send_SnpOnce, desc="") {
         out_msg.Destination.add(tbe.dir_owner);
       }
     } else {
-      // TODO should be random or the closest one
-      out_msg.Destination.add(tbe.dir_sharers.smallestElement());
+      if (is_multiChip) {
+        out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers.smallestElement());
+      } else {
+        // TODO should be random or the closest one
+        out_msg.Destination.add(tbe.dir_sharers.smallestElement());
+      }
     }
     out_msg.retToSrc := true;
-    out_msg.c2c_sharers := tbe.c2c_sharers;
     out_msg.c2cOrig := tbe.c2cOrig;
   }
 }
@@ -1708,6 +1719,7 @@ action(Send_SnpOnceFwd, desc="") {
         // TODO should be random or the closest one
         out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers.smallestElement());
       }
+      out_msg.c2cOrig := tbe.c2cOrig;
     } else {
       if (tbe.dir_ownerExists) {
         out_msg.Destination.add(tbe.dir_owner);
@@ -1716,8 +1728,6 @@ action(Send_SnpOnceFwd, desc="") {
         out_msg.Destination.add(tbe.dir_sharers.smallestElement());
       }
     }
-    out_msg.c2c_sharers := tbe.c2c_sharers;
-    out_msg.c2cOrig := tbe.c2cOrig;
     out_msg.retToSrc := false;
   }
 }
@@ -2213,14 +2223,14 @@ action(UpdateDirState_FromReqResp, desc="") {
       assert(tbe.requestor == in_msg.responder);
 
       if (is_multiChip) {
-        tbe.mega_dir_sharers.mergeMegaNetDest(in_msg.c2c_sharers);
+        tbe.mega_dir_sharers.mergeMegaNetDest(in_msg.c2c_destination);
       } else {
         tbe.dir_sharers.add(in_msg.responder);
       }
 
       if (tbe.requestorToBeOwner) {
         if (is_multiChip) {
-          tbe.mega_dir_owner.mergeMegaNetDest(in_msg.c2c_sharers);
+          tbe.mega_dir_owner.mergeMegaNetDest(in_msg.c2c_destination);
         } else {
           tbe.dir_owner := in_msg.responder;
         }
