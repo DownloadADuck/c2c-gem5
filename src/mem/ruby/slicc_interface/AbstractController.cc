@@ -603,7 +603,7 @@ AbstractController::recvTimingReq(PacketPtr pkt)
 
     if (pkt->isRead()) {
         (*msg).m_Type = (*(pkt->c2c_msg)).m_Type;
-        (*msg).m_C2c_sharers = (*(pkt->c2c_msg)).m_C2c_sharers;
+        (*msg).m_C2c_destination = (*(pkt->c2c_msg)).m_C2c_destination;
         (*msg).m_RetToSrc = (*(pkt->c2c_msg)).m_RetToSrc;
         (*msg).m_OriginalRequestor = (*(pkt->c2c_msg)).m_OriginalRequestor;
         //(*msg).m_LocalRequestor = (*(pkt->c2c_msg)).m_LocalRequestor;
