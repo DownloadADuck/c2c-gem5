@@ -1581,7 +1581,6 @@ action(Send_SnpSharedFwd_ToOwner, desc="") {
         prepareRequest(tbe, CHIRequestType:SnpNotSharedDirtyFwd, out_msg);
       }
       out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_owner);
-      DPRINTF(RubyGenerated, "send_SnpSharedFwd_ToOwner - mega_dir_owner: %s\n", tbe.mega_dir_owner);
       out_msg.c2c_destination := tbe.c2c_destination;
       out_msg.c2cOrig := tbe.c2cOrig;
       out_msg.retToSrc := retToSrc;
@@ -1668,25 +1667,53 @@ action(Send_SnpOnce, desc="") {
   }
   tbe.expected_snp_resp.addExpectedCount(1);
 
-  enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
-    prepareRequest(tbe, CHIRequestType:SnpOnce, out_msg);
-    if (tbe.dir_ownerExists) {
-      if (is_multiChip) {
+  if (tbe.dir_ownerExists) {
+    if (is_multiChip) {
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpOnce, out_msg);
         out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_owner);
-      } else {
-        out_msg.Destination.add(tbe.dir_owner);
+        out_msg.retToSrc := true;
       }
     } else {
-      if (is_multiChip) {
-        out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers.smallestElement());
-      } else {
-        // TODO should be random or the closest one
-        out_msg.Destination.add(tbe.dir_sharers.smallestElement());
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpOnce, out_msg);
+        out_msg.Destination.add(tbe.dir_owner);
+        out_msg.retToSrc := true;
       }
     }
-    out_msg.retToSrc := true;
-    out_msg.c2cOrig := tbe.c2cOrig;
+  } else {
+    if (is_multiChip) {
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpOnce, out_msg);
+        out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers.smallestElement());
+        out_msg.retToSrc := true;
+      }
+    } else {
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpOnce, out_msg);
+        out_msg.Destination.add(tbe.dir_sharers.smallestElement());
+        out_msg.retToSrc := true;
+      }
+    }
   }
+  //enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+  //  prepareRequest(tbe, CHIRequestType:SnpOnce, out_msg);
+  //  if (is_multiChip) {
+  //    if (tbe.dir_ownerExists) {
+  //      out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_owner);
+  //    } else {
+  //      out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers.smallestElement());
+  //    }
+  //  } else {
+  //    if (tbe.dir_ownerExists) {
+  //      out_msg.Destination.add(tbe.dir_owner);
+  //    } else {
+  //      // TODO should be random or the closest one
+  //      out_msg.Destination.add(tbe.dir_sharers.smallestElement());
+  //    }
+  //  }
+  //  out_msg.retToSrc := true;
+  //}
 }
 
 action(Send_SnpOnceFwd, desc="") {

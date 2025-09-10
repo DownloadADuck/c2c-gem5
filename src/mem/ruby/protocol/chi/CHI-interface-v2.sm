@@ -822,7 +822,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     peek(snpInPort, CHIRequestMsg) {
       tbe.to_c2c_snp_type := in_msg.type; 
       tbe.requestor := in_msg.requestor;
-      DPRINTF(RubyGenerated, "initializeNetSnoop - c2c_sharers: %s\n", in_msg.c2c_destination);
+      DPRINTF(RubyGenerated, "initializeNetSnoop - c2c_destination: %s\n", in_msg.c2c_destination);
       //tbe.c2c_sharers := in_msg.c2c_sharers;
       tbe.c2c_destination := in_msg.c2c_destination;
       tbe.allowRetry := in_msg.allowRetry;

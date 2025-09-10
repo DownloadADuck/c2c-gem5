@@ -68,7 +68,8 @@ class EnqueueStatementAST(StatementAST):
 
         statements_str = str(self.statements)
         # Whenever the user uses a MegaNetDest as destination, the code is generated as follows
-        if 'addMegaNetDest' in statements_str:
+        if 'mega_dir_sharers' in statements_str:
+            print("Hello from enqueue statement with mega_dir_sharers!")
             # We send one message per available sharer in MegaNetDest
             code("for (int i = 0; i <= (*m_tbe_ptr).m_mega_dir_sharers.totalCount(); ++i) {")
             code.indent()
@@ -78,12 +79,10 @@ class EnqueueStatementAST(StatementAST):
             )
             t = self.statements.generate(code, None)
             self.queue_name.assertType("OutPort")
-            code("prepareRequest(m_tbe_ptr, CHIRequestType_SnpCleanInvalid, *out_msg);")
             # If the sharer is local, extract the NetDest from MegaNetDest
             code("if (i == m_chipID) {")
             code.indent()
             code("((*out_msg).m_Destination).addNetDest((*m_tbe_ptr).m_mega_dir_sharers.extractNetDest(i));")
-            code("(*out_msg).m_retToSrc = false;")
             code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
             code.dedent()
             # If the sharer is remote, send to local C2CI
@@ -91,7 +90,32 @@ class EnqueueStatementAST(StatementAST):
             code.indent()
             code("((*out_msg).m_Destination).add(mapChipIDToC2CI(i));")
             code("(*out_msg).m_c2c_destination.addMegaNetDest((*m_tbe_ptr).m_mega_dir_sharers);")
-            code("(*out_msg).m_retToSrc = false;")
+            code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
+            code.dedent()
+            code("}") # end if
+            code.dedent()
+            code("}") # end for
+        elif 'mega_dir_owner' in statements_str:
+            print("Hello from enqueue statement with mega_dir_owner!") 
+            code("for (int i = 0; i <= (*m_tbe_ptr).m_mega_dir_owner.totalCount(); ++i) {")
+            code.indent()
+            code(
+                "std::shared_ptr<${{msg_type.c_ident}}> out_msg = "
+                "std::make_shared<${{msg_type.c_ident}}>(clockEdge());"
+            )
+            t = self.statements.generate(code, None)
+            self.queue_name.assertType("OutPort")
+            # If the sharer is local, extract the NetDest from MegaNetDest
+            code("if (i == m_chipID) {")
+            code.indent()
+            code("((*out_msg).m_Destination).addNetDest((*m_tbe_ptr).m_mega_dir_owner.extractNetDest(i));")
+            code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
+            code.dedent()
+            # If the sharer is remote, send to local C2CI
+            code("} else {")
+            code.indent()
+            code("((*out_msg).m_Destination).add(mapChipIDToC2CI(i));")
+            code("(*out_msg).m_c2c_destination.addMegaNetDest((*m_tbe_ptr).m_mega_dir_owner);")
             code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
             code.dedent()
             code("}") # end if
