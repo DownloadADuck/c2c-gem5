@@ -500,6 +500,7 @@ TBE allocateSnoopTBE(Addr addr, CHIRequestMsg in_msg), return_by_pointer="yes" {
 
   // C2c-specific field
   tbe.originalRequestor := in_msg.originalRequestor;
+  tbe.localRequestor := in_msg.localRequestor;
 
   return tbe;
 }

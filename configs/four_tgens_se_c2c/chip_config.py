@@ -261,6 +261,7 @@ def create_chip0(
 
     hnf_dests.pop(1)
     ruby_system.interface0[0].setDownstream(hnf_dests)
+    ruby_system.interface0[0].setCntrlList(cntrlList)
 
     # Setup data message size for all controllers
     for cntrl in all_cntrls:
@@ -504,6 +505,7 @@ def create_chip1(
 
     hnf_dests.pop(1)
     ruby_system.interface1[0].setDownstream(hnf_dests)
+    ruby_system.interface1[0].setCntrlList(cntrlList)
 
     # Setup data message size for all controllers
     for cntrl in all_cntrls:

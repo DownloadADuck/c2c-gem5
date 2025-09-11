@@ -2736,6 +2736,7 @@ action(Send_FwdSnpResp, desc="") {
     out_msg.addr := address;
     out_msg.responder := machineID;
     out_msg.Destination.add(tbe.requestor);
+    out_msg.localRequestor := tbe.localRequestor;
 
     // We have the data (locally or upstream) or are dropping it
     bool keepData := (tbe.dir_sharers.count() > 0) ||
@@ -2876,6 +2877,7 @@ action(Send_CompAck, desc="") {
     out_msg.type := CHIResponseType:CompAck;
     out_msg.responder := machineID;
     // MegaNetDest ID for sharer tracking in the HNF
+    out_msg.localRequestor := tbe.localRequestor;
     out_msg.c2c_destination.add(chipID, machineID); 
     out_msg.Destination.add(mapAddressToDownstreamMachine(tbe.addr));
   }
