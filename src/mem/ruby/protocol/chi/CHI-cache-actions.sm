@@ -1581,7 +1581,7 @@ action(Send_SnpSharedFwd_ToOwner, desc="") {
         prepareRequest(tbe, CHIRequestType:SnpNotSharedDirtyFwd, out_msg);
       }
       out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_owner);
-      out_msg.c2c_destination := tbe.c2c_destination;
+      out_msg.c2c_destination := tbe.mega_dir_owner;
       out_msg.c2cOrig := tbe.c2cOrig;
       out_msg.retToSrc := retToSrc;
     }
