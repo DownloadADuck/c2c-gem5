@@ -199,6 +199,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
   bool respondsTo(Addr addr);
   // Used by the requestor side
   MachineID mapAddressToDownstreamMachine(Addr addr);
+  int mapMachineIDToChipID(MachineID mach);
 
   // Used to check if an inbound request is local 
   bool hasDownstreamClient(Addr addr); 
@@ -828,7 +829,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.allowRetry := in_msg.allowRetry;
       tbe.size := in_msg.MessageSize;
       tbe.dataToFwdRequestor := in_msg.dataToFwdRequestor;
-      tbe.originalRequestor := in_msg.requestor;
+      tbe.originalRequestor := in_msg.originalRequestor;
       tbe.accAddr := in_msg.accAddr;
       tbe.accSize := in_msg.accSize;
       tbe.retToSrc := in_msg.retToSrc;
@@ -975,11 +976,10 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.accSize := tbe.accSize;
       out_msg.type := c2cMsgToCHIReq(tbe.to_net_snp_type);
       out_msg.requestor := machineID;
-      out_msg.fwdRequestor := machineID;
+      out_msg.originalRequestor := tbe.originalRequestor;
       out_msg.dataToFwdRequestor := tbe.dataToFwdRequestor; 
       out_msg.retToSrc := tbe.retToSrc;
       out_msg.allowRetry := tbe.allowRetry;
-      DPRINTF(RubyGenerated, "sendToNet_Snoop - c2c_destination.extractNetDest: %s\n", tbe.c2c_destination.extractNetDest(chipID));
       out_msg.Destination := tbe.c2c_destination.extractNetDest(chipID);
       out_msg.seqReq := tbe.seqReq; 
       out_msg.isSeqReqValid := tbe.isSeqReqValid;
@@ -987,7 +987,12 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.is_remote_pf := tbe.is_remote_pf;
       out_msg.usesTxnId := tbe.usesTxnId;
       out_msg.MessageSize := tbe.MessageSize;
-
+      // Select where the fwded data should be send by the snoopee
+      if (mapMachineIDToChipID(tbe.originalRequestor) == chipID) {
+        out_msg.fwdRequestor := tbe.originalRequestor;
+      } else {
+        out_msg.fwdRequestor := machineID;
+      }
     }
 }
 
@@ -1049,6 +1054,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.Requestor := machineID;
       out_msg.FwdRequestor := machineID;
       out_msg.C2c_destination := tbe.c2c_destination;
+      out_msg.OriginalRequestor := tbe.originalRequestor;
       out_msg.DataToFwdRequestor := tbe.dataToFwdRequestor; 
       out_msg.RetToSrc := tbe.retToSrc;
       out_msg.AllowRetry := tbe.allowRetry;

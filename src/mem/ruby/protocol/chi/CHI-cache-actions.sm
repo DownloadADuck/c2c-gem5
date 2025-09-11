@@ -1567,11 +1567,7 @@ action(Send_SnpSharedFwd_ToOwner, desc="") {
     tbe.expected_snp_resp.addExpectedDataType(CHIDataType:SnpRespData_I_PD_Fwded_SC);
   }
 
-  if (is_multiChip) {
-    tbe.expected_snp_resp.addExpectedCount(tbe.mega_dir_sharers.totalCount());
-  } else {
-    tbe.expected_snp_resp.addExpectedCount(1);
-  }
+  tbe.expected_snp_resp.addExpectedCount(1);
 
   if (is_multiChip) {
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
@@ -1582,7 +1578,6 @@ action(Send_SnpSharedFwd_ToOwner, desc="") {
       }
       out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_owner);
       out_msg.c2c_destination := tbe.mega_dir_owner;
-      out_msg.c2cOrig := tbe.c2cOrig;
       out_msg.retToSrc := retToSrc;
     }
   } else {
@@ -2805,6 +2800,9 @@ action(Send_Data, desc="") {
 
     out_msg.responder := machineID;
     out_msg.Destination.add(tbe.snd_destination);
+
+    //C2c-specific fields
+    out_msg.originalRequestor := tbe.originalRequestor;
   }
 
   // send next chunk (if any) next cycle
