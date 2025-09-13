@@ -818,7 +818,11 @@ action(Initiate_WriteUnique_LocalWrite_AfterUpgrade, desc="") {
 
 action(Initiate_WriteUnique_Writeback, desc="") {
   assert(is_HN);
-  assert(tbe.dir_sharers.count() > 0);
+  if (is_multiChip) {
+    assert(tbe.mega_dir_sharers.totalCount() > 0);
+  } else {
+    assert(tbe.dir_sharers.count() > 0);
+  }
   tbe.actions.push(Event:SendSnpUnique);
   if (comp_wu) {
     tbe.actions.push(Event:SendDBIDResp_WU);
@@ -2313,12 +2317,10 @@ action(UpdateDirState_FromSnpResp, desc="") {
                (in_msg.type == CHIResponseType:SnpResp_SC_Fwded_SD_PD)) {
       // the SnpSharedFwd must have been sent to the owner if there was one
       if (is_multiChip) {
-        DPRINTF(RubyGenerated, "updateDirSnpResp dir_ownerExists --> %s\n tbe.mega_dir_owner --> %s\n in_msg.responder --> %s\n", tbe.dir_ownerExists, tbe.mega_dir_owner, in_msg.responder);
-        DPRINTF(RubyGenerated, "originalResponder --> %s\n", in_msg.originalResponder);
         assert((tbe.dir_ownerExists == false) ||
-               (tbe.dir_ownerExists && (tbe.mega_dir_owner.isElement(mapMachineIDToChipID(in_msg.responder), in_msg.responder))));
-        assert(tbe.mega_dir_sharers.isElement(mapMachineIDToChipID(in_msg.responder), in_msg.responder));
-        tbe.mega_dir_sharers.add(mapMachineIDToChipID(tbe.requestor), tbe.requestor);
+               (tbe.dir_ownerExists && (tbe.mega_dir_owner.isElement(mapMachineIDToChipID(in_msg.originalResponder), in_msg.originalResponder))));
+        assert(tbe.mega_dir_sharers.isElement(mapMachineIDToChipID(in_msg.originalResponder), in_msg.originalResponder));
+        tbe.mega_dir_sharers.add(mapMachineIDToChipID(in_msg.originalRequestor), in_msg.originalRequestor);
 
       } else {
         assert((tbe.dir_ownerExists == false) ||

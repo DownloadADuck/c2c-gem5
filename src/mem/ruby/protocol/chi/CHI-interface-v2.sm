@@ -1007,14 +1007,14 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.responder := machineID; 
       // If response is a CompAck, we route using only the address
       if (c2cMsgToCHIRsp(tbe.to_net_rsp_type) == CHIResponseType:CompAck) {
-        DPRINTF(RubyGenerated, "compack\n");
         out_msg.Destination.add(mapAddressToDownstreamMachine(address));
       } else {
-        DPRINTF(RubyGenerated, "second choice - tbe.localRequestor --> %s\n", tbe.localRequestor);
         out_msg.Destination.add(tbe.localRequestor); 
       }
       out_msg.c2c_destination := tbe.c2c_destination;
-      out_msg.originalRequestor := tbe.originalRequestor;
+      // Trying to use originalRequetor to hold the original requestor for dir state update
+      //out_msg.originalRequestor := tbe.originalRequestor;
+      out_msg.originalRequestor := tbe.responder;
       out_msg.originalResponder := tbe.originalResponder;
       out_msg.stale := tbe.stale;
       out_msg.usesTxnId := tbe.usesTxnId;
@@ -1080,7 +1080,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     enqueue(responseToC2c_out, C2cMsg, response_latency) {
       out_msg.addr := address;
       out_msg.Type := CHIRspToC2cMsg(tbe.to_c2c_rsp_type);
-      out_msg.Responder := tbe.destination;
+      out_msg.Responder := tbe.responder;
       out_msg.Stale := tbe.stale;
       out_msg.UsesTxnId := tbe.usesTxnId;
       out_msg.TxnId := tbe.txnId;
