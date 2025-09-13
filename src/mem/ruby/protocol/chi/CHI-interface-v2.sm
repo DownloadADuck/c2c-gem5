@@ -108,6 +108,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     //MegaNetDest c2c_sharers, desc="Stores the c2c_sharers when sending a response";
     MegaNetDest c2c_destination, decs="Final off-chip destination";
     MachineID originalRequestor, desc="Stores the off-chip requestor";
+    MachineID originalResponder, desc="Stores the off-chip responder";
     MachineID localRequestor, desc="local or secondary requestor";
     // TODO: Not sure yet that this should be MegaNetDest
     MegaNetDest localDest,    desc="Local final destination for the message";
@@ -845,9 +846,9 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.stale := in_msg.stale;
       tbe.usesTxnId := in_msg.usesTxnId;
       tbe.txnId := in_msg.txnId;
-      //tbe.c2c_sharers := in_msg.c2c_sharers;
       tbe.c2c_destination := in_msg.c2c_destination;
       tbe.originalRequestor := in_msg.originalRequestor;
+      tbe.originalResponder := in_msg.responder; // used to update dir state
       tbe.localRequestor := in_msg.localRequestor;
       tbe.MessageSize := in_msg.MessageSize;
     }
@@ -915,6 +916,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       //tbe.c2c_sharers := in_msg.C2c_sharers;
       tbe.c2c_destination := in_msg.C2c_destination;
       tbe.originalRequestor := in_msg.OriginalRequestor;
+      tbe.originalResponder := in_msg.OriginalResponder;
       tbe.localRequestor := in_msg.LocalRequestor;
       tbe.messageSize := in_msg.MessageSize;
     }
@@ -1005,11 +1007,15 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.responder := machineID; 
       // If response is a CompAck, we route using only the address
       if (c2cMsgToCHIRsp(tbe.to_net_rsp_type) == CHIResponseType:CompAck) {
+        DPRINTF(RubyGenerated, "compack\n");
         out_msg.Destination.add(mapAddressToDownstreamMachine(address));
       } else {
+        DPRINTF(RubyGenerated, "second choice - tbe.localRequestor --> %s\n", tbe.localRequestor);
         out_msg.Destination.add(tbe.localRequestor); 
       }
       out_msg.c2c_destination := tbe.c2c_destination;
+      out_msg.originalRequestor := tbe.originalRequestor;
+      out_msg.originalResponder := tbe.originalResponder;
       out_msg.stale := tbe.stale;
       out_msg.usesTxnId := tbe.usesTxnId;
       out_msg.txnId := tbe.txnId;
@@ -1078,6 +1084,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.Stale := tbe.stale;
       out_msg.UsesTxnId := tbe.usesTxnId;
       out_msg.TxnId := tbe.txnId;
+      out_msg.OriginalResponder := tbe.originalResponder;
       out_msg.C2c_destination := tbe.c2c_destination;
       out_msg.OriginalRequestor := tbe.originalRequestor;
       out_msg.LocalRequestor := tbe.localRequestor;

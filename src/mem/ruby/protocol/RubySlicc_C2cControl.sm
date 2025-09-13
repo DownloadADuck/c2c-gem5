@@ -89,6 +89,7 @@ structure(C2cMsg, desc="...", interface="Message") {
   //MegaNetDest C2c_sharers,      desc="Off-chip sharer";
   MegaNetDest C2c_destination,  desc="Final off-chip destination";
   MachineID OriginalRequestor,  desc="Off-chip requestor";
+  MachineID OriginalResponder,  desc="Off-chip responder";
   MachineID LocalRequestor,     desc="Secondary or local requestor";
 
   bool RetToSrc,                desc="Affects whether or not a snoop resp return data";
