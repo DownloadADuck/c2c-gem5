@@ -1431,7 +1431,11 @@ action(Send_SnpCleanInvalid_NoReq, desc="") {
 action(Send_SnpUnique, desc="") {
   assert(is_valid(tbe));
   // at least one sharer or owner othrwise should not execute this
-  assert(tbe.dir_sharers.count() > 0);
+  if (is_multiChip) {
+    assert(tbe.mega_dir_sharers.totalCount() > 0);
+  } else {
+    assert(tbe.dir_sharers.count() > 0);
+  }
 
   setExpectedForInvSnoop(tbe, true);
 

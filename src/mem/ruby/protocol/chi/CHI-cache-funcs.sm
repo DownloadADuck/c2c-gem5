@@ -980,7 +980,11 @@ void setDataToBeStates(TBE tbe) {
 
 void setExpectedForInvSnoop(TBE tbe, bool expectCleanWB) {
   assert(tbe.expected_snp_resp.hasExpected() == false);
-  assert(tbe.dir_sharers.count() > 0);
+  if (is_multiChip) {
+    assert(tbe.mega_dir_sharers.totalCount() > 0);
+  } else {
+    assert(tbe.dir_sharers.count() > 0);
+  }
   clearExpectedSnpResp(tbe);
   if (expectCleanWB) {
     tbe.expected_snp_resp.addExpectedDataType(CHIDataType:SnpRespData_I);
@@ -988,13 +992,23 @@ void setExpectedForInvSnoop(TBE tbe, bool expectCleanWB) {
   if (tbe.dataMaybeDirtyUpstream) {
     assert(tbe.dir_ownerExists);
     tbe.expected_snp_resp.addExpectedDataType(CHIDataType:SnpRespData_I_PD);
-    if ((expectCleanWB == false) || (tbe.dir_sharers.count() > 1)) {
-      tbe.expected_snp_resp.addExpectedRespType(CHIResponseType:SnpResp_I);
+    if (is_multiChip) {
+      if ((expectCleanWB == false) || (tbe.mega_dir_sharers.totalCount() > 1)) {
+        tbe.expected_snp_resp.addExpectedRespType(CHIResponseType:SnpResp_I);
+      }
+    } else {
+      if ((expectCleanWB == false) || (tbe.dir_sharers.count() > 1)) {
+        tbe.expected_snp_resp.addExpectedRespType(CHIResponseType:SnpResp_I);
+      }
     }
   } else {
     tbe.expected_snp_resp.addExpectedRespType(CHIResponseType:SnpResp_I);
   }
-  tbe.expected_snp_resp.setExpectedCount(tbe.dir_sharers.count());
+  if (is_multiChip) {
+    tbe.expected_snp_resp.setExpectedCount(tbe.mega_dir_sharers.totalCount());
+  } else {
+    tbe.expected_snp_resp.setExpectedCount(tbe.dir_sharers.count());
+  }
 }
 
 State makeFinalStateHelper(State cs, State ds) {
