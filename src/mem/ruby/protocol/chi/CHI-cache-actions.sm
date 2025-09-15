@@ -1368,6 +1368,7 @@ action(Send_WriteUnique, desc="") {
       out_msg.accAddr := tbe.accAddr;
       out_msg.accSize := tbe.accSize;
     }
+    out_msg.originalRequestor := machineID;
     out_msg.Destination.add(mapAddressToDownstreamMachine(tbe.addr));
     allowRequestRetry(tbe, out_msg);
   }
@@ -1439,16 +1440,21 @@ action(Send_SnpUnique, desc="") {
 
   setExpectedForInvSnoop(tbe, true);
 
-  enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
-    prepareRequest(tbe, CHIRequestType:SnpUnique, out_msg);
-    if (is_multiChip) {
+  if (is_multiChip) {
+    enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+      prepareRequest(tbe, CHIRequestType:SnpUnique, out_msg);
       out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers);
-    } else {
-      out_msg.Destination.addNetDest(tbe.dir_sharers);
+      out_msg.originalRequestor := tbe.originalRequestor;
+      out_msg.c2c_destination := tbe.mega_dir_sharers;
+      out_msg.c2cOrig := tbe.c2cOrig;
+      out_msg.retToSrc := false;
     }
-    out_msg.retToSrc := false;
-    out_msg.c2c_destination := tbe.c2c_destination;
-    out_msg.c2cOrig := tbe.c2cOrig;
+  } else {
+    enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+      prepareRequest(tbe, CHIRequestType:SnpUnique, out_msg);
+      out_msg.Destination.addNetDest(tbe.dir_sharers);
+      out_msg.retToSrc := false;
+    }
   }
 }
 
@@ -2294,6 +2300,7 @@ action(UpdateDirState_FromSnpResp, desc="") {
     if (in_msg.type == CHIResponseType:SnpResp_I) {
       // must have been a known sharer otherwise we would receive data
       if (is_multiChip) {
+        DPRINTF(RubyGenerated, "in_msg.originalResponder -> %s\n", in_msg.originalResponder);
         assert(tbe.mega_dir_sharers.isElement(mapMachineIDToChipID(in_msg.responder), in_msg.responder));
         tbe.mega_dir_sharers.remove(mapMachineIDToChipID(in_msg.responder), in_msg.responder);
         if (tbe.dir_ownerExists && (tbe.mega_dir_owner.isElement(mapMachineIDToChipID(in_msg.responder), in_msg.responder))){
@@ -2325,7 +2332,6 @@ action(UpdateDirState_FromSnpResp, desc="") {
                (tbe.dir_ownerExists && (tbe.mega_dir_owner.isElement(mapMachineIDToChipID(in_msg.originalResponder), in_msg.originalResponder))));
         assert(tbe.mega_dir_sharers.isElement(mapMachineIDToChipID(in_msg.originalResponder), in_msg.originalResponder));
         tbe.mega_dir_sharers.add(mapMachineIDToChipID(in_msg.originalRequestor), in_msg.originalRequestor);
-
       } else {
         assert((tbe.dir_ownerExists == false) ||
                (tbe.dir_ownerExists && (tbe.dir_owner == in_msg.responder)));
@@ -2745,6 +2751,7 @@ action(Send_FwdSnpResp, desc="") {
     out_msg.responder := machineID;
     out_msg.Destination.add(tbe.requestor);
     out_msg.localRequestor := tbe.localRequestor;
+    out_msg.originalRequestor := tbe.originalRequestor;
 
     // We have the data (locally or upstream) or are dropping it
     bool keepData := (tbe.dir_sharers.count() > 0) ||
@@ -2955,6 +2962,7 @@ action(Send_SnpRespI, desc="") {
       out_msg.txnId := tbe.addr;
     }
     out_msg.type := CHIResponseType:SnpResp_I;
+    out_msg.localRequestor := tbe.localRequestor;
     out_msg.responder := machineID;
     out_msg.Destination.add(tbe.requestor);
   }

@@ -824,8 +824,6 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     peek(snpInPort, CHIRequestMsg) {
       tbe.to_c2c_snp_type := in_msg.type; 
       tbe.requestor := in_msg.requestor;
-      DPRINTF(RubyGenerated, "initializeNetSnoop - c2c_destination: %s\n", in_msg.c2c_destination);
-      //tbe.c2c_sharers := in_msg.c2c_sharers;
       tbe.c2c_destination := in_msg.c2c_destination;
       tbe.allowRetry := in_msg.allowRetry;
       tbe.size := in_msg.MessageSize;
@@ -913,7 +911,6 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.stale := in_msg.Stale;
       tbe.usesTxnId := in_msg.UsesTxnId;
       tbe.txnId := in_msg.TxnId;
-      //tbe.c2c_sharers := in_msg.C2c_sharers;
       tbe.c2c_destination := in_msg.C2c_destination;
       tbe.originalRequestor := in_msg.OriginalRequestor;
       tbe.originalResponder := in_msg.OriginalResponder;
@@ -984,6 +981,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.retToSrc := tbe.retToSrc;
       out_msg.allowRetry := tbe.allowRetry;
       out_msg.Destination := tbe.c2c_destination.extractNetDest(chipID);
+      DPRINTF(RubyGenerated, "tbe.c2c_destination -> %s\n extractNetDest -> %s\n", tbe.c2c_destination, tbe.c2c_destination.extractNetDest(chipID));
       out_msg.seqReq := tbe.seqReq; 
       out_msg.isSeqReqValid := tbe.isSeqReqValid;
       out_msg.is_local_pf := tbe.is_local_pf;
@@ -1012,9 +1010,8 @@ machine(MachineType:Interface, "Forwarding C2CI") :
         out_msg.Destination.add(tbe.localRequestor); 
       }
       out_msg.c2c_destination := tbe.c2c_destination;
-      // Trying to use originalRequetor to hold the original requestor for dir state update
-      //out_msg.originalRequestor := tbe.originalRequestor;
-      out_msg.originalRequestor := tbe.responder;
+      out_msg.originalRequestor := tbe.originalRequestor;
+      //out_msg.originalRequestor := tbe.responder;
       out_msg.originalResponder := tbe.originalResponder;
       out_msg.stale := tbe.stale;
       out_msg.usesTxnId := tbe.usesTxnId;
@@ -1086,6 +1083,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.TxnId := tbe.txnId;
       out_msg.OriginalResponder := tbe.originalResponder;
       out_msg.C2c_destination := tbe.c2c_destination;
+      DPRINTF(RubyGenerated, "originalRequestor -> %s\n", tbe.originalRequestor);
       out_msg.OriginalRequestor := tbe.originalRequestor;
       out_msg.LocalRequestor := tbe.localRequestor;
       out_msg.MessageSize := tbe.messageSize;
