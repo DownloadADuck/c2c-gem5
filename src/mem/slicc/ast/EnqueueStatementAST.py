@@ -70,7 +70,7 @@ class EnqueueStatementAST(StatementAST):
         # Whenever the user uses a MegaNetDest as destination, the code is generated as follows
         if 'mega_dir_sharers' in statements_str:
             # We send one message per available sharer in MegaNetDest
-            code("for (int i = 0; i <= (*m_tbe_ptr).m_mega_dir_sharers.totalCount(); ++i) {")
+            code("for (int i = 0; i < (*m_tbe_ptr).m_mega_dir_sharers.chipCount(); ++i) {")
             code.indent()
             code(
                 "std::shared_ptr<${{msg_type.c_ident}}> out_msg = "
@@ -94,7 +94,7 @@ class EnqueueStatementAST(StatementAST):
             code.dedent()
             code("}") # end for
         elif 'mega_dir_owner' in statements_str:
-            code("for (int i = 0; i <= (*m_tbe_ptr).m_mega_dir_owner.totalCount(); ++i) {")
+            code("for (int i = 0; i < (*m_tbe_ptr).m_mega_dir_owner.chipCount(); ++i) {")
             code.indent()
             code(
                 "std::shared_ptr<${{msg_type.c_ident}}> out_msg = "

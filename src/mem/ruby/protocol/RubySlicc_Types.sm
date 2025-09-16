@@ -138,6 +138,7 @@ structure (MegaNetDest, external = "yes", non_obj="yes") {
   MegaNetDest smallestElement();
   MegaNetDest smallestElement(MachineType);
   int totalCount();
+  int chipCount();
   bool isEmpty();
   bool isElement(int, MachineID);
   bool isBroadcast();

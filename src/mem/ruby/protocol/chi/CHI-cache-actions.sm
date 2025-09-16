@@ -1443,6 +1443,7 @@ action(Send_SnpUnique, desc="") {
   if (is_multiChip) {
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
       prepareRequest(tbe, CHIRequestType:SnpUnique, out_msg);
+      DPRINTF(RubyGenerated, "chipCount -> %d\n", tbe.mega_dir_sharers.chipCount());
       out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers);
       out_msg.originalRequestor := tbe.originalRequestor;
       out_msg.c2c_destination := tbe.mega_dir_sharers;

@@ -43,6 +43,7 @@ class MegaNetDest
 
         // queries
         int totalCount() const; // Count
+        int chipCount() const;
         bool isEmpty() const;
         bool isElement(int chipID, MachineID element) const;
         bool isBroadcast() const;

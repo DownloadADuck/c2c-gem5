@@ -158,6 +158,12 @@ MegaNetDest::totalCount() const
     return sum;
 }
 
+int
+MegaNetDest::chipCount() const
+{
+    return m_data.size();
+}
+
 bool
 MegaNetDest::isEmpty() const
 {
