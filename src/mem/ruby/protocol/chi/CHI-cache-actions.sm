@@ -2301,7 +2301,6 @@ action(UpdateDirState_FromSnpResp, desc="") {
     if (in_msg.type == CHIResponseType:SnpResp_I) {
       // must have been a known sharer otherwise we would receive data
       if (is_multiChip) {
-        DPRINTF(RubyGenerated, "in_msg.originalResponder -> %s\n", in_msg.originalResponder);
         assert(tbe.mega_dir_sharers.isElement(mapMachineIDToChipID(in_msg.originalResponder), in_msg.originalResponder));
         tbe.mega_dir_sharers.remove(mapMachineIDToChipID(in_msg.originalResponder), in_msg.originalResponder);
         if (tbe.dir_ownerExists && (tbe.mega_dir_owner.isElement(mapMachineIDToChipID(in_msg.originalResponder), in_msg.originalResponder))){
