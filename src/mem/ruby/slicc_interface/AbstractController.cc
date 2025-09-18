@@ -575,6 +575,8 @@ AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
         (*msg).m_BitMask = (*(pkt->c2c_msg)).m_BitMask;
         (*msg).m_Responder = (*(pkt->c2c_msg)).m_Responder;
 
+        (*msg).m_UsesTxnId = (*(pkt->c2c_msg)).m_UsesTxnId;
+        (*msg).m_TxnId = (*(pkt->c2c_msg)).m_TxnId;
         (*msg).m_Stale = (*(pkt->c2c_msg)).m_Stale;
         (*msg).m_C2c_destination = (*(pkt->c2c_msg)).m_C2c_destination;
         (*msg).m_OriginalRequestor = (*(pkt->c2c_msg)).m_OriginalRequestor;

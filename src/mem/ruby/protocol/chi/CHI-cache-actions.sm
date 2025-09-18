@@ -2406,6 +2406,7 @@ action(Receive_ReqResp, desc="") {
     if (tbe.expected_req_resp.receiveResp(in_msg.type) == false) {
       error("Received unexpected message");
     }
+    DPRINTF(RubyGenerated, "in_msg.stale -> %s | tbe.is_stale -> %s\n", in_msg.stale, tbe.is_stale);
     assert(in_msg.stale == tbe.is_stale);
   }
 }

@@ -82,7 +82,7 @@ options0.restore_simpoint_checkpoint = False
 options0.max_checkpoints = 5
 options0.checkpoint_at_end = False
 options0.num_interfaces = 1
-options0.abs_max_tick = 3001400000
+#options0.abs_max_tick = 3001400000
 
 options1 = Object()
 options1.cmd = "tests/test-progs/threads/bin/x86/linux/threads"
