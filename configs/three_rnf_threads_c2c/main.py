@@ -162,7 +162,8 @@ def get_processes(args):
 
     idx = 0
     for wrkld in workloads:
-        process = Process(pid=100 + idx)
+        #process = Process(pid=100 + idx)
+        process = Process()
         process.executable = wrkld
         process.cwd = os.getcwd()
         process.gid = os.getgid()
@@ -193,11 +194,12 @@ def get_processes(args):
         return multiprocesses, 1
 
 multiprocesses = []
-numThreads = 1
+numThreads = 3
 
 multiprocesses, numThreads = get_processes(options0)
 (CPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options0)
 CPUClass.numThreads = numThreads
+print(f"multiprocess -> {multiprocesses}")
 
 # Number of cpus
 np = options0.num_cpus
@@ -217,7 +219,7 @@ system = System(
 )
 
 if numThreads > 1:
-    system.multi_tread = True
+    system.multi_thread = True
 
 # Top level voltage domain
 system.voltage_domain = VoltageDomain(voltage='1.0V')
@@ -250,7 +252,6 @@ for cpu in system.cpus1:
 #        system.cpus1[i].workload = multiprocesses[i]
 #    system.cpus0[i].createThreads()
 #    system.cpus1[i].createThreads()
-
 if len(multiprocesses) == 1:
     system.cpus0[0].workload = multiprocesses[0]
     system.cpus0[1].workload = multiprocesses[0]

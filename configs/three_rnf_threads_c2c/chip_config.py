@@ -38,7 +38,7 @@ from m5.objects import *
 from m5.defines import buildEnv
 
 from ruby_config import create_topology
-from four_tgens_se_c2c import CHI_config as chi_defs
+from three_rnf_threads_c2c import CHI_config as chi_defs
 
 
 def create_chip0(
