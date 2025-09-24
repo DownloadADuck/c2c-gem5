@@ -1398,15 +1398,6 @@ action(Send_SnpCleanInvalid, desc="") {
       out_msg.retToSrc := false;
     }
   }
-  //enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
-  //  prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
-  //  out_msg.retToSrc := false;
-  //  if (is_multiChip) {
-  //    out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers);
-  //  } else {
-  //    out_msg.Destination.addNetDest(tbe.dir_sharers);
-  //  }
-  //}
 
   setExpectedForInvSnoop(tbe, false);
 }
@@ -1443,7 +1434,6 @@ action(Send_SnpUnique, desc="") {
   if (is_multiChip) {
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
       prepareRequest(tbe, CHIRequestType:SnpUnique, out_msg);
-      DPRINTF(RubyGenerated, "chipCount -> %d\n", tbe.mega_dir_sharers.chipCount());
       out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers);
       out_msg.originalRequestor := tbe.originalRequestor;
       out_msg.c2c_destination := tbe.mega_dir_sharers;
@@ -2317,8 +2307,8 @@ action(UpdateDirState_FromSnpResp, desc="") {
     } else if (in_msg.type == CHIResponseType:SnpResp_SC) {
       // expected from a sharer that already has it in shared state
       if(is_multiChip) {
-        assert(tbe.mega_dir_sharers.isElement(mapMachineIDToChipID(in_msg.responder), in_msg.responder));
-        assert((tbe.dir_ownerExists == false) || (tbe.mega_dir_owner.isElement(mapMachineIDToChipID(in_msg.responder), in_msg.responder) == false));
+        assert(tbe.mega_dir_sharers.isElement(mapMachineIDToChipID(in_msg.originalResponder), in_msg.originalResponder));
+        assert((tbe.dir_ownerExists == false) || (tbe.mega_dir_owner.isElement(mapMachineIDToChipID(in_msg.originalResponder), in_msg.originalResponder) == false));
       } else {
         assert(tbe.dir_sharers.isElement(in_msg.responder));
         assert((tbe.dir_ownerExists == false) || (tbe.dir_owner != in_msg.responder));
@@ -2842,7 +2832,6 @@ action(Send_CompI, desc="") {
     // The requestor and sharer/owner are local to the same chip
     // The c2c interface is both requestor and owner
     // We don't remove the interface from the dir_sharers
-    DPRINTF(RubyC2c, "Send_CompI - Addr: %d, requestor: %s, dir_ower: %s \n We don't delete the requestor from the tbe.dir_sharers", tbe.addr, tbe.requestor, tbe.dir_owner);
 
     assert(tbe.dir_sharers.isElement(tbe.requestor));
   } else {
