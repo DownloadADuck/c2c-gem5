@@ -611,13 +611,24 @@ action(Initiate_ReadUnique_Upgrade, desc="") {
   assert((tbe.dir_ownerExists && tbe.dir_ownerIsExcl) == false);
 
   tbe.actions.push(Event:ReadMissPipe);
-  if (tbe.dataMaybeDirtyUpstream) {
-    tbe.actions.push(Event:SendSnpUnique);
-  } else if (tbe.dir_sharers.count() > 0) {
-    // no one will send us data unless we explicitly ask
-    tbe.actions.push(Event:SendSnpUniqueRetToSrc);
+  if(is_multiChip) {
+    if (tbe.dataMaybeDirtyUpstream) {
+      tbe.actions.push(Event:SendSnpUnique);
+    } else if (tbe.mega_dir_sharers.totalCount() > 0) {
+      // no one will send us data unless we explicitly ask
+      tbe.actions.push(Event:SendSnpUniqueRetToSrc);
+    } else {
+      assert(tbe.dataValid);
+    }
   } else {
-    assert(tbe.dataValid);
+    if (tbe.dataMaybeDirtyUpstream) {
+      tbe.actions.push(Event:SendSnpUnique);
+    } else if (tbe.dir_sharers.count() > 0) {
+      // no one will send us data unless we explicitly ask
+      tbe.actions.push(Event:SendSnpUniqueRetToSrc);
+    } else {
+      assert(tbe.dataValid);
+    }
   }
   // then attempt to upgrade our data
   tbe.actions.push(Event:SendCleanUnique);
@@ -642,8 +653,15 @@ action(Initiate_ReadUnique_HitUpstream, desc="") {
   tbe.actions.push(Event:ReadMissPipe);
   // SnpUniqueFwd can be used only if the line is cached at a single
   // requester; so force it off if that's the case
-  tbe.use_DCT := tbe.use_DCT && (tbe.dir_sharers.count() == 1) &&
-                 (tbe.dir_sharers.isElement(tbe.requestor) == false);
+  // TODO: Check if the originalRequestor is intialized correctly
+  if(is_multiChip) {
+    tbe.use_DCT := tbe.use_DCT && (tbe.mega_dir_sharers.totalCount() == 1) &&
+                  (tbe.mega_dir_sharers.isElement(mapMachineIDToChipID(tbe.originalRequestor), 
+                   tbe.originalRequestor));
+  } else {
+    tbe.use_DCT := tbe.use_DCT && (tbe.dir_sharers.count() == 1) &&
+                  (tbe.dir_sharers.isElement(tbe.requestor) == false);
+  }
   if (tbe.use_DCT) {
     tbe.actions.push(Event:SendSnpUniqueFwd);
     tbe.actions.pushNB(Event:WaitCompAck);
@@ -675,8 +693,14 @@ action(Initiate_CleanUnique, desc="") {
   tbe.actions.push(Event:ReadMissPipe); // TODO need another latency pipe ??
 
   // invalidates everyone except requestor
-  if (tbe.dir_sharers.count() > 1) {
-    tbe.actions.push(Event:SendSnpCleanInvalidNoReq);
+  if (is_multiChip) {
+    if (tbe.mega_dir_sharers.totalCount() > 1) {
+      tbe.actions.push(Event:SendSnpCleanInvalidNoReq);
+    }
+  } else {
+    if (tbe.dir_sharers.count() > 1) {
+      tbe.actions.push(Event:SendSnpCleanInvalidNoReq);
+    }
   }
   // auto upgrade if HN
   tbe.dataUnique := tbe.dataUnique || is_HN;
