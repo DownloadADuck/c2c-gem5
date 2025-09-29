@@ -1141,7 +1141,11 @@ action(Initiate_Replacement_Evict_BackInvalidte, desc="") {
 
 action(Initiate_Replacement_Evict, desc="") {
   assert(is_HN == false);
-  assert(tbe.dir_sharers.isEmpty());
+  if (is_multiChip) {
+    assert(tbe.mega_dir_sharers.isEmpty());
+  } else {
+    assert(tbe.dir_sharers.isEmpty());
+  }
   tbe.actions.push(Event:SendEvict);
   tbe.dataToBeInvalid := true;
   tbe.actions.pushNB(Event:TagArrayWrite);
@@ -1176,7 +1180,8 @@ action(Initiate_Replacement_WB, desc="") {
   if (is_HN) {
     assert(tbe.dataDirty);
     tbe.actions.push(Event:SendWriteNoSnp);
-  } else if (tbe.dir_sharers.isEmpty()) {
+  } else if ((tbe.dir_sharers.isEmpty() && is_multiChip == false) ||
+            (tbe.mega_dir_sharers.isEmpty() && is_multiChip == true)) {
     assert(tbe.dataDirty || tbe.dataUnique);
     tbe.actions.push(Event:SendWriteBackOrWriteEvict);
   } else {
@@ -1302,7 +1307,11 @@ action(Send_ReadUnique, desc="") {
 }
 
 action(Send_CleanUnique, desc="") {
-  assert(tbe.dataValid || (tbe.dir_sharers.count() > 0));
+  if (is_multiChip) {
+    assert(tbe.dataValid || (tbe.mega_dir_sharers.totalCount() > 0));
+  } else {
+    assert(tbe.dataValid || (tbe.dir_sharers.count() > 0));
+  }
   assert(tbe.dataUnique == false);
 
   assert(tbe.expected_req_resp.hasExpected() == false);
