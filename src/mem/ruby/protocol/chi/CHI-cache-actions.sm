@@ -963,8 +963,10 @@ action(Finish_CopyBack_Stale, desc="") {
 }
 
 action(Initiate_Evict, desc="") {
-  if ((is_HN == false) && (tbe.dir_sharers.count() == 1) &&
-      (tbe.dataValid == false)) {
+  if (((is_HN == false) && (tbe.dir_sharers.count() == 1) &&
+      (tbe.dataValid == false) && (is_multiChip == false)) || 
+      ((is_HN == false) && (tbe.mega_dir_sharers.totalCount() == 1) &&
+      (tbe.dataValid == false) && (is_multiChip == true))) {
     // last sharer and we also don't have a copy the line, so we also need to
     // send an eviction downstream
     if (tbe.dataUnique) {
@@ -1001,13 +1003,20 @@ action(Initiate_MaintainCoherence, desc="") {
         tbe.actions.push(Event:SendWBData);
       }
     } else {
-      if (tbe.dir_sharers.isEmpty() && (tbe.dataDirty || tbe.dataUnique)) {
+      if ((tbe.dir_sharers.isEmpty() && (tbe.dataDirty || tbe.dataUnique) &&
+          (is_multiChip == false)) || 
+          (tbe.mega_dir_sharers.isEmpty() && (tbe.dataDirty || tbe.dataUnique) &&
+          (is_multiChip == true))) {
         assert(!has_non_ex_owner);
         tbe.actions.push(Event:SendWriteBackOrWriteEvict);
         tbe.actions.push(Event:WriteBEPipe);
         tbe.actions.push(Event:SendWBData);
       } else if (tbe.dataDirty && !has_non_ex_owner) {
-        assert(!tbe.dir_sharers.isEmpty());
+        if (is_multiChip) {
+          assert(!tbe.mega_dir_sharers.isEmpty());
+        } else {
+          assert(!tbe.dir_sharers.isEmpty());
+        }
         tbe.actions.push(Event:SendWriteClean);
         tbe.actions.push(Event:WriteBEPipe);
         tbe.actions.push(Event:SendWBData);
