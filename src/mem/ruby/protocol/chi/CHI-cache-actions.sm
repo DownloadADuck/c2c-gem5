@@ -1358,7 +1358,11 @@ action(Send_WriteBackOrWriteEvict, desc="") {
   assert(is_HN == false);
 
   assert(tbe.dataUnique || tbe.dataDirty);
-  assert(tbe.dir_sharers.isEmpty());
+  if (is_multiChip) {
+    assert(tbe.mega_dir_sharers.isEmpty());
+  } else {
+    assert(tbe.dir_sharers.isEmpty());
+  }
 
   enqueue(reqOutPort, CHIRequestMsg, request_latency) {
     if (tbe.dataDirty) {
@@ -1448,14 +1452,16 @@ action(Send_SnpCleanInvalid, desc="") {
   assert(is_valid(tbe));
   assert(tbe.expected_snp_resp.hasExpected() == false);
   // at least one sharer or owner othrwise should not execute this
-  assert(tbe.dir_sharers.count() > 0);
+  
   if (is_multiChip) {
+    assert(tbe.mega_dir_sharers.totalCount() > 0);
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
       prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
       out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers);
       out_msg.retToSrc := false;
     }
   } else {
+    assert(tbe.dir_sharers.count() > 0);
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
       prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
       out_msg.Destination.addNetDest(tbe.dir_sharers);
@@ -1469,18 +1475,28 @@ action(Send_SnpCleanInvalid, desc="") {
 action(Send_SnpCleanInvalid_NoReq, desc="") {
   assert(is_valid(tbe));
   assert(tbe.expected_snp_resp.hasExpected() == false);
-  enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
-    prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
-    out_msg.Destination.addNetDest(tbe.dir_sharers);
-    out_msg.Destination.remove(tbe.requestor);
-    // at least one sharer other than requestor
-    assert(out_msg.Destination.count() > 0);
-    out_msg.retToSrc := false;
-    setExpectedForInvSnoop(tbe, false);
-    tbe.expected_snp_resp.setExpectedCount(out_msg.Destination.count());
-
-    // c2c_destination
-    out_msg.c2c_destination := tbe.c2c_destination;
+  if (is_multiChip) {
+    enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+      prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
+      out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers);
+      out_msg.MegaDestination.remove(tbe.originalRequestor);
+      // at least one sharer other than requestor
+      assert(out_msg.MegaDestination.totalCount() > 0);
+      out_msg.retToSrc := false;
+      setExpectedForInvSnoop(tbe, false);
+      tbe.expected_snp_resp.setExpectedCount(out_msg.MegaDestination.totalCount());
+    }
+  } else {
+    enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+      prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
+      out_msg.Destination.addNetDest(tbe.dir_sharers);
+      out_msg.Destination.remove(tbe.requestor);
+      // at least one sharer other than requestor
+      assert(out_msg.Destination.count() > 0);
+      out_msg.retToSrc := false;
+      setExpectedForInvSnoop(tbe, false);
+      tbe.expected_snp_resp.setExpectedCount(out_msg.Destination.count());
+    }
   }
 }
 
@@ -1516,29 +1532,53 @@ action(Send_SnpUnique, desc="") {
 action(Send_SnpUnique_RetToSrc, desc="") {
   assert(is_valid(tbe));
   // at least one sharer or owner othrwise should not execute this
-  assert(tbe.dir_sharers.count() > 0);
+  if (is_multiChip) {
+    assert(tbe.mega_dir_sharers.totalCount() > 0);
+  } else {
+    assert(tbe.dir_sharers.count() > 0);
+  }
 
   setExpectedForInvSnoop(tbe, true);
 
   MachineID dest;
+  MegaNetDest MegaDest;
   if (tbe.dir_ownerExists) {
-    dest := tbe.dir_owner;
+    dest := tbe.mega_dir_owner;
+    MegaDest := tbe.dir_owner;
   } else {
     // TODO should be random or the closest one
     dest := tbe.dir_sharers.smallestElement();
+    MegaDest := tbe.mega_dir_sharers.smallestElement();
   }
-  enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
-    prepareRequest(tbe, CHIRequestType:SnpUnique, out_msg);
-    out_msg.Destination.add(dest);
-    out_msg.retToSrc := true;
-  }
-  // if other sharers send with retToSrc=false to others
-  if (tbe.dir_sharers.count() > 1) {
+  if (is_multiChip) {
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
       prepareRequest(tbe, CHIRequestType:SnpUnique, out_msg);
-      out_msg.Destination.addNetDest(tbe.dir_sharers);
-      out_msg.Destination.remove(dest);
-      out_msg.retToSrc := false;
+      out_msg.MegaDestination.addMegaNetDest(dest);
+      out_msg.retToSrc := true;
+    }
+    // if other sharers send with retToSrc=false to others
+    if (tbe.mega_dir_sharers.totalCount() > 1) {
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpUnique, out_msg);
+        out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers);
+        out_msg.MegaDestination.remove(dest);
+        out_msg.retToSrc := false;
+      }
+    }
+  } else {
+    enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+      prepareRequest(tbe, CHIRequestType:SnpUnique, out_msg);
+      out_msg.Destination.add(dest);
+      out_msg.retToSrc := true;
+    }
+    // if other sharers send with retToSrc=false to others
+    if (tbe.dir_sharers.count() > 1) {
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpUnique, out_msg);
+        out_msg.Destination.addNetDest(tbe.dir_sharers);
+        out_msg.Destination.remove(dest);
+        out_msg.retToSrc := false;
+      }
     }
   }
 }
@@ -1546,7 +1586,11 @@ action(Send_SnpUnique_RetToSrc, desc="") {
 action(Send_SnpUniqueFwd, desc="") {
   assert(is_valid(tbe));
   // single sharer or owner otherwise should not execute this
-  assert(tbe.dir_sharers.count() == 1);
+  if (is_multiChip) {
+    assert(tbe.mega_dir_sharers.totalCount() == 1);
+  } else {
+    assert(tbe.dir_sharers.count() == 1);
+  }
 
   assert(tbe.expected_snp_resp.expected() == 0);
   clearExpectedSnpResp(tbe);
@@ -1558,7 +1602,6 @@ action(Send_SnpUniqueFwd, desc="") {
     prepareRequest(tbe, CHIRequestType:SnpUniqueFwd, out_msg);
     if (is_multiChip) {
       out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers);
-      out_msg.c2cOrig := tbe.c2cOrig;
       out_msg.c2c_destination := tbe.c2c_destination;
     } else {
       out_msg.Destination.addNetDest(tbe.dir_sharers);
@@ -1573,7 +1616,11 @@ action(Send_SnpShared, desc="") {
   // only sent to a dirty or exclusive snoopee
   assert(tbe.dataMaybeDirtyUpstream);
   assert(tbe.dir_ownerExists);
-  assert(tbe.dir_sharers.count() > 0);
+  if (is_multiChip) {
+    assert(tbe.mega_dir_sharers.totalCount() > 0);
+  } else {
+    assert(tbe.dir_sharers.count() > 0);
+  }
 
   assert(tbe.expected_snp_resp.expected() == 0);
   clearExpectedSnpResp(tbe);
@@ -1586,7 +1633,6 @@ action(Send_SnpShared, desc="") {
     if (is_multiChip) {
       out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_owner);
       out_msg.c2c_destination := tbe.c2c_destination;
-      out_msg.c2cOrig := tbe.c2cOrig;
     } else {
       out_msg.Destination.add(tbe.dir_owner);
     }
