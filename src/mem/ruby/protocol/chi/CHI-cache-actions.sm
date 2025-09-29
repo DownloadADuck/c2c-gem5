@@ -727,7 +727,9 @@ action(Finish_CleanUnique, desc="") {
   assert(tbe.actions.empty());
 
   // everyone may have been hit by an invalidation so check again
-  if (tbe.dir_sharers.isElement(tbe.requestor) == false) {
+  if ((tbe.dir_sharers.isElement(tbe.requestor) == false && is_multiChip == false) || 
+      (tbe.mega_dir_sharers.isElement(mapMachineIDToChipID(tbe.originalRequestor), 
+       tbe.originalRequestor) && is_multiChip == true)) {
     tbe.updateDirOnCompAck := false;
     assert(tbe.dataValid == false);
     assert(tbe.is_stale);
@@ -737,7 +739,11 @@ action(Finish_CleanUnique, desc="") {
     tbe.actions.push(Event:TagArrayWrite);
   } else {
     // must be the only one in sharers map
-    assert(tbe.dir_sharers.count() == 1);
+    if (is_multiChip) {
+      assert(tbe.mega_dir_sharers.totalCount() == 1);
+    } else {
+      assert(tbe.dir_sharers.count() == 1);
+    }
     assert(tbe.dataUnique);
 
     // needed by UpdateDirState_FromReqResp triggered by the expected CompAck
@@ -809,7 +815,8 @@ action(Initiate_WriteUnique_LocalWrite, desc="") {
   // auto-upgrade if hn but state was not unique
   assert(is_HN || tbe.dataUnique);
   tbe.dataUnique := true;
-  if (tbe.dir_sharers.count() > 0) {
+  if ((is_multiChip == false && tbe.dir_sharers.count() > 0) ||
+      (is_multiChip == true && tbe.mega_dir_sharers.totalCount() > 0)) {
     tbe.actions.push(Event:SendSnpCleanInvalid);
   }
   if (comp_wu) {
