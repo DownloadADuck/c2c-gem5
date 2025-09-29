@@ -873,7 +873,8 @@ action(Initiate_WriteUnique_Writeback, desc="") {
 
 action(Initiate_WriteUnique_PartialWrite, desc="") {
   assert(is_HN);
-  if (tbe.dir_sharers.count() > 0) {
+  if ((is_multiChip == false && tbe.dir_sharers.count() > 0) || 
+      (is_multiChip == true && tbe.mega_dir_sharers.totalCount() > 0)) {
     tbe.actions.push(Event:SendSnpCleanInvalid);
   }
   if (comp_wu) {
@@ -936,18 +937,27 @@ action(Initiate_CopyBack_Stale, desc="") {
   tbe.actions.pushNB(Event:WriteFEPipe);
 
   // eviction condition should be examined if it is the last sharer
-  if (tbe.dir_sharers.count() == 1) {
+  if ((is_multiChip == false && tbe.dir_sharers.count() == 1) || 
+      (is_multiChip == true && tbe.mega_dir_sharers.totalCount() == 1)) {
     tbe.actions.push(Event:FinishCopyBack_Stale);
   }
-
-  assert((tbe.dir_ownerExists == false) || (tbe.dir_owner != tbe.requestor));
+  
+  if (is_multiChip) {
+    assert((tbe.dir_ownerExists == false) || 
+    (tbe.mega_dir_owner.isElement(mapMachineIDToChipID(tbe.originalRequestor), 
+    tbe.originalRequestor) == false));
+  } else {
+    assert((tbe.dir_ownerExists == false) || (tbe.dir_owner != tbe.requestor));
+  }
 }
 
 action(Finish_CopyBack_Stale, desc="") {
   // if it was the last known sharer and we don't have the data do the same
   // the Initiate_Evict
-  if ((is_HN == false) && (tbe.dir_sharers.count() == 0) &&
-      (tbe.dataValid == false)) {
+  if (((is_HN == false) && (tbe.dir_sharers.count() == 0) &&
+      (tbe.dataValid == false) && (is_multiChip == false)) ||
+      ((is_HN == false) && (tbe.mega_dir_sharers.totalCount() == 0) &&
+      (tbe.dataValid == false) && (is_multiChip == true))) {
     tbe.actions.push(Event:SendEvict);
   }
 }
