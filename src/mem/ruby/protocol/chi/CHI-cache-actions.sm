@@ -1035,7 +1035,8 @@ action(Initiate_MaintainCoherence, desc="") {
 action(Initiate_InvalidationSnoop, desc="") {
   tbe.actions.push(Event:SnpInvPipe);
   // Propagate a snoop upwards depending on the type
-  if (tbe.dir_sharers.count() > 0) {
+  if ((tbe.dir_sharers.count() > 0 && is_multiChip == false) ||
+      (tbe.mega_dir_sharers.totalCount() > 0 && is_multiChip == true)) {
     if ((tbe.reqType == CHIRequestType:SnpUniqueFwd) ||
         (tbe.reqType == CHIRequestType:SnpUnique)) {
       if ((tbe.snpNeedsData && (tbe.dataMaybeDirtyUpstream == false)) ||
@@ -1074,7 +1075,11 @@ action(Initiate_SnpShared, desc="") {
   } else if (tbe.dataValid == false) {
     // must get a copy of shared data upstream
     assert(tbe.dataMaybeDirtyUpstream == false);
-    assert(tbe.dir_sharers.count() > 0);
+    if (is_multiChip) {
+      assert(tbe.mega_dir_sharers() > 0);
+    } else {
+      assert(tbe.dir_sharers.count() > 0);
+    }
     tbe.actions.push(Event:SendSnpOnce);
   } else {
     tbe.actions.push(Event:DataArrayRead);
