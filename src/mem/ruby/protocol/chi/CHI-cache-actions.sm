@@ -1076,7 +1076,7 @@ action(Initiate_SnpShared, desc="") {
     // must get a copy of shared data upstream
     assert(tbe.dataMaybeDirtyUpstream == false);
     if (is_multiChip) {
-      assert(tbe.mega_dir_sharers() > 0);
+      assert(tbe.mega_dir_sharers.totalCount() > 0);
     } else {
       assert(tbe.dir_sharers.count() > 0);
     }
@@ -1479,7 +1479,7 @@ action(Send_SnpCleanInvalid_NoReq, desc="") {
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
       prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
       out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers);
-      out_msg.MegaDestination.remove(tbe.originalRequestor);
+      out_msg.MegaDestination.remove(mapMachineIDToChipID(tbe.originalRequestor), tbe.originalRequestor);
       // at least one sharer other than requestor
       assert(out_msg.MegaDestination.totalCount() > 0);
       out_msg.retToSrc := false;
@@ -1543,8 +1543,8 @@ action(Send_SnpUnique_RetToSrc, desc="") {
   MachineID dest;
   MegaNetDest MegaDest;
   if (tbe.dir_ownerExists) {
-    dest := tbe.mega_dir_owner;
-    MegaDest := tbe.dir_owner;
+    MegaDest := tbe.mega_dir_owner;
+    dest := tbe.dir_owner;
   } else {
     // TODO should be random or the closest one
     dest := tbe.dir_sharers.smallestElement();
@@ -1553,7 +1553,7 @@ action(Send_SnpUnique_RetToSrc, desc="") {
   if (is_multiChip) {
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
       prepareRequest(tbe, CHIRequestType:SnpUnique, out_msg);
-      out_msg.MegaDestination.addMegaNetDest(dest);
+      out_msg.MegaDestination.addMegaNetDest(MegaDest);
       out_msg.retToSrc := true;
     }
     // if other sharers send with retToSrc=false to others
@@ -1561,7 +1561,7 @@ action(Send_SnpUnique_RetToSrc, desc="") {
       enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
         prepareRequest(tbe, CHIRequestType:SnpUnique, out_msg);
         out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers);
-        out_msg.MegaDestination.remove(dest);
+        out_msg.MegaDestination.remove(MegaDest);
         out_msg.retToSrc := false;
       }
     }
