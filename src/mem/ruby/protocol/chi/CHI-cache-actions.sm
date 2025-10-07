@@ -2605,8 +2605,11 @@ action(Send_CompData, desc="") {
   bool is_rd_unique := tbe.reqType == CHIRequestType:ReadUnique;
 
   // if the config allows (or not caching the data) and line has no sharers
-  bool snd_unique_on_rs := (fwd_unique_on_readshared || tbe.dataToBeInvalid)
-                          && tbe.dataUnique && tbe.dir_sharers.isEmpty();
+  bool snd_unique_on_rs := 
+    (fwd_unique_on_readshared || tbe.dataToBeInvalid)
+    && tbe.dataUnique
+    && ( (is_multiChip && tbe.mega_dir_sharers.isEmpty())
+          || (!is_multiChip && tbe.dir_sharers.isEmpty()) );
   // if the request type allows and we won't be caching the data
   bool snd_dirty_on_rs := is_rd_shared && !is_rd_nsd && tbe.dataToBeInvalid;
 
@@ -2814,8 +2817,10 @@ action(Send_SnpRespDataFwded, desc="") {
   assert(tbe.dataMaybeDirtyUpstream == false);
 
   // We have the data (locally or upstream) or are dropping it
-  bool keepData := (tbe.dir_sharers.count() > 0) ||
-                   (tbe.dataToBeInvalid == false);
+  bool keepData :=
+    ((is_multiChip && (tbe.mega_dir_sharers.totalCount() > 0)) ||
+    (!is_multiChip && (tbe.dir_sharers.count() > 0)) ||
+    (tbe.dataToBeInvalid == false));
 
   if (keepData) {
     if (tbe.fwdedState == State:SD) {
