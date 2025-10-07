@@ -1760,7 +1760,11 @@ action(Send_SnpOnce, desc="") {
   assert(is_valid(tbe));
 
   // send to one of the sharers or owner to get a copy of the line
-  assert(tbe.dir_sharers.count() > 0);
+  if (is_multiChip) {
+    assert(tbe.mega_dir_sharers.totalCount() > 0);
+  } else {
+    assert(tbe.dir_sharers.count() > 0);
+  }
 
   assert(tbe.expected_snp_resp.expected() == 0);
   clearExpectedSnpResp(tbe);
@@ -1806,31 +1810,17 @@ action(Send_SnpOnce, desc="") {
       }
     }
   }
-  //enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
-  //  prepareRequest(tbe, CHIRequestType:SnpOnce, out_msg);
-  //  if (is_multiChip) {
-  //    if (tbe.dir_ownerExists) {
-  //      out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_owner);
-  //    } else {
-  //      out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers.smallestElement());
-  //    }
-  //  } else {
-  //    if (tbe.dir_ownerExists) {
-  //      out_msg.Destination.add(tbe.dir_owner);
-  //    } else {
-  //      // TODO should be random or the closest one
-  //      out_msg.Destination.add(tbe.dir_sharers.smallestElement());
-  //    }
-  //  }
-  //  out_msg.retToSrc := true;
-  //}
 }
 
 action(Send_SnpOnceFwd, desc="") {
   assert(is_valid(tbe));
 
   // send to one of the sharers or owner to get a copy of the line
-  assert(tbe.dir_sharers.count() > 0);
+  if (is_multiChip) {
+    assert(tbe.mega_dir_sharers.totalCount() > 0);
+  } else {
+    assert(tbe.dir_sharers.count() > 0);
+  }
 
   assert(tbe.expected_snp_resp.expected() == 0);
   clearExpectedSnpResp(tbe);
@@ -1847,25 +1837,34 @@ action(Send_SnpOnceFwd, desc="") {
   }
   tbe.expected_snp_resp.addExpectedCount(1);
 
-  enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
-    prepareRequest(tbe, CHIRequestType:SnpOnceFwd, out_msg);
+  if(tbe.dir_ownerExists) {
     if (is_multiChip) {
-      if (tbe.dir_ownerExists) {
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpOnceFwd, out_msg);
         out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_owner);
-      } else {
-        // TODO should be random or the closest one
-        out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers.smallestElement());
+        out_msg.retToSrc := false;
       }
-      out_msg.c2cOrig := tbe.c2cOrig;
     } else {
-      if (tbe.dir_ownerExists) {
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpOnceFwd, out_msg);
         out_msg.Destination.add(tbe.dir_owner);
-      } else {
-        // TODO should be random or the closest one
-        out_msg.Destination.add(tbe.dir_sharers.smallestElement());
+        out_msg.retToSrc := false;
       }
     }
-    out_msg.retToSrc := false;
+  } else {
+    if (is_multiChip) {
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpOnceFwd, out_msg);
+        out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers.smallestElement());
+        out_msg.retToSrc := false;
+      }
+    } else {
+      enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        prepareRequest(tbe, CHIRequestType:SnpOnceFwd, out_msg);
+        out_msg.Destination.add(tbe.dir_sharers.smallestElement());
+        out_msg.retToSrc := false;
+      }
+    }
   }
 }
 
