@@ -2857,7 +2857,7 @@ action(Send_FwdSnpResp, desc="") {
 
     // We have the data (locally or upstream) or are dropping it
     bool keepData := 
-      ((is_multiChip && (tbe.mega_dir_sharers.count() > 0)) ||
+      ((is_multiChip && (tbe.mega_dir_sharers.totalCount() > 0)) ||
       (!is_multiChip && (tbe.dir_sharers.count() > 0)) ||
       (tbe.dataToBeInvalid == false));
 
@@ -2946,7 +2946,7 @@ action(Send_CompI, desc="") {
   if (is_multiChip) {
     assert((tbe.dir_ownerExists == false) || 
            (tbe.mega_dir_owner.isElement(mapMachineIDToChipID(tbe.originalRequestor),
-            tbe.originalRequestor) == false);
+            tbe.originalRequestor) == false));
     assert(tbe.mega_dir_sharers.isElement(mapMachineIDToChipID(tbe.originalRequestor),
            tbe.originalRequestor));
     tbe.mega_dir_sharers.remove(mapMachineIDToChipID(tbe.originalRequestor), 
