@@ -2856,8 +2856,10 @@ action(Send_FwdSnpResp, desc="") {
     out_msg.originalRequestor := tbe.originalRequestor;
 
     // We have the data (locally or upstream) or are dropping it
-    bool keepData := (tbe.dir_sharers.count() > 0) ||
-                     (tbe.dataToBeInvalid == false);
+    bool keepData := 
+      ((is_multiChip && (tbe.mega_dir_sharers.count() > 0)) ||
+      (!is_multiChip && (tbe.dir_sharers.count() > 0)) ||
+      (tbe.dataToBeInvalid == false));
 
     if (keepData && tbe.dataToBeSharedClean) {
       assert((tbe.reqType == CHIRequestType:SnpSharedFwd) ||
@@ -2941,17 +2943,19 @@ action(Send_CompI, desc="") {
   assert(is_valid(tbe));
 
   // Used to ack Evict request
-  if ((tbe.off_chip == true) && (tbe.dir_owner == tbe.requestor)) {
-    // The requestor and sharer/owner are local to the same chip
-    // The c2c interface is both requestor and owner
-    // We don't remove the interface from the dir_sharers
-
-    assert(tbe.dir_sharers.isElement(tbe.requestor));
+  if (is_multiChip) {
+    assert((tbe.dir_ownerExists == false) || 
+           (tbe.mega_dir_owner.isElement(mapMachineIDToChipID(tbe.originalRequestor),
+            tbe.originalRequestor) == false);
+    assert(tbe.mega_dir_sharers.isElement(mapMachineIDToChipID(tbe.originalRequestor),
+           tbe.originalRequestor));
+    tbe.mega_dir_sharers.remove(mapMachineIDToChipID(tbe.originalRequestor), 
+                                tbe.originalRequestor);
   } else {
     assert((tbe.dir_ownerExists == false) || (tbe.dir_owner != tbe.requestor));
     assert(tbe.dir_sharers.isElement(tbe.requestor));
+
     tbe.dir_sharers.remove(tbe.requestor);
-    tbe.off_chip := false;
   }
 
   enqueue(rspOutPort, CHIResponseMsg, response_latency) {
@@ -2959,7 +2963,6 @@ action(Send_CompI, desc="") {
     out_msg.type := CHIResponseType:Comp_I;
     out_msg.responder := machineID;
     out_msg.Destination.add(tbe.requestor);
-    out_msg.off_chip := false;
   }
 }
 
