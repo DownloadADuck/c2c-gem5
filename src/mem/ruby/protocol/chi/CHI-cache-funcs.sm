@@ -793,12 +793,21 @@ bool upstreamHasShared(State state) {
 }
 
 void printTBEState(TBE tbe) {
-  DPRINTF(RubySlicc, "STATE: addr: %#x data present=%d valid=%d unique=%d dirty=%d mu_dirty=%d dir ownerV=%d ownerE=%d sharers=%d tobe_I=%d tobe_SC=%d doFill=%d pendAction=%s\n",
-                      tbe.addr, tbe.dataBlkValid.isFull(), tbe.dataValid, tbe.dataUnique,
-                      tbe.dataDirty, tbe.dataMaybeDirtyUpstream, tbe.dir_ownerExists,
-                      tbe.dir_ownerIsExcl,tbe.dir_sharers.count(),
-                      tbe.dataToBeInvalid, tbe.dataToBeSharedClean,
-                      tbe.doCacheFill, tbe.pendAction);
+  if (is_multiChip) {
+    DPRINTF(RubySlicc, "STATE: addr: %#x data present=%d valid=%d unique=%d dirty=%d mu_dirty=%d dir ownerV=%d ownerE=%d sharers=%d tobe_I=%d tobe_SC=%d doFill=%d pendAction=%s\n",
+                        tbe.addr, tbe.dataBlkValid.isFull(), tbe.dataValid, tbe.dataUnique,
+                        tbe.dataDirty, tbe.dataMaybeDirtyUpstream, tbe.dir_ownerExists,
+                        tbe.dir_ownerIsExcl,tbe.mega_dir_sharers.totalCount(),
+                        tbe.dataToBeInvalid, tbe.dataToBeSharedClean,
+                        tbe.doCacheFill, tbe.pendAction);
+  } else {
+    DPRINTF(RubySlicc, "STATE: addr: %#x data present=%d valid=%d unique=%d dirty=%d mu_dirty=%d dir ownerV=%d ownerE=%d sharers=%d tobe_I=%d tobe_SC=%d doFill=%d pendAction=%s\n",
+                        tbe.addr, tbe.dataBlkValid.isFull(), tbe.dataValid, tbe.dataUnique,
+                        tbe.dataDirty, tbe.dataMaybeDirtyUpstream, tbe.dir_ownerExists,
+                        tbe.dir_ownerIsExcl,tbe.dir_sharers.count(),
+                        tbe.dataToBeInvalid, tbe.dataToBeSharedClean,
+                        tbe.doCacheFill, tbe.pendAction);
+  }
   DPRINTF(RubySlicc, "dataBlkValid = %s\n", tbe.dataBlkValid);
 }
 
