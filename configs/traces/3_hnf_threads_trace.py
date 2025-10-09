@@ -122,7 +122,7 @@ def generate_packets(num_values, cpus=3):
     per_core_offset = 100  # small offset to stagger start ticks of each core
 
     # base address for arrays in the trace
-    addr = 256 * 1024 * 1024 # 256MB
+    base_addr = 256 * 1024 * 1024 # 256MB
 
     elem_size = 4 # size of int
     a_base = base_addr
@@ -147,7 +147,7 @@ def generate_packets(num_values, cpus=3):
                 'cmd': 1, # ReadReq
                 'core_type': cache_names[tid]
             })
-            core_tick[tid] := per_access_tick
+            core_tick[tid] += per_access_tick
             
             # read b[i]
             addr_b = b_base + i * elem_size
@@ -158,7 +158,7 @@ def generate_packets(num_values, cpus=3):
                 'cmd': 1, # ReadReq
                 'core_type': cache_names[tid]
             })
-            core_tick[tid] := per_access_tick
+            core_tick[tid] += per_access_tick
             
             # write c[i]
             addr_c = c_base + i * elem_size
@@ -169,7 +169,7 @@ def generate_packets(num_values, cpus=3):
                 'cmd': 4, # WriteReq 
                 'core_type': cache_names[tid]
             })
-            core_tick[tid] := per_access_tick
+            core_tick[tid] += per_access_tick
             
             i += cpus
     
