@@ -727,18 +727,25 @@ action(Finish_CleanUnique, desc="") {
   assert(tbe.actions.empty());
 
   // everyone may have been hit by an invalidation so check again
-  if ((tbe.dir_sharers.isElement(tbe.requestor) == false && is_multiChip == false) || 
-      (tbe.mega_dir_sharers.isElement(mapMachineIDToChipID(tbe.originalRequestor), 
-       tbe.originalRequestor) && is_multiChip == true)) {
+  bool isSharer;
+  if (is_multiChip) {
+    isSharer := tbe.mega_dir_sharers.isElement(
+      mapMachineIDToChipID(tbe.originalRequestor),
+      tbe.originalRequestor
+    );
+  } else {
+    isSharer := tbe.dir_sharers.isElement(tbe.requestor);
+  }
+  if (!isSharer) {
     tbe.updateDirOnCompAck := false;
     assert(tbe.dataValid == false);
     assert(tbe.is_stale);
     tbe.is_stale := false;
+
     tbe.actions.push(Event:SendCompUCRespStale);
     tbe.actions.push(Event:WaitCompAck);
     tbe.actions.push(Event:TagArrayWrite);
   } else {
-    // must be the only one in sharers map
     if (is_multiChip) {
       assert(tbe.mega_dir_sharers.totalCount() == 1);
     } else {
@@ -746,17 +753,14 @@ action(Finish_CleanUnique, desc="") {
     }
     assert(tbe.dataUnique);
 
-    // needed by UpdateDirState_FromReqResp triggered by the expected CompAck
+    // needed by UpdateDirState_FromReqResp trigered by the 
+    // expected CompAck
     tbe.dataMaybeDirtyUpstream := true;
     tbe.requestorToBeExclusiveOwner := true;
     tbe.dir_ownerExists := false;
 
     tbe.actions.push(Event:SendCompUCResp);
     tbe.actions.push(Event:WaitCompAck);
-
-    // Ensure we writeback or update the cache if the owner has data as
-    // clean data and we have it dirty.
-    // MaintainCoherence queues the TagArrayWrite
     tbe.actions.push(Event:MaintainCoherence);
   }
 }
@@ -2500,7 +2504,6 @@ action(Receive_ReqResp, desc="") {
     if (tbe.expected_req_resp.receiveResp(in_msg.type) == false) {
       error("Received unexpected message");
     }
-    DPRINTF(RubyGenerated, "in_msg.stale -> %s | tbe.is_stale -> %s\n", in_msg.stale, tbe.is_stale);
     assert(in_msg.stale == tbe.is_stale);
   }
 }
