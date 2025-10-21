@@ -290,7 +290,7 @@ class CHI_L2Controller(CHI_Cache_Controller):
     Default parameters for a L2 Cache controller
     """
 
-    def __init__(self, ruby_system, cache, prefetcher):
+    def __init__(self, ruby_system, cache, prefetcher, chipID):
         super(CHI_L2Controller, self).__init__(ruby_system)
         self.sequencer = NULL
         self.cache = cache
@@ -299,8 +299,8 @@ class CHI_L2Controller(CHI_Cache_Controller):
 
         self.is_HN = False
         self.is_multiChip = False
-        # Setting the unused chipID to 0
-        self.chipID = 0
+        # ChipID is used when using MultiChip
+        self.chipID = chipID
 
         self.enable_DMT = False
         self.enable_DCT = False
@@ -509,6 +509,7 @@ class CHI_RNF(CHI_Node):
         network,
         l1Iprefetcher_type=None,
         l1Dprefetcher_type=None,
+        chipID
     ):
         super(CHI_RNF, self).__init__(ruby_system, network)
 
@@ -599,7 +600,7 @@ class CHI_RNF(CHI_Node):
                 m5.fatal("Prefetching not supported yet")
             l2_pf = NULL
 
-            cpu.l2 = CHI_L2Controller(self._ruby_system, l2_cache, l2_pf)
+            cpu.l2 = CHI_L2Controller(self._ruby_system, l2_cache, l2_pf, chipID)
 
             self._cntrls.append(cpu.l2)
             self.connectController(cpu.l2)
