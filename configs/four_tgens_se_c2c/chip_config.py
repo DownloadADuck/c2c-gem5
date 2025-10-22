@@ -136,13 +136,12 @@ def create_chip0(
             L1DCache,
             system.cache_line_size.value,
             network,
-            0 # chipID
         )
         for cpu in cpus
     ]
 
     for rnf in ruby_system.rnf:
-        rnf.addPrivL2Cache(L2Cache)
+        rnf.addPrivL2Cache(L2Cache, chipID = 0)
         cpu_sequencers.extend(rnf.getSequencers())
         all_cntrls.extend(rnf.getAllControllers())
         network_nodes.append(rnf)
@@ -379,13 +378,12 @@ def create_chip1(
             L1DCache,
             system.cache_line_size.value,
             network,
-            1
         )
         for cpu in cpus
     ]
 
     for rnf in ruby_system.rnf2:
-        rnf.addPrivL2Cache(L2Cache)
+        rnf.addPrivL2Cache(L2Cache, chipID = 1)
         cpu_sequencers.extend(rnf.getSequencers())
         all_cntrls.extend(rnf.getAllControllers())
         network_nodes.append(rnf)

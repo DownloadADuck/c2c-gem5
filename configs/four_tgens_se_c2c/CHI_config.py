@@ -509,7 +509,6 @@ class CHI_RNF(CHI_Node):
         network,
         l1Iprefetcher_type=None,
         l1Dprefetcher_type=None,
-        chipID
     ):
         super(CHI_RNF, self).__init__(ruby_system, network)
 
@@ -590,7 +589,7 @@ class CHI_RNF(CHI_Node):
         return self._cpus
 
     # Adds a private L2 for each cpu
-    def addPrivL2Cache(self, cache_type, pf_type=None):
+    def addPrivL2Cache(self, cache_type, chipID, pf_type=None):
         self._ll_cntrls = []
         for cpu in self._cpus:
             l2_cache = cache_type(

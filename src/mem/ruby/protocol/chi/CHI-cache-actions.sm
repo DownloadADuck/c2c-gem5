@@ -1689,6 +1689,7 @@ action(Send_SnpSharedFwd_ToOwner, desc="") {
 
   tbe.expected_snp_resp.addExpectedCount(1);
 
+  DPRINTF(RubyGenerated, "destination -> %s\n", tbe.mega_dir_owner);
   if (is_multiChip) {
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
       if (allowFwdSD) {
@@ -2853,6 +2854,10 @@ action(Send_FwdSnpResp, desc="") {
     out_msg.Destination.add(tbe.requestor);
     out_msg.localRequestor := tbe.localRequestor;
     out_msg.originalRequestor := tbe.originalRequestor;
+    out_msg.originalResponder := machineID;
+    DPRINTF(RubyGenerated, "originalResponder -> %s\n", machineID);
+    DPRINTF(RubyGenerated, "localRequestor -> %s\n", out_msg.localRequestor);
+    DPRINTF(RubyGenerated, "originalRequestor -> %s\n", out_msg.originalRequestor);
 
     // We have the data (locally or upstream) or are dropping it
     bool keepData := 
@@ -2894,6 +2899,7 @@ action(Send_FwdSnpResp, desc="") {
         out_msg.type := CHIResponseType:SnpResp_I_Fwded_UC;
       }
     }
+    DPRINTF(RubyGenerated, "type -> %s\n", out_msg.type);
   }
 }
 
