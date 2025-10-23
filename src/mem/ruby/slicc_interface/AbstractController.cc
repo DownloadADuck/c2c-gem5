@@ -680,7 +680,8 @@ const
             return i.second;
         }
     }
-    panic("MachineID not found in map");
+    return -1; // Used when machine is not local
+    //panic("MachineID not found in map");
 }
 
 // Used to check is inbound request is local or not

@@ -1080,6 +1080,9 @@ action(Initiate_SnpShared, desc="") {
   } else if (tbe.dataValid == false) {
     // must get a copy of shared data upstream
     assert(tbe.dataMaybeDirtyUpstream == false);
+    DPRINTF(RubyGenerated, "dir_sharers -> %s\n", tbe.dir_sharers);
+    DPRINTF(RubyGenerated, "mega_dir_sharers -> %s\n", tbe.mega_dir_sharers);
+    
     if (is_multiChip) {
       assert(tbe.mega_dir_sharers.totalCount() > 0);
     } else {
@@ -1515,12 +1518,14 @@ action(Send_SnpUnique, desc="") {
   }
 
   setExpectedForInvSnoop(tbe, true);
+  DPRINTF(RubyGenerated, "mega_dir_sharers -> %s\n", tbe.mega_dir_sharers);
 
   if (is_multiChip) {
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
       prepareRequest(tbe, CHIRequestType:SnpUnique, out_msg);
       out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers);
-      out_msg.originalRequestor := tbe.originalRequestor;
+      //out_msg.originalRequestor := tbe.originalRequestor;
+      out_msg.originalRequestor := machineID; // for snpRespData routing 
       out_msg.c2c_destination := tbe.mega_dir_sharers;
       out_msg.c2cOrig := tbe.c2cOrig;
       out_msg.retToSrc := false;
@@ -2099,7 +2104,11 @@ action(UpdateDirState_FromSnpDataResp, desc="") {
           assert(tbe.dir_ownerExists && (tbe.mega_dir_owner.isElement(mapMachineIDToChipID(in_msg.originalResponder), in_msg.originalResponder)));
           assert(tbe.mega_dir_sharers.isElement(mapMachineIDToChipID(in_msg.originalResponder), in_msg.originalResponder));
           tbe.mega_dir_sharers.remove(mapMachineIDToChipID(in_msg.originalResponder), in_msg.originalResponder);
+          DPRINTF(RubyGenerated, "mega_dir_sharers -> %s\n", tbe.mega_dir_sharers);
+          DPRINTF(RubyGenerated, "originalResponder -> %s\n", in_msg.originalResponder);
         } else {
+          DPRINTF(RubyGenerated, "dir_sharers -> %s\n", tbe.dir_sharers);
+          DPRINTF(RubyGenerated, "responder -> %s\n", in_msg.responder);
           assert(tbe.dir_ownerExists && (tbe.dir_owner == in_msg.responder));
           assert(tbe.dir_sharers.isElement(in_msg.responder));
           tbe.dir_sharers.remove(in_msg.responder);
@@ -2363,9 +2372,11 @@ action(UpdateDirState_FromReqResp, desc="") {
       } else {
         tbe.dir_sharers.add(in_msg.responder);
       }
-
+      DPRINTF(RubyGenerated, "requestor to be owner -> %s\n", tbe.requestorToBeOwner);
+      DPRINTF(RubyGenerated, "requestor to be exclusive owner -> %s\n", tbe.requestorToBeExclusiveOwner);
       if (tbe.requestorToBeOwner) {
         if (is_multiChip) {
+          tbe.mega_dir_owner.clear();
           tbe.mega_dir_owner.mergeMegaNetDest(in_msg.c2c_destination);
         } else {
           tbe.dir_owner := in_msg.responder;
@@ -2379,6 +2390,7 @@ action(UpdateDirState_FromReqResp, desc="") {
       } else if (tbe.requestorToBeExclusiveOwner) {
         if (is_multiChip) {
           assert(tbe.mega_dir_sharers.totalCount() == 1);
+          tbe.mega_dir_owner.clear();
           tbe.mega_dir_owner.mergeMegaNetDest(in_msg.c2c_destination);
         } else {
           assert(tbe.dir_sharers.count() == 1);
@@ -2389,6 +2401,7 @@ action(UpdateDirState_FromReqResp, desc="") {
         tbe.dir_ownerExists := true;
         tbe.dir_ownerIsExcl := true;
       }
+      DPRINTF(RubyGenerated, "mega_dir_owner -> %s\n", tbe.mega_dir_owner);
     }
   }
   printTBEState(tbe);

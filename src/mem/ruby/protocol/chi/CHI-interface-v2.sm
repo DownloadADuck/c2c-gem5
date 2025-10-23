@@ -990,7 +990,8 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.usesTxnId := tbe.usesTxnId;
       out_msg.MessageSize := tbe.MessageSize;
       // Select where the fwded data should be send by the snoopee
-      if (mapMachineIDToChipID(tbe.originalRequestor) == chipID) {
+      int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
+      if (mappedChipID != -1 && mappedChipID == chipID) {
         out_msg.fwdRequestor := tbe.originalRequestor;
       } else {
         out_msg.fwdRequestor := machineID;
