@@ -177,6 +177,7 @@ structure(CHIResponseMsg, desc="", interface="Message") {
   MachineID originalRequestor,  desc="Sender of the original request";
   MachineID originalResponder,  desc="Sender of the original response";
   MachineID localRequestor,     desc="local or secondary requestor";
+  // TODO remove off_chip
   bool off_chip,                desc="Response triggering a new off_chip response";
 
   MessageSizeType MessageSize, default="MessageSizeType_Control";
@@ -234,6 +235,7 @@ structure(CHIDataMsg, desc="", interface="Message") {
   MegaNetDest c2c_destination,  desc="Off-Chip destination";
   MachineID originalRequestor,  desc="Original requestor";
   MachineID localRequestor,     desc="Local or secondary requestor";
+  MachineID originalResponder,  desc="Responder for snp data messages";
 
   bool functionalRead(Packet *pkt) {
     if(bitMask.isFull()) {

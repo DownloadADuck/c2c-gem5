@@ -859,6 +859,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.responder := in_msg.responder;
       tbe.originalRequestor := in_msg.originalRequestor;
       tbe.localRequestor := in_msg.localRequestor;
+      tbe.originalResponder := in_msg.originalResponder;
       tbe.dataBlk := in_msg.dataBlk;
       tbe.bitMask := in_msg.bitMask;
       tbe.usesTxnId := in_msg.usesTxnId;
@@ -931,6 +932,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       //tbe.c2c_sharers := in_msg.C2c_sharers;
       tbe.c2c_destination := in_msg.C2c_destination;
       tbe.originalRequestor := in_msg.OriginalRequestor;
+      tbe.originalResponder := in_msg.OriginalResponder;
       tbe.localRequestor := in_msg.LocalRequestor;
       tbe.messageSize := in_msg.MessageSize;
     }
@@ -1030,6 +1032,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.txnId := tbe.txnId;
       out_msg.Destination.add(tbe.originalRequestor); 
       out_msg.localRequestor := tbe.localRequestor;
+      out_msg.originalResponder := tbe.originalResponder;
     }
   }
 
@@ -1101,6 +1104,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.C2c_destination := tbe.c2c_destination;
       out_msg.OriginalRequestor := tbe.originalRequestor;
       out_msg.LocalRequestor := tbe.localRequestor;
+      out_msg.OriginalResponder := tbe.originalResponder;
     }
   }
 
