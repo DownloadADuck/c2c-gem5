@@ -2140,6 +2140,7 @@ action(UpdateDirState_FromSnpDataResp, desc="") {
         if (in_msg.type == CHIDataType:SnpRespData_SC_Fwded_SD_PD) {
           tbe.dir_ownerExists := true;
           if(is_multiChip) {
+            tbe.mega_dir_owner.clear();
             tbe.mega_dir_owner.add(mapMachineIDToChipID(tbe.localRequestor), tbe.localRequestor);
           } else {
             tbe.dir_owner := tbe.requestor;
@@ -2168,6 +2169,7 @@ action(UpdateDirState_FromSnpDataResp, desc="") {
         if (in_msg.type == CHIDataType:SnpRespData_I_Fwded_SD_PD) {
           tbe.dir_ownerExists := true;
           if (is_multiChip) {
+            tbe.mega_dir_owner.clear();
             tbe.mega_dir_owner.add(mapMachineIDToChipID(tbe.localRequestor), tbe.localRequestor);
           } else {
             tbe.dir_owner := tbe.requestor;
@@ -2402,7 +2404,6 @@ action(UpdateDirState_FromReqResp, desc="") {
 
 action(UpdateDirState_FromSnpResp, desc="") {
   peek(rspInPort, CHIResponseMsg) {
-
     if (in_msg.type == CHIResponseType:SnpResp_I) {
       // must have been a known sharer otherwise we would receive data
       if (is_multiChip) {
@@ -2450,6 +2451,7 @@ action(UpdateDirState_FromSnpResp, desc="") {
         // Requestor is new owner
         if(is_multiChip) {
           tbe.dir_ownerExists := true;
+          tbe.mega_dir_owner.clear();
           tbe.mega_dir_owner.add(mapMachineIDToChipID(in_msg.originalRequestor), in_msg.originalRequestor);
         } else {
           tbe.dir_ownerExists := true;
@@ -2465,6 +2467,7 @@ action(UpdateDirState_FromSnpResp, desc="") {
         assert(tbe.mega_dir_sharers.totalCount() == 1);
         tbe.mega_dir_sharers.remove(mapMachineIDToChipID(in_msg.originalResponder), in_msg.originalResponder);
         tbe.mega_dir_sharers.add(mapMachineIDToChipID(tbe.originalRequestor), tbe.originalRequestor);
+        tbe.mega_dir_owner.clear();
         tbe.mega_dir_owner.add(mapMachineIDToChipID(tbe.originalRequestor), tbe.originalRequestor);
       } else {
         assert(tbe.dir_sharers.isElement(in_msg.responder));
