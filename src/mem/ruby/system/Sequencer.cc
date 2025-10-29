@@ -237,6 +237,8 @@ Sequencer::wakeup()
             if (current_time - seq_req.issue_time < m_deadlock_threshold)
                 continue;
 
+            std::cout << "packet for addr -> " << seq_req.pkt->getAddr() 
+                        << "packet -> " << seq_req.pkt->print();
             panic("Possible Deadlock detected. Aborting!\n version: %d "
                   "request.paddr: 0x%x m_readRequestTable: %d current time: "
                   "%u issue_time: %d difference: %d\n", m_version,

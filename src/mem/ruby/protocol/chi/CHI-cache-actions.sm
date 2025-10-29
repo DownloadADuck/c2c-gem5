@@ -1482,16 +1482,19 @@ action(Send_SnpCleanInvalid_NoReq, desc="") {
   assert(is_valid(tbe));
   assert(tbe.expected_snp_resp.hasExpected() == false);
   if (is_multiChip) {
+    // We remove the requestor before sending the snoops 
+    tbe.mega_dir_sharers.remove(mapMachineIDToChipID(tbe.originalRequestor), tbe.originalRequestor);
+    // at least one sharer other than requestor
+    assert(tbe.mega_dir_sharers.totalCount() > 0);
+    setExpectedForInvSnoop(tbe, false);
+    tbe.expected_snp_resp.setExpectedCount(tbe.mega_dir_sharers.totalCount());
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
       prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
       out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers);
-      out_msg.MegaDestination.remove(mapMachineIDToChipID(tbe.originalRequestor), tbe.originalRequestor);
-      // at least one sharer other than requestor
-      assert(out_msg.MegaDestination.totalCount() > 0);
       out_msg.retToSrc := false;
-      setExpectedForInvSnoop(tbe, false);
-      tbe.expected_snp_resp.setExpectedCount(out_msg.MegaDestination.totalCount());
     }
+    // Adding back the requestor to the mega_dir_sharers after sending the snoops
+    tbe.mega_dir_sharers.add(mapMachineIDToChipID(tbe.originalRequestor), tbe.originalRequestor);
   } else {
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
       prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
