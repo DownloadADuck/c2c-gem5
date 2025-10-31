@@ -1035,13 +1035,19 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.txnId := tbe.txnId;
       DPRINTF(RubyGenerated, "destination -> %s\n", tbe.originalRequestor);
       DPRINTF(RubyGenerated, "localRequestor -> %s\n", tbe.localRequestor);
-      if (out_msg.type == SnpRespData_I ||
-          SnpRespData_I_PD || SnpRespData_SC ||
-          SnpRespData_SC_PD || SnpRespData_SD ||
-          SnpRespData_UC || SnpRespData_UD ||
-          SnpRespData_SC_Fwded_SC || SnpRespData_SC_Fwded_SD_PD ||
-          SnpRespData_SC_PD_Fwded_SC || SnpRespData_I_Fwded_SD_PD ||
-          SnpRespData_I_PD_Fwded_SC || SnpRespData_I_Fwded_SC) {
+      if ((out_msg.type == CHIDataType:SnpRespData_I) ||
+          (out_msg.type == CHIDataType:SnpRespData_I_PD) || 
+          (out_msg.type == CHIDataType:SnpRespData_SC) ||
+          (out_msg.type == CHIDataType:SnpRespData_SC_PD) || 
+          (out_msg.type == CHIDataType:SnpRespData_SD) || 
+          (out_msg.type == CHIDataType:SnpRespData_UC) || 
+          (out_msg.type == CHIDataType:SnpRespData_UD) ||
+          (out_msg.type == CHIDataType:SnpRespData_SC_Fwded_SC) || 
+          (out_msg.type == CHIDataType:SnpRespData_SC_Fwded_SD_PD) ||
+          (out_msg.type == CHIDataType:SnpRespData_SC_PD_Fwded_SC) || 
+          (out_msg.type == CHIDataType:SnpRespData_I_Fwded_SD_PD) ||
+          (out_msg.type == CHIDataType:SnpRespData_I_PD_Fwded_SC) || 
+          (out_msg.type == CHIDataType:SnpRespData_I_Fwded_SC)) {
         out_msg.Destination.add(tbe.localRequestor);
       } else {
         out_msg.Destination.add(tbe.originalRequestor);
