@@ -259,6 +259,7 @@ action(Initiate_Request, desc="") {
   DirEntry dir_entry := getDirEntry(address);
   copyCacheAndDir(cache_entry, dir_entry, tbe, initial);
 
+  DPRINTF(RubyGenerated, "tbe.dataDirty -> %s\n", tbe.dataDirty);
   tbe.use_DMT := is_HN && enable_DMT;
   tbe.use_DCT := enable_DCT;
 
@@ -1349,6 +1350,7 @@ action(Send_Evict, desc="") {
 action(Send_InvSnpResp, desc="") {
   assert(is_valid(tbe));
   assert(tbe.dataMaybeDirtyUpstream == false);
+  DPRINTF(RubyGenerated, "\ntbe.dataDirty -> %s\n tbe.snpNeedsData -> %s\n tbe.dataUnique -> %s\n tbe.reqType -> %s\n", tbe.dataDirty, tbe.snpNeedsData, tbe.dataUnique, tbe.reqType);
   if (tbe.dataDirty || tbe.snpNeedsData ||
       (tbe.dataUnique && (tbe.reqType == CHIRequestType:SnpUnique))) {
     tbe.actions.pushFront(Event:SendSnpData);
@@ -1490,7 +1492,10 @@ action(Send_SnpCleanInvalid_NoReq, desc="") {
     tbe.expected_snp_resp.setExpectedCount(tbe.mega_dir_sharers.totalCount());
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
       prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
+      out_msg.c2c_destination := tbe.mega_dir_sharers;
       out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers);
+      // Used for any SnpRespData routing
+      out_msg.localRequestor := machineID; 
       out_msg.retToSrc := false;
     }
     // Adding back the requestor to the mega_dir_sharers after sending the snoops
@@ -2936,6 +2941,7 @@ action(Send_Data, desc="") {
 
     //C2c-specific fields
     out_msg.originalRequestor := tbe.originalRequestor;
+    out_msg.localRequestor := tbe.localRequestor;
     out_msg.originalResponder := machineID;
   }
 
