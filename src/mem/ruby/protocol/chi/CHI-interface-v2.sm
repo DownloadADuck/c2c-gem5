@@ -980,8 +980,10 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.originalRequestor := tbe.originalRequestor;
       out_msg.localRequestor := tbe.localRequestor;
       out_msg.dataToFwdRequestor := tbe.dataToFwdRequestor; 
+      DPRINTF(RubyGenerated, "retToSrc -> %s\n", tbe.retToSrc);
       out_msg.retToSrc := tbe.retToSrc;
       out_msg.allowRetry := tbe.allowRetry;
+      DPRINTF(RubyGenerated, "c2c_destination -> %s\n", tbe.c2c_destination);
       out_msg.Destination := tbe.c2c_destination.extractNetDest(chipID);
       out_msg.seqReq := tbe.seqReq; 
       out_msg.isSeqReqValid := tbe.isSeqReqValid;
@@ -1031,7 +1033,19 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.responder := machineID;
       out_msg.usesTxnId := tbe.usesTxnId; 
       out_msg.txnId := tbe.txnId;
-      out_msg.Destination.add(tbe.originalRequestor); 
+      DPRINTF(RubyGenerated, "destination -> %s\n", tbe.originalRequestor);
+      DPRINTF(RubyGenerated, "localRequestor -> %s\n", tbe.localRequestor);
+      if (out_msg.type == SnpRespData_I ||
+          SnpRespData_I_PD || SnpRespData_SC ||
+          SnpRespData_SC_PD || SnpRespData_SD ||
+          SnpRespData_UC || SnpRespData_UD ||
+          SnpRespData_SC_Fwded_SC || SnpRespData_SC_Fwded_SD_PD ||
+          SnpRespData_SC_PD_Fwded_SC || SnpRespData_I_Fwded_SD_PD ||
+          SnpRespData_I_PD_Fwded_SC || SnpRespData_I_Fwded_SC) {
+        out_msg.Destination.add(tbe.localRequestor);
+      } else {
+        out_msg.Destination.add(tbe.originalRequestor);
+      }
       out_msg.localRequestor := tbe.localRequestor;
       out_msg.originalResponder := tbe.originalResponder;
     }
@@ -1059,6 +1073,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.Type := CHIReqToC2cMsg(tbe.to_c2c_snp_type);
       out_msg.Requestor := machineID;
       out_msg.FwdRequestor := machineID;
+      DPRINTF(RubyGenerated, "c2c_destination -> %s\n", tbe.c2c_destination);
       out_msg.C2c_destination := tbe.c2c_destination;
       out_msg.OriginalRequestor := tbe.originalRequestor;
       out_msg.LocalRequestor := tbe.localRequestor;
@@ -1079,6 +1094,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     enqueue(responseToC2c_out, C2cMsg, response_latency) {
       out_msg.addr := address;
       out_msg.Type := CHIRspToC2cMsg(tbe.to_c2c_rsp_type);
+      DPRINTF(RubyGenerated, "type -> %s\n", tbe.to_c2c_rsp_type);
       out_msg.Responder := tbe.responder;
       out_msg.Stale := tbe.stale;
       out_msg.UsesTxnId := tbe.usesTxnId;
@@ -1096,6 +1112,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     enqueue(responseToC2c_out, C2cMsg, response_latency) {
       out_msg.addr := address;
       out_msg.Type := CHIDatToC2cMsg(tbe.to_c2c_dat_type);
+      DPRINTF(RubyGenerated, "type -> %s\n", tbe.to_c2c_dat_type);
       out_msg.Responder := tbe.responder;
       out_msg.DataBlk := tbe.dataBlk;
       out_msg.BitMask := tbe.bitMask;
