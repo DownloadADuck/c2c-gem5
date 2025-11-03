@@ -224,6 +224,31 @@ class AbstractController : public ClockedObject, public Consumer
      */
     MachineID mapAddressToDownstreamMachine(Addr addr,
                                     MachineType mtype = MachineType_NUM) const;
+                                    
+    /**
+     * Maps an address to the correct upstream MachineID
+     *
+     * This function querries the network for the MachineID of the
+     * chip-to-chip interface (C2CI) destination for a given request using 
+     * its address. For example for a request with a given address it will 
+     * return the MachineID of the authorative C2CI.
+     *
+     * @param the destination chip
+     * @return the MachineID of the destination C2CI
+     */
+    MachineID mapChipIDToC2CI(int ChipID) const;
+
+    /**
+     * Map an address to the correct upstream MachineID
+     *
+     * This function uses the python-initialized machineToChipMap to 
+     * get the ChipID of a specific MachineID. Used when adding a 
+     * controller to a MegaNetDest from their MachineID. 
+     *
+     * @param MachineID of the controller 
+     * @return ChipID
+     */
+    int mapMachineIDToChipID(MachineID mach) const;
 
     /** Check if the address has a downstream client */
     bool hasDownstreamClient(Addr addr, 
@@ -477,6 +502,13 @@ class AbstractController : public ClockedObject, public Consumer
 
     std::unordered_map<MachineType, AddrRangeMap<MachineID, 3>>
       downstreamAddrMap;
+    /** ChipID -> C2CI map */
+    std::unordered_map<int, MachineID>
+      c2cHopMap;
+
+    /** MachineID -> ChipID map */
+    std::unordered_map<MachineID, int>
+       machineToChipMap;
 
     NetDest downstreamDestinations;
     NetDest upstreamDestinations;

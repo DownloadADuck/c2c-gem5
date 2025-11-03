@@ -258,7 +258,6 @@ NetDest::resize()
 
     for (int i = 0; i < m_bits.size(); i++) {
         m_bits[i].setSize(MachineType_base_count((MachineType)i));
-        //std::cout << "m_bits[" << i << "] size -> " << m_bits[i].getSize() << std::endl;
     }
 }
 

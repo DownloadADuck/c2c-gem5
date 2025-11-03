@@ -290,7 +290,7 @@ class CHI_L2Controller(CHI_Cache_Controller):
     Default parameters for a L2 Cache controller
     """
 
-    def __init__(self, ruby_system, cache, prefetcher, chipID):
+    def __init__(self, ruby_system, cache, prefetcher):
         super(CHI_L2Controller, self).__init__(ruby_system)
         self.sequencer = NULL
         self.cache = cache
@@ -299,8 +299,8 @@ class CHI_L2Controller(CHI_Cache_Controller):
 
         self.is_HN = False
         self.is_multiChip = False
-        # ChipID is used when using MultiChip
-        self.chipID = chipID
+        # Setting the unused chipID to 0
+        self.chipID = 0
 
         self.enable_DMT = False
         self.enable_DCT = False
@@ -589,7 +589,7 @@ class CHI_RNF(CHI_Node):
         return self._cpus
 
     # Adds a private L2 for each cpu
-    def addPrivL2Cache(self, cache_type, chipID, pf_type=None):
+    def addPrivL2Cache(self, cache_type, pf_type=None):
         self._ll_cntrls = []
         for cpu in self._cpus:
             l2_cache = cache_type(
@@ -599,7 +599,7 @@ class CHI_RNF(CHI_Node):
                 m5.fatal("Prefetching not supported yet")
             l2_pf = NULL
 
-            cpu.l2 = CHI_L2Controller(self._ruby_system, l2_cache, l2_pf, chipID)
+            cpu.l2 = CHI_L2Controller(self._ruby_system, l2_cache, l2_pf)
 
             self._cntrls.append(cpu.l2)
             self.connectController(cpu.l2)
@@ -905,149 +905,3 @@ class CHI_RNI_IO(CHI_RNI_Base):
     def __init__(self, ruby_system, parent):
         super(CHI_RNI_IO, self).__init__(ruby_system, parent)
         ruby_system._io_port = self._sequencer
-
-class CHI_RNF_tgen(CHI_Node):
-    """
-    Defines a CHI traffic generator request node.
-    """
-
-    def __init__(
-        self,
-        tgens,
-        ruby_system,
-        l1Dcache_type,
-        cache_line_size,
-        l1Iprefetcher_type=None,
-        l1Dprefetcher_type=None,
-    ):
-        super(CHI_RNF_tgen, self).__init__(ruby_system)
-
-        self._block_size_bits = int(math.log(cache_line_size, 2))
-
-        # All sequencers and controllers
-        self._seqs = []
-        self._cntrls = []
-
-        # Last level controllers in this node, i.e., the ones that will send
-        # requests to the home nodes
-        self._ll_cntrls = []
-
-        self._tgens = tgens
-
-        # First creates L1 caches and sequencers
-        #for tgen in self._tgens:
-        for i in range(len(self._tgens)):
-            #tgen.data_sequencer = RubySequencer(
-            #    version=Versions.getSeqId(), ruby_system=ruby_system
-            #)
-
-            ruby_system.tgen_data_sequencer = RubySequencer(
-                version=Versions.getSeqId(), ruby_system=ruby_system
-            )
-
-            #self._seqs.append(
-            #    tgenSequencerWrapper(tgen.data_sequencer)
-            #)
-            self._seqs.append(
-                tgenSequencerWrapper(ruby_system.tgen_data_sequencer)
-            )
-
-            l1d_cache = l1Dcache_type(
-                start_index_bit=self._block_size_bits, is_icache=False
-            )
-
-            # Placeholders for future prefetcher support
-            if l1Iprefetcher_type != None or l1Dprefetcher_type != None:
-                m5.fatal("Prefetching not supported yet")
-            #l1i_pf = NULL
-            l1d_pf = NULL
-
-            #tgen.l1d = CHI_L1Controller(
-            #    ruby_system, tgen.data_sequencer, l1d_cache, l1d_pf
-            #)
-
-            ruby_system.l1d = CHI_L1Controller(
-                ruby_system, ruby_system.tgen_data_sequencer, l1d_cache, l1d_pf
-            )
-
-            #tgen.data_sequencer.dcache = tgen.l1d.cache
-            ruby_system.tgen_data_sequencer.dcache = ruby_system.l1d.cache
-
-            #tgen.l1d.sc_lock_enabled = True
-            ruby_system.l1d.sc_lock_enabled = True
-
-            #tgen._ll_cntrls = [tgen.l1d]
-            ruby_system._ll_cntrls = [ruby_system.l1d]
-            #for c in tgen._ll_cntrls:
-            #    self._cntrls.append(c)
-            #    self.connectController(c)
-            #    self._ll_cntrls.append(c)
-            for c in ruby_system._ll_cntrls:
-                self._cntrls.append(c)
-                self.connectController(c)
-                self._ll_cntrls.append(c)
-
-    def getSequencers(self):
-        return self._seqs
-
-    def getAllControllers(self):
-        return self._cntrls
-
-    def getNetworkSideControllers(self):
-        return self._cntrls
-
-    def setDownstream(self, cntrls):
-        for c in self._ll_cntrls:
-            c.downstream_destinations = cntrls
-
-    def getCpus(self):
-        return self._tgens
-
-    # Adds a private L2 for each cpu
-    #def addPrivL2Cache(self, cache_type, pf_type=None):
-    #    self._ll_cntrls = []
-    #    for tgen in self._tgens:
-    #        l2_cache = cache_type(
-    #            start_index_bit=self._block_size_bits, is_icache=False
-    #        )
-    #        if pf_type != None:
-    #            m5.fatal("Prefetching not supported yet")
-    #        l2_pf = NULL
-
-    #        tgen.l2 = CHI_L2Controller(self._ruby_system, l2_cache, l2_pf)
-
-    #        self._cntrls.append(tgen.l2)
-    #        self.connectController(tgen.l2)
-
-    #        self._ll_cntrls.append(tgen.l2)
-
-    #        for c in tgen._ll_cntrls:
-    #            c.downstream_destinations = [tgen.l2]
-    #        tgen._ll_cntrls = [tgen.l2]
-
-class tgenSequencerWrapper:
-    """
-    Traffic generator specific sequencer wrapper. Assumes that 
-    there is no inst_sequencer.
-    """
-
-    def __init__(self, dseq):
-        # use this style due to __setattr__ override below
-        self.__dict__["data_seq"] = dseq
-        self.__dict__["support_data_reqs"] = True
-        self.__dict__["in_ports"] = dseq.in_ports
-
-    def connectTgenPorts(self, tgen):
-        tgen.port = self.data_seq.in_ports
-        #for p in tgen._cached_ports:
-        #    if str(p) != "icache_port":
-        #        exec("cpu.%s = self.data_seq.in_ports" % p)
-        tgen.connectUncachedPorts(
-            self.data_seq.in_ports, self.data_seq.interrupt_out_port
-        )
-
-    def connectIOPorts(self, piobus):
-        self.data_seq.connectIOPorts(piobus)
-
-    def __setattr__(self, name, value):
-        setattr(self.data_seq, name, value)

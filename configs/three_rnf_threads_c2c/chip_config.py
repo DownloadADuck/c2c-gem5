@@ -38,7 +38,7 @@ from m5.objects import *
 from m5.defines import buildEnv
 
 from ruby_config import create_topology
-from four_tgens_se_c2c import CHI_config as chi_defs
+from three_rnf_threads_c2c import CHI_config as chi_defs
 
 
 def create_chip0(
@@ -141,7 +141,7 @@ def create_chip0(
     ]
 
     for rnf in ruby_system.rnf:
-        rnf.addPrivL2Cache(L2Cache, chipID = 0)
+        rnf.addPrivL2Cache(L2Cache)
         cpu_sequencers.extend(rnf.getSequencers())
         all_cntrls.extend(rnf.getAllControllers())
         network_nodes.append(rnf)
@@ -383,7 +383,7 @@ def create_chip1(
     ]
 
     for rnf in ruby_system.rnf2:
-        rnf.addPrivL2Cache(L2Cache, chipID = 1)
+        rnf.addPrivL2Cache(L2Cache)
         cpu_sequencers.extend(rnf.getSequencers())
         all_cntrls.extend(rnf.getAllControllers())
         network_nodes.append(rnf)

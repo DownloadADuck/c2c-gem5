@@ -112,10 +112,6 @@ AbstractController::init()
                     name(), addr_range.to_string());
             }
             downstreamAddrMap[mid.getType()].insert(addr_range, mid);
-            //for (const auto &i : downstreamAddrMap) {
-            //    std::cout << " Machine ID: " << mid << " allocated to mem range: " << addr_range.to_string() << " this controller: " << this->getMachineID() << std::endl; 
-            //    //" address map first member: " << i.first << std::endl;
-            //}
         }
         downstreamDestinations.add(mid);
     }
@@ -125,6 +121,39 @@ AbstractController::init()
     upstreamDestinations.resize();
     for (auto abs_cntrl : params().upstream_destinations) {
         upstreamDestinations.add(abs_cntrl->getMachineID());
+    }
+
+    // Initialize the chipID->C2CI map
+    if (params().chipIDList.size() != 0) {
+        for (int i = 0; i < params().chipIDList.size(); ++i) {
+            MachineID mid(MachineType::MachineType_Interface, params().c2cHopList[i]);
+            c2cHopMap[params().chipIDList[i]] = mid;
+        }
+    }
+
+    // Initialize the MachineID->ChipID map
+    if (params().cntrlList.size() % 3 != 0) {
+        fatal("cntrlList size must be divisible by 3");
+    }
+    
+    int numChips = params().cntrlList.size() / 3;
+
+    int globalIdx = 0;
+
+    for (int chipID = 0; chipID < numChips; ++chipID) {
+        int l1Count = params().cntrlList[chipID * 3];
+        int l2Count = params().cntrlList[chipID * 3 + 1];
+        int hnfCount = params().cntrlList[chipID * 3 + 2];
+
+        for (int i = 0; i < l1Count; ++i)
+            machineToChipMap.emplace(MachineID
+                (MachineType::MachineType_Cache, globalIdx++), chipID);
+        for (int i = 0; i < l2Count; ++i)
+            machineToChipMap.emplace(MachineID
+                (MachineType::MachineType_Cache, globalIdx++), chipID);
+        for (int i = 0; i < hnfCount; ++i)
+            machineToChipMap.emplace(MachineID
+                (MachineType::MachineType_Cache, globalIdx++), chipID);
     }
 }
 
@@ -543,9 +572,16 @@ AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
     if (pkt->isRead()) {
         (*msg).m_Type = (*(pkt->c2c_msg)).m_Type;
         (*msg).m_DataBlk = (*(pkt->c2c_msg)).m_DataBlk;
+        (*msg).m_BitMask = (*(pkt->c2c_msg)).m_BitMask;
+        (*msg).m_Responder = (*(pkt->c2c_msg)).m_Responder;
 
+        (*msg).m_UsesTxnId = (*(pkt->c2c_msg)).m_UsesTxnId;
+        (*msg).m_TxnId = (*(pkt->c2c_msg)).m_TxnId;
         (*msg).m_Stale = (*(pkt->c2c_msg)).m_Stale;
-        (*msg).m_C2c_sharers = (*(pkt->c2c_msg)).m_C2c_sharers;
+        (*msg).m_C2c_destination = (*(pkt->c2c_msg)).m_C2c_destination;
+        (*msg).m_OriginalRequestor = (*(pkt->c2c_msg)).m_OriginalRequestor;
+        (*msg).m_OriginalResponder = (*(pkt->c2c_msg)).m_OriginalResponder;
+        (*msg).m_LocalRequestor = (*(pkt->c2c_msg)).m_LocalRequestor;
     } else {
         panic("Incorrect packet type received in the c2c_out_port!");
     }
@@ -570,12 +606,15 @@ AbstractController::recvTimingReq(PacketPtr pkt)
 
     if (pkt->isRead()) {
         (*msg).m_Type = (*(pkt->c2c_msg)).m_Type;
-        (*msg).m_C2c_sharers = (*(pkt->c2c_msg)).m_C2c_sharers;
+        (*msg).m_C2c_destination = (*(pkt->c2c_msg)).m_C2c_destination;
         (*msg).m_RetToSrc = (*(pkt->c2c_msg)).m_RetToSrc;
-        (*msg).m_C2c_requestor = (*(pkt->c2c_msg)).m_C2c_requestor;
+        (*msg).m_OriginalRequestor = (*(pkt->c2c_msg)).m_OriginalRequestor;
+        (*msg).m_OriginalResponder = (*(pkt->c2c_msg)).m_OriginalResponder;
+        (*msg).m_LocalRequestor = (*(pkt->c2c_msg)).m_LocalRequestor;
         (*msg).m_ReqAck = (*(pkt->c2c_msg)).m_ReqAck;
         (*msg).m_AllowRetry = (*(pkt->c2c_msg)).m_AllowRetry;
         (*msg).m_Priority = (*(pkt->c2c_msg)).m_Priority;
+        (*msg).m_Responder = (*(pkt->c2c_msg)).m_Responder;
     } else {
         panic("Incorrect packet type received in the c2c_in_port!");
     }
@@ -621,6 +660,28 @@ const
     }
     fatal("%s: couldn't find mapping for address %x mtype=%s\n",
         name(), addr, mtype);
+}
+
+MachineID
+AbstractController::mapChipIDToC2CI(int ChipID)
+const
+{
+    auto it = c2cHopMap.find(ChipID);
+    assert(it != c2cHopMap.end());
+    return it->second;
+}
+
+int 
+AbstractController::mapMachineIDToChipID(MachineID mach)
+const
+{
+    for (const auto& i : machineToChipMap) {
+        if (i.first == mach) {
+            return i.second;
+        }
+    }
+    return -1; // Used when machine is not local
+    //panic("MachineID not found in map");
 }
 
 // Used to check is inbound request is local or not

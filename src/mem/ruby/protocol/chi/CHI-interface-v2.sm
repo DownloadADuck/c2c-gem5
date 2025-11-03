@@ -1,0 +1,1252 @@
+machine(MachineType:Interface, "Forwarding C2CI") :
+
+  Cycles request_latency := 1;
+  Cycles response_latency := 1;
+  Cycles data_latency := 1;
+  Cycles c2c_req_latency := 1;
+  Cycles c2c_link_latency := 0; //685
+
+  int data_channel_size;
+  int chipID;
+
+  // Communicating with the network
+  MessageBuffer * reqOut,   network="To", virtual_network="0", vnet_type="none";
+  MessageBuffer * snpOut,   network="To", virtual_network="1", vnet_type="none";
+  MessageBuffer * rspOut,   network="To", virtual_network="2", vnet_type="none";
+  MessageBuffer * datOut,   network="To", virtual_network="3", vnet_type="response";
+
+  MessageBuffer * reqIn,   network="From", virtual_network="0", vnet_type="none";
+  MessageBuffer * snpIn,   network="From", virtual_network="1", vnet_type="none";
+  MessageBuffer * rspIn,   network="From", virtual_network="2", vnet_type="none";
+  MessageBuffer * datIn,   network="From", virtual_network="3", vnet_type="response";
+
+  // Requests that can allocate a TBE
+  MessageBuffer * reqRdy;
+  MessageBuffer * c2cReqRdy;
+
+  // C2c out port
+  MessageBuffer * requestToC2c;
+  MessageBuffer * responseFromC2c;
+
+  // C2c in port
+  MessageBuffer * requestFromC2c;
+  MessageBuffer * responseToC2c;
+
+  // Trigger queue for internal event
+  MessageBuffer * triggerQueue;
+{
+
+  ////////////////////////////////////////////////////////////////////////////
+  // States
+  ////////////////////////////////////////////////////////////////////////////
+
+  state_declaration(State, desc="C2CI states", default="Interface_State_READY") {
+    READY, AccessPermission:Backing_Store,  desc="Ready - default state";
+
+    NET_REQ, AccessPermission:Invalid,      desc="Network-side request";
+    NET_DAT, AccessPermission:Invalid,      desc="Network-side data";
+    NET_RES, AccessPermission:Invalid,      desc="Network-side response";
+
+    C2C_REQ, AccessPermission:Invalid,      desc="C2C-side request";
+    C2C_DAT, AccessPermission:Invalid,      desc="C2C-side data";
+    C2C_RES, AccessPermission:Invalid,      desc="C2C-side response";
+
+    null, AccessPermission:Backing_Store,   desc="Null state";
+  }
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Events
+  ////////////////////////////////////////////////////////////////////////////
+
+  enumeration(Event, desc="C2CI events") {
+    CheckAllocTBE,        desc="Network-side check - available resources";
+    CheckC2cReqAllocTBE,  desc="C2C-side check - available resources";
+
+    Net_Request,          desc="Inbound network-side request";
+    Net_Snoop,            desc="Inbound network-side snoop";
+    Net_Data,             desc="Inbound network-side data";
+    Net_Response,         desc="Inbound network-side response";
+
+    C2c_Request,          desc="Inbound c2c-side request";
+    C2c_Snoop,            desc="Inbound c2c-side snoop";
+    C2c_Data,             desc="Inbound c2c-side data";
+    C2c_Response,         desc="Inbound c2c-side response";
+
+    Trigger_Send,         desc="Trigger message send";
+    Trigger_SendRetry,    desc="Trigger sending a retry message";
+  }
+
+  ///// POSSIBLE EVENT MANAGEMENT METHODS HERE
+
+  // Cache block size
+  int blockSize, default="RubySystem::getBlockSizeBytes()";
+  // TBE fields
+  structure(TBE, desc="TBE for temporary storage") {
+    int storSlot,   desc="Slot in the storage tracker occupied by this entry";
+    Addr addr,      desc="Line address for this TBE";
+    Addr accAddr,   desc="Original access address. Set only for Write*Ptl";
+    int  accSize,   desc="Access size. Set only for Write*Ptl";
+    State state,    desc="Current line state";
+    DataBlock dataBlk, desc="Transaction data";
+    WriteMask dataBlkValid, desc="valid bytes in dataBlk"; // TODO: might not be needed
+    WriteMask bitMask, desc="Which bytes in the data block are valid";
+    int rxtxBytes, desc="Bytes sent or received";
+
+    bool dataToFwdRequestor, desc="Is the Data to be fwded to requestor";
+    bool usesTxnId, desc="Uses a transaction ID instead of an address (for DMV)";
+    bool allowRetry, desc="Message field - allows retry";
+    bool useDataSepResp, desc="Replies with DataSepResp instead of CompData";
+    Addr txnId,           desc="Transaction ID", default="0";
+    MessageSizeType messageSize, default="MessageSizeType_Control";
+
+    MachineID requestor, desc="Requestor that originated this request";
+    MachineID destination, desc="Where we are sending data";
+    MachineID responder, desc="Who is sending the response";
+    MachineID fwdRequestor, desc="Message field - destination for forwarded data";
+    MessageSizeType MessageSize, default="MessageSizeType_Control";
+
+    //MegaNetDest c2c_sharers, desc="Stores the c2c_sharers when sending a response";
+    MegaNetDest c2c_destination, decs="Final off-chip destination";
+    MachineID originalRequestor, desc="Stores the off-chip requestor";
+    MachineID originalResponder, desc="Stores the off-chip responder";
+    MachineID localRequestor, desc="local or secondary requestor";
+    // TODO: Not sure yet that this should be MegaNetDest
+    MegaNetDest localDest,    desc="Local final destination for the message";
+
+
+    bool retToSrc, desc="Stores the retToSrc for snoop handling";
+    bool stale, desc="Stores the stale status for responses";
+
+    // Storing types
+    CHIRequestType to_c2c_req_type, desc="Temporarily stores the request type";
+    C2cRequestType to_net_req_type, desc="Temporarily stores the c2c request type";
+
+    CHIRequestType to_c2c_snp_type, desc="Temporarily stores the snoop type";
+    C2cRequestType to_net_snp_type, desc="Temporarily stores the c2c snoop type";
+
+    CHIResponseType to_c2c_rsp_type, desc="Temporarily stores the net resp type";
+    C2cRequestType to_net_rsp_type, desc="Temporarily stores the c2c resp type";
+
+    CHIDataType to_c2c_dat_type, desc="used to send the right response data type";
+    C2cRequestType to_net_dat_type, desc="Temporatily store the net data type";
+
+    MachineID Sender, desc="Original request for this request";
+    MessageSizeType size, desc="Message size";
+    RequestPtr seqReq,        default="nullptr", desc="Pointer to original request from CPU/sequencer (nullptr if not valid)";
+    bool isSeqReqValid,       default="false",   desc="Set if seqReq is valid (not nullptr)";
+    bool is_local_pf,         desc="Request generated by a local prefetcher";
+    bool is_remote_pf,        desc="Request generated a prefetcher in another cache";
+  }
+
+  structure(TBETable, external="yes") {
+    TBE lookup(Addr);
+    void allocate(Addr);
+    void deallocate(Addr);
+    bool isPresent(Addr);
+    bool areNSlotsAvailable(int n, Tick curTime);
+  }
+
+  structure(TBEStorage, external ="yes") {
+    int size();
+    int capacity();
+    int reserved();
+    int slotsAvailable();
+    bool areNSlotsAvailable(int n);
+    void incrementReserved();
+    void decrementReserved();
+    int addEntryToNewSlot();
+    void removeEntryFromSlot(int slot);
+  }
+
+  TBETable TBEs, template="<Interface_TBE>", constructor="m_number_of_TBEs";
+  TBEStorage storTBEs, constructor="this, m_number_of_TBEs";
+
+  // TriggerMsg, might not be needed
+  structure(TriggerMsg, desc="Trigger internal events", interface="Message") {
+    Addr addr;
+    Event event;
+    MachineID retryDest;
+
+    bool functionalRead(Packet *pkt) { return false; }
+    bool functionalRead(Packet *pkt, WriteMask &mask) { return false; }
+    bool functionalWrite(Packet *pkt) { return false; }
+  }
+
+  structure(RetryQueueEntry) {
+    Addr addr,            desc="Line address";
+    MachineID retryDest,  desc="Retry destination";
+  }
+
+  structure(TriggerQueue, external="yes") {
+    void pop();
+    bool empty();
+    void emplace(Addr, MachineID);
+    RetryQueueEntry next();
+  }
+
+  // No TBE slots available - Retry the request
+  TriggerQueue retryQueue, template="<Interface_RetryQueueEntry>";
+
+  ////////////////////////////////////////////////////////////////////////////
+  // External functions
+  ////////////////////////////////////////////////////////////////////////////
+
+  Tick clockEdge();
+  Tick curTick();
+  Tick cyclesToTicks(Cycles c);
+  void set_tbe(TBE b);
+  void unset_tbe();
+  void wakeUpAllBuffers(Addr a);
+  bool respondsTo(Addr addr);
+  // Used by the requestor side
+  MachineID mapAddressToDownstreamMachine(Addr addr);
+  int mapMachineIDToChipID(MachineID mach);
+
+  // Used to check if an inbound request is local 
+  bool hasDownstreamClient(Addr addr); 
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Interface functions required by SLICC
+  ////////////////////////////////////////////////////////////////////////////
+
+  State getState(TBE tbe, Addr addr) {
+    if (is_valid(tbe)) {
+        assert(tbe.addr == addr);
+        return tbe.state;
+    } else {
+        return State:READY;
+    }
+  }
+
+  void setState(TBE tbe, Addr addr, State state) {
+    if (is_valid(tbe)) {
+      assert(tbe.addr == addr);
+      tbe.state := state;
+    }
+  }
+
+  AccessPermission getAccessPermission(Addr addr) {
+    if (respondsTo(addr)) {
+      TBE tbe := TBEs[addr];
+      if (is_valid(tbe)) {
+        DPRINTF(RubySlicc, "%x %s,%s\n", addr, tbe.state, Interface_State_to_permission(tbe.state));
+        return Interface_State_to_permission(tbe.state);
+      } else {
+        // This might not work
+        DPRINTF(RubySlicc, "%x %s\n", addr, AccessPermission:Invalid);
+        return AccessPermission:Invalid;
+      }
+    } else {
+      DPRINTF(RubySlicc, "%x %s\n", addr, AccessPermission:NotPresent);
+      return AccessPermission:NotPresent;
+    }
+  }
+
+  void setAccessPermission(Addr addr, State state) {
+  }
+
+  void functionalRead(Addr addr, Packet *pkt, WriteMask &mask) {
+    if (respondsTo(addr)) {
+      DPRINTF(RubySlicc, "functionalRead %x\n", addr);
+      TBE tbe := TBEs[addr];
+
+      if (mask.isEmpty()) {
+        functionalMemoryRead(pkt);
+        mask.fillMask();
+        DPRINTF(RubySlicc, "functionalRead mem %x %s\n", addr, mask);
+      }
+
+      // Update with any transient data
+      //TODO additional handling of partial data ??
+      if (is_valid(tbe)) {
+        WriteMask read_mask;
+        read_mask.setMask(addressOffset(tbe.accAddr, tbe.addr), tbe.accSize);
+        read_mask.andMask(tbe.dataBlkValid);
+        if (read_mask.isEmpty() == false) {
+          testAndReadMask(addr, tbe.dataBlk, read_mask, pkt);
+          DPRINTF(RubySlicc, "functionalRead tbe %x %s %s %s\n", addr, tbe.dataBlk, read_mask, mask);
+          mask.orMask(read_mask);
+        }
+      }
+    }
+  }
+
+  int functionalWrite(Addr addr, Packet *pkt) {
+    if(respondsTo(addr)) {
+      int num_functional_writes := 0;
+      TBE tbe := TBEs[addr];
+      if (is_valid(tbe)) {
+        num_functional_writes := num_functional_writes +
+          testAndWrite(addr, tbe.dataBlk, pkt);
+        DPRINTF(RubySlicc, "functionalWrite tbe %x %s\n", addr, tbe.dataBlk);
+      }
+      num_functional_writes := num_functional_writes + functionalMemoryWrite(pkt);
+      DPRINTF(RubySlicc, "functionalWrite mem %x\n", addr);
+      return num_functional_writes;
+    } else {
+      return 0;
+    }
+  }
+
+  //void clearExpectedReqResp(TBE tbe) {
+  //  assert(blockSize >= data_channel_size);
+  //  assert((blockSize % data_channel_size) == 0);
+  //  tbe.expected_req_resp.clear(blockSize / data_channel_size);
+  //}
+
+  //void clearExpectedReq(TBE tbe) {
+  //  assert(blockSize >= data_channel_size);
+  //  assert((blockSize % data_channel_size) == 0);
+  //  tbe.expected_req.clear(blockSize / data_channel_size);
+  //}
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Helper functions
+  ////////////////////////////////////////////////////////////////////////////
+
+  void printResources() {
+    DPRINTF(RubySlicc, "Resources(avail/max): TBEs=%d/%d\n",
+                  storTBEs.size(), storTBEs.capacity());
+    DPRINTF(RubySlicc, "Resources(in/out size): rdy=%d req=%d/%d rsp=%d/%d dat=%d/%d snp=%d/%d\n",
+                  reqRdy.getSize(curTick()),
+                  reqIn.getSize(curTick()), reqOut.getSize(curTick()),
+                  rspIn.getSize(curTick()), rspOut.getSize(curTick()),
+                  datIn.getSize(curTick()), datOut.getSize(curTick()),
+                  snpIn.getSize(curTick()), snpOut.getSize(curTick()));
+  }
+  
+  ////////////////////////////////////////////////////////////////////////////
+  // C2C <-> CHI type translation functions
+  ////////////////////////////////////////////////////////////////////////////
+
+  CHIRequestType c2cMsgToCHIReq(C2cRequestType type){
+    if (type == C2cRequestType:ReadShared) {
+      return CHIRequestType:ReadShared;
+    } else if (type == C2cRequestType:ReadOnce) {
+      return CHIRequestType:ReadOnce;
+    } else if (type == C2cRequestType:ReadUnique) {
+      return CHIRequestType:ReadUnique;
+    } else if (type == C2cRequestType:CleanUnique) {
+      return CHIRequestType:CleanUnique;
+    } else if (type == C2cRequestType:Evict) {
+      return CHIRequestType:Evict;
+    } else if (type == C2cRequestType:WriteEvictFull) {
+      return CHIRequestType:WriteEvictFull;
+    } else if (type == C2cRequestType:WriteUniqueFull) {
+      return CHIRequestType:WriteUniqueFull;
+    } else if (type == C2cRequestType:WriteBackFull) {
+      return CHIRequestType:WriteBackFull;
+    } else if (type == C2cRequestType:SnpCleanInvalid) {
+      return CHIRequestType:SnpCleanInvalid;
+    } else if (type == C2cRequestType:SnpUnique) {
+      return CHIRequestType:SnpUnique;
+    } else if (type == C2cRequestType:SnpSharedFwd) {
+      return CHIRequestType:SnpSharedFwd;
+    } else if (type == C2cRequestType:SnpUniqueFwd) {
+      return CHIRequestType:SnpUniqueFwd;
+    } else if (type == C2cRequestType:SnpOnceFwd) {
+      return CHIRequestType:SnpOnceFwd;
+    } else {
+      DPRINTF(RubyC2c, "Type: %s\n", type);
+      error("Unexpected C2cMsg request type");
+    }
+  }
+
+  CHIResponseType c2cMsgToCHIRsp(C2cRequestType type) {
+    if(type == C2cRequestType:CompDBIDResp) {
+      return CHIResponseType:CompDBIDResp;
+    } else if (type == C2cRequestType:CompAck) {
+      return CHIResponseType:CompAck;
+    } else if (type == C2cRequestType:Comp_I) {
+      return CHIResponseType:Comp_I;
+    } else if (type == C2cRequestType:RetryAck) {
+      return CHIResponseType:RetryAck;
+    } else if (type == C2cRequestType:PCrdGrant) {
+      return CHIResponseType:PCrdGrant;
+    } else if (type == C2cRequestType:Comp_UC) {
+      return CHIResponseType:Comp_UC;
+    } else if (type == C2cRequestType:SnpResp_I) {
+      return CHIResponseType:SnpResp_I;
+    } else if (type == C2cRequestType:SnpResp_I_Fwded_UD_PD) {
+      return CHIResponseType:SnpResp_I_Fwded_UD_PD;
+    } else if (type == C2cRequestType:SnpResp_I_Fwded_UC) {
+      return CHIResponseType:SnpResp_I_Fwded_UC;
+    } else if (type == C2cRequestType:SnpResp_SC_Fwded_SC) {
+      return CHIResponseType:SnpResp_SC_Fwded_SC;
+    } else if (type == C2cRequestType:SnpResp_SC_Fwded_SD_PD) {
+      return CHIResponseType:SnpResp_SC_Fwded_SD_PD;
+    } else if (type == C2cRequestType:SnpResp_SD_Fwded_I) {
+      return CHIResponseType:SnpResp_SD_Fwded_I;
+    } else if (type == C2cRequestType:SnpResp_SC_Fwded_I) {
+      return CHIResponseType:SnpResp_SC_Fwded_I;
+    } else if (type == C2cRequestType:SnpResp_UD_Fwded_I) {
+      return CHIResponseType:SnpResp_UD_Fwded_I;
+    } else if (type == C2cRequestType:SnpResp_UC_Fwded_I) {
+      return CHIResponseType:SnpResp_UC_Fwded_I;
+    } else {
+      DPRINTF(RubyC2c, "Type: %s\n", type);
+      error ("Unexpected C2cMsg response type");
+    }
+  }
+
+  CHIDataType c2cMsgToCHIDat(C2cRequestType type) {
+    if (type == C2cRequestType:CompData_UC) {
+      return CHIDataType:CompData_UC;
+    } else if (type == C2cRequestType:CompData_I) {
+      return CHIDataType:CompData_I;
+    } else if (type == C2cRequestType:CompData_SC) {
+      return CHIDataType:CompData_SC;
+    } else if (type == C2cRequestType:CompData_SD_PD) {
+      return CHIDataType:CompData_SD_PD;
+    } else if (type == C2cRequestType:CompData_UD_PD) {
+      return CHIDataType:CompData_UD_PD;
+    } else if (type == C2cRequestType:NCBWrData) {
+      return CHIDataType:NCBWrData;
+    } else if (type == C2cRequestType:CBWrData_UC) {
+      return CHIDataType:CBWrData_UC;
+    } else if (type == C2cRequestType:CBWrData_SC) {
+      return CHIDataType:CBWrData_SC;
+    } else if (type == C2cRequestType:CBWrData_I) {
+      return CHIDataType:CBWrData_I;
+    } else if (type == C2cRequestType:CBWrData_SD_PD) {
+      return CHIDataType:CBWrData_SD_PD;
+    } else if (type == C2cRequestType:CBWrData_UD_PD) {
+      return CHIDataType:CBWrData_UD_PD;
+    } else if (type == C2cRequestType:SnpRespData_I_PD) {
+      return CHIDataType:SnpRespData_I_PD;
+    } else if (type == C2cRequestType:SnpRespData_I) {
+      return CHIDataType:SnpRespData_I;
+    } else if (type == C2cRequestType:SnpRespData_SC_PD) {
+      return CHIDataType:SnpRespData_SC_PD;
+    } else if (type == C2cRequestType:SnpRespData_SC) {
+      return CHIDataType:SnpRespData_SC;
+    } else if (type == C2cRequestType:SnpRespData_SD) {
+      return CHIDataType:SnpRespData_SD;
+    } else if (type == C2cRequestType:SnpRespData_UC) {
+      return CHIDataType:SnpRespData_UC;
+    } else if (type == C2cRequestType:SnpRespData_UD) {
+      return CHIDataType:SnpRespData_UD;
+    } else if (type == C2cRequestType:SnpRespData_SC_Fwded_SD_PD) {
+      return CHIDataType:SnpRespData_SC_Fwded_SD_PD;
+    } else if (type == C2cRequestType:SnpRespData_SC_Fwded_SC) {
+      return CHIDataType:SnpRespData_SC_Fwded_SC;
+    } else if (type == C2cRequestType:SnpRespData_SC_PD_Fwded_SC) {
+      return CHIDataType:SnpRespData_SC_PD_Fwded_SC;
+    } else if (type == C2cRequestType:SnpRespData_I_Fwded_SD_PD) {
+      return CHIDataType:SnpRespData_I_Fwded_SD_PD;
+    } else if (type == C2cRequestType:SnpRespData_I_PD_Fwded_SC) {
+      return CHIDataType:SnpRespData_I_PD_Fwded_SC;
+    } else if (type == C2cRequestType:SnpRespData_I_Fwded_SC) {
+      return CHIDataType:SnpRespData_I_Fwded_SC;
+    } else {
+      DPRINTF(RubyC2c, "Type: %s\n", type);
+      error("Unexpected C2cMsg data type");
+    }
+  }
+
+  C2cRequestType CHIReqToC2cMsg(CHIRequestType type) {
+    if (type == CHIRequestType:ReadShared) {
+      return C2cRequestType:ReadShared;
+    } else if (type == CHIRequestType:ReadOnce) {
+      return C2cRequestType:ReadOnce;
+    } else if (type == CHIRequestType:ReadUnique) {
+      return C2cRequestType:ReadUnique;
+    } else if (type == CHIRequestType:CleanUnique) {
+      return C2cRequestType:CleanUnique;
+    } else if (type == CHIRequestType:Evict) {
+      return C2cRequestType:Evict;
+    } else if (type == CHIRequestType:WriteEvictFull) {
+      return C2cRequestType:WriteEvictFull;
+    } else if (type == CHIRequestType:WriteUniqueFull) {
+      return C2cRequestType:WriteUniqueFull;
+    } else if (type == CHIRequestType:WriteBackFull) {
+      return C2cRequestType:WriteBackFull;
+    } else if (type == CHIRequestType:SnpCleanInvalid) {
+      return C2cRequestType:SnpCleanInvalid;
+    } else if (type == CHIRequestType:SnpUnique) {
+      return C2cRequestType:SnpUnique;
+    } else if (type == CHIRequestType:SnpSharedFwd) {
+      return C2cRequestType:SnpSharedFwd;
+    } else if (type == CHIRequestType:SnpUniqueFwd) {
+      return C2cRequestType:SnpUniqueFwd;
+    } else if (type == CHIRequestType:SnpOnceFwd) {
+      return C2cRequestType:SnpOnceFwd;
+    } else {
+      DPRINTF(RubyC2c, "Type: %s\n", type);
+      error("Unexpected CHIRequest type");
+    }
+  }
+
+  C2cRequestType CHIRspToC2cMsg(CHIResponseType type) {
+    if (type == CHIResponseType:CompAck) {
+      return C2cRequestType:CompAck;
+    } else if (type == CHIResponseType:Comp_I) {
+      return C2cRequestType:Comp_I;
+    } else if (type == CHIResponseType:Comp_UC) {
+      return C2cRequestType:Comp_UC;
+    } else if (type == CHIResponseType:CompDBIDResp) {
+      return C2cRequestType:CompDBIDResp;
+    } else if (type == CHIResponseType:RetryAck) {
+      return C2cRequestType:RetryAck;
+    } else if (type == CHIResponseType:PCrdGrant) {
+      return C2cRequestType:PCrdGrant;
+    } else if (type == CHIResponseType:SnpResp_I) {
+      return C2cRequestType:SnpResp_I;
+    } else if (type == CHIResponseType:SnpResp_I_Fwded_UD_PD) {
+      return C2cRequestType:SnpResp_I_Fwded_UD_PD;
+    } else if (type == CHIResponseType:SnpResp_I_Fwded_UC) {
+      return C2cRequestType:SnpResp_I_Fwded_UC;
+    } else if (type == CHIResponseType:SnpResp_SC_Fwded_SC) {
+      return C2cRequestType:SnpResp_SC_Fwded_SC;
+    } else if (type == CHIResponseType:SnpResp_SC_Fwded_SD_PD) {
+      return C2cRequestType:SnpResp_SC_Fwded_SD_PD;
+    } else if (type == CHIResponseType:SnpResp_SD_Fwded_I) {
+      return C2cRequestType:SnpResp_SD_Fwded_I;
+    } else if (type == CHIResponseType:SnpResp_SC_Fwded_I) {
+      return C2cRequestType:SnpResp_SC_Fwded_I;
+    } else if (type == CHIResponseType:SnpResp_UD_Fwded_I) {
+      return C2cRequestType:SnpResp_UD_Fwded_I;
+    } else if (type == CHIResponseType:SnpResp_UC_Fwded_I) {
+      return C2cRequestType:SnpResp_UC_Fwded_I;
+    } else {
+      DPRINTF(RubyC2c, "Type: %s\n", type);
+      error("Unexpected CHIResponse type");
+    }
+  }
+
+  C2cRequestType CHIDatToC2cMsg(CHIDataType type) {
+    if (type == CHIDataType:CompData_UC) {
+      return C2cRequestType:CompData_UC;
+    } else if (type == CHIDataType:CompData_SC) {
+      return C2cRequestType:CompData_SC;
+    } else if (type == CHIDataType:CompData_I) {
+      return C2cRequestType:CompData_I;
+    } else if (type == CHIDataType:CompData_SD_PD) {
+      return C2cRequestType:CompData_SD_PD;
+    } else if (type == CHIDataType:CompData_UD_PD) {
+      return C2cRequestType:CompData_UD_PD;
+    } else if (type == CHIDataType:NCBWrData) {
+      return C2cRequestType:NCBWrData;
+    } else if (type == CHIDataType:CBWrData_UC) {
+      return C2cRequestType:CBWrData_UC;
+    } else if (type == CHIDataType:CBWrData_SC) {
+      return C2cRequestType:CBWrData_SC;
+    } else if (type == CHIDataType:CBWrData_I) {
+      return C2cRequestType:CBWrData_I;
+    } else if (type == CHIDataType:CBWrData_SD_PD) {
+      return C2cRequestType:CBWrData_SD_PD;
+    } else if (type == CHIDataType:CBWrData_UD_PD) {
+      return C2cRequestType:CBWrData_UD_PD;
+    } else if (type == CHIDataType:SnpRespData_I_PD) {
+      return C2cRequestType:SnpRespData_I_PD;
+    } else if (type == CHIDataType:SnpRespData_I) {
+      return C2cRequestType:SnpRespData_I;
+    } else if (type == CHIDataType:SnpRespData_SC_PD) {
+      return C2cRequestType:SnpRespData_SC_PD;
+    } else if (type == CHIDataType:SnpRespData_SC) {
+      return C2cRequestType:SnpRespData_SC;
+    } else if (type == CHIDataType:SnpRespData_SD) {
+      return C2cRequestType:SnpRespData_SD;
+    } else if (type == CHIDataType:SnpRespData_UC) {
+      return C2cRequestType:SnpRespData_UC;
+    } else if (type == CHIDataType:SnpRespData_UD) {
+      return C2cRequestType:SnpRespData_UD;
+    } else if (type == CHIDataType:SnpRespData_SC_Fwded_SD_PD) {
+      return C2cRequestType:SnpRespData_SC_Fwded_SD_PD;
+    } else if (type == CHIDataType:SnpRespData_SC_Fwded_SC) {
+      return C2cRequestType:SnpRespData_SC_Fwded_SC;
+    } else if (type == CHIDataType:SnpRespData_SC_PD_Fwded_SC) {
+      return C2cRequestType:SnpRespData_SC_PD_Fwded_SC;
+    } else if (type == CHIDataType:SnpRespData_I_Fwded_SD_PD) {
+      return C2cRequestType:SnpRespData_I_Fwded_SD_PD;
+    } else if (type == CHIDataType:SnpRespData_I_PD_Fwded_SC) {
+      return C2cRequestType:SnpRespData_I_PD_Fwded_SC;
+    } else if (type == CHIDataType:SnpRespData_I_Fwded_SC) {
+      return C2cRequestType:SnpRespData_I_Fwded_SC;
+    } else {
+      DPRINTF(RubyC2c, "Type: %s\n", type);
+      error("Unexpected CHIData type");
+    }
+  }
+
+  ////////////////////////////////////////////////////////////////////////////
+  // C2cMsg Type --> Event translation functions
+  ////////////////////////////////////////////////////////////////////////////
+
+  Event c2cReqToEvent (C2cRequestType type) {
+    if (type == C2cRequestType:ReadShared ||
+        type == C2cRequestType:ReadOnce ||
+        type == C2cRequestType:ReadUnique ||
+        type == C2cRequestType:CleanUnique ||
+        type == C2cRequestType:Evict ||
+        type == C2cRequestType:WriteEvictFull ||
+        type == C2cRequestType:WriteUniqueFull ||
+        type == C2cRequestType:WriteBackFull) {
+      return Event:C2c_Request;
+    } else if (type == C2cRequestType:SnpCleanInvalid ||
+                type == C2cRequestType:SnpUnique ||
+                type == C2cRequestType:SnpSharedFwd ||
+                type == C2cRequestType:SnpUniqueFwd ||
+                type == C2cRequestType:SnpOnceFwd) {
+      return Event:C2c_Snoop;
+    } else {
+      DPRINTF(RubyC2c, "c2cReqToEvent C2cRequestType: %s\n", type);
+      error("Invalid C2c request type");
+    }
+  }
+
+  Event c2cRespToEvent (C2cRequestType type) {
+    if (type == C2cRequestType:CompData_UC ||
+        type == C2cRequestType:CompData_I ||
+        type == C2cRequestType:CompData_SC ||
+        type == C2cRequestType:CompData_SD_PD ||
+        type == C2cRequestType:CompData_UD_PD ||
+        type == C2cRequestType:NCBWrData ||
+        type == C2cRequestType:CBWrData_UC ||
+        type == C2cRequestType:CBWrData_SC ||
+        type == C2cRequestType:CBWrData_I ||
+        type == C2cRequestType:CBWrData_SD_PD ||
+        type == C2cRequestType:CBWrData_UD_PD ||
+        type == C2cRequestType:SnpRespData_I_PD ||
+        type == C2cRequestType:SnpRespData_I ||
+        type == C2cRequestType:SnpRespData_SC_PD ||
+        type == C2cRequestType:SnpRespData_SC ||
+        type == C2cRequestType:SnpRespData_SD ||
+        type == C2cRequestType:SnpRespData_UC ||
+        type == C2cRequestType:SnpRespData_UD ||
+        type == C2cRequestType:SnpRespData_SC_Fwded_SD_PD ||
+        type == C2cRequestType:SnpRespData_SC_Fwded_SC ||
+        type == C2cRequestType:SnpRespData_SC_PD_Fwded_SC ||
+        type == C2cRequestType:SnpRespData_I_Fwded_SD_PD ||
+        type == C2cRequestType:SnpRespData_I_PD_Fwded_SC ||
+        type == C2cRequestType:SnpRespData_I_Fwded_SC) {
+      return Event:C2c_Data;
+    } else if (type == C2cRequestType:CompAck ||
+                type == C2cRequestType:Comp_I ||
+                type == C2cRequestType:Comp_UC ||
+                type == C2cRequestType:CompDBIDResp ||
+                type == C2cRequestType:RetryAck ||
+                type == C2cRequestType:PCrdGrant ||
+                type == C2cRequestType:SnpResp_I ||
+                type == C2cRequestType:SnpResp_I_Fwded_UD_PD ||
+                type == C2cRequestType:SnpResp_I_Fwded_UC ||
+                type == C2cRequestType:SnpResp_SC_Fwded_SC ||
+                type == C2cRequestType:SnpResp_SC_Fwded_SD_PD ||
+                type == C2cRequestType:SnpResp_SD_Fwded_I ||
+                type == C2cRequestType:SnpResp_SC_Fwded_I ||
+                type == C2cRequestType:SnpResp_UD_Fwded_I ||
+                type == C2cRequestType:SnpResp_UC_Fwded_I ||
+                type == C2cRequestType:ReqAck) {
+      return Event:C2c_Response;
+    } else {
+      DPRINTF(RubyC2c, "c2cRespToEvent C2cRequestType: %s\n", type);
+      error("Invalid C2cResponseType");
+    }
+  }
+  ////////////////////////////////////////////////////////////////////////////
+  // Input/output ports definitions
+  ////////////////////////////////////////////////////////////////////////////
+
+  // Output ports
+  out_port(reqOutPort, CHIRequestMsg, reqOut);
+  out_port(snpOutPort, CHIRequestMsg, snpOut);
+  out_port(rspOutPort, CHIResponseMsg, rspOut);
+  out_port(datOutPort, CHIDataMsg, datOut);
+
+    // C2C output ports
+  out_port(requestToC2c_out, C2cMsg, requestToC2c);
+  out_port(responseToC2c_out, C2cMsg, responseToC2c);
+
+    // Internal queues
+  out_port(triggerOutPort, TriggerMsg, triggerQueue);
+  out_port(reqRdyOutPort, CHIRequestMsg, reqRdy);
+  out_port(c2cReqRdyOutPort, C2cMsg, c2cReqRdy);
+
+  // Input ports 
+  //// Requests
+  ////// Raw chi request input 
+  in_port(reqInPort, CHIRequestMsg, reqIn, rank=0) {
+    if (reqInPort.isReady(clockEdge())) {
+      printResources();
+      peek(reqInPort, CHIRequestMsg) {
+        trigger(Event:Net_Request, in_msg.addr, TBEs[in_msg.addr]);
+      }
+    }
+  }
+  ////// Raw c2c request input
+  in_port(requestFromC2c_in, C2cMsg, requestFromC2c, rank=1) {
+    if (requestFromC2c_in.isReady(clockEdge())) {
+      printResources();
+      peek(requestFromC2c_in, C2cMsg) {
+        trigger(c2cReqToEvent(in_msg.Type), in_msg.addr, TBEs[in_msg.addr]);
+      }
+    }
+  }
+  ////// Internal chi request queue - Not used for now
+  in_port(reqRdyInPort, CHIRequestMsg, reqRdy, rank=1) {
+    if (reqRdyInPort.isReady(clockEdge())) {
+      printResources();
+      peek(reqRdyInPort, CHIRequestMsg) {
+        trigger(Event:Net_Request, in_msg.addr, TBEs[in_msg.addr]);
+      }
+    }
+  }
+  ////// Internal c2c request queue - Not used for now
+  in_port(c2cReqRdyInPort, C2cMsg, c2cReqRdy, rank=1) {
+    if (c2cReqRdyInPort.isReady(clockEdge())) {
+      printResources();
+      peek(c2cReqRdyInPort, C2cMsg) {
+        trigger(Event:C2c_Request, in_msg.addr, TBEs[in_msg.addr]);
+      }
+    }
+  }
+
+  //// Snoops
+  in_port(snpInPort, CHIRequestMsg, snpIn, rank=1) {
+    if (snpInPort.isReady(clockEdge())) {
+      printResources();
+      peek(snpInPort, CHIRequestMsg) {
+        trigger(Event:Net_Snoop, in_msg.addr, TBEs[in_msg.addr]);
+      }
+    }
+  }
+
+  //// Responses
+  ////// chi response input
+  in_port(rspInPort, CHIResponseMsg, rspIn, rank=1) {
+    if (rspInPort.isReady(clockEdge())) {
+      printResources();
+      peek(rspInPort, CHIResponseMsg) {
+        trigger(Event:Net_Response, in_msg.addr, TBEs[in_msg.addr]);
+      }
+    }
+  }
+  ////// c2c response input
+  in_port(responseFromC2c_in, C2cMsg, responseFromC2c, rank=1) {
+    if (responseFromC2c_in.isReady(clockEdge())) {
+      printResources();
+      peek(responseFromC2c_in, C2cMsg) {
+        trigger(c2cRespToEvent(in_msg.Type), in_msg.addr, TBEs[in_msg.addr]);
+      }
+    }
+  }
+
+  //// Data
+  in_port(datInPort, CHIDataMsg, datIn, rank=1) {
+    if (datInPort.isReady(clockEdge())) {
+      printResources();
+      peek(datInPort, CHIDataMsg) {
+        assert((in_msg.bitMask.count() <= data_channel_size)
+            && (in_msg.bitMask.count() > 0));
+        trigger(Event:Net_Data, in_msg.addr, TBEs[in_msg.addr]);
+      }
+    }
+  }
+
+  // Internal queues
+  in_port(triggerInPort, TriggerMsg, triggerQueue, rank=1) {
+    if (triggerInPort.isReady(clockEdge())) {
+      printResources();
+      peek(triggerInPort, TriggerMsg) {
+        trigger(in_msg.event, in_msg.addr, TBEs[in_msg.addr]);
+      }
+    }
+  }
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Actions
+  ////////////////////////////////////////////////////////////////////////////
+
+  action(checkAllocateTBE, desc="Check if TBE slots are available for net req") {
+    if (storTBEs.areNSlotsAvailable(1)) {
+      storTBEs.incrementReserved();
+    } else {
+      error("checkAllocateTBE: No TBE slots available on network-side request.");
+    }
+  }
+
+  action(checkC2cAllocateTBE, desc="Check if TBE slots are available for c2c req") {
+    if (storTBEs.areNSlotsAvailable(1)) {
+      storTBEs.incrementReserved();
+    } else {
+      error("checkC2cReqAllocateTBE: No TBE slots available on C2C-side request.");
+    }
+  }
+
+  action(allocateTBE, "atbe", desc="Allocates a new TBE slot for net-side") {
+    if (!is_valid(tbe)) {
+      storTBEs.decrementReserved();
+      assert(storTBEs.areNSlotsAvailable(1));
+
+      TBEs.allocate(address);
+      set_tbe(TBEs[address]);
+      tbe.storSlot := storTBEs.addEntryToNewSlot();
+    }
+    tbe.addr := address;
+    tbe.rxtxBytes := 0;
+    tbe.useDataSepResp := false;
+  }
+
+  action(c2cReqAllocateTBE, "c2catbe", desc="Allocates a new TBE slot for c2c-side") {
+    if(!is_valid(tbe)) {
+      storTBEs.decrementReserved();
+      assert(storTBEs.areNSlotsAvailable(1));
+
+      TBEs.allocate(address);
+      set_tbe(TBEs[address]);
+      tbe.storSlot := storTBEs.addEntryToNewSlot();
+    }
+    tbe.addr := address;
+    tbe.rxtxBytes := 0;
+    tbe.useDataSepResp := false;
+  }
+
+  action(initializeTBEFromNetRequest, "itbefr", desc="Initialize TBE fields from net-side req") {
+    assert(is_valid(tbe));
+    peek(reqInPort, CHIRequestMsg) {
+      // Saving multiple fields for message forwarding
+      tbe.to_c2c_req_type := in_msg.type; 
+      tbe.requestor := in_msg.requestor;
+      tbe.allowRetry := in_msg.allowRetry;
+      tbe.size := in_msg.MessageSize;
+      tbe.dataToFwdRequestor := in_msg.dataToFwdRequestor;
+      // Doesn't make sense to keep the fwdRequestor field
+      //tbe.fwdRequestor := in_msg.fwdRequestor;
+      tbe.originalRequestor := in_msg.requestor;
+      tbe.accAddr := in_msg.accAddr;
+      tbe.accSize := in_msg.accSize;
+      tbe.retToSrc := in_msg.retToSrc;
+    }
+  }
+  
+  action(initializeTBEFromNetSnoop, "itbefns", desc="Initialize TBE fields from net-side req") {
+    assert(is_valid(tbe));
+    peek(snpInPort, CHIRequestMsg) {
+      tbe.to_c2c_snp_type := in_msg.type; 
+      tbe.requestor := in_msg.requestor;
+      tbe.c2c_destination := in_msg.c2c_destination;
+      tbe.allowRetry := in_msg.allowRetry;
+      tbe.size := in_msg.MessageSize;
+      tbe.dataToFwdRequestor := in_msg.dataToFwdRequestor;
+      tbe.originalRequestor := in_msg.originalRequestor;
+      tbe.localRequestor := in_msg.localRequestor;
+      tbe.accAddr := in_msg.accAddr;
+      tbe.accSize := in_msg.accSize;
+      tbe.retToSrc := in_msg.retToSrc;
+    }
+  }
+
+  action(initializeTBEFromNetResponse, "itfnr", desc="Initialize TBE fields from net-side rsp") {
+    assert(is_valid(tbe));
+    peek(rspInPort, CHIResponseMsg) {
+      tbe.to_c2c_rsp_type := in_msg.type;
+      tbe.responder := in_msg.responder;
+      tbe.stale := in_msg.stale;
+      tbe.usesTxnId := in_msg.usesTxnId;
+      tbe.txnId := in_msg.txnId;
+      tbe.c2c_destination := in_msg.c2c_destination;
+      tbe.originalRequestor := in_msg.originalRequestor;
+      tbe.originalResponder := in_msg.responder; // used to update dir state
+      tbe.localRequestor := in_msg.localRequestor;
+      tbe.MessageSize := in_msg.MessageSize;
+    }
+  }
+
+  action(initializeTBEFromNetData, "itfnd", desc="Initialize TBE fields from net-side dat") {
+    assert(is_valid(tbe));
+    peek(datInPort, CHIDataMsg) {
+      tbe.to_c2c_dat_type := in_msg.type;
+      tbe.responder := in_msg.responder;
+      tbe.originalRequestor := in_msg.originalRequestor;
+      tbe.localRequestor := in_msg.localRequestor;
+      tbe.originalResponder := in_msg.originalResponder;
+      tbe.dataBlk := in_msg.dataBlk;
+      tbe.bitMask := in_msg.bitMask;
+      tbe.usesTxnId := in_msg.usesTxnId;
+      tbe.txnId := in_msg.txnId;
+      tbe.messageSize := in_msg.MessageSize;
+      //tbe.c2c_sharers := in_msg.c2c_sharers;
+      tbe.c2c_destination := in_msg.c2c_destination;
+    }
+  }
+
+  action(initializeTBEFromC2cRequest, "itbefc2cr", desc="Initialize TBE fields from c2c-size req") {
+    assert(is_valid(tbe));
+    peek(requestFromC2c_in, C2cMsg) {
+      tbe.to_net_req_type := in_msg.Type;
+      tbe.requestor := in_msg.Requestor;
+      tbe.originalRequestor := in_msg.OriginalRequestor;
+      tbe.allowRetry := in_msg.AllowRetry;
+      tbe.size := in_msg.MessageSize;
+      tbe.dataToFwdRequestor := in_msg.DataToFwdRequestor;
+      tbe.fwdRequestor := in_msg.FwdRequestor;
+      tbe.accAddr := in_msg.AccAddr;
+      tbe.accSize := in_msg.AccSize;
+      tbe.retToSrc := in_msg.RetToSrc;
+    }
+  }
+
+  action(initializeTBEFromC2cSnoop, "itbefc2cs", desc="Initialize TBE fields from c2c-size req") {
+    assert(is_valid(tbe));
+    peek(requestFromC2c_in, C2cMsg) {
+      tbe.to_net_snp_type := in_msg.Type;
+      tbe.requestor := in_msg.Requestor;
+      tbe.originalRequestor := in_msg.OriginalRequestor;
+      tbe.c2c_destination := in_msg.C2c_destination;
+      tbe.localRequestor := in_msg.LocalRequestor;
+      tbe.allowRetry := in_msg.AllowRetry;
+      tbe.size := in_msg.MessageSize;
+      tbe.dataToFwdRequestor := in_msg.DataToFwdRequestor;
+      tbe.fwdRequestor := in_msg.FwdRequestor;
+      tbe.accAddr := in_msg.AccAddr;
+      tbe.accSize := in_msg.AccSize;
+      tbe.retToSrc := in_msg.RetToSrc;
+    }
+  }
+
+  action(initializeTBEFromC2cResponse, "itbefc2crsp", desc="Initialize TBE fields from c2c-side rsp") {
+    assert(is_valid(tbe));
+    peek(responseFromC2c_in, C2cMsg) {
+      tbe.to_net_rsp_type := in_msg.Type;
+      tbe.responder := in_msg.Responder;
+      tbe.stale := in_msg.Stale;
+      tbe.usesTxnId := in_msg.UsesTxnId;
+      tbe.txnId := in_msg.TxnId;
+      tbe.c2c_destination := in_msg.C2c_destination;
+      tbe.originalRequestor := in_msg.OriginalRequestor;
+      tbe.originalResponder := in_msg.OriginalResponder;
+      tbe.localRequestor := in_msg.LocalRequestor;
+      tbe.messageSize := in_msg.MessageSize;
+    }
+  }
+
+  action(initializeTBEFromC2cData, "itbefc2cd", desc="Initialize TBE fields from c2c-side dat") {
+    assert(is_valid(tbe));
+    peek(responseFromC2c_in, C2cMsg) {
+      tbe.to_net_dat_type := in_msg.Type;
+      tbe.responder := in_msg.Responder;
+      tbe.usesTxnId := in_msg.UsesTxnId;
+      tbe.txnId := in_msg.TxnId;
+      tbe.dataBlk := in_msg.DataBlk;
+      tbe.bitMask := in_msg.BitMask;
+      //tbe.c2c_sharers := in_msg.C2c_sharers;
+      tbe.c2c_destination := in_msg.C2c_destination;
+      tbe.originalRequestor := in_msg.OriginalRequestor;
+      tbe.originalResponder := in_msg.OriginalResponder;
+      tbe.localRequestor := in_msg.LocalRequestor;
+      tbe.messageSize := in_msg.MessageSize;
+    }
+  }
+
+  action(deallocateTBE, "dtbe", desc="Deallocates TBE") {
+    assert(is_valid(tbe));
+    storTBEs.removeEntryFromSlot(tbe.storSlot);
+    TBEs.deallocate(address);
+    unset_tbe();
+  }
+
+  // Message-sending actions
+  action(sendToNet_Request, "stnreq", desc="Sends requests to the network") {
+    assert(is_valid(tbe));
+    enqueue(reqOutPort, CHIRequestMsg, request_latency) {
+      out_msg.addr := address;
+      out_msg.accAddr := tbe.accAddr;
+      out_msg.accSize := tbe.accSize;
+      out_msg.type := c2cMsgToCHIReq(tbe.to_net_req_type);
+      out_msg.requestor := machineID;
+      out_msg.originalRequestor := tbe.originalRequestor;
+      out_msg.fwdRequestor := machineID;
+      out_msg.dataToFwdRequestor := tbe.dataToFwdRequestor; // TODO: Add to TBE
+      out_msg.retToSrc := tbe.retToSrc;
+      out_msg.allowRetry := tbe.allowRetry;
+      out_msg.Destination.add(mapAddressToDownstreamMachine(address));
+      out_msg.seqReq := tbe.seqReq; 
+      out_msg.isSeqReqValid := tbe.isSeqReqValid;
+      out_msg.is_local_pf := tbe.is_local_pf;
+      out_msg.is_remote_pf := tbe.is_remote_pf;
+      out_msg.usesTxnId := tbe.usesTxnId;
+      out_msg.MessageSize := tbe.MessageSize;
+    }
+  }
+
+  action(sendToNet_Snoop, "stns", desc="Sends snoop to the network") {
+    assert(is_valid(tbe));
+    enqueue(snpOutPort, CHIRequestMsg, request_latency) {
+      out_msg.addr := address;
+      out_msg.accAddr := tbe.accAddr;
+      out_msg.accSize := tbe.accSize;
+      out_msg.type := c2cMsgToCHIReq(tbe.to_net_snp_type);
+      out_msg.requestor := machineID;
+      out_msg.originalRequestor := tbe.originalRequestor;
+      out_msg.localRequestor := tbe.localRequestor;
+      out_msg.dataToFwdRequestor := tbe.dataToFwdRequestor; 
+      out_msg.retToSrc := tbe.retToSrc;
+      out_msg.allowRetry := tbe.allowRetry;
+      out_msg.Destination := tbe.c2c_destination.extractNetDest(chipID);
+      out_msg.seqReq := tbe.seqReq; 
+      out_msg.isSeqReqValid := tbe.isSeqReqValid;
+      out_msg.is_local_pf := tbe.is_local_pf;
+      out_msg.is_remote_pf := tbe.is_remote_pf;
+      out_msg.usesTxnId := tbe.usesTxnId;
+      out_msg.MessageSize := tbe.MessageSize;
+      // Select where the fwded data should be send by the snoopee
+      int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
+      if (mappedChipID != -1 && mappedChipID == chipID) {
+        out_msg.fwdRequestor := tbe.originalRequestor;
+      } else {
+        out_msg.fwdRequestor := machineID;
+      }
+    }
+ }
+
+  action(sendToNet_Response, "stnrsp", desc="Sends response to the network") {
+    assert(is_valid(tbe));
+    enqueue(rspOutPort, CHIResponseMsg, response_latency) {
+      out_msg.addr := address;
+      out_msg.type := c2cMsgToCHIRsp(tbe.to_net_rsp_type);
+      out_msg.responder := machineID; 
+      // If response is a CompAck, we route using only the address
+      DPRINTF(RubyGenerated, "type -> %s\n", out_msg.type);
+      DPRINTF(RubyGenerated, "localRequestor -> %s\n", tbe.localRequestor);
+      if (c2cMsgToCHIRsp(tbe.to_net_rsp_type) == CHIResponseType:CompAck) {
+        out_msg.Destination.add(mapAddressToDownstreamMachine(address));
+      } else {
+        out_msg.Destination.add(tbe.localRequestor); 
+      }
+      out_msg.c2c_destination := tbe.c2c_destination;
+      out_msg.originalRequestor := tbe.originalRequestor;
+      out_msg.originalResponder := tbe.originalResponder;
+      out_msg.stale := tbe.stale;
+      out_msg.usesTxnId := tbe.usesTxnId;
+      out_msg.txnId := tbe.txnId;
+      out_msg.MessageSize := tbe.MessageSize;
+    }
+  }
+
+  action(sendToNet_Data, "stnd", desc="Sends data to the network") {
+    assert(is_valid(tbe));
+    enqueue(datOutPort, CHIDataMsg, data_latency) {
+      out_msg.addr := address;
+      out_msg.type := c2cMsgToCHIDat(tbe.to_net_dat_type); 
+      out_msg.dataBlk := tbe.dataBlk;
+      out_msg.bitMask := tbe.bitMask;
+      out_msg.responder := machineID;
+      out_msg.usesTxnId := tbe.usesTxnId; 
+      out_msg.txnId := tbe.txnId;
+      if ((out_msg.type == CHIDataType:SnpRespData_I) ||
+          (out_msg.type == CHIDataType:SnpRespData_I_PD) || 
+          (out_msg.type == CHIDataType:SnpRespData_SC) ||
+          (out_msg.type == CHIDataType:SnpRespData_SC_PD) || 
+          (out_msg.type == CHIDataType:SnpRespData_SD) || 
+          (out_msg.type == CHIDataType:SnpRespData_UC) || 
+          (out_msg.type == CHIDataType:SnpRespData_UD) ||
+          (out_msg.type == CHIDataType:SnpRespData_SC_Fwded_SC) || 
+          (out_msg.type == CHIDataType:SnpRespData_SC_Fwded_SD_PD) ||
+          (out_msg.type == CHIDataType:SnpRespData_SC_PD_Fwded_SC) || 
+          (out_msg.type == CHIDataType:SnpRespData_I_Fwded_SD_PD) ||
+          (out_msg.type == CHIDataType:SnpRespData_I_PD_Fwded_SC) || 
+          (out_msg.type == CHIDataType:SnpRespData_I_Fwded_SC)) {
+        out_msg.Destination.add(tbe.localRequestor);
+      } else {
+        out_msg.Destination.add(tbe.originalRequestor);
+      }
+      out_msg.localRequestor := tbe.localRequestor;
+      out_msg.originalResponder := tbe.originalResponder;
+    }
+  }
+
+  action(sendToC2c_Request, "stcreq", desc="Sends requests to the c2c link") {
+    assert(is_valid(tbe));
+    enqueue(requestToC2c_out, C2cMsg, c2c_req_latency) {
+      out_msg.addr := address;
+      out_msg.Type := CHIReqToC2cMsg(tbe.to_c2c_req_type);
+      out_msg.Sender := tbe.requestor;
+      out_msg.OriginalRequestor := tbe.originalRequestor;
+      out_msg.MessageSize := tbe.messageSize; 
+      out_msg.AllowRetry := tbe.allowRetry;
+    }
+  }
+
+  action(sendToC2c_Snoop, "stcs", desc="Sends a snoop to the c2c link") {
+    assert(is_valid(tbe));
+    enqueue(requestToC2c_out, C2cMsg, c2c_req_latency) {
+      out_msg.addr := address;
+      out_msg.AccAddr := tbe.accAddr;
+      out_msg.AccSize := tbe.accSize;
+      out_msg.Sender := tbe.requestor;
+      out_msg.Type := CHIReqToC2cMsg(tbe.to_c2c_snp_type);
+      out_msg.Requestor := machineID;
+      out_msg.FwdRequestor := machineID;
+      out_msg.C2c_destination := tbe.c2c_destination;
+      out_msg.OriginalRequestor := tbe.originalRequestor;
+      out_msg.LocalRequestor := tbe.localRequestor;
+      out_msg.DataToFwdRequestor := tbe.dataToFwdRequestor; 
+      out_msg.RetToSrc := tbe.retToSrc;
+      out_msg.AllowRetry := tbe.allowRetry;
+      out_msg.SeqReq := tbe.seqReq; 
+      out_msg.IsSeqReqValid := tbe.isSeqReqValid;
+      out_msg.Is_local_pf := tbe.is_local_pf;
+      out_msg.Is_remote_pf := tbe.is_remote_pf;
+      out_msg.UsesTxnId := tbe.usesTxnId;
+      out_msg.MessageSize := tbe.MessageSize;
+    }
+  }
+
+  action(sendToC2c_Response, "stcrsp", desc="Sends response to the c2c link") {
+    assert(is_valid(tbe));
+    enqueue(responseToC2c_out, C2cMsg, response_latency) {
+      out_msg.addr := address;
+      out_msg.Type := CHIRspToC2cMsg(tbe.to_c2c_rsp_type);
+      out_msg.Responder := tbe.responder;
+      out_msg.Stale := tbe.stale;
+      out_msg.UsesTxnId := tbe.usesTxnId;
+      out_msg.TxnId := tbe.txnId;
+      out_msg.OriginalResponder := tbe.originalResponder;
+      out_msg.C2c_destination := tbe.c2c_destination;
+      out_msg.OriginalRequestor := tbe.originalRequestor;
+      out_msg.LocalRequestor := tbe.localRequestor;
+      out_msg.MessageSize := tbe.messageSize;
+    }
+  }
+
+  action(sendToC2c_Data, "stcdat", desc="Sends data to the c2c link") {
+    assert(is_valid(tbe));
+    enqueue(responseToC2c_out, C2cMsg, response_latency) {
+      out_msg.addr := address;
+      out_msg.Type := CHIDatToC2cMsg(tbe.to_c2c_dat_type);
+      out_msg.Responder := tbe.responder;
+      out_msg.DataBlk := tbe.dataBlk;
+      out_msg.BitMask := tbe.bitMask;
+      out_msg.UsesTxnId := tbe.usesTxnId;
+      out_msg.TxnId := tbe.txnId;
+      out_msg.MessageSize := tbe.MessageSize;
+      out_msg.C2c_destination := tbe.c2c_destination;
+      out_msg.OriginalRequestor := tbe.originalRequestor;
+      out_msg.LocalRequestor := tbe.localRequestor;
+      out_msg.OriginalResponder := tbe.originalResponder;
+    }
+  }
+
+  // Dequeueing actions
+  action(popReqInQueue, "priq", desc="Pop request in queue") {
+    reqInPort.dequeue(clockEdge());
+  }
+
+  action(popReqRdyInQueue, "prreq", desc="Pop request queue") {
+    reqRdyInPort.dequeue(clockEdge());
+  }
+
+  action(popSnpInQueue, "psnp", desc="Pop snoop queue") {
+    snpInPort.dequeue(clockEdge());
+  }
+
+  action(popC2cReqRdyInQueue, "pcreq", decs="Pop c2c request queue") {
+    c2cReqRdyInPort.dequeue(clockEdge());
+  }
+
+  action(popDatInQueue, "pdata", desc="Pop data queue") {
+    datInPort.dequeue(clockEdge());
+  }
+
+  action(popRspInQueue, "presp", desc="Pop resp queue") {
+    rspInPort.dequeue(clockEdge());
+  }
+
+  action(popTriggerQueue, "ptrigger", desc="Pop trigger queue") {
+    triggerInPort.dequeue(clockEdge());
+  }
+
+  action(popResponseFromC2cQueue, "pmem", desc="Pop memory queue") {
+    responseFromC2c_in.dequeue(clockEdge());
+  }
+
+  action(popRequestFromC2cQueue, "prfc2c", desc="Pop request from c2c queue") {
+    requestFromC2c_in.dequeue(clockEdge());
+  }
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Transitions
+  ////////////////////////////////////////////////////////////////////////////
+
+  // Req
+  //// Net
+  transition(READY, Net_Request) {
+    checkAllocateTBE;
+    allocateTBE;
+    initializeTBEFromNetRequest;
+    sendToC2c_Request;
+    popReqInQueue;
+    deallocateTBE;
+  }
+  //// C2c
+  transition(READY, C2c_Request) {
+    checkC2cAllocateTBE;
+    allocateTBE;
+    initializeTBEFromC2cRequest;
+    sendToNet_Request;
+    popRequestFromC2cQueue;
+    //popC2cReqInQueue; 
+    deallocateTBE;
+  }
+
+  // Snp
+  //// Net
+  transition(READY, Net_Snoop) {
+    checkAllocateTBE;
+    allocateTBE;
+    initializeTBEFromNetSnoop;
+    sendToC2c_Snoop;
+    popSnpInQueue;
+    deallocateTBE;
+  }
+  //// C2c
+  transition(READY, C2c_Snoop) {
+    checkC2cAllocateTBE;
+    allocateTBE;
+    initializeTBEFromC2cSnoop;
+    sendToNet_Snoop;
+    popRequestFromC2cQueue;
+    //popC2cReqRdyInQueue;
+    deallocateTBE;
+  }
+
+  // Rsp
+  //// Net
+  transition(READY, Net_Response) {
+    checkAllocateTBE;
+    allocateTBE;
+    initializeTBEFromNetResponse; 
+    sendToC2c_Response;
+    popRspInQueue;
+    deallocateTBE;
+  }
+  //// C2c
+  transition(READY, C2c_Response) {
+    checkC2cAllocateTBE;
+    allocateTBE;
+    initializeTBEFromC2cResponse; 
+    sendToNet_Response;
+    popResponseFromC2cQueue;
+    deallocateTBE;
+  }
+
+  // Dat
+  //// Net
+  transition(READY, Net_Data) {
+    checkAllocateTBE;
+    allocateTBE;
+    initializeTBEFromNetData; 
+    sendToC2c_Data;
+    popDatInQueue;
+    deallocateTBE;
+  }
+  //// C2c
+  transition(READY, C2c_Data) { 
+    checkC2cAllocateTBE;
+    allocateTBE;
+    initializeTBEFromC2cData; 
+    sendToNet_Data;
+    popResponseFromC2cQueue;
+    deallocateTBE;
+  }
+}

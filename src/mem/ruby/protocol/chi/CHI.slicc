@@ -5,4 +5,4 @@ include "CHI-msg.sm";
 include "CHI-cache.sm";
 include "CHI-mem.sm";
 include "CHI-dvm-misc-node.sm";
-include "CHI-interface.sm";
+include "CHI-interface-v2.sm";

@@ -53,6 +53,7 @@ void set_tbe(TBE b);
 void unset_tbe();
 MachineID mapAddressToDownstreamMachine(Addr addr);
 MachineID mapAddressToMachine(Addr addr, MachineType mtype);
+int mapMachineIDToChipID(MachineID mach);
 
 void incomingTransactionStart(Addr, Event, State, bool);
 void incomingTransactionEnd(Addr, State);
@@ -428,7 +429,11 @@ TBE allocateRequestTBE(Addr addr, CHIRequestMsg in_msg), return_by_pointer="yes"
   tbe.hasUseTimeout := false;
 
   // field used on fwdSnpResp dir_sharers update
-  tbe.c2c_requestor := in_msg.c2c_requestor;
+  if (is_HN) {
+    tbe.originalRequestor := in_msg.originalRequestor;
+  } else {
+    tbe.originalRequestor := machineID;
+  }
   tbe.off_chip := in_msg.off_chip;
   tbe.c2cOrig := in_msg.c2cOrig;
 
@@ -496,6 +501,10 @@ TBE allocateSnoopTBE(Addr addr, CHIRequestMsg in_msg), return_by_pointer="yes" {
 
   tbe.use_DMT := false;
   tbe.use_DCT := false;
+
+  // C2c-specific field
+  tbe.originalRequestor := in_msg.originalRequestor;
+  tbe.localRequestor := in_msg.localRequestor;
 
   return tbe;
 }
@@ -629,6 +638,9 @@ void prepareRequest(TBE tbe, CHIRequestType type, CHIRequestMsg & out_msg) {
   out_msg.seqReq := tbe.seqReq;
   out_msg.is_local_pf := false;
   out_msg.is_remote_pf := tbe.is_local_pf || tbe.is_remote_pf;
+  // C2c-specific fields
+  out_msg.originalRequestor := tbe.originalRequestor;
+  out_msg.localRequestor := machineID;
 }
 
 void allowRequestRetry(TBE tbe, CHIRequestMsg & out_msg) {
@@ -785,12 +797,21 @@ bool upstreamHasShared(State state) {
 }
 
 void printTBEState(TBE tbe) {
-  DPRINTF(RubySlicc, "STATE: addr: %#x data present=%d valid=%d unique=%d dirty=%d mu_dirty=%d dir ownerV=%d ownerE=%d sharers=%d tobe_I=%d tobe_SC=%d doFill=%d pendAction=%s\n",
-                      tbe.addr, tbe.dataBlkValid.isFull(), tbe.dataValid, tbe.dataUnique,
-                      tbe.dataDirty, tbe.dataMaybeDirtyUpstream, tbe.dir_ownerExists,
-                      tbe.dir_ownerIsExcl,tbe.dir_sharers.count(),
-                      tbe.dataToBeInvalid, tbe.dataToBeSharedClean,
-                      tbe.doCacheFill, tbe.pendAction);
+  if (is_multiChip) {
+    DPRINTF(RubySlicc, "STATE: addr: %#x data present=%d valid=%d unique=%d dirty=%d mu_dirty=%d dir ownerV=%d ownerE=%d sharers=%d tobe_I=%d tobe_SC=%d doFill=%d pendAction=%s\n",
+                        tbe.addr, tbe.dataBlkValid.isFull(), tbe.dataValid, tbe.dataUnique,
+                        tbe.dataDirty, tbe.dataMaybeDirtyUpstream, tbe.dir_ownerExists,
+                        tbe.dir_ownerIsExcl,tbe.mega_dir_sharers.totalCount(),
+                        tbe.dataToBeInvalid, tbe.dataToBeSharedClean,
+                        tbe.doCacheFill, tbe.pendAction);
+  } else {
+    DPRINTF(RubySlicc, "STATE: addr: %#x data present=%d valid=%d unique=%d dirty=%d mu_dirty=%d dir ownerV=%d ownerE=%d sharers=%d tobe_I=%d tobe_SC=%d doFill=%d pendAction=%s\n",
+                        tbe.addr, tbe.dataBlkValid.isFull(), tbe.dataValid, tbe.dataUnique,
+                        tbe.dataDirty, tbe.dataMaybeDirtyUpstream, tbe.dir_ownerExists,
+                        tbe.dir_ownerIsExcl,tbe.dir_sharers.count(),
+                        tbe.dataToBeInvalid, tbe.dataToBeSharedClean,
+                        tbe.doCacheFill, tbe.pendAction);
+  }
   DPRINTF(RubySlicc, "dataBlkValid = %s\n", tbe.dataBlkValid);
 }
 
@@ -819,11 +840,17 @@ void copyCacheAndDir(CacheEntry cache_entry, DirEntry dir_entry,
             (initialState == State:RUSC) ||
             (initialState == State:UD_RSD) || (initialState == State:SD_RSD));
     tbe.dir_sharers := dir_entry.sharers;
-    tbe.c2c_sharers := dir_entry.c2c_sharers;
     tbe.dir_owner := dir_entry.owner;
     tbe.dir_ownerExists := dir_entry.ownerExists;
     tbe.dir_ownerIsExcl := dir_entry.ownerIsExcl;
-    assert(tbe.dir_sharers.count() > 0);
+    // C2c-specific fields
+    tbe.mega_dir_sharers := dir_entry.mega_sharers;
+    tbe.mega_dir_owner := dir_entry.mega_owner;
+    if(is_multiChip) {
+      assert(tbe.mega_dir_sharers.totalCount() > 0);
+    } else {
+      assert(tbe.dir_sharers.count() > 0);
+    }
   } else {
     tbe.dir_sharers.clear();
     tbe.dir_ownerExists := false;
@@ -904,6 +931,9 @@ void copyCacheAndDirTBEs(TBE src, TBE dst) {
   dst.dir_owner := src.dir_owner;
   dst.dir_ownerExists := src.dir_ownerExists;
   dst.dir_ownerIsExcl := src.dir_ownerIsExcl;
+  // C2c-specific fields
+  dst.mega_dir_sharers := src.mega_dir_sharers;
+  dst.mega_dir_owner := src.mega_dir_owner;
   printTBEState(dst);
 }
 
@@ -963,7 +993,11 @@ void setDataToBeStates(TBE tbe) {
 
 void setExpectedForInvSnoop(TBE tbe, bool expectCleanWB) {
   assert(tbe.expected_snp_resp.hasExpected() == false);
-  assert(tbe.dir_sharers.count() > 0);
+  if (is_multiChip) {
+    assert(tbe.mega_dir_sharers.totalCount() > 0);
+  } else {
+    assert(tbe.dir_sharers.count() > 0);
+  }
   clearExpectedSnpResp(tbe);
   if (expectCleanWB) {
     tbe.expected_snp_resp.addExpectedDataType(CHIDataType:SnpRespData_I);
@@ -971,13 +1005,23 @@ void setExpectedForInvSnoop(TBE tbe, bool expectCleanWB) {
   if (tbe.dataMaybeDirtyUpstream) {
     assert(tbe.dir_ownerExists);
     tbe.expected_snp_resp.addExpectedDataType(CHIDataType:SnpRespData_I_PD);
-    if ((expectCleanWB == false) || (tbe.dir_sharers.count() > 1)) {
-      tbe.expected_snp_resp.addExpectedRespType(CHIResponseType:SnpResp_I);
+    if (is_multiChip) {
+      if ((expectCleanWB == false) || (tbe.mega_dir_sharers.totalCount() > 1)) {
+        tbe.expected_snp_resp.addExpectedRespType(CHIResponseType:SnpResp_I);
+      }
+    } else {
+      if ((expectCleanWB == false) || (tbe.dir_sharers.count() > 1)) {
+        tbe.expected_snp_resp.addExpectedRespType(CHIResponseType:SnpResp_I);
+      }
     }
   } else {
     tbe.expected_snp_resp.addExpectedRespType(CHIResponseType:SnpResp_I);
   }
-  tbe.expected_snp_resp.setExpectedCount(tbe.dir_sharers.count());
+  if (is_multiChip) {
+    tbe.expected_snp_resp.setExpectedCount(tbe.mega_dir_sharers.totalCount());
+  } else {
+    tbe.expected_snp_resp.setExpectedCount(tbe.dir_sharers.count());
+  }
 }
 
 State makeFinalStateHelper(State cs, State ds) {
@@ -1045,17 +1089,26 @@ State makeFinalState(TBE tbe, CacheEntry cache_entry, DirEntry dir_entry) {
     assert(is_valid(dir_entry));
     assert(tbe.dataMaybeDirtyUpstream);
     if (tbe.dir_ownerIsExcl) {
-      assert(tbe.dir_sharers.count() == 1);
+      if (is_multiChip) {
+        assert(tbe.mega_dir_sharers.totalCount() == 1);
+      } else {
+        assert(tbe.dir_sharers.count() == 1);
+      }
       dir_state := State:RU;
     } else {
-      assert(tbe.dir_sharers.count() >= 1);
+      if (is_multiChip) {
+        assert(tbe.mega_dir_sharers.totalCount() >= 1);
+      } else {
+        assert(tbe.dir_sharers.count() >= 1);
+      }
       if (tbe.dataUnique) {
         dir_state := State:RUSD;
       } else {
         dir_state := State:RSD;
       }
     }
-  } else if (tbe.dir_sharers.count() > 0) {
+  } else if (tbe.dir_sharers.count() > 0 || 
+              tbe.mega_dir_sharers.totalCount() > 0) {
     assert(is_valid(dir_entry));
     assert(tbe.dataMaybeDirtyUpstream == false);
     if (tbe.dataUnique) {

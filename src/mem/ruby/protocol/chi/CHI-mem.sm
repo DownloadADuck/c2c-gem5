@@ -170,6 +170,8 @@ machine(MachineType:Memory, "Memory controller interface") :
     WriteMask dataBlkValid, desc="valid bytes in dataBlk";
     int rxtxBytes, desc="Bytes sent or received";
     MachineID requestor, desc="Requestor that originated this request";
+    MachineID originalRequestor, desc="Off-chip requestor that originated this request";
+    MachineID localRequestor, desc="local or secondary requestor";
     MachineID destination, desc="Where we are sending data";
     bool useDataSepResp, desc="Replies with DataSepResp instead of CompData";
   }
@@ -503,6 +505,9 @@ machine(MachineType:Memory, "Memory controller interface") :
       }
       tbe.accAddr := in_msg.accAddr;
       tbe.accSize := in_msg.accSize;
+      // C2c-specific tbe fields
+      tbe.originalRequestor := in_msg.originalRequestor;
+      tbe.localRequestor := in_msg.localRequestor;
     }
   }
 
@@ -614,6 +619,9 @@ machine(MachineType:Memory, "Memory controller interface") :
         out_msg.type := CHIDataType:CompData_UC;
       }
       out_msg.dataBlk := tbe.dataBlk;
+      // C2c-specific fields
+      out_msg.originalRequestor := tbe.originalRequestor;
+      out_msg.localRequestor := tbe.localRequestor;
       // Called in order for the whole block so use rxtxBytes as offset
       out_msg.bitMask.setMask(tbe.rxtxBytes, data_channel_size);
       out_msg.Destination.add(tbe.destination);

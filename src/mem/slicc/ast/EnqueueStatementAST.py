@@ -65,26 +65,101 @@ class EnqueueStatementAST(StatementAST):
         self.symtab.newSymbol(v)
 
         # Declare message
-        code(
-            "std::shared_ptr<${{msg_type.c_ident}}> out_msg = "
-            "std::make_shared<${{msg_type.c_ident}}>(clockEdge());"
-        )
 
-        # The other statements
-        t = self.statements.generate(code, None)
-        self.queue_name.assertType("OutPort")
-
-        if self.latexpr != None:
-            ret_type, rcode = self.latexpr.inline(True)
+        statements_str = str(self.statements)
+        # TODO: This is a quick fix that allows proper code generation for the
+        #       CHI-cache-actions.sm Send_FwdSnpResp
+        if 'SnpResp_SC_Fwded_I' in statements_str:
             code(
-                "(${{self.queue_name.var.code}}).enqueue("
-                "out_msg, clockEdge(), cyclesToTicks(Cycles($rcode)));"
+                "std::shared_ptr<${{msg_type.c_ident}}> out_msg = "
+                "std::make_shared<${{msg_type.c_ident}}>(clockEdge());"
             )
+
+            # The other statements
+            t = self.statements.generate(code, None)
+            self.queue_name.assertType("OutPort")
+            if self.latexpr != None:
+                ret_type, rcode = self.latexpr.inline(True)
+                code(
+                    "(${{self.queue_name.var.code}}).enqueue("
+                    "out_msg, clockEdge(), cyclesToTicks(Cycles($rcode)));"
+                )
+            else:
+                code(
+                    "(${{self.queue_name.var.code}}).enqueue(out_msg, "
+                    "clockEdge(), cyclesToTicks(Cycles(1)));"
+                )
         else:
-            code(
-                "(${{self.queue_name.var.code}}).enqueue(out_msg, "
-                "clockEdge(), cyclesToTicks(Cycles(1)));"
-            )
+            # Whenever the user uses a MegaNetDest as destination, the code is generated as follows
+            if 'mega_dir_sharers' in statements_str:
+                # We send one message per available sharer in MegaNetDest
+                code("for (int i = 0; i < (*m_tbe_ptr).m_mega_dir_sharers.chipCount(); ++i) {")
+                code.indent()
+                code(
+                    "std::shared_ptr<${{msg_type.c_ident}}> out_msg = "
+                    "std::make_shared<${{msg_type.c_ident}}>(clockEdge());"
+                )
+                t = self.statements.generate(code, None)
+                self.queue_name.assertType("OutPort")
+                # If the sharer is local, extract the NetDest from MegaNetDest
+                code("if (i == m_chipID) {")
+                code.indent()
+                code("((*out_msg).m_Destination).addNetDest((*m_tbe_ptr).m_mega_dir_sharers.extractNetDest(i));")
+                code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
+                code.dedent()
+                # If the sharer is remote, send to local C2CI
+                code("} else {")
+                code.indent()
+                code("((*out_msg).m_Destination).add(mapChipIDToC2CI(i));")
+                code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
+                code.dedent()
+                code("}") # end if
+                code.dedent()
+                code("}") # end for
+            elif 'mega_dir_owner' in statements_str:
+                code("for (int i = 0; i < (*m_tbe_ptr).m_mega_dir_owner.chipCount(); ++i) {")
+                code.indent()
+                code(
+                    "std::shared_ptr<${{msg_type.c_ident}}> out_msg = "
+                    "std::make_shared<${{msg_type.c_ident}}>(clockEdge());"
+                )
+                t = self.statements.generate(code, None)
+                self.queue_name.assertType("OutPort")
+                # If the sharer is local, extract the NetDest from MegaNetDest
+                code("if (i == m_chipID) {")
+                code.indent()
+                code("((*out_msg).m_Destination).addNetDest((*m_tbe_ptr).m_mega_dir_owner.extractNetDest(i));")
+                code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
+                code.dedent()
+                # If the sharer is remote, send to local C2CI
+                code("} else {")
+                code.indent()
+                code("((*out_msg).m_Destination).add(mapChipIDToC2CI(i));")
+                code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
+                code.dedent()
+                code("}") # end if
+                code.dedent()
+                code("}") # end for
+            else:
+                code(
+                    "std::shared_ptr<${{msg_type.c_ident}}> out_msg = "
+                    "std::make_shared<${{msg_type.c_ident}}>(clockEdge());"
+                )
+
+                # The other statements
+                t = self.statements.generate(code, None)
+                self.queue_name.assertType("OutPort")
+                if self.latexpr != None:
+                    ret_type, rcode = self.latexpr.inline(True)
+                    code(
+                        "(${{self.queue_name.var.code}}).enqueue("
+                        "out_msg, clockEdge(), cyclesToTicks(Cycles($rcode)));"
+                    )
+                else:
+                    code(
+                        "(${{self.queue_name.var.code}}).enqueue(out_msg, "
+                        "clockEdge(), cyclesToTicks(Cycles(1)));"
+                    )
 
         # End scope
         self.symtab.popFrame()

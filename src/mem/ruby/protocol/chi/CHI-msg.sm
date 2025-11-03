@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2021 ARM Limited
  * All rights reserved
- *
+originalR*
  * The license below extends only to copyright in the software and shall
  * not be construed as granting a license to any other intellectual
  * property including but not limited to intellectual property relating
@@ -102,11 +102,17 @@ structure(CHIRequestMsg, desc="", interface="Message") {
   bool allowRetry,          desc="This request can be retried";
   NetDest Destination,      desc="Message destination";
 
-  // c2c off-chip sharer field
-  MachineID c2c_sharers, desc="off-chip sharer";
-  MachineID c2c_requestor, desc="off-chip requestor";
+
+  // c2c-specific field
+  MegaNetDest MegaDestination, desc="Message destination of type MegaNetDest";
+  MegaNetDest c2c_destination, desc="off-chip destination";
+
+  MegaNetDest c2c_sharers,      desc="off-chip sharer";
+  MachineID originalRequestor,  desc="off-chip requestor";
+  MachineID localRequestor,     desc="original or secondary requestor";
   bool off_chip, desc="off-chip flag";
   bool c2cOrig, default="false", desc="Originates from the interface";
+  /////////
 
   RequestPtr seqReq,        default="nullptr", desc="Pointer to original request from CPU/sequencer (nullptr if not valid)";
   bool isSeqReqValid,       default="false",   desc="Set if seqReq is valid (not nullptr)";
@@ -159,14 +165,20 @@ structure(CHIResponseMsg, desc="", interface="Message") {
   CHIResponseType type, desc="Response type";
   MachineID responder,  desc="Responder ID";
   NetDest Destination,  desc="Response destination";
+  MegaNetDest MegaDestination, desc="Message destination of type MegaNetDest";
   bool stale,           desc="Response to a stale request";
   bool usesTxnId,       desc="True if using a Transaction ID", default="false";
   Addr txnId,           desc="Transaction ID", default="0";
   //NOTE: not in CHI and for debuging only
 
   // c2c off-chip sharer field
-  MachineID c2c_sharers, desc="Off-chip sharer";
-  bool off_chip,         desc="Response triggering a new off_chip response";
+  //MegaNetDest c2c_sharers,      desc="Off-chip sharer";
+  MegaNetDest c2c_destination,  desc="Final off-chip destination";
+  MachineID originalRequestor,  desc="Sender of the original request";
+  MachineID originalResponder,  desc="Sender of the original response";
+  MachineID localRequestor,     desc="local or secondary requestor";
+  // TODO remove off_chip
+  bool off_chip,                desc="Response triggering a new off_chip response";
 
   MessageSizeType MessageSize, default="MessageSizeType_Control";
 
@@ -211,6 +223,7 @@ structure(CHIDataMsg, desc="", interface="Message") {
   CHIDataType type,     desc="Response type";
   MachineID responder,  desc="Responder ID";
   NetDest Destination,  desc="Response destination";
+  MegaNetDest MegaDestination, desc="Message destination of type MegaNetDest";
   DataBlock dataBlk,    desc="Line data";
   WriteMask bitMask,    desc="Which bytes in the data block are valid";
   bool usesTxnId,       desc="True if using a Transaction ID", default="false";
@@ -218,7 +231,11 @@ structure(CHIDataMsg, desc="", interface="Message") {
 
   MessageSizeType MessageSize, default="MessageSizeType_Data";
 
-  MachineID c2c_sharers, desc="Off-Chip sharer for snp responses";
+  // C2c-specific fields
+  MegaNetDest c2c_destination,  desc="Off-Chip destination";
+  MachineID originalRequestor,  desc="Original requestor";
+  MachineID localRequestor,     desc="Local or secondary requestor";
+  MachineID originalResponder,  desc="Responder for snp data messages";
 
   bool functionalRead(Packet *pkt) {
     if(bitMask.isFull()) {

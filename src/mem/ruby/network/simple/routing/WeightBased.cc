@@ -123,7 +123,6 @@ WeightBased::findRoute(const Message &msg,
             msg_dsts.removeNetDest(dst);
         }
     }
-
     gem5_assert(msg_dsts.count() == 0);
 }
 

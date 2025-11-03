@@ -10,7 +10,7 @@ from gem5.isas import ISA
 from gem5.runtime import get_runtime_isa
 
 addToPath("../")
-from four_tgens_se_c2c import ruby_config
+from three_rnf_threads_c2c import ruby_config
 
 from common import Options
 from common import Simulation
@@ -27,7 +27,7 @@ class Object(object):
 
 # Needed options0 for the create_system method
 options0 = Object()
-options0.cmd = "tests/test-progs/infinite-loop/bin/infinite_loop"
+options0.cmd = "tests/test-progs/threads/bin/x86/linux/threads"
 options0.input = ''
 options0.output = ''
 options0.errout = '' 
@@ -82,10 +82,10 @@ options0.restore_simpoint_checkpoint = False
 options0.max_checkpoints = 5
 options0.checkpoint_at_end = False
 options0.num_interfaces = 1
-options0.abs_max_tick = 3001400000
+#options0.abs_max_tick = 3001400000
 
 options1 = Object()
-options1.cmd = "tests/test-progs/infinite-loop/bin/infinite_loop"
+options1.cmd = "tests/test-progs/threads/bin/x86/linux/threads"
 options1.input = ''
 options1.output = ''
 options1.errout = '' 
@@ -162,7 +162,8 @@ def get_processes(args):
 
     idx = 0
     for wrkld in workloads:
-        process = Process(pid=100 + idx)
+        #process = Process(pid=100 + idx)
+        process = Process()
         process.executable = wrkld
         process.cwd = os.getcwd()
         process.gid = os.getgid()
@@ -193,11 +194,12 @@ def get_processes(args):
         return multiprocesses, 1
 
 multiprocesses = []
-numThreads = 1
+numThreads = 3
 
 multiprocesses, numThreads = get_processes(options0)
 (CPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(options0)
 CPUClass.numThreads = numThreads
+print(f"multiprocess -> {multiprocesses}")
 
 # Number of cpus
 np = options0.num_cpus
@@ -209,25 +211,6 @@ arv = convert.toMemorySize('200MB')
 addr_range_vaults = [AddrRange(i*arv, ((i+1)*arv-1)) for i in range(2)]
 
 system = System(
-    tgens0=[
-        TrafficGen(
-            #config_file="./m5out/lat_mem_rd_1.cfg",
-            config_file="./m5out/threads_1.cfg",
-            progress_check="10s",
-        ),
-        TrafficGen(
-            #config_file="./m5out/lat_mem_rd_2.cfg",
-            config_file="./m5out/threads_2.cfg",
-            progress_check="10s",
-        ),
-    ],
-    tgens1=[
-        TrafficGen(
-            #config_file="./m5out/lat_mem_rd_3.cfg",
-            config_file="./m5out/threads_3.cfg",
-            progress_check="10s",
-        ),
-    ],
     cpus0=[CPUClass(cpu_id=0), CPUClass(cpu_id=1)],
     cpus1=[CPUClass(cpu_id=2)],
     mem_mode="timing",
@@ -236,7 +219,7 @@ system = System(
 )
 
 if numThreads > 1:
-    system.multi_tread = True
+    system.multi_thread = True
 
 # Top level voltage domain
 system.voltage_domain = VoltageDomain(voltage='1.0V')
@@ -269,7 +252,6 @@ for cpu in system.cpus1:
 #        system.cpus1[i].workload = multiprocesses[i]
 #    system.cpus0[i].createThreads()
 #    system.cpus1[i].createThreads()
-
 if len(multiprocesses) == 1:
     system.cpus0[0].workload = multiprocesses[0]
     system.cpus0[1].workload = multiprocesses[0]
