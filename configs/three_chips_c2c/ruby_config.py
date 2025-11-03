@@ -7,7 +7,7 @@ from m5.util import addToPath, fatal
 from gem5.isas import ISA
 from gem5.runtime import get_runtime_isa
 
-from three_chips import chip_config
+from three_chips_c2c import chip_config
 from CHI_config import MemCtrlMessageBuffer
 
 addToPath("../")

@@ -10,7 +10,7 @@ from gem5.isas import ISA
 from gem5.runtime import get_runtime_isa
 
 addToPath("../")
-from three_chips import ruby_config
+from three_chips_c2c import ruby_config
 import options
 
 from common import Options
