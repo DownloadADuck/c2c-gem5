@@ -980,10 +980,8 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.originalRequestor := tbe.originalRequestor;
       out_msg.localRequestor := tbe.localRequestor;
       out_msg.dataToFwdRequestor := tbe.dataToFwdRequestor; 
-      DPRINTF(RubyGenerated, "retToSrc -> %s\n", tbe.retToSrc);
       out_msg.retToSrc := tbe.retToSrc;
       out_msg.allowRetry := tbe.allowRetry;
-      DPRINTF(RubyGenerated, "c2c_destination -> %s\n", tbe.c2c_destination);
       out_msg.Destination := tbe.c2c_destination.extractNetDest(chipID);
       out_msg.seqReq := tbe.seqReq; 
       out_msg.isSeqReqValid := tbe.isSeqReqValid;
@@ -999,7 +997,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
         out_msg.fwdRequestor := machineID;
       }
     }
-}
+ }
 
   action(sendToNet_Response, "stnrsp", desc="Sends response to the network") {
     assert(is_valid(tbe));
@@ -1008,6 +1006,8 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.type := c2cMsgToCHIRsp(tbe.to_net_rsp_type);
       out_msg.responder := machineID; 
       // If response is a CompAck, we route using only the address
+      DPRINTF(RubyGenerated, "type -> %s\n", out_msg.type);
+      DPRINTF(RubyGenerated, "localRequestor -> %s\n", tbe.localRequestor);
       if (c2cMsgToCHIRsp(tbe.to_net_rsp_type) == CHIResponseType:CompAck) {
         out_msg.Destination.add(mapAddressToDownstreamMachine(address));
       } else {
@@ -1033,8 +1033,6 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.responder := machineID;
       out_msg.usesTxnId := tbe.usesTxnId; 
       out_msg.txnId := tbe.txnId;
-      DPRINTF(RubyGenerated, "destination -> %s\n", tbe.originalRequestor);
-      DPRINTF(RubyGenerated, "localRequestor -> %s\n", tbe.localRequestor);
       if ((out_msg.type == CHIDataType:SnpRespData_I) ||
           (out_msg.type == CHIDataType:SnpRespData_I_PD) || 
           (out_msg.type == CHIDataType:SnpRespData_SC) ||
@@ -1079,7 +1077,6 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.Type := CHIReqToC2cMsg(tbe.to_c2c_snp_type);
       out_msg.Requestor := machineID;
       out_msg.FwdRequestor := machineID;
-      DPRINTF(RubyGenerated, "c2c_destination -> %s\n", tbe.c2c_destination);
       out_msg.C2c_destination := tbe.c2c_destination;
       out_msg.OriginalRequestor := tbe.originalRequestor;
       out_msg.LocalRequestor := tbe.localRequestor;
@@ -1100,7 +1097,6 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     enqueue(responseToC2c_out, C2cMsg, response_latency) {
       out_msg.addr := address;
       out_msg.Type := CHIRspToC2cMsg(tbe.to_c2c_rsp_type);
-      DPRINTF(RubyGenerated, "type -> %s\n", tbe.to_c2c_rsp_type);
       out_msg.Responder := tbe.responder;
       out_msg.Stale := tbe.stale;
       out_msg.UsesTxnId := tbe.usesTxnId;
@@ -1118,7 +1114,6 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     enqueue(responseToC2c_out, C2cMsg, response_latency) {
       out_msg.addr := address;
       out_msg.Type := CHIDatToC2cMsg(tbe.to_c2c_dat_type);
-      DPRINTF(RubyGenerated, "type -> %s\n", tbe.to_c2c_dat_type);
       out_msg.Responder := tbe.responder;
       out_msg.DataBlk := tbe.dataBlk;
       out_msg.BitMask := tbe.bitMask;

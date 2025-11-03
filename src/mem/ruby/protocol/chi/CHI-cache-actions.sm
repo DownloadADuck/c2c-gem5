@@ -2993,6 +2993,8 @@ action(Send_CompUC, desc="") {
     out_msg.type := CHIResponseType:Comp_UC;
     out_msg.responder := machineID;
     out_msg.Destination.add(tbe.requestor);
+    // c2c-specific fields
+    out_msg.localRequestor := tbe.originalRequestor;
   }
 }
 
@@ -3006,6 +3008,8 @@ action(Send_CompUC_Stale, desc="") {
     // We don't know if this is a stale clean unique or a bug, so flag the
     // reponse so the requestor can make further checks
     out_msg.stale := true;
+    // c2c-specific fields
+    out_msg.localRequestor := tbe.originalRequestor;
   }
 }
 
