@@ -748,8 +748,8 @@ def create_chip2(
     # Setting downstream destination for interfaces
     hnf_dests.pop(1)
     for interface in ruby_system.interface2:
-    interface.setDownstream(hnf_dests)
-    interface.setCntrlList(cntrlList)
+        interface.setDownstream(hnf_dests)
+        interface.setCntrlList(cntrlList)
 
     # Setup data message size for all controllers
     for cntrl in all_cntrls:

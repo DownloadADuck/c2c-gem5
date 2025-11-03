@@ -11,7 +11,7 @@ from gem5.runtime import get_runtime_isa
 
 addToPath("../")
 from three_chips_c2c import ruby_config
-import options
+from options import options0, options1, options2
 
 from common import Options
 from common import Simulation
@@ -89,7 +89,7 @@ mp0_path = multiprocesses[0].executable
 # Memory ranges
 #arv = convert.toMemorySize('1610612736')
 arv = convert.toMemorySize('200MB')
-addr_range_vaults = [AddrRange(i*arv, ((i+1)*arv-1)) for i in range(2)]
+addr_range_vaults = [AddrRange(i*arv, ((i+1)*arv-1)) for i in range(3)]
 
 system = System(
     tgens0=[

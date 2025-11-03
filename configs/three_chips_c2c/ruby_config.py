@@ -37,6 +37,7 @@ def setup_memory_controllers(
     index = 0
     mem_ctrls0 = []
     mem_ctrls1 = []
+    mem_ctrls2 = []
     crossbars = []
 
     intlv_size = options0.cacheline_size
@@ -281,7 +282,7 @@ def create_system(
 
     # Chip 2
     (cpu_sequencers2, dir_cntrls2, topology2) = \
-        chip_config.create_chip1(
+        chip_config.create_chip2(
             options2,
             full_system,
             system,
@@ -379,6 +380,10 @@ def create_system(
     if piobus != None:
         for cpu_seq in cpu_sequencers0:
             cpu_seq.connectIOPorts(piobus)
+        for cpu_seq in cpu_sequencers1:
+            cpu_seq.connectIOPorts(piobus)
+        for cpu_seq in cpu_sequencers2:
+            cpu_seq.connectIOPorts(piobus)
 
     # TrafficGen setup
     for i in range(len(cpus0)):
@@ -391,7 +396,7 @@ def create_system(
         system.tgens2[i].port = cpu_sequencers2[i].in_ports
     
     ruby.number_of_virtual_networks = ruby.network0.number_of_virtual_networks
-    ruby._cpu_ports = cpu_sequencers0
+    ruby._cpu_ports = cpu_sequencers0 + cpu_sequencers1 + cpu_sequencers2
     ruby.num_of_sequencers = len(cpu_sequencers0) + len(cpu_sequencers1) + len(cpu_sequencers2)
 
 
