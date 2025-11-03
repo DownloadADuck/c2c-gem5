@@ -228,7 +228,7 @@ def create_system(
         InterfaceClass,
     ) = Network.create_network(options, ruby)
     ruby.network0 = network0
-
+    # Chip 1
     (
         network1,
         IntLinkClass,
@@ -237,10 +237,21 @@ def create_system(
         InterfaceClass,
     ) = Network.create_network(options1, ruby)
     ruby.network1 = network1
+    
+    # Chip 2
+    (
+        network2,
+        IntLinkClass,
+        ExtLinkClass,
+        RouterClass,
+        InterfaceClass,
+    ) = Network.create_network(options2, ruby)
+    ruby.network2 = network2
 
     if cpus is None:
         cpus0 = system.cpus0
         cpus1 = system.cpus1
+        cpus2 = system.cpus2
     
     # Chip 0
     (cpu_sequencers0, dir_cntrls0, topology0) = \
@@ -268,7 +279,21 @@ def create_system(
             network1
         )
 
+    # Chip 2
+    (cpu_sequencers2, dir_cntrls2, topology2) = \
+        chip_config.create_chip1(
+            options2,
+            full_system,
+            system,
+            dma_ports,
+            bootmem,
+            ruby,
+            cpus2,
+            network2
+        )
+
     # Create the network topology
+    # Chip 0
     topology0.makeTopology(
         options, 
         network0,
@@ -277,6 +302,7 @@ def create_system(
         RouterClass
     )
 
+    # Chip 1
     topology1.makeTopology(
         options1, 
         network1, 
@@ -285,20 +311,43 @@ def create_system(
         RouterClass
     )
 
+    # Chip 2
+    topology2.makeTopology(
+        options2, 
+        network2, 
+        IntLinkClass, 
+        ExtLinkClass, 
+        RouterClass
+    )
+
     # C2C forwarding interface setup
-    for interface in system.ruby.interface1:
-        for interface0 in system.ruby.interface0:
-            interface0.cntrl.c2c_out_port = interface.cntrl.c2c_in_port
-            interface0.cntrl.c2c_in_port = interface.cntrl.c2c_out_port
+    #for interface1 in system.ruby.interface1:
+    #    for interface0 in system.ruby.interface0:
+    #        interface0.cntrl.c2c_out_port = interface1.cntrl.c2c_in_port
+    #        interface0.cntrl.c2c_in_port = interface1.cntrl.c2c_out_port
+    c2ci0 = system.ruby.interface0
+    c2ci1 = system.ruby.interface1
+    c2ci2 = system.ruby.interface2
+    # c2ci0 <-> c2ci1
+    c2ci0[0].cntrl.c2c_out_port = c2ci1[0].cntrl.c2c_in_port
+    c2ci1[0].cntrl.c2c_out_port = c2ci0[0].cntrl.c2c_in_port
+    # c2ci0 <-> c2ci2
+    c2ci0[1].cntrl.c2c_out_port = c2ci2[0].cntrl.c2c_in_port
+    c2ci2[0].cntrl.c2c_out_port = c2ci0[1].cntrl.c2c_in_port
+    # c2ci1 <-> c2ci2
+    c2ci1[1].cntrl.c2c_out_port = c2ci2[1].cntrl.c2c_in_port
+    c2ci2[1].cntrl.c2c_out_port = c2ci1[1].cntrl.c2c_in_port
 
     # In SE register the ropology elements with fake filesystem
     if not full_system:
         topology0.registerTopology(options)
         topology1.registerTopology(options1)
+        topology2.registerTopology(options2)
 
     # Initialize network based topology
     Network.init_network(options, network0, InterfaceClass)
     Network.init_network(options1, network1, InterfaceClass)
+    Network.init_network(options2, network2, InterfaceClass)
 
     # Create a port proxy for connecting the system port.
     sys_port_proxy = RubyPortProxy(ruby_system=ruby)
@@ -317,10 +366,13 @@ def create_system(
         ruby,
         dir_cntrls0,
         dir_cntrls1,
+        dir_cntrls2,
         system.mem_ranges[0],
         system.mem_ranges[1],
+        system.mem_ranges[2],
         options,
-        options1
+        options1,
+        options2
     )
 
     # Connect the cpu sequencers and the piobus
@@ -334,10 +386,13 @@ def create_system(
 
     for i in range(len(cpus1)):
         system.tgens1[i].port = cpu_sequencers1[i].in_ports
+
+    for i in range(len(cpus2)):
+        system.tgens2[i].port = cpu_sequencers2[i].in_ports
     
     ruby.number_of_virtual_networks = ruby.network0.number_of_virtual_networks
     ruby._cpu_ports = cpu_sequencers0
-    ruby.num_of_sequencers = len(cpu_sequencers0)
+    ruby.num_of_sequencers = len(cpu_sequencers0) + len(cpu_sequencers1) + len(cpu_sequencers2)
 
 
 def create_directories(options, bootmem, ruby_system, system):
