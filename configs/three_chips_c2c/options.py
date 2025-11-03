@@ -59,7 +59,7 @@ options0.maxtime = None
 options0.restore_simpoint_checkpoint = False
 options0.max_checkpoints = 5
 options0.checkpoint_at_end = False
-options0.num_interfaces = 1
+options0.num_interfaces = 2
 options0.abs_max_tick = 3001400000
 
 options1 = Object()
@@ -117,7 +117,7 @@ options1.maxtime = None
 options1.restore_simpoint_checkpoint = False
 options1.max_checkpoints = 5
 options1.checkpoint_at_end = False
-options1.num_interfaces = 1
+options1.num_interfaces = 2
 
 options2 = Object()
 options2.cmd = "tests/test-progs/infinite-loop/bin/infinite_loop"
@@ -174,5 +174,5 @@ options2.maxtime = None
 options2.restore_simpoint_checkpoint = False
 options2.max_checkpoints = 5
 options2.checkpoint_at_end = False
-options2.num_interfaces = 1
+options2.num_interfaces = 2
 options2.abs_max_tick = 3001400000
