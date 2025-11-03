@@ -23,10 +23,13 @@ def setup_memory_controllers(
     ruby, 
     dir_cntrls0, 
     dir_cntrls1, 
+    dir_cntrls2,
     mem_ranges0,
     mem_ranges1,
+    mem_ranges2,
     options0,
-    options1
+    options1,
+    options2
 ):
     ruby.block_size_bytes = options0.cacheline_size
     ruby.memory_size_bits = 48
@@ -136,8 +139,59 @@ def setup_memory_controllers(
         index += 1
         dir_cntrl.addr_ranges = dir_ranges
 
+    index = 0        
+
+    for i, dir_cntrl in enumerate(dir_cntrls2):
+        crossbar = None
+        
+        dir_ranges = []
+        #for mem_range in mem_ranges1:
+        if i != 0:
+            # C2C Interface
+            mem_type = ObjectList.mem_list.get(options2.mem_type)
+            range = m5.objects.AddrRange(
+                mem_ranges0.start,
+                size=mem_ranges0.size(),
+            )
+
+            dir_ranges.append(range)
+        else: 
+            # classic SN
+            mem_type = ObjectList.mem_list.get(options2.mem_type)
+            dram_intf = MemConfig.create_mem_intf(
+                mem_type,
+                mem_ranges2,
+                i,
+                int(math.log(options2.num_dirs, 2)),
+                intlv_size,
+                options1.xor_low_bit,
+            )
+
+            if issubclass(mem_type, DRAMInterface):
+                mem_ctrl = m5.objects.MemCtrl(dram=dram_intf)
+            else: 
+                mem_ctrl = dram_intf
+                
+            mem_ctrls2.append(mem_ctrl)
+            dir_ranges.append(dram_intf.range)
+
+        if crossbar != None:
+            mem_ctrl.port = crossbar.mem_side_ports
+        else:
+            if i == 0:
+                mem_ctrl.port = dir_cntrl.memory_out_port
+
+            # Enable low-power DRAM states if option is enabled
+            if issubclass(mem_type, DRAMInterface):
+                mem_ctrl.dram.enable_dram_powerdown = (
+                    options2.enable_dram_powerdown
+                )
+        index += 1
+        dir_cntrl.addr_ranges = dir_ranges
+
     system.mem_ctrls0 = mem_ctrls0
     system.mem_ctrls1 = mem_ctrls1
+    system.mem_ctrls2 = mem_ctrls2
     
     if len(crossbars) > 0:
         ruby.crossbars = crossbars
@@ -150,6 +204,7 @@ def create_topology(controllers, options):
 def create_system(
     options,
     options1,
+    options2,
     full_system,
     system,
     piobus=None,
