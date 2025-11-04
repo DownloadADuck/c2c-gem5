@@ -260,9 +260,9 @@ def create_chip0(
         hnf.setCntrlList(cntrlList)
 
     # Setting downstream destination for interfaces
-    hnf_dests.pop(1)
+    int_dests = hnf_dests[0:-options.num_interfaces]
     for interface in ruby_system.interface0:
-        interface.setDownstream(hnf_dests)
+        interface.setDownstream(int_dests)
         interface.setCntrlList(cntrlList)
 
     # Setup data message size for all controllers
@@ -502,9 +502,9 @@ def create_chip1(
         hnf.setChipIDList(chipIDList)
         hnf.setCntrlList(cntrlList)
 
-    hnf_dests.pop(1)
+    int_dests = hnf_dests[0:-options.num_interfaces]
     for interface in ruby_system.interface1:
-        ruby_system.interface1[0].setDownstream(hnf_dests)
+        ruby_system.interface1[0].setDownstream(int_dests)
         ruby_system.interface1[0].setCntrlList(cntrlList)
 
     # Setup data message size for all controllers
@@ -748,9 +748,9 @@ def create_chip2(
         hnf.setCntrlList(cntrlList)
 
     # Setting downstream destination for interfaces
-    hnf_dests.pop(1)
+    int_dests = hnf_dests[0:-options.num_interfaces]
     for interface in ruby_system.interface2:
-        interface.setDownstream(hnf_dests)
+        interface.setDownstream(int_dests)
         interface.setCntrlList(cntrlList)
 
     # Setup data message size for all controllers
