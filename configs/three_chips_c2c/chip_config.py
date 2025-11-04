@@ -126,7 +126,7 @@ def create_chip0(
 
     # Creates on RNF per cpu with priv l2 caches
     assert len(cpus) == options.num_cpus
-    ruby_system.rnf = [
+    ruby_system.rnf0 = [
         CHI_RNF(
             [cpu],
             ruby_system,
@@ -138,7 +138,7 @@ def create_chip0(
         for cpu in cpus
     ]
 
-    for rnf in ruby_system.rnf:
+    for rnf in ruby_system.rnf0:
         rnf.addPrivL2Cache(L2Cache, chipID = 0)
         cpu_sequencers.extend(rnf.getSequencers())
         all_cntrls.extend(rnf.getAllControllers())
@@ -146,8 +146,8 @@ def create_chip0(
         network_cntrls.extend(rnf.getNetworkSideControllers())
     
     # Creates one Misc Node
-    ruby_system.mn = [CHI_MN(ruby_system, [cpu.l1d for cpu in cpus], network)]
-    for mn in ruby_system.mn:
+    ruby_system.mn0 = [CHI_MN(ruby_system, [cpu.l1d for cpu in cpus], network)]
+    for mn in ruby_system.mn0:
         all_cntrls.extend(mn.getAllControllers())
         network_nodes.append(mn)
         network_cntrls.extend(mn.getNetworkSideControllers())
@@ -172,24 +172,24 @@ def create_chip0(
     hnf_list = [i for i in range(options.num_l3caches)]
     for i in range(options.num_l3caches):
         CHI_HNF.createAddrRanges([sysranges[i]], system.cache_line_size.value, [hnf_list[i]])
-    ruby_system.hnf = [
+    ruby_system.hnf0 = [
         CHI_HNF(i, ruby_system, HNFCache, None, network, 0) # chipID = 0 
         for i in range(options.num_l3caches)
     ]
 
-    for hnf in ruby_system.hnf:
+    for hnf in ruby_system.hnf0:
         network_nodes.append(hnf)
         network_cntrls.extend(hnf.getNetworkSideControllers())
         assert hnf.getAllControllers() == hnf.getNetworkSideControllers()
         all_cntrls.extend(hnf.getAllControllers())
         hnf_dests.extend(hnf.getAllControllers())
 
-    ruby_system.snf = [
+    ruby_system.snf0 = [
         CHI_SNF_MainMem(ruby_system, None, network, None)
         for i in range(options.num_dirs)
     ]
 
-    for snf in ruby_system.snf:
+    for snf in ruby_system.snf0:
         network_nodes.append(snf)
         network_cntrls.extend(snf.getNetworkSideControllers())
         assert snf.getAllControllers() == snf.getNetworkSideControllers()
@@ -217,10 +217,11 @@ def create_chip0(
     chipIDList = [1, 2] # which chip they service
 
     if len(other_memories) > 0:
-        ruby_system.rom_snf = [
+        print("other_memories not supported. Check chip_config.py")
+        ruby_system.rom_snf0 = [
             CHI_SNF_BootMem(ruby_system, None, m) for m in other_memories
         ]
-        for snf in ruby_system.rom_snf:
+        for snf in ruby_system.rom_snf0:
             network_nodes.append(snf)
             network_cntrls.extend(snf.getNetworkSideControllers())
             all_cntrls.extend(snf.getAllControllers())
@@ -229,20 +230,21 @@ def create_chip0(
     # Creates the controller for dma ports and io
 
     if len(dma_ports) > 0:
-        ruby_system.dma_rni = [
+        print("We have dma ports")
+        ruby_system.dma_rni0 = [
             CHI_RNI_DMA(ruby_system, dma_port, None) for dma_port in dma_ports
         ]
-        for rni in ruby_system.dma_rni:
+        for rni in ruby_system.dma_rni0:
             network_nodes.append(rni)
             network_cntrls.extend(rni.getNetworkSideControllers())
             all_cntrls.extend(rni.getAllControllers())
 
     # Assign downstream destinations
-    for rnf in ruby_system.rnf:
+    for rnf in ruby_system.rnf0:
         rnf.setDownstream(hnf_dests)
 
     if len(dma_ports) > 0:
-        for rni in ruby_system.dma_rni:
+        for rni in ruby_system.dma_rni0:
             rni.setDownstream(hnf_dests)
     
     # Chip-0 -> 2 L1s, 1 L2s, 1 HNF
@@ -251,7 +253,7 @@ def create_chip0(
     # cntrlList vector -> [2, 1, 1, 2, 1, 1, 2, 1, 1]
     cntrlList = [2, 1, 1, 2, 1, 1, 2, 1, 1]
 
-    for i, hnf in enumerate(ruby_system.hnf):
+    for i, hnf in enumerate(ruby_system.hnf0):
         hnf.setDownstream(mem_dests)
         hnf.setC2cHopList(c2cHopList)
         hnf.setChipIDList(chipIDList)
@@ -368,7 +370,7 @@ def create_chip1(
 
     # Creates on RNF per cpu with priv l2 caches
     assert len(cpus) == options.num_cpus
-    ruby_system.rnf2 = [
+    ruby_system.rnf1 = [
         CHI_RNF(
             [cpu],
             ruby_system,
@@ -380,7 +382,7 @@ def create_chip1(
         for cpu in cpus
     ]
 
-    for rnf in ruby_system.rnf2:
+    for rnf in ruby_system.rnf1:
         rnf.addPrivL2Cache(L2Cache, chipID = 1)
         cpu_sequencers.extend(rnf.getSequencers())
         all_cntrls.extend(rnf.getAllControllers())
@@ -415,12 +417,12 @@ def create_chip1(
 
     hnf_list1 = [i for i in range(options.num_l3caches)]
     CHI_HNF.createAddrRanges(sysranges, system.cache_line_size.value, hnf_list1)
-    ruby_system.hnf2 = [
+    ruby_system.hnf1 = [
         CHI_HNF(i, ruby_system, HNFCache, None, network, 1) # chipID = 1
         for i in range(options.num_l3caches)
     ]
 
-    for hnf in ruby_system.hnf2:
+    for hnf in ruby_system.hnf1:
         network_nodes.append(hnf)
         network_cntrls.extend(hnf.getNetworkSideControllers())
         assert hnf.getAllControllers() == hnf.getNetworkSideControllers()
@@ -485,7 +487,7 @@ def create_chip1(
         all_cntrls.extend(ruby_system.io_rni.getAllControllers())
 
     # Assign downstream destinations
-    for rnf in ruby_system.rnf2:
+    for rnf in ruby_system.rnf1:
         rnf.setDownstream(hnf_dests)
 
     if len(dma_ports) > 0:
@@ -494,7 +496,7 @@ def create_chip1(
     
     cntrlList = [2, 1, 1, 2, 1, 1, 2, 1, 1]
 
-    for hnf in ruby_system.hnf2:
+    for hnf in ruby_system.hnf1:
         hnf.setDownstream(mem_dests)
         hnf.setC2cHopList(c2cHopList)
         hnf.setChipIDList(chipIDList)
@@ -618,7 +620,7 @@ def create_chip2(
 
     # Creates on RNF per cpu with priv l2 caches
     assert len(cpus) == options.num_cpus
-    ruby_system.rnf = [
+    ruby_system.rnf2 = [
         CHI_RNF(
             [cpu],
             ruby_system,
@@ -630,7 +632,7 @@ def create_chip2(
         for cpu in cpus
     ]
 
-    for rnf in ruby_system.rnf:
+    for rnf in ruby_system.rnf2:
         rnf.addPrivL2Cache(L2Cache, chipID = 0)
         cpu_sequencers.extend(rnf.getSequencers())
         all_cntrls.extend(rnf.getAllControllers())
@@ -638,8 +640,8 @@ def create_chip2(
         network_cntrls.extend(rnf.getNetworkSideControllers())
     
     # Creates one Misc Node
-    ruby_system.mn = [CHI_MN(ruby_system, [cpu.l1d for cpu in cpus], network)]
-    for mn in ruby_system.mn:
+    ruby_system.mn2 = [CHI_MN(ruby_system, [cpu.l1d for cpu in cpus], network)]
+    for mn in ruby_system.mn2:
         all_cntrls.extend(mn.getAllControllers())
         network_nodes.append(mn)
         network_cntrls.extend(mn.getNetworkSideControllers())
@@ -661,27 +663,27 @@ def create_chip2(
     for m in other_memories:
         sysranges.append(m.range)
 
-    hnf_list = [i for i in range(options.num_l3caches)]
+    hnf_list2 = [i for i in range(options.num_l3caches)]
     for i in range(options.num_l3caches):
-        CHI_HNF.createAddrRanges([sysranges[i]], system.cache_line_size.value, [hnf_list[i]])
-    ruby_system.hnf = [
-        CHI_HNF(i, ruby_system, HNFCache, None, network, 0) # chipID = 0 
+        CHI_HNF.createAddrRanges([sysranges[i]], system.cache_line_size.value, [hnf_list2[i]])
+    ruby_system.hnf2 = [
+        CHI_HNF(i, ruby_system, HNFCache, None, network, 2) # chipID = 2 
         for i in range(options.num_l3caches)
     ]
 
-    for hnf in ruby_system.hnf:
+    for hnf in ruby_system.hnf2:
         network_nodes.append(hnf)
         network_cntrls.extend(hnf.getNetworkSideControllers())
         assert hnf.getAllControllers() == hnf.getNetworkSideControllers()
         all_cntrls.extend(hnf.getAllControllers())
         hnf_dests.extend(hnf.getAllControllers())
 
-    ruby_system.snf = [
+    ruby_system.snf2 = [
         CHI_SNF_MainMem(ruby_system, None, network, None)
         for i in range(options.num_dirs)
     ]
 
-    for snf in ruby_system.snf:
+    for snf in ruby_system.snf2:
         network_nodes.append(snf)
         network_cntrls.extend(snf.getNetworkSideControllers())
         assert snf.getAllControllers() == snf.getNetworkSideControllers()
@@ -709,10 +711,10 @@ def create_chip2(
     chipIDList = [0, 1] # which chip they service
 
     if len(other_memories) > 0:
-        ruby_system.rom_snf = [
+        ruby_system.rom_snf2 = [
             CHI_SNF_BootMem(ruby_system, None, m) for m in other_memories
         ]
-        for snf in ruby_system.rom_snf:
+        for snf in ruby_system.rom_snf2:
             network_nodes.append(snf)
             network_cntrls.extend(snf.getNetworkSideControllers())
             all_cntrls.extend(snf.getAllControllers())
@@ -721,25 +723,25 @@ def create_chip2(
     # Creates the controller for dma ports and io
 
     if len(dma_ports) > 0:
-        ruby_system.dma_rni = [
+        ruby_system.dma_rni2 = [
             CHI_RNI_DMA(ruby_system, dma_port, None) for dma_port in dma_ports
         ]
-        for rni in ruby_system.dma_rni:
+        for rni in ruby_system.dma_rni2:
             network_nodes.append(rni)
             network_cntrls.extend(rni.getNetworkSideControllers())
             all_cntrls.extend(rni.getAllControllers())
 
     # Assign downstream destinations
-    for rnf in ruby_system.rnf:
+    for rnf in ruby_system.rnf2:
         rnf.setDownstream(hnf_dests)
 
     if len(dma_ports) > 0:
-        for rni in ruby_system.dma_rni:
+        for rni in ruby_system.dma_rni2:
             rni.setDownstream(hnf_dests)
     
     cntrlList = [2, 1, 1, 2, 1, 1, 2, 1, 1]
 
-    for i, hnf in enumerate(ruby_system.hnf):
+    for i, hnf in enumerate(ruby_system.hnf2):
         hnf.setDownstream(mem_dests)
         hnf.setC2cHopList(c2cHopList)
         hnf.setChipIDList(chipIDList)
