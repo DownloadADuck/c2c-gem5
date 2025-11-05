@@ -41,23 +41,28 @@ def setup_memory_controllers(
     crossbars = []
 
     intlv_size = options0.cacheline_size
-
+    
     for i, dir_cntrl in enumerate(dir_cntrls0):
         crossbar = None
+        mem_type = ObjectList.mem_list.get(options0.mem_type)
 
         dir_ranges = []
-        #for mem_range in mem_ranges0:
-        if i != 0:
-            mem_type = ObjectList.mem_list.get(options0.mem_type)
+        if i == 1:
+            # C2CI-00 -> addr_range[1] -> [200MB:400MB]
             range = m5.objects.AddrRange(
                 mem_ranges1.start,
                 size=mem_ranges1.size(),
             )
-
             dir_ranges.append(range)
-        else:
+        elif i == 2:
+            # C2CI-01 -> addr_range[2] -> [400MB:600MB]
+            range = m5.objects.AddrRange(
+                mem_ranges2.start,
+                size=mem_ranges2.size(),
+            ) 
+            dir_ranges.append(range)
+        elif i == 0:
             # classic SN
-            mem_type = ObjectList.mem_list.get(options0.mem_type)
             dram_intf = MemConfig.create_mem_intf(
                 mem_type,
                 mem_ranges0,
@@ -74,6 +79,8 @@ def setup_memory_controllers(
 
             mem_ctrls0.append(mem_ctrl)
             dir_ranges.append(dram_intf.range)
+        else: 
+            pass
 
         if crossbar != None:
             mem_ctrl.port = crossbar.mem_side_ports
@@ -94,21 +101,25 @@ def setup_memory_controllers(
 
     for i, dir_cntrl in enumerate(dir_cntrls1):
         crossbar = None
+        mem_type = ObjectList.mem_list.get(options1.mem_type)
         
         dir_ranges = []
-        #for mem_range in mem_ranges1:
-        if i != 0:
-            # C2C Interface
-            mem_type = ObjectList.mem_list.get(options1.mem_type)
+        if i == 1:
+            # C2CI-10 -> addr_range[0] -> [0:200MB]
             range = m5.objects.AddrRange(
                 mem_ranges0.start,
                 size=mem_ranges0.size(),
             )
-
             dir_ranges.append(range)
-        else: 
+        elif i == 2:
+            # C2CI-11 -> addr_range[2] -> [400MB:600MB]
+            range = m5.objects.AddrRange(
+                mem_ranges2.start,
+                size=mem_ranges2.size(),
+            ) 
+            dir_ranges.append(range)
+        elif i == 0: 
             # classic SN
-            mem_type = ObjectList.mem_list.get(options1.mem_type)
             dram_intf = MemConfig.create_mem_intf(
                 mem_type,
                 mem_ranges1,
@@ -125,6 +136,8 @@ def setup_memory_controllers(
                 
             mem_ctrls1.append(mem_ctrl)
             dir_ranges.append(dram_intf.range)
+        else:
+            pass
 
         if crossbar != None:
             mem_ctrl.port = crossbar.mem_side_ports
@@ -144,19 +157,24 @@ def setup_memory_controllers(
 
     for i, dir_cntrl in enumerate(dir_cntrls2):
         crossbar = None
+        mem_type = ObjectList.mem_list.get(options2.mem_type)
         
         dir_ranges = []
-        #for mem_range in mem_ranges1:
-        if i != 0:
-            # C2C Interface
-            mem_type = ObjectList.mem_list.get(options2.mem_type)
+        if i == 1:
+            # C2CI-20 -> addr_range[0] -> [0:200MB]
             range = m5.objects.AddrRange(
                 mem_ranges0.start,
                 size=mem_ranges0.size(),
             )
-
             dir_ranges.append(range)
-        else: 
+        elif i == 2:
+            # C2CI-21 -> addr_range[1] -> [200MB:400MB]
+            range = m5.objects.AddrRange(
+                mem_ranges1.start,
+                size=mem_ranges1.size(),
+            ) 
+            dir_ranges.append(range)
+        elif i == 0: 
             # classic SN
             mem_type = ObjectList.mem_list.get(options2.mem_type)
             dram_intf = MemConfig.create_mem_intf(
@@ -362,6 +380,7 @@ def create_system(
     # Connect the system port for loading of binaries etc
     system.system_port = system.sys_port_proxy.in_ports
 
+    print(f"mem_ranges -> {system.mem_ranges[0]} {system.mem_ranges[1]} {system.mem_ranges[2]}")
     setup_memory_controllers(
         system,
         ruby,
