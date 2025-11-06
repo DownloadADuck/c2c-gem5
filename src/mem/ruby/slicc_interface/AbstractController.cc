@@ -48,6 +48,8 @@
 #include "mem/ruby/system/Sequencer.hh"
 #include "sim/system.hh"
 
+#include <iostream> 
+
 namespace gem5
 {
 

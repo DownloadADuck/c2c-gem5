@@ -101,6 +101,9 @@ class EnqueueStatementAST(StatementAST):
                 )
                 t = self.statements.generate(code, None)
                 self.queue_name.assertType("OutPort")
+                # Check if the NetDest is empty of not
+                code("if ((*m_tbe_ptr).m_mega_dir_sharers.extractNetDest(i).isEmpty() == false) {")
+                code.indent()
                 # If the sharer is local, extract the NetDest from MegaNetDest
                 code("if (i == m_chipID) {")
                 code.indent()
@@ -112,6 +115,8 @@ class EnqueueStatementAST(StatementAST):
                 code.indent()
                 code("((*out_msg).m_Destination).add(mapChipIDToC2CI(i));")
                 code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
+                code.dedent()
+                code("}")
                 code.dedent()
                 code("}") # end if
                 code.dedent()

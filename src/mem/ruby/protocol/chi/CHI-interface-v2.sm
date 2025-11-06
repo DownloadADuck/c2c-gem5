@@ -982,6 +982,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.dataToFwdRequestor := tbe.dataToFwdRequestor; 
       out_msg.retToSrc := tbe.retToSrc;
       out_msg.allowRetry := tbe.allowRetry;
+      DPRINTF(RubyGenerated, "c2c_destination -> %s\n", tbe.c2c_destination);
       out_msg.Destination := tbe.c2c_destination.extractNetDest(chipID);
       out_msg.seqReq := tbe.seqReq; 
       out_msg.isSeqReqValid := tbe.isSeqReqValid;
