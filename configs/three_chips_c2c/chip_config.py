@@ -504,8 +504,8 @@ def create_chip1(
 
     int_dests = hnf_dests[0:-options.num_interfaces]
     for interface in ruby_system.interface1:
-        ruby_system.interface1[0].setDownstream(int_dests)
-        ruby_system.interface1[0].setCntrlList(cntrlList)
+        interface.setDownstream(int_dests)
+        interface.setCntrlList(cntrlList)
 
     # Setup data message size for all controllers
     for cntrl in all_cntrls:

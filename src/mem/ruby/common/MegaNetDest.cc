@@ -8,6 +8,7 @@
 #include <iostream>
 #include <algorithm>
 #include <sstream>
+#include <cmath>
 
 namespace gem5
 {
@@ -20,11 +21,18 @@ MegaNetDest::MegaNetDest()
     resize();
 }
 
+static int 
+numChipsFromInterfaces(int numInterfaces)
+{
+    return (1 + std::sqrt(1 + 4 * numInterfaces)) / 2;
+}
+
 // adding a single machine to a NetDest 
 void
 MegaNetDest::add(int chipID, MachineID dest) 
 {
-    int numChips = MachineType_base_count(MachineType_Interface);
+    int numInterfaces = MachineType_base_count(MachineType_Interface);
+    int numChips = numChipsFromInterfaces(numInterfaces);
     assert(chipID >= 0 && chipID < numChips);
     m_data[chipID].add(dest);
 }
@@ -51,7 +59,8 @@ MegaNetDest::mergeMegaNetDest(const MegaNetDest& mega)
 void 
 MegaNetDest::mergeMegaNetDest(int chipID, const MegaNetDest& mega) 
 {
-    int numChips = MachineType_base_count(MachineType_Interface);
+    int numInterfaces = MachineType_base_count(MachineType_Interface);
+    int numChips = numChipsFromInterfaces(numInterfaces);
     assert(mega.m_data.size() == numChips);
     m_data[chipID].addNetDest(mega.m_data[chipID]);
 }
@@ -59,7 +68,8 @@ MegaNetDest::mergeMegaNetDest(int chipID, const MegaNetDest& mega)
 NetDest
 MegaNetDest::extractNetDest(int chipID)
 {
-    int numChips = MachineType_base_count(MachineType_Interface);
+    int numInterfaces = MachineType_base_count(MachineType_Interface);
+    int numChips = numChipsFromInterfaces(numInterfaces);
     assert(chipID >= 0 && chipID < numChips);
     return m_data[chipID];
 }
@@ -68,7 +78,8 @@ MegaNetDest::extractNetDest(int chipID)
 void 
 MegaNetDest::remove(int chip, MachineID dest) 
 {
-    int numChips = MachineType_base_count(MachineType_Interface);
+    int numInterfaces = MachineType_base_count(MachineType_Interface);
+    int numChips = numChipsFromInterfaces(numInterfaces);
     assert(chip >= 0 && chip < numChips);
     m_data[chip].remove(dest);
 }
@@ -77,8 +88,10 @@ MegaNetDest::remove(int chip, MachineID dest)
 void
 MegaNetDest::remove(const MegaNetDest& mega)
 {
-    int numChips = MachineType_base_count(MachineType_Interface);
+    int numInterfaces = MachineType_base_count(MachineType_Interface);
+    int numChips = numChipsFromInterfaces(numInterfaces);
     assert(mega.m_data.size() == numChips);
+    // TODO: Find another way of generating numChips
     for (int i = 0; i < numChips; ++i)
         m_data[i].removeNetDest(mega.m_data[i]);
 }
@@ -86,7 +99,8 @@ MegaNetDest::remove(const MegaNetDest& mega)
 void
 MegaNetDest::resize()
 {
-    int numChips = MachineType_base_count(MachineType_Interface);
+    int numInterfaces = MachineType_base_count(MachineType_Interface);
+    int numChips = numChipsFromInterfaces(numInterfaces);
     m_data.resize(numChips);
     for (int i = 0; i < numChips; ++i) {
         m_data[i].resize();
@@ -97,7 +111,8 @@ MegaNetDest
 MegaNetDest::smallestElement() const
 {
     assert(totalCount() > 0);
-    int numChips = MachineType_base_count(MachineType_Interface);
+    int numInterfaces = MachineType_base_count(MachineType_Interface);
+    int numChips = numChipsFromInterfaces(numInterfaces);
 
     for (int i = 0; i < numChips; ++i) {
         if (!m_data[i].isEmpty()) {
@@ -116,7 +131,8 @@ MegaNetDest::smallestElement() const
 MegaNetDest
 MegaNetDest::smallestElement(MachineType machine) const
 {
-    int numChips = MachineType_base_count(MachineType_Interface);
+    int numInterfaces = MachineType_base_count(MachineType_Interface);
+    int numChips = numChipsFromInterfaces(numInterfaces);
 
     for (int i = 0; i < numChips; ++i) {
         if (!m_data[i].isEmpty()) {
@@ -181,7 +197,8 @@ MegaNetDest::isBroadcast() const
 void
 MegaNetDest::print(std::ostream& out) const
 {
-    int numChips = MachineType_base_count(MachineType_Interface);
+    int numInterfaces = MachineType_base_count(MachineType_Interface);
+    int numChips = numChipsFromInterfaces(numInterfaces);
     out << "[MegaNetDest with " << numChips << " chips]\n";
     for (int i = 0; i < numChips; ++i) {
         out << "  Chip " << i << ": " << m_data[i] << "\n";

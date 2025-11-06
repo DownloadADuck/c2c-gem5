@@ -42,6 +42,7 @@ def setup_memory_controllers(
 
     intlv_size = options0.cacheline_size
     
+    # Chip-0
     for i, dir_cntrl in enumerate(dir_cntrls0):
         crossbar = None
         mem_type = ObjectList.mem_list.get(options0.mem_type)
@@ -99,6 +100,7 @@ def setup_memory_controllers(
 
     index = 0
 
+    # Chip-1
     for i, dir_cntrl in enumerate(dir_cntrls1):
         crossbar = None
         mem_type = ObjectList.mem_list.get(options1.mem_type)
@@ -155,6 +157,7 @@ def setup_memory_controllers(
 
     index = 0        
 
+    # Chip-2
     for i, dir_cntrl in enumerate(dir_cntrls2):
         crossbar = None
         mem_type = ObjectList.mem_list.get(options2.mem_type)
@@ -380,7 +383,6 @@ def create_system(
     # Connect the system port for loading of binaries etc
     system.system_port = system.sys_port_proxy.in_ports
 
-    print(f"mem_ranges -> {system.mem_ranges[0]} {system.mem_ranges[1]} {system.mem_ranges[2]}")
     setup_memory_controllers(
         system,
         ruby,
