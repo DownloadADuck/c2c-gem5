@@ -325,28 +325,28 @@ in_port(reqRdyPort, CHIRequestMsg, reqRdy, rank=3,
         if (is_multiChip) {
           if (in_msg.type == CHIRequestType:WriteBackFull) {
             if (is_invalid(dir_entry) || (dir_entry.ownerExists == false) ||
-                (dir_entry.mega_owner.isElement(mapMachineIDToChipID(in_msg.requestor), in_msg.requestor) == false)) {
+                (dir_entry.mega_owner.isElement(mapMachineIDToChipID(in_msg.originalRequestor), in_msg.originalRequestor) == false)) {
               trigger(Event:WriteBackFull_Stale, in_msg.addr, cache_entry, tbe);
             }
           } else if (in_msg.type == CHIRequestType:WriteEvictFull) {
             if (is_invalid(dir_entry) || (dir_entry.ownerExists == false) ||
                 (dir_entry.ownerIsExcl == false) || 
-                (dir_entry.mega_owner.isElement(mapMachineIDToChipID(in_msg.requestor), in_msg.requestor) == false)) {
+                (dir_entry.mega_owner.isElement(mapMachineIDToChipID(in_msg.originalRequestor), in_msg.originalRequestor) == false)) {
               trigger(Event:WriteEvictFull_Stale, in_msg.addr, cache_entry, tbe);
             }
           } else if (in_msg.type == CHIRequestType:WriteCleanFull) {
             if (is_invalid(dir_entry) || (dir_entry.ownerExists == false) ||
-                (dir_entry.mega_owner.isElement(mapMachineIDToChipID(in_msg.requestor), in_msg.requestor) == false)) {
+                (dir_entry.mega_owner.isElement(mapMachineIDToChipID(in_msg.originalRequestor), in_msg.originalRequestor) == false)) {
               trigger(Event:WriteCleanFull_Stale, in_msg.addr, cache_entry, tbe);
             }
           } else if (in_msg.type == CHIRequestType:Evict) {
             if (is_invalid(dir_entry) ||
-                (dir_entry.mega_sharers.isElement(mapMachineIDToChipID(in_msg.requestor), in_msg.requestor) == false)) {
+                (dir_entry.mega_sharers.isElement(mapMachineIDToChipID(in_msg.originalRequestor), in_msg.originalRequestor) == false)) {
               trigger(Event:Evict_Stale, in_msg.addr, cache_entry, tbe);
             }
           } else if (in_msg.type == CHIRequestType:CleanUnique) {
             if (is_invalid(dir_entry) ||
-                (dir_entry.mega_sharers.isElement(mapMachineIDToChipID(in_msg.requestor), in_msg.requestor) == false)) {
+                (dir_entry.mega_sharers.isElement(mapMachineIDToChipID(in_msg.originalRequestor), in_msg.originalRequestor) == false)) {
               trigger(Event:CleanUnique_Stale, in_msg.addr, cache_entry, tbe);
             }
           }
