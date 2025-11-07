@@ -146,7 +146,6 @@ action(AllocateTBE_SeqRequest, desc="") {
       out_msg.is_local_pf := false;
       out_msg.is_remote_pf := false;
 
-      DPRINTF(RubyGenerated, "SeqRequest type: %s\n", in_msg.Type);
       if ((in_msg.Type == RubyRequestType:LD) ||
           (in_msg.Type == RubyRequestType:IFETCH)) {
         out_msg.type := CHIRequestType:Load;
@@ -259,7 +258,6 @@ action(Initiate_Request, desc="") {
   DirEntry dir_entry := getDirEntry(address);
   copyCacheAndDir(cache_entry, dir_entry, tbe, initial);
 
-  DPRINTF(RubyGenerated, "tbe.dataDirty -> %s\n", tbe.dataDirty);
   tbe.use_DMT := is_HN && enable_DMT;
   tbe.use_DCT := enable_DCT;
 
@@ -1350,7 +1348,6 @@ action(Send_Evict, desc="") {
 action(Send_InvSnpResp, desc="") {
   assert(is_valid(tbe));
   assert(tbe.dataMaybeDirtyUpstream == false);
-  DPRINTF(RubyGenerated, "\ntbe.dataDirty -> %s\n tbe.snpNeedsData -> %s\n tbe.dataUnique -> %s\n tbe.reqType -> %s\n", tbe.dataDirty, tbe.snpNeedsData, tbe.dataUnique, tbe.reqType);
   if (tbe.dataDirty || tbe.snpNeedsData ||
       (tbe.dataUnique && (tbe.reqType == CHIRequestType:SnpUnique))) {
     tbe.actions.pushFront(Event:SendSnpData);
@@ -1710,7 +1707,6 @@ action(Send_SnpSharedFwd_ToOwner, desc="") {
       } else {
         prepareRequest(tbe, CHIRequestType:SnpNotSharedDirtyFwd, out_msg);
       }
-      DPRINTF(RubyGenerated, "mega_dir_owner -> %s\n", tbe.mega_dir_owner);
       out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_owner);
       out_msg.c2c_destination := tbe.mega_dir_owner;
       out_msg.retToSrc := retToSrc;
@@ -2373,7 +2369,6 @@ action(UpdateDirState_FromReqResp, desc="") {
   peek(rspInPort, CHIResponseMsg) {
     if ((in_msg.type == CHIResponseType:CompAck) && tbe.updateDirOnCompAck) {
       assert(tbe.requestor == in_msg.responder);
-
       if (is_multiChip) {
         tbe.mega_dir_sharers.mergeMegaNetDest(in_msg.c2c_destination);
       } else {

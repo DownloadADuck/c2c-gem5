@@ -21,6 +21,9 @@ MegaNetDest::MegaNetDest()
     resize();
 }
 
+// We use a quadratic formula to find the number of chips
+// from the number of chip-to-chip interfaces
+// This works only for point-to-point topologies 
 static int 
 numChipsFromInterfaces(int numInterfaces)
 {

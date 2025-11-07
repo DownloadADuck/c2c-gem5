@@ -982,7 +982,6 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.dataToFwdRequestor := tbe.dataToFwdRequestor; 
       out_msg.retToSrc := tbe.retToSrc;
       out_msg.allowRetry := tbe.allowRetry;
-      DPRINTF(RubyGenerated, "c2c_destination -> %s\n", tbe.c2c_destination);
       out_msg.Destination := tbe.c2c_destination.extractNetDest(chipID);
       out_msg.seqReq := tbe.seqReq; 
       out_msg.isSeqReqValid := tbe.isSeqReqValid;
@@ -1007,8 +1006,6 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.type := c2cMsgToCHIRsp(tbe.to_net_rsp_type);
       out_msg.responder := machineID; 
       // If response is a CompAck, we route using only the address
-      DPRINTF(RubyGenerated, "type -> %s\n", out_msg.type);
-      DPRINTF(RubyGenerated, "localRequestor -> %s\n", tbe.localRequestor);
       if (c2cMsgToCHIRsp(tbe.to_net_rsp_type) == CHIResponseType:CompAck) {
         out_msg.Destination.add(mapAddressToDownstreamMachine(address));
       } else {

@@ -633,7 +633,7 @@ def create_chip2(
     ]
 
     for rnf in ruby_system.rnf2:
-        rnf.addPrivL2Cache(L2Cache, chipID = 0)
+        rnf.addPrivL2Cache(L2Cache, chipID = 2)
         cpu_sequencers.extend(rnf.getSequencers())
         all_cntrls.extend(rnf.getAllControllers())
         network_nodes.append(rnf)
@@ -697,7 +697,7 @@ def create_chip2(
         interface_list)
     # Fixing the idx ourself. Need to try without.
                                           #idx                          chipID
-    ruby_system.interface2 = [CHI_Interface(i, ruby_system, None, network, 0) for i in range(options.num_interfaces)]
+    ruby_system.interface2 = [CHI_Interface(i, ruby_system, None, network, 2) for i in range(options.num_interfaces)]
     for interface in ruby_system.interface2:
         network_nodes.append(interface)
         network_cntrls.extend(interface.getNetworkSideControllers())
