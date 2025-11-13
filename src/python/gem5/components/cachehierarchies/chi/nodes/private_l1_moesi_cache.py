@@ -43,7 +43,6 @@ class PrivateL1MOESICache(AbstractNode):
         target_isa: ISA,
         clk_domain: ClockDomain,
         chipID: int,
-        cacheTypeList,
         cacheChipIDList,
     ):
         super().__init__(network, cache_line_size)
@@ -64,7 +63,6 @@ class PrivateL1MOESICache(AbstractNode):
         # Multi-chip parameters
         self.chipID = chipID
         self.is_multiChip = False
-        cacheTypeList.append(1) # 1 -> L1s
         cacheChipIDList.append(chipID)
 
         # MOESI states for a 1 level cache

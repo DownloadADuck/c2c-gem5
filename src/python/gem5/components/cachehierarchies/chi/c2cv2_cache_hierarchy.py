@@ -63,9 +63,8 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         cluster0_dest = []
         cluster1_dest = []
         mem_ranges = []
-        # C2c specific lists
+        # C2c specific list
         # Allows to build the machineID -> ChipID LUT
-        cacheTypeList = []
         cacheChipIDList = []
     
         for rng, port in board.get_mem_ports():
@@ -90,7 +89,6 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             clk_domain=board.get_clock_domain(),
             ranges=[mem_ranges[0]],
             chipID=0,
-            cacheTypeList=cacheTypeList,
             cacheChipIDList=cacheChipIDList,
         )
         self.hnf1 = SimpleDirectory(
@@ -99,7 +97,6 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             clk_domain=board.get_clock_domain(),
             ranges=[mem_ranges[1]],
             chipID=1,
-            cacheTypeList=cacheTypeList,
             cacheChipIDList=cacheChipIDList,
         )
         
@@ -148,7 +145,6 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
                 self.ruby_system.network0,
                 cluster0_dest,
                 chipID=0,
-                cacheTypeList=cacheTypeList,
                 cacheChipIDList=cacheChipIDList,
             ),
             self._create_core_cluster(
@@ -158,7 +154,6 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
                 self.ruby_system.network0,
                 cluster0_dest,
                 chipID=0,
-                cacheTypeList=cacheTypeList,
                 cacheChipIDList=cacheChipIDList,
             )
         ]
@@ -170,7 +165,6 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
                 self.ruby_system.network1,
                 cluster1_dest,
                 chipID=1,
-                cacheTypeList=cacheTypeList,
                 cacheChipIDList=cacheChipIDList,
             )
         ]
@@ -185,16 +179,11 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         # Setting up the MachineID -> ChipID LUT
         # Lists are automatically set up
         # Position in the vector is the version number of the controller
-        # cacheTypeList   -> [3, 3, 1, 1, 2, 1, 1, 2, 1, 1, 2] Type of cache: 3 - HNF | 2 - L2 | 1 - L1
         # cacheChipIDList -> [0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1] ChipID
-        # ex: Cache_Controller 0 -> HNF in chip 0
-        self.hnf0.cacheTypeList = cacheTypeList
+        # ex: Cache_Controller 0 -> chip 0
         self.hnf0.cacheChipIDList = cacheChipIDList
-        self.hnf1.cacheTypeList = cacheTypeList
         self.hnf1.cacheChipIDList = cacheChipIDList
-        self.interface0.cacheTypeList = cacheTypeList
         self.interface0.cacheChipIDList = cacheChipIDList 
-        self.interface1.cacheTypeList = cacheTypeList
         self.interface1.cacheChipIDList = cacheChipIDList 
 
         #####################################################
@@ -275,7 +264,6 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         network,
         cluster_dests,
         chipID: int,
-        cacheTypeList,
         cacheChipIDList,
     ) -> SubSystem:
         """Given the core and the core number this function creates a cluster
@@ -292,7 +280,6 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             target_isa=board.get_processor().get_isa(),
             clk_domain=board.get_clock_domain(),
             chipID=chipID,
-            cacheTypeList=cacheTypeList,
             cacheChipIDList=cacheChipIDList,
         )
         cluster.icache = PrivateL1MOESICache(
@@ -304,7 +291,6 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             target_isa=board.get_processor().get_isa(),
             clk_domain=board.get_clock_domain(),
             chipID=chipID,
-            cacheTypeList=cacheTypeList,
             cacheChipIDList=cacheChipIDList,
         )
 
@@ -317,7 +303,6 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             target_isa=board.get_processor().get_isa(),
             clk_domain=board.get_clock_domain(),
             chipID=chipID,
-            cacheTypeList=cacheTypeList,
             cacheChipIDList=cacheChipIDList,
         )
 

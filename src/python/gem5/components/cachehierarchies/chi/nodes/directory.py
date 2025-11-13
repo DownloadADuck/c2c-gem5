@@ -50,7 +50,6 @@ class SimpleDirectory(AbstractNode):
         clk_domain: ClockDomain,
         ranges: List[AddrRange],
         chipID: int,
-        cacheTypeList,
         cacheChipIDList,
     ):
         super().__init__(network, cache_line_size)
@@ -78,7 +77,6 @@ class SimpleDirectory(AbstractNode):
         # Multi-chip parameters
         self.is_multiChip = True
         self.chipID = chipID
-        cacheTypeList.append(3) # 3 -> HNFs
         cacheChipIDList.append(chipID)
 
         # "Owned state"

@@ -134,28 +134,12 @@ AbstractController::init()
     }
 
     // Initialize the MachineID->ChipID map
-    if (params().cntrlList.size() % 3 != 0) {
-        fatal("cntrlList size must be divisible by 3");
-    }
-    
-    int numChips = params().cntrlList.size() / 3;
+    const std::vector<int>& cacheChipIDList = params().cacheChipIDList;
 
-    int globalIdx = 0;
-
-    for (int chipID = 0; chipID < numChips; ++chipID) {
-        int l1Count = params().cntrlList[chipID * 3];
-        int l2Count = params().cntrlList[chipID * 3 + 1];
-        int hnfCount = params().cntrlList[chipID * 3 + 2];
-
-        for (int i = 0; i < l1Count; ++i)
-            machineToChipMap.emplace(MachineID
-                (MachineType::MachineType_Cache, globalIdx++), chipID);
-        for (int i = 0; i < l2Count; ++i)
-            machineToChipMap.emplace(MachineID
-                (MachineType::MachineType_Cache, globalIdx++), chipID);
-        for (int i = 0; i < hnfCount; ++i)
-            machineToChipMap.emplace(MachineID
-                (MachineType::MachineType_Cache, globalIdx++), chipID);
+    for (int i = 0; i < cacheTypeList.size(); ++i) {
+        int chipID = cacheChipIDList[i];
+        MachineID mid(MachineType::MachineType_Cache, i);
+        machineToChipMap.emplace(mid, chipID);
     }
 }
 
