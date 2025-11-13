@@ -94,8 +94,10 @@ class Interface(InterfaceNode):
         cache_line_size: int,
         clk_domain: ClockDomain,
         ranges: List[AddrRange],
+        chipID,
     ):
         super().__init__(network, cache_line_size)
         
         self.clk_domain = clk_domain
         self.addr_ranges = ranges
+        self.chipID = chipID

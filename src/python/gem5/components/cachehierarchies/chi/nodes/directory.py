@@ -48,7 +48,8 @@ class SimpleDirectory(AbstractNode):
         network: RubyNetwork,
         cache_line_size: int,
         clk_domain: ClockDomain,
-        ranges: List[AddrRange]
+        ranges: List[AddrRange],
+        chipID: int
     ):
         super().__init__(network, cache_line_size)
 
@@ -71,6 +72,10 @@ class SimpleDirectory(AbstractNode):
         self.is_HN = True
         self.enable_DMT = True
         self.enable_DCT = True
+
+        # Multi-chip parameters
+        self.is_multiChip = True
+        self.chipID = chipID
 
         # "Owned state"
         self.allow_SD = True

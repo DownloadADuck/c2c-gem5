@@ -83,16 +83,19 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             cache_line_size=board.get_cache_line_size(),
             clk_domain=board.get_clock_domain(),
             ranges=[mem_ranges[0]],
+            chipID=0,
         )
         self.hnf1 = SimpleDirectory(
             self.ruby_system.network1,
             cache_line_size=board.get_cache_line_size(),
             clk_domain=board.get_clock_domain(),
             ranges=[mem_ranges[1]],
+            chipID=1,
         )
+        
         self.hnf0.ruby_system = self.ruby_system
         self.hnf1.ruby_system = self.ruby_system
-
+        
         # Add to the RNF destinations
         cluster0_dest.append(self.hnf0)
         cluster1_dest.append(self.hnf1)
@@ -103,12 +106,14 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             cache_line_size=board.get_cache_line_size(),
             clk_domain=board.get_clock_domain(),
             ranges=[mem_ranges[1]],
+            chipID=0,
         )
         self.interface1 = Interface(
             self.ruby_system.network1,
             cache_line_size=board.get_cache_line_size(),
             clk_domain=board.get_clock_domain(),
             ranges=[mem_ranges[0]],
+            chipID=1,
         )
         self.interface0.ruby_system = self.ruby_system
         self.interface1.ruby_system = self.ruby_system
@@ -123,8 +128,23 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         # Add to the RNF destinations
         cluster0_dest.append(self.interface0)
         cluster1_dest.append(self.interface1)
+        
+        ############################# C2C SETUP #############
+        # Chip-0 -> 4 L1s, 2 L2s, 1 HNF
+        # Chip-1 -> 2 L1s, 1 L2,  1 HNF
+        # cntrlList vector -> [4, 2, 1, 2, 1, 1]
+        cntrlList = [4,2,1,2,1,1] 
 
-        printf(f"get_cores() -> {(board.get_processor().get_cores())}")
+        self.hnf0.c2cHopList = [0]
+        self.hnf0.chipIDList = [1]
+        self.hnf0.cntrlList = cntrlList
+        self.hnf1.c2cHopList = [1]
+        self.hnf1.chipIDList = [0]
+        self.hnf1.cntrlList = cntrlList
+
+        self.interface0[0].cntrlList = cntrlList
+        self.interface1[0].cntrlList = cntrlList
+        #####################################################
 
         # Create two core cluster with split I/D cache for each core
         self.core_cluster0 = [
@@ -134,15 +154,25 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
                 board,
                 self.ruby_system.network0,
                 cluster0_dest,
+                chipID=0,
+            ),
+            self._create_core_cluster(
+                (board.get_processor().get_cores())[1],
+                0,
+                board,
+                self.ruby_system.network0,
+                cluster0_dest,
+                chipID=0,
             )
         ]
         self.core_cluster1 = [
             self._create_core_cluster(
-                (board.get_processor().get_cores())[1],
+                (board.get_processor().get_cores())[2],
                 1,
                 board,
                 self.ruby_system.network1,
                 cluster1_dest,
+                chipID=1,
             )
         ]
 
@@ -220,7 +250,8 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         core_num: int,
         board: AbstractBoard,
         network,
-        cluster_dests
+        cluster_dests,
+        chipID: int
     ) -> SubSystem:
         """Given the core and the core number this function creates a cluster
         for the core with a split I/D cache
@@ -235,6 +266,7 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             
             target_isa=board.get_processor().get_isa(),
             clk_domain=board.get_clock_domain(),
+            chipID=chipID,
         )
         cluster.icache = PrivateL1MOESICache(
             size=self._l1_size,
@@ -244,6 +276,7 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             cache_line_size=board.get_cache_line_size(),
             target_isa=board.get_processor().get_isa(),
             clk_domain=board.get_clock_domain(),
+            chipID=chipID,
         )
 
         cluster.l2cache = SharedL2MOESICache(
@@ -254,6 +287,7 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             cache_line_size=board.get_cache_line_size(),
             target_isa=board.get_processor().get_isa(),
             clk_domain=board.get_clock_domain(),
+            chipID=chipID,
         )
 
         cluster.icache.sequencer = RubySequencer(
@@ -330,6 +364,7 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             ctrl.sequencer.ruby_system = self.ruby_system
 
             ctrl.downstream_destinations = cluster_dest
+            ctrl.chipID = 0 
             dma_controllers.append(ctrl)
 
         return dma_controllers

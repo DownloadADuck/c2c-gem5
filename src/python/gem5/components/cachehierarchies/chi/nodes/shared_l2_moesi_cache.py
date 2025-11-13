@@ -20,6 +20,7 @@ class SharedL2MOESICache(AbstractNode):
         cache_line_size,
         target_isa: ISA,
         clk_domain: ClockDomain,
+        chipID: int,
     ):
         super().__init__(network, cache_line_size)
 
@@ -38,6 +39,10 @@ class SharedL2MOESICache(AbstractNode):
         self.enable_DMT = False
         self.enable_DCT = False
         
+        # Multi-chip parameters
+        self.is_multiChip = False
+        self.chipID = chipID
+    
         # MOESI states fro a 2 level cache
         self.allow_SD = True
         self.alloc_on_seq_acc = False

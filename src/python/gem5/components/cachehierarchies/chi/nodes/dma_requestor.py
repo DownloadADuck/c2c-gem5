@@ -48,6 +48,9 @@ class DMARequestor(AbstractNode):
         self.enable_DMT = False
         self.enable_DCT = False
 
+        # Multi-chip parameters
+        self.is_multiChip = False
+
         # No cache
         self.allow_SD = False
         self.alloc_on_seq_acc = False

@@ -5,12 +5,12 @@ import argparse
 import time 
 
 from gem5.utils.requires import requires
-from gem5.components.boards.x86_c2c_board import X86C2cBoard
+from gem5.components.boards.x86_c2cv2_board import X86C2cBoard
 from gem5.components.memory.multi_channel import DualChannelDDR3_1600_C2C
 from gem5.components.processors.simple_switchable_processor import (
     SimpleSwitchableProcessor,
 )
-from gem5.components.cachehierarchies.chi.c2c_cache_hierarchy import (
+from gem5.components.cachehierarchies.chi.c2cv2_cache_hierarchy import (
     C2cCacheHierarchy,
 )
 from gem5.components.processors.cpu_types import CPUTypes
@@ -29,7 +29,7 @@ from gem5.resources.resource import Resource, CustomDiskImageResource
 requires(
     isa_required=ISA.X86,
     coherence_protocol_required=CoherenceProtocol.CHI,
-    kvm_required=True,
+    kvm_required=False,
 )
 
 # Parsec benchmarks
@@ -90,7 +90,7 @@ processor = SimpleSwitchableProcessor(
     starting_core_type=CPUTypes.NONCACHING_SIMPLE,
     switch_core_type=CPUTypes.TIMING,
     isa=ISA.X86,
-    num_cores=2,
+    num_cores=3,
 )
 
 # Board setup

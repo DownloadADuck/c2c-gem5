@@ -51,6 +51,7 @@ PySource('gem5.components.boards', 'gem5/components/boards/simple_board.py')
 PySource('gem5.components.boards', 'gem5/components/boards/test_board.py')
 PySource('gem5.components.boards', 'gem5/components/boards/x86_board.py')
 PySource('gem5.components.boards', 'gem5/components/boards/x86_c2c_board.py')
+PySource('gem5.components.boards', 'gem5/components/boards/x86_c2cv2_board.py')
 PySource('gem5.components.boards', 'gem5/components/boards/arm_board.py')
 PySource('gem5.components.boards',
     "gem5/components/boards/kernel_disk_workload.py")
@@ -70,6 +71,8 @@ PySource('gem5.components.cachehierarchies.chi',
     'gem5/components/cachehierarchies/chi/private_l1_private_l2_cache_hierarchy.py')
 PySource('gem5.components.cachehierarchies.chi',
     'gem5/components/cachehierarchies/chi/c2c_cache_hierarchy.py')
+PySource('gem5.components.cachehierarchies.chi',
+    'gem5/components/cachehierarchies/chi/c2cv2_cache_hierarchy.py')
 PySource('gem5.components.cachehierarchies.chi.nodes',
     'gem5/components/cachehierarchies/chi/nodes/__init__.py')
 PySource('gem5.components.cachehierarchies.chi.nodes',
