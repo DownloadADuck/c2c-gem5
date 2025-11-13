@@ -21,6 +21,8 @@ class SharedL2MOESICache(AbstractNode):
         target_isa: ISA,
         clk_domain: ClockDomain,
         chipID: int,
+        cacheTypeList,
+        cacheChipIDList,
     ):
         super().__init__(network, cache_line_size)
 
@@ -42,6 +44,8 @@ class SharedL2MOESICache(AbstractNode):
         # Multi-chip parameters
         self.is_multiChip = False
         self.chipID = chipID
+        cacheTypeList.append(2) # 2 -> L2s
+        cacheChipIDList.append(chipID)
     
         # MOESI states fro a 2 level cache
         self.allow_SD = True

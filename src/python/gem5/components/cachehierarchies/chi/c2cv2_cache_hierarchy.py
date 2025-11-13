@@ -63,6 +63,10 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         cluster0_dest = []
         cluster1_dest = []
         mem_ranges = []
+        # C2c specific lists
+        # Allows to build the machineID -> ChipID LUT
+        cacheTypeList = []
+        cacheChipIDList = []
     
         for rng, port in board.get_mem_ports():
             mem_ranges.append(rng)
@@ -77,6 +81,8 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         self.ruby_system.network0.number_of_virtual_networks = 4
         self.ruby_system.network1.number_of_virtual_networks = 4
 
+        # Chip-0
+
         # Create a single HNF per chip
         self.hnf0 = SimpleDirectory(
             self.ruby_system.network0,
@@ -84,6 +90,8 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             clk_domain=board.get_clock_domain(),
             ranges=[mem_ranges[0]],
             chipID=0,
+            cacheTypeList=cacheTypeList,
+            cacheChipIDList=cacheChipIDList,
         )
         self.hnf1 = SimpleDirectory(
             self.ruby_system.network1,
@@ -91,6 +99,8 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             clk_domain=board.get_clock_domain(),
             ranges=[mem_ranges[1]],
             chipID=1,
+            cacheTypeList=cacheTypeList,
+            cacheChipIDList=cacheChipIDList,
         )
         
         self.hnf0.ruby_system = self.ruby_system
@@ -129,23 +139,6 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         cluster0_dest.append(self.interface0)
         cluster1_dest.append(self.interface1)
         
-        ############################# C2C SETUP #############
-        # Chip-0 -> 4 L1s, 2 L2s, 1 HNF
-        # Chip-1 -> 2 L1s, 1 L2,  1 HNF
-        # cntrlList vector -> [4, 2, 1, 2, 1, 1]
-        cntrlList = [4,2,1,2,1,1] 
-
-        self.hnf0.c2cHopList = [0]
-        self.hnf0.chipIDList = [1]
-        self.hnf0.cntrlList = cntrlList
-        self.hnf1.c2cHopList = [1]
-        self.hnf1.chipIDList = [0]
-        self.hnf1.cntrlList = cntrlList
-
-        self.interface0[0].cntrlList = cntrlList
-        self.interface1[0].cntrlList = cntrlList
-        #####################################################
-
         # Create two core cluster with split I/D cache for each core
         self.core_cluster0 = [
             self._create_core_cluster(
@@ -155,6 +148,8 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
                 self.ruby_system.network0,
                 cluster0_dest,
                 chipID=0,
+                cacheTypeList=cacheTypeList,
+                cacheChipIDList=cacheChipIDList,
             ),
             self._create_core_cluster(
                 (board.get_processor().get_cores())[1],
@@ -163,6 +158,8 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
                 self.ruby_system.network0,
                 cluster0_dest,
                 chipID=0,
+                cacheTypeList=cacheTypeList,
+                cacheChipIDList=cacheChipIDList,
             )
         ]
         self.core_cluster1 = [
@@ -173,8 +170,34 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
                 self.ruby_system.network1,
                 cluster1_dest,
                 chipID=1,
+                cacheTypeList=cacheTypeList,
+                cacheChipIDList=cacheChipIDList,
             )
         ]
+        
+        ############################# C2C SETUP #############
+
+        self.hnf0.c2cHopList = [0]
+        self.hnf0.chipIDList = [1]
+        self.hnf1.c2cHopList = [1]
+        self.hnf1.chipIDList = [0]
+
+        # Setting up the MachineID -> ChipID LUT
+        # Lists are automatically set up
+        # Position in the vector is the version number of the controller
+        # cacheTypeList   -> [3, 3, 1, 1, 2, 1, 1, 2, 1, 1, 2] Type of cache: 3 - HNF | 2 - L2 | 1 - L1
+        # cacheChipIDList -> [0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1] ChipID
+        # ex: Cache_Controller 0 -> HNF in chip 0
+        self.hnf0.cacheTypeList = cacheTypeList
+        self.hnf0.cacheChipIDList = cacheChipIDList
+        self.hnf1.cacheTypeList = cacheTypeList
+        self.hnf1.cacheChipIDList = cacheChipIDList
+        self.interface0.cacheTypeList = cacheTypeList
+        self.interface0.cacheChipIDList = cacheChipIDList 
+        self.interface1.cacheTypeList = cacheTypeList
+        self.interface1.cacheChipIDList = cacheChipIDList 
+
+        #####################################################
 
         # Create the coherent side of the memory controllers
         self.memory_controllers0 = self._create_memory_controllers(
@@ -251,7 +274,9 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         board: AbstractBoard,
         network,
         cluster_dests,
-        chipID: int
+        chipID: int,
+        cacheTypeList,
+        cacheChipIDList,
     ) -> SubSystem:
         """Given the core and the core number this function creates a cluster
         for the core with a split I/D cache
@@ -267,6 +292,8 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             target_isa=board.get_processor().get_isa(),
             clk_domain=board.get_clock_domain(),
             chipID=chipID,
+            cacheTypeList=cacheTypeList,
+            cacheChipIDList=cacheChipIDList,
         )
         cluster.icache = PrivateL1MOESICache(
             size=self._l1_size,
@@ -277,6 +304,8 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             target_isa=board.get_processor().get_isa(),
             clk_domain=board.get_clock_domain(),
             chipID=chipID,
+            cacheTypeList=cacheTypeList,
+            cacheChipIDList=cacheChipIDList,
         )
 
         cluster.l2cache = SharedL2MOESICache(
@@ -288,6 +317,8 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             target_isa=board.get_processor().get_isa(),
             clk_domain=board.get_clock_domain(),
             chipID=chipID,
+            cacheTypeList=cacheTypeList,
+            cacheChipIDList=cacheChipIDList,
         )
 
         cluster.icache.sequencer = RubySequencer(
