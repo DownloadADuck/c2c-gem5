@@ -136,7 +136,7 @@ AbstractController::init()
     // Initialize the MachineID->ChipID map
     const std::vector<int>& cacheChipIDList = params().cacheChipIDList;
 
-    for (int i = 0; i < cacheTypeList.size(); ++i) {
+    for (int i = 0; i < cacheChipIDList.size(); ++i) {
         int chipID = cacheChipIDList[i];
         MachineID mid(MachineType::MachineType_Cache, i);
         machineToChipMap.emplace(mid, chipID);

@@ -251,6 +251,9 @@ def create_chip0(
     # Chip-0 -> 4 L1s, 2 L2s, 1 HNF
     # Chip-1 -> 2 L1s, 1 L2,  1 HNF
     # cntrlList vector -> [4, 2, 1, 2, 1, 1]
+    # TODO: This is not up-to-date
+    # The list should be built with each call of Cache_Controller
+    # Check src/python/gem5/components/cachehierarchies/chi/c2cv2_cache_hierarchy.py
     cntrlList = [4, 2, 1, 2, 1, 1]
 
     for i, hnf in enumerate(ruby_system.hnf):

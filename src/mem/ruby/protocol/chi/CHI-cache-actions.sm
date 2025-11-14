@@ -1759,7 +1759,7 @@ action(Send_SnpSharedFwd_ToSharer, desc="") {
       // TODO should be random or the closest one to the fwd dest
       out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers.smallestElement());
       out_msg.retToSrc := retToSrc;
-      out_msg.c2c_destination := tbe.c2c_destination;
+      out_msg.c2c_destination := tbe.c2c_destination.smallestElement();
       out_msg.c2cOrig := tbe.c2cOrig;
     }
   } else {
