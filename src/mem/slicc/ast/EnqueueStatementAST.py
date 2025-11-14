@@ -91,39 +91,60 @@ class EnqueueStatementAST(StatementAST):
                 )
         # When there is a smallestElement call, we only want to send one snoop
         elif 'smallestElement' in statements_str:
-            # We send one message per available sharer in MegaNetDest
-            code("for (int i = 0; i < (*m_tbe_ptr).m_mega_dir_sharers.chipCount(); ++i) {")
-            code.indent()
-            code(
-                "std::shared_ptr<${{msg_type.c_ident}}> out_msg = "
-                "std::make_shared<${{msg_type.c_ident}}>(clockEdge());"
-            )
-            t = self.statements.generate(code, None)
-            self.queue_name.assertType("OutPort")
-            # Checking if the NetDest is empty 
-            code("if ((*m_tbe_ptr).m_mega_dir_sharers.extractNetDest(i).isEmpty() == false) {")
-            code.indent()
-            # If the sharer is local, extract the NetDest from MegaNetDest
-            code("if (i == m_chipID) {")
-            code.indent()
-            code("((*out_msg).m_Destination).addNetDest((*m_tbe_ptr).m_mega_dir_sharers.extractNetDest(i));")
-            code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
-            # We break out of the for loop since we only want one snoop sent
-            code("break;")
-            code.dedent()
-            # If the sharer is remote, send to local C2CI
-            code("} else {")
-            code.indent()
-            code("((*out_msg).m_Destination).add(mapChipIDToC2CI(i));")
-            code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
-            # We break out of the for loop since we only want one snoop sent
-            code("break;")
-            code.dedent()
-            code("}")
-            code.dedent()
-            code("}") # end if
-            code.dedent()
-            code("}") # end for
+            if 'mega_dir_sharers' in statements_str:
+                # We send one message per available sharer in MegaNetDest
+                code("for (int i = 0; i < (*m_tbe_ptr).m_mega_dir_sharers.chipCount(); ++i) {")
+                code.indent()
+                code(
+                    "std::shared_ptr<${{msg_type.c_ident}}> out_msg = "
+                    "std::make_shared<${{msg_type.c_ident}}>(clockEdge());"
+                )
+                t = self.statements.generate(code, None)
+                self.queue_name.assertType("OutPort")
+                # Checking if the NetDest is empty 
+                code("if ((*m_tbe_ptr).m_mega_dir_sharers.extractNetDest(i).isEmpty() == false) {")
+                code.indent()
+                # If the sharer is local, extract the NetDest from MegaNetDest
+                code("if (i == m_chipID) {")
+                code.indent()
+                code("((*out_msg).m_Destination).addNetDest((*m_tbe_ptr).m_mega_dir_sharers.extractNetDest(i));")
+                code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
+                # We break out of the for loop since we only want one snoop sent
+                code("break;")
+                code.dedent()
+                # If the sharer is remote, send to local C2CI
+                code("} else {")
+                code.indent()
+                code("((*out_msg).m_Destination).add(mapChipIDToC2CI(i));")
+                code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
+                # We break out of the for loop since we only want one snoop sent
+                code("break;")
+                code.dedent()
+                code("}")
+                code.dedent()
+                code("}") # end if
+                code.dedent()
+                code("}") # end for
+            else: 
+                code(
+                    "std::shared_ptr<${{msg_type.c_ident}}> out_msg = "
+                    "std::make_shared<${{msg_type.c_ident}}>(clockEdge());"
+                )
+
+                # The other statements
+                t = self.statements.generate(code, None)
+                self.queue_name.assertType("OutPort")
+                if self.latexpr != None:
+                    ret_type, rcode = self.latexpr.inline(True)
+                    code(
+                        "(${{self.queue_name.var.code}}).enqueue("
+                        "out_msg, clockEdge(), cyclesToTicks(Cycles($rcode)));"
+                    )
+                else:
+                    code(
+                        "(${{self.queue_name.var.code}}).enqueue(out_msg, "
+                        "clockEdge(), cyclesToTicks(Cycles(1)));"
+                    )
         else:
             # Whenever the user uses a MegaNetDest as destination, the code is generated as follows
             if 'mega_dir_sharers' in statements_str:
