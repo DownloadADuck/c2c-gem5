@@ -107,7 +107,10 @@ class EnqueueStatementAST(StatementAST):
                 # If the sharer is local, extract the NetDest from MegaNetDest
                 code("if (i == m_chipID) {")
                 code.indent()
-                code("((*out_msg).m_Destination).addNetDest((*m_tbe_ptr).m_mega_dir_sharers.extractNetDest(i));")
+                # Creates a temporary destination with the smallestElement
+                code("MegaNetDest localDestination = (*m_tbe_ptr).m_mega_dir_sharers.smallestElement();")
+                # Extracts the NetDest (local) from the MegaNetDest localDestination
+                code("((*out_msg).m_Destination).addNetDest(localDestination.extractNetDest(i));")
                 code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
                 # We break out of the for loop since we only want one snoop sent
                 code("break;")

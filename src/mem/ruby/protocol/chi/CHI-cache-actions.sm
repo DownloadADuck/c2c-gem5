@@ -1566,6 +1566,7 @@ action(Send_SnpUnique_RetToSrc, desc="") {
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
       prepareRequest(tbe, CHIRequestType:SnpUnique, out_msg);
       out_msg.MegaDestination.addMegaNetDest(MegaDest);
+      out_msg.c2c_destination := MegaDest;
       out_msg.retToSrc := true;
     }
     // if other sharers send with retToSrc=false to others
@@ -1573,6 +1574,7 @@ action(Send_SnpUnique_RetToSrc, desc="") {
       enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
         prepareRequest(tbe, CHIRequestType:SnpUnique, out_msg);
         out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers);
+        out_msg.c2c_destination := tbe.mega_dir_sharers;
         out_msg.MegaDestination.remove(MegaDest);
         out_msg.retToSrc := false;
       }
@@ -1614,7 +1616,7 @@ action(Send_SnpUniqueFwd, desc="") {
     prepareRequest(tbe, CHIRequestType:SnpUniqueFwd, out_msg);
     if (is_multiChip) {
       out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers);
-      out_msg.c2c_destination := tbe.c2c_destination;
+      out_msg.c2c_destination := tbe.mega_dir_sharers;
     } else {
       out_msg.Destination.addNetDest(tbe.dir_sharers);
     }
@@ -1644,7 +1646,7 @@ action(Send_SnpShared, desc="") {
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
       prepareRequest(tbe, CHIRequestType:SnpShared, out_msg);
       out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_owner);
-      out_msg.c2c_destination := tbe.c2c_destination;
+      out_msg.c2c_destination := tbe.mega_dir_owner;
       out_msg.retToSrc := false;
     }
   } else {
@@ -1747,11 +1749,8 @@ action(Send_SnpSharedFwd_ToSharer, desc="") {
     tbe.expected_snp_resp.addExpectedRespType(CHIResponseType:SnpResp_SC_Fwded_SC);
   }
 
-  if (is_multiChip) {
-    tbe.expected_snp_resp.addExpectedCount(tbe.mega_dir_sharers.totalCount());
-  } else {
-    tbe.expected_snp_resp.addExpectedCount(1);
-  }
+  // Only one response is expected since only one sharer is snooped 
+  tbe.expected_snp_resp.addExpectedCount(1);
 
   if (is_multiChip) {
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
@@ -1759,7 +1758,7 @@ action(Send_SnpSharedFwd_ToSharer, desc="") {
       // TODO should be random or the closest one to the fwd dest
       out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers.smallestElement());
       out_msg.retToSrc := retToSrc;
-      out_msg.c2c_destination := tbe.c2c_destination.smallestElement();
+      out_msg.c2c_destination := tbe.mega_dir_sharers.smallestElement();
       out_msg.c2cOrig := tbe.c2cOrig;
     }
   } else {
@@ -1816,6 +1815,7 @@ action(Send_SnpOnce, desc="") {
       enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
         prepareRequest(tbe, CHIRequestType:SnpOnce, out_msg);
         out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers.smallestElement());
+        out_msg.c2c_destination := tbe.mega_dir_sharers.smallestElement();
         out_msg.retToSrc := true;
       }
     } else {
@@ -1872,6 +1872,7 @@ action(Send_SnpOnceFwd, desc="") {
       enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
         prepareRequest(tbe, CHIRequestType:SnpOnceFwd, out_msg);
         out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers.smallestElement());
+        out_msg.c2c_destination := tbe.mega_dir_sharers.smallestElement();
         out_msg.retToSrc := false;
       }
     } else {
