@@ -40,6 +40,7 @@ class MegaNetDest
 
         MegaNetDest smallestElement() const;
         MegaNetDest smallestElement(MachineType machine) const;
+        NetDest smallestNetDestElement(int chipID) const;
 
         // queries
         int totalCount() const; // Count

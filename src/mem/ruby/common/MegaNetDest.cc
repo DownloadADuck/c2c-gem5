@@ -154,6 +154,20 @@ MegaNetDest::smallestElement(MachineType machine) const
     panic("No smallest elemtn of given MachineType.");
 }
 
+// Returns the smallest element of NetDest of chipID
+NetDest
+MegaNetDest::smallestNetDestElement(int chipID) const 
+{
+    assert(chipID >= 0 && chipID < m_data.size());
+    assert(!m_data[chipID].isEmpty());
+
+    NetDest result;
+    MachineID smallest = m_data[chipID].smallestElement();
+    result.add(smallest);
+
+    return result;
+}
+
 bool
 MegaNetDest::isElement(int chipID, MachineID dest) const 
 {

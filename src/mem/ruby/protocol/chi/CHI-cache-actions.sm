@@ -1497,6 +1497,7 @@ action(Send_SnpCleanInvalid_NoReq, desc="") {
     }
     // Adding back the requestor to the mega_dir_sharers after sending the snoops
     tbe.mega_dir_sharers.add(mapMachineIDToChipID(tbe.originalRequestor), tbe.originalRequestor);
+    DPRINTF(RubyGenerated, "mega_dir_sharers after adding back -> %s\n", tbe.mega_dir_sharers);
   } else {
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
       prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
@@ -3087,9 +3088,11 @@ action(Send_SnpRespI, desc="") {
       out_msg.txnId := tbe.addr;
     }
     out_msg.type := CHIResponseType:SnpResp_I;
-    out_msg.localRequestor := tbe.localRequestor;
     out_msg.responder := machineID;
     out_msg.Destination.add(tbe.requestor);
+    // C2c-specific fields 
+    out_msg.localRequestor := tbe.localRequestor;
+    out_msg.originalResponder := machineID;
   }
 }
 
