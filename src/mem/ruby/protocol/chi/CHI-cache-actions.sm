@@ -1555,13 +1555,19 @@ action(Send_SnpUnique_RetToSrc, desc="") {
 
   MachineID dest;
   MegaNetDest MegaDest;
-  if (tbe.dir_ownerExists) {
-    MegaDest := tbe.mega_dir_owner;
-    dest := tbe.dir_owner;
+  if (is_multiChip) {
+    if (tbe.dir_ownerExists) {
+      MegaDest := tbe.mega_dir_owner;
+    } else {
+      // TODO should be random or the closest one
+      MegaDest := tbe.mega_dir_sharers.smallestElement();
+    }
   } else {
-    // TODO should be random or the closest one
-    dest := tbe.dir_sharers.smallestElement();
-    MegaDest := tbe.mega_dir_sharers.smallestElement();
+    if (tbe.dir_ownerExists) {
+      dest := tbe.dir_owner;
+    } else {
+      dest := tbe.dir_sharers.smallestElement();
+    }
   }
   if (is_multiChip) {
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
@@ -1572,11 +1578,11 @@ action(Send_SnpUnique_RetToSrc, desc="") {
     }
     // if other sharers send with retToSrc=false to others
     if (tbe.mega_dir_sharers.totalCount() > 1) {
+      tbe.mega_dir_sharers.remove(MegaDest);
       enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
         prepareRequest(tbe, CHIRequestType:SnpUnique, out_msg);
         out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers);
         out_msg.c2c_destination := tbe.mega_dir_sharers;
-        out_msg.MegaDestination.remove(MegaDest);
         out_msg.retToSrc := false;
       }
     }

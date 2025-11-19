@@ -28,6 +28,7 @@
 
 from slicc.ast.StatementAST import StatementAST
 from slicc.symbols import Var
+import re
 
 
 class EnqueueStatementAST(StatementAST):
@@ -45,6 +46,35 @@ class EnqueueStatementAST(StatementAST):
             self.type_ast.ident,
             self.statements,
         )
+    
+    # Regex to extract the MegaDestination
+    def extract_mega_destination(self, statements_str):
+        """
+        Extract the identifier assigned to MegaDestination in addMegaNetDest.
+        Supports these argument forms inside the nested [[ ... ]]:
+          - MemberExprAST: [VarExprAST: 'tbe'].'foo'
+          - VarExprAST: 'foo'
+          - MethodCallExpr: 'smallestElement'[MemberExprAST: [VarExprAST: 'tbe'].'foo'] []
+        """
+
+        pattern = r"""
+        MethodCallExpr:\s*'addMegaNetDest'                              
+        \s* \[ \s* MemberExprAST: \s* \[ \s* VarExprAST: \s* 'out_msg' \s* \] \s* \. 'MegaDestination' \s* \]
+        \s* \[\[
+          (?:
+             MemberExprAST:\s*\[\s*VarExprAST:\s*'[^']+'\s*\]\.'(?P<member>[A-Za-z0-9_]+)'
+           | VarExprAST:\s*'(?P<var>[A-Za-z0-9_]+)'
+           | MethodCallExpr:\s*'[^']+' \s* \[ \s* MemberExprAST:\s*\[\s*VarExprAST:\s*'[^']+'\s*\]\.'(?P<member1>[A-Za-z0-9_]+)'\s*\]\s*\[\s*\]
+          )
+        \s* \]\]
+        """
+
+        m = re.search(pattern, statements_str, flags=re.VERBOSE | re.DOTALL)
+        if not m:
+            return None
+
+        # return whichever group matched
+        return m.group("member") or m.group("var") or m.group("member1")
 
     def generate(self, code, return_type, **kwargs):
         code("{")
@@ -64,9 +94,14 @@ class EnqueueStatementAST(StatementAST):
         )
         self.symtab.newSymbol(v)
 
-        # Declare message
-
         statements_str = str(self.statements)
+
+        # Extracting the MegaDestination
+        MegaDest = self.extract_mega_destination(statements_str)
+        if MegaDest == None and (('mega_dir_sharers' in statements_str) or ('mega_dir_owner' in statements_str)):
+            print(statements_str)
+            print(MegaDest)
+        
         # TODO: This is a quick fix that allows proper code generation for the
         #       CHI-cache-actions.sm Send_FwdSnpResp
         if 'SnpResp_SC_Fwded_I' in statements_str:
@@ -93,7 +128,7 @@ class EnqueueStatementAST(StatementAST):
         elif 'smallestElement' in statements_str:
             if 'mega_dir_sharers' in statements_str:
                 # We send one message per available sharer in MegaNetDest
-                code("for (int i = 0; i < (*m_tbe_ptr).m_mega_dir_sharers.chipCount(); ++i) {")
+                code(f"for (int i = 0; i < (*m_tbe_ptr).m_{MegaDest}.chipCount(); ++i) {{")
                 code.indent()
                 code(
                     "std::shared_ptr<${{msg_type.c_ident}}> out_msg = "
@@ -102,13 +137,13 @@ class EnqueueStatementAST(StatementAST):
                 t = self.statements.generate(code, None)
                 self.queue_name.assertType("OutPort")
                 # Checking if the NetDest is empty 
-                code("if ((*m_tbe_ptr).m_mega_dir_sharers.extractNetDest(i).isEmpty() == false) {")
+                code(f"if ((*m_tbe_ptr).m_{MegaDest}.extractNetDest(i).isEmpty() == false) {{")
                 code.indent()
                 # If the sharer is local, extract the NetDest from MegaNetDest
                 code("if (i == m_chipID) {")
                 code.indent()
                 # Uses smallestNetDestElement to extract only one sharer  
-                code("((*out_msg).m_Destination).addNetDest((*m_tbe_ptr).m_mega_dir_sharers.smallestNetDestElement(i));")
+                code(f"((*out_msg).m_Destination).addNetDest((*m_tbe_ptr).m_{MegaDest}.smallestNetDestElement(i));")
                 code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
                 # We break out of the for loop since we only want one snoop sent
                 code("break;")
@@ -150,7 +185,7 @@ class EnqueueStatementAST(StatementAST):
             # Whenever the user uses a MegaNetDest as destination, the code is generated as follows
             if 'mega_dir_sharers' in statements_str:
                 # We send one message per available sharer in MegaNetDest
-                code("for (int i = 0; i < (*m_tbe_ptr).m_mega_dir_sharers.chipCount(); ++i) {")
+                code(f"for (int i = 0; i < (*m_tbe_ptr).m_{MegaDest}.chipCount(); ++i) {{")
                 code.indent()
                 code(
                     "std::shared_ptr<${{msg_type.c_ident}}> out_msg = "
@@ -159,12 +194,12 @@ class EnqueueStatementAST(StatementAST):
                 t = self.statements.generate(code, None)
                 self.queue_name.assertType("OutPort")
                 # Check if the NetDest is empty of not
-                code("if ((*m_tbe_ptr).m_mega_dir_sharers.extractNetDest(i).isEmpty() == false) {")
+                code(f"if ((*m_tbe_ptr).m_{MegaDest}.extractNetDest(i).isEmpty() == false) {{")
                 code.indent()
                 # If the sharer is local, extract the NetDest from MegaNetDest
                 code("if (i == m_chipID) {")
                 code.indent()
-                code("((*out_msg).m_Destination).addNetDest((*m_tbe_ptr).m_mega_dir_sharers.extractNetDest(i));")
+                code(f"((*out_msg).m_Destination).addNetDest((*m_tbe_ptr).m_{MegaDest}.extractNetDest(i));")
                 code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
                 code.dedent()
                 # If the sharer is remote, send to local C2CI
@@ -179,7 +214,7 @@ class EnqueueStatementAST(StatementAST):
                 code.dedent()
                 code("}") # end for
             elif 'mega_dir_owner' in statements_str:
-                code("for (int i = 0; i < (*m_tbe_ptr).m_mega_dir_owner.chipCount(); ++i) {")
+                code(f"for (int i = 0; i < (*m_tbe_ptr).m_{MegaDest}.chipCount(); ++i) {{")
                 code.indent()
                 code(
                     "std::shared_ptr<${{msg_type.c_ident}}> out_msg = "
@@ -190,7 +225,7 @@ class EnqueueStatementAST(StatementAST):
                 # If the sharer is local, extract the NetDest from MegaNetDest
                 code("if (i == m_chipID) {")
                 code.indent()
-                code("((*out_msg).m_Destination).addNetDest((*m_tbe_ptr).m_mega_dir_owner.extractNetDest(i));")
+                code(f"((*out_msg).m_Destination).addNetDest((*m_tbe_ptr).m_{MegaDest}.extractNetDest(i));")
                 code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
                 code.dedent()
                 # If the sharer is remote, send to local C2CI
