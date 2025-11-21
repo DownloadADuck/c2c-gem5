@@ -1552,7 +1552,10 @@ action(Send_SnpUnique_RetToSrc, desc="") {
   }
 
   setExpectedForInvSnoop(tbe, true);
-
+  
+  // specialCase is used as a flag for specific C++ generation
+  // in EnqueueStatementAST.py
+  // TODO: Generalistic generation of EnqueueStatementsAST
   MachineID dest;
   MegaNetDest MegaDest;
   if (is_multiChip) {
@@ -1571,6 +1574,7 @@ action(Send_SnpUnique_RetToSrc, desc="") {
   }
   if (is_multiChip) {
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+      bool specialCase := true;
       prepareRequest(tbe, CHIRequestType:SnpUnique, out_msg);
       out_msg.MegaDestination.addMegaNetDest(MegaDest);
       out_msg.c2c_destination := MegaDest;
@@ -1580,11 +1584,13 @@ action(Send_SnpUnique_RetToSrc, desc="") {
     if (tbe.mega_dir_sharers.totalCount() > 1) {
       tbe.mega_dir_sharers.remove(MegaDest);
       enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
+        bool specialCase2 := true;
         prepareRequest(tbe, CHIRequestType:SnpUnique, out_msg);
         out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers);
         out_msg.c2c_destination := tbe.mega_dir_sharers;
         out_msg.retToSrc := false;
       }
+      tbe.mega_dir_sharers.mergeMegaNetDest(MegaDest);
     }
   } else {
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {

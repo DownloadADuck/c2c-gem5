@@ -98,9 +98,6 @@ class EnqueueStatementAST(StatementAST):
 
         # Extracting the MegaDestination
         MegaDest = self.extract_mega_destination(statements_str)
-        if MegaDest == None and (('mega_dir_sharers' in statements_str) or ('mega_dir_owner' in statements_str)):
-            print(statements_str)
-            print(MegaDest)
         
         # TODO: This is a quick fix that allows proper code generation for the
         #       CHI-cache-actions.sm Send_FwdSnpResp
@@ -124,6 +121,82 @@ class EnqueueStatementAST(StatementAST):
                     "(${{self.queue_name.var.code}}).enqueue(out_msg, "
                     "clockEdge(), cyclesToTicks(Cycles(1)));"
                 )
+        # TODO: This is a quick fix that allows the proper code generation for the
+        #       CHI-cache-actions.sm Send_SnpUnique_RetToSrc
+        # If mega_dir_sharers.totalCount() > 1 we send the other snoops
+        elif 'specialCase2' in statements_str:
+            print("specialCase2")
+            code("if (((*m_tbe_ptr).m_mega_dir_sharers).totalCount() > 1) {")
+            code.indent()
+            code("for (int i = 0; i < (*m_tbe_ptr).m_mega_dir_sharers.chipCount(); ++i) {")
+            code.indent()
+            code("(*m_tbe_ptr).m_mega_dir_sharers.remove(MegaDest);")
+            code(
+                "std::shared_ptr<${{msg_type.c_ident}}> out_msg = "
+                "std::make_shared<${{msg_type.c_ident}}>(clockEdge());"
+            )
+            t = self.statements.generate(code, None)
+            self.queue_name.assertType("OutPort")
+            # Checking if the NetDest is empty 
+            code("if ((*m_tbe_ptr).m_mega_dir_sharers.extractNetDest(i).isEmpty() == false) {")
+            code.indent()
+            # If the sharer is local, extract the NetDest from MegaNetDest
+            code("if (i == m_chipID) {")
+            code.indent()
+            # Uses smallestNetDestElement to extract only one sharer  
+            code("((*out_msg).m_Destination).addNetDest((*m_tbe_ptr).m_mega_dir_sharers.smallestNetDestElement(i));")
+            code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
+            code.dedent()
+            # If the sharer is remote, send to local C2CI
+            code("} else {")
+            code.indent()
+            code("((*out_msg).m_Destination).add(mapChipIDToC2CI(i));")
+            code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
+            code.dedent()
+            code("}")
+            code.dedent()
+            code("}") # end if
+            code.dedent()
+            code("}") # end for
+            code.dedent()
+            code("}") # end if
+        elif 'specialCase' in statements_str:
+            print("specialCase")
+            # Sends a single snoop using MegaDest
+            code("for (int i = 0; i < MegaDest.chipCount(); ++i) {")
+            code.indent()
+            code(
+                "std::shared_ptr<${{msg_type.c_ident}}> out_msg = "
+                "std::make_shared<${{msg_type.c_ident}}>(clockEdge());"
+            )
+            t = self.statements.generate(code, None)
+            self.queue_name.assertType("OutPort")
+            # Checking if the NetDest is empty 
+            code("if (MegaDest.extractNetDest(i).isEmpty() == false) {")
+            code.indent()
+            # If the sharer is local, extract the NetDest from MegaNetDest
+            code("if (i == m_chipID) {")
+            code.indent()
+            # Uses smallestNetDestElement to extract only one sharer  
+            code("((*out_msg).m_Destination).addNetDest(MegaDest.smallestNetDestElement(i));")
+            code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
+            # We break out of the for loop since we only want one snoop sent
+            code("break;")
+            code.dedent()
+            # If the sharer is remote, send to local C2CI
+            code("} else {")
+            code.indent()
+            code("((*out_msg).m_Destination).add(mapChipIDToC2CI(i));")
+            code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
+            # We break out of the for loop since we only want one snoop sent
+            code("break;")
+            code.dedent()
+            code("}")
+            code.dedent()
+            code("}") # end if
+            code.dedent()
+            code("}") # end for
+            
         # When there is a smallestElement call, we only want to send one snoop
         elif 'smallestElement' in statements_str:
             if 'mega_dir_sharers' in statements_str:
