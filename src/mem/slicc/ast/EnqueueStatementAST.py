@@ -125,9 +125,6 @@ class EnqueueStatementAST(StatementAST):
         #       CHI-cache-actions.sm Send_SnpUnique_RetToSrc
         # If mega_dir_sharers.totalCount() > 1 we send the other snoops
         elif 'specialCase2' in statements_str:
-            print("specialCase2")
-            code("if (((*m_tbe_ptr).m_mega_dir_sharers).totalCount() > 1) {")
-            code.indent()
             code("for (int i = 0; i < (*m_tbe_ptr).m_mega_dir_sharers.chipCount(); ++i) {")
             code.indent()
             code("(*m_tbe_ptr).m_mega_dir_sharers.remove(MegaDest);")
@@ -158,10 +155,7 @@ class EnqueueStatementAST(StatementAST):
             code("}") # end if
             code.dedent()
             code("}") # end for
-            code.dedent()
-            code("}") # end if
         elif 'specialCase' in statements_str:
-            print("specialCase")
             # Sends a single snoop using MegaDest
             code("for (int i = 0; i < MegaDest.chipCount(); ++i) {")
             code.indent()
