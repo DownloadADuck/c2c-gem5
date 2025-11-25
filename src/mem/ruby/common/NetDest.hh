@@ -105,9 +105,6 @@ class NetDest
     vecIndex(MachineID m) const
     {
         int vec_index = MachineType_base_level(m.type);
-        if(vec_index >= m_bits.size()) {
-          std::cout << "machineID -> " << m << std::endl;
-        }
         assert(vec_index < m_bits.size());
         return vec_index;
     }
