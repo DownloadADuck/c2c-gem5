@@ -3056,6 +3056,9 @@ action(Send_CompDBIDResp, desc="") {
     out_msg.type := CHIResponseType:CompDBIDResp;
     out_msg.responder := machineID;
     out_msg.Destination.add(tbe.requestor);
+    // C2c-specific fields
+    out_msg.localRequestor := tbe.originalRequestor; 
+    out_msg.originalRequestor := machineID;
   }
 }
 
