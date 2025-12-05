@@ -1871,6 +1871,7 @@ action(Send_SnpOnceFwd, desc="") {
       enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
         prepareRequest(tbe, CHIRequestType:SnpOnceFwd, out_msg);
         out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_owner);
+        out_msg.c2c_destination := tbe.mega_dir_owner;
         out_msg.retToSrc := false;
       }
     } else {
@@ -2533,6 +2534,8 @@ action(Receive_ReqResp, desc="") {
       error("Received unexpected message");
     }
     assert(in_msg.stale == tbe.is_stale);
+    // Updating c2c-specific fields
+    tbe.originalRequestor := in_msg.originalRequestor;
   }
 }
 
