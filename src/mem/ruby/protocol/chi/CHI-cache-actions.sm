@@ -1530,7 +1530,6 @@ action(Send_SnpUnique, desc="") {
       //out_msg.originalRequestor := tbe.originalRequestor;
       out_msg.originalRequestor := machineID; // for snpRespData routing 
       out_msg.c2c_destination := tbe.mega_dir_sharers;
-      out_msg.c2cOrig := tbe.c2cOrig;
       out_msg.retToSrc := false;
     }
   } else {
@@ -1630,6 +1629,7 @@ action(Send_SnpUniqueFwd, desc="") {
     if (is_multiChip) {
       out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers);
       out_msg.c2c_destination := tbe.mega_dir_sharers;
+      out_msg.originalRequestor := tbe.originalRequestor;
     } else {
       out_msg.Destination.addNetDest(tbe.dir_sharers);
     }
@@ -1724,6 +1724,8 @@ action(Send_SnpSharedFwd_ToOwner, desc="") {
       }
       out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_owner);
       out_msg.c2c_destination := tbe.mega_dir_owner;
+      DPRINTF(RubyGenerated, "originalRequestor -> %s\n", tbe.originalRequestor);
+      out_msg.originalRequestor := tbe.originalRequestor;
       out_msg.retToSrc := retToSrc;
     }
   } else {
@@ -1772,6 +1774,7 @@ action(Send_SnpSharedFwd_ToSharer, desc="") {
       out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers.smallestElement());
       out_msg.retToSrc := retToSrc;
       out_msg.c2c_destination := tbe.mega_dir_sharers.smallestElement();
+      out_msg.originalRequestor := tbe.originalRequestor;
       out_msg.c2cOrig := tbe.c2cOrig;
     }
   } else {
@@ -1872,6 +1875,7 @@ action(Send_SnpOnceFwd, desc="") {
         prepareRequest(tbe, CHIRequestType:SnpOnceFwd, out_msg);
         out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_owner);
         out_msg.c2c_destination := tbe.mega_dir_owner;
+        out_msg.originalRequestor := tbe.originalRequestor;
         out_msg.retToSrc := false;
       }
     } else {
@@ -1887,6 +1891,7 @@ action(Send_SnpOnceFwd, desc="") {
         prepareRequest(tbe, CHIRequestType:SnpOnceFwd, out_msg);
         out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers.smallestElement());
         out_msg.c2c_destination := tbe.mega_dir_sharers.smallestElement();
+        out_msg.originalRequestor := tbe.originalRequestor;
         out_msg.retToSrc := false;
       }
     } else {

@@ -168,25 +168,6 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
                 cacheChipIDList=cacheChipIDList,
             )
         ]
-        
-        ############################# C2C SETUP #############
-
-        self.hnf0.c2cHopList = [0]
-        self.hnf0.chipIDList = [1]
-        self.hnf1.c2cHopList = [1]
-        self.hnf1.chipIDList = [0]
-
-        # Setting up the MachineID -> ChipID LUT
-        # Lists are automatically set up
-        # Position in the vector is the version number of the controller
-        # cacheChipIDList -> [0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1] ChipID
-        # ex: Cache_Controller 0 -> chip 0
-        self.hnf0.cacheChipIDList = cacheChipIDList
-        self.hnf1.cacheChipIDList = cacheChipIDList
-        self.interface0.cacheChipIDList = cacheChipIDList 
-        self.interface1.cacheChipIDList = cacheChipIDList 
-
-        #####################################################
 
         # Create the coherent side of the memory controllers
         self.memory_controllers0 = self._create_memory_controllers(
@@ -211,6 +192,8 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
                 board, 
                 network=self.ruby_system.network0,
                 cluster_dest=cluster0_dest,
+                chipID=0,
+                cacheChipIDList=cacheChipIDList,
             )
             self.ruby_system.num_of_sequencers = (
                 len(self.core_cluster0) + 
@@ -220,6 +203,25 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         else:
             self.ruby_system.num_of_sequencers = (len(self.core_cluster0) + \
                                                 len(self.core_cluster1)) * 2
+
+        ############################# C2C SETUP #############
+
+        self.hnf0.c2cHopList = [0]
+        self.hnf0.chipIDList = [1]
+        self.hnf1.c2cHopList = [1]
+        self.hnf1.chipIDList = [0]
+
+        # Setting up the MachineID -> ChipID LUT
+        # Lists are automatically set up
+        # Position in the vector is the version number of the controller
+        # cacheChipIDList -> [0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1] ChipID
+        # ex: Cache_Controller 0 -> chip 0
+        self.hnf0.cacheChipIDList = cacheChipIDList
+        self.hnf1.cacheChipIDList = cacheChipIDList
+        self.interface0.cacheChipIDList = cacheChipIDList 
+        self.interface1.cacheChipIDList = cacheChipIDList 
+
+        #####################################################
         
         self.ruby_system.network0.connectControllers(
             list(
@@ -364,6 +366,8 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         board: AbstractBoard,
         network,
         cluster_dest,
+        chipID: int,
+        cacheChipIDList,
     ) -> List[DMARequestor]:
         dma_controllers = []
         for i, port in enumerate(board.get_dma_ports()):
@@ -371,6 +375,8 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
                 network,
                 board.get_cache_line_size(),
                 board.get_clock_domain(),
+                chipID=chipID,
+                cacheChipIDList=cacheChipIDList,
             )
             version = len(board.get_processor().get_cores()) + i
             ctrl.sequencer = RubySequencer(version=version, in_ports=port)
