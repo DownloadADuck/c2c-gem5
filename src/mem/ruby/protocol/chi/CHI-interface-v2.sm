@@ -1064,6 +1064,8 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.OriginalRequestor := tbe.originalRequestor;
       out_msg.MessageSize := tbe.messageSize; 
       out_msg.AllowRetry := tbe.allowRetry;
+      out_msg.AccAdrr := tbe.accAddr;
+      out_msg.AccSize := tbe.accSize;
     }
   }
 
