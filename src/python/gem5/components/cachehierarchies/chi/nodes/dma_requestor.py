@@ -33,7 +33,14 @@ from m5.objects import ClockDomain, RubyCache
 
 
 class DMARequestor(AbstractNode):
-    def __init__(self, network, cache_line_size, clk_domain: ClockDomain):
+    def __init__(
+        self, 
+        network, 
+        cache_line_size, 
+        clk_domain: ClockDomain,
+        chipID: int, 
+        cacheChipIDList
+    ):
         super().__init__(network, cache_line_size)
 
         # Dummy cache
@@ -50,6 +57,7 @@ class DMARequestor(AbstractNode):
 
         # Multi-chip parameters
         self.is_multiChip = False
+        cacheChipIDList.append(chipID)
 
         # No cache
         self.allow_SD = False
