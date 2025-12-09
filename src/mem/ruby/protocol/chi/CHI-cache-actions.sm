@@ -56,6 +56,7 @@ action(AllocateTBE_Request, desc="") {
 
   } else {
     // we don't have resources to track this request; enqueue a retry
+    DPRINTF(RubyGenerated, "Warning: AllocateTBE_Request - no TBE slots available");
     peek(reqInPort, CHIRequestMsg) {
       assert(in_msg.allowRetry);
       enqueue(retryTriggerOutPort, RetryTriggerMsg, 0) {
