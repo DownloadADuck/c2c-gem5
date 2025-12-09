@@ -568,6 +568,8 @@ AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
         (*msg).m_OriginalRequestor = (*(pkt->c2c_msg)).m_OriginalRequestor;
         (*msg).m_OriginalResponder = (*(pkt->c2c_msg)).m_OriginalResponder;
         (*msg).m_LocalRequestor = (*(pkt->c2c_msg)).m_LocalRequestor;
+        (*msg).m_AccAddr = (*(pkt->c2c_msg)).m_AccAddr;
+        (*msg).m_AccSize = (*(pkt->c2c_msg)).m_AccSize;
     } else {
         panic("Incorrect packet type received in the c2c_out_port!");
     }
@@ -597,10 +599,11 @@ AbstractController::recvTimingReq(PacketPtr pkt)
         (*msg).m_OriginalRequestor = (*(pkt->c2c_msg)).m_OriginalRequestor;
         (*msg).m_OriginalResponder = (*(pkt->c2c_msg)).m_OriginalResponder;
         (*msg).m_LocalRequestor = (*(pkt->c2c_msg)).m_LocalRequestor;
-        (*msg).m_ReqAck = (*(pkt->c2c_msg)).m_ReqAck;
         (*msg).m_AllowRetry = (*(pkt->c2c_msg)).m_AllowRetry;
-        (*msg).m_Priority = (*(pkt->c2c_msg)).m_Priority;
         (*msg).m_Responder = (*(pkt->c2c_msg)).m_Responder;
+        (*msg).m_AccAddr = (*(pkt->c2c_msg)).m_AccAddr;
+        (*msg).m_AccSize = (*(pkt->c2c_msg)).m_AccSize;
+        (*msg).m_MessageSize = (*(pkt->c2c_msg)).m_MessageSize;
     } else {
         panic("Incorrect packet type received in the c2c_in_port!");
     }

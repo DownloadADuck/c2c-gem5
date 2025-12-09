@@ -1724,10 +1724,6 @@ action(Send_SnpSharedFwd_ToOwner, desc="") {
       }
       out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_owner);
       out_msg.c2c_destination := tbe.mega_dir_owner;
-<<<<<<< HEAD
-      DPRINTF(RubyGenerated, "originalRequestor -> %s\n", tbe.originalRequestor);
-=======
->>>>>>> 5e80c4343e1871d57bb20a84577ca93e9444c105
       out_msg.originalRequestor := tbe.originalRequestor;
       out_msg.retToSrc := retToSrc;
     }
@@ -1919,6 +1915,7 @@ action(ExpectNCBWrData, desc="") {
   tbe.expected_req_resp.setExpectedCount(1);
 
   // Clear the mask bits we expect to receive
+  DPRINTF(RubyGenerated, "accAddr: %s addr: %s accSize: %s\n", tbe.accAddr, tbe.addr, tbe.accSize);
   tbe.dataBlkValid.setMask(addressOffset(tbe.accAddr, tbe.addr), tbe.accSize, false);
 }
 
