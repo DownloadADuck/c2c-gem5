@@ -44,10 +44,11 @@ action(AllocateTBE_Request, desc="") {
   if (storTBEs.areNSlotsAvailable(1)) {
     // reserve a slot for this request
     storTBEs.incrementReserved();
-
+    DPRINTF(RubyGenerated, "Crashes here");
     // Move request to rdy queue
     peek(reqInPort, CHIRequestMsg) {
       enqueue(reqRdyOutPort, CHIRequestMsg, allocation_latency) {
+        DPRINTF(RubyGenerated, "addr: %s", in_msg.addr);
         assert(in_msg.addr == address);
         assert(in_msg.is_local_pf == false);
         out_msg := in_msg;
