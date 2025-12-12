@@ -171,6 +171,8 @@ MegaNetDest::smallestNetDestElement(int chipID) const
 bool
 MegaNetDest::isElement(int chipID, MachineID dest) const 
 {
+    std::cout << "chipID: " << chipID << " machineID: " << dest << std::endl; 
+    std::cout << "MegaNetDest: " << this << std::endl;
     if (m_data[chipID].isElement(dest)){
         return true;
     }
