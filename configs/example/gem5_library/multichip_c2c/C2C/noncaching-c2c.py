@@ -5,13 +5,13 @@ import argparse
 import time 
 
 from gem5.utils.requires import requires
-from gem5.components.boards.x86_c2cv2_board import X86C2cBoard
+from gem5.components.boards.x86_3C_board import X863CBoard
 from gem5.components.memory.multi_channel import DualChannelDDR3_1600_C2C
 from gem5.components.processors.simple_switchable_processor import (
     SimpleSwitchableProcessor,
 )
-from gem5.components.cachehierarchies.chi.c2cv2_cache_hierarchy import (
-    C2cCacheHierarchy,
+from gem5.components.cachehierarchies.chi.ThreeC_cache_hierarchy import (
+    ThreeCCacheHierarchy,
 )
 from gem5.components.processors.cpu_types import CPUTypes
 from gem5.isas import ISA
