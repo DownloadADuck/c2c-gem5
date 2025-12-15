@@ -55,6 +55,16 @@ def DualChannelDDR3_1600_C2C(
     return TwoRangesMemory(DDR3_1600_8x8, 2, 64, size=size, \
         range_size=range_size)
 
+def DualChannelDDR3_1600_3C(
+    size: Optional[str] = None,
+    range_size: Optional[str] = None,
+) -> AbstractMemorySystem:
+    """
+    A dual channel memory system using DDR3_1600_8x8 based DIMM
+    """
+    return ThreeRangesMemory(DDR3_1600_8x8, 2, 64, size=size, \
+        range_size=range_size)
+
 def DualChannelDDR3_2133(
     size: Optional[str] = None,
 ) -> AbstractMemorySystem:

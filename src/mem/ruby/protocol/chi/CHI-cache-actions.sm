@@ -1378,6 +1378,7 @@ action(Send_WriteBackOrWriteEvict, desc="") {
     out_msg.Destination.add(mapAddressToDownstreamMachine(tbe.addr));
     allowRequestRetry(tbe, out_msg);
     // C2c-specific fields
+    DPRINTF(RubyGenerated, "originalRequestor: %s\n", machineID);
     out_msg.originalRequestor := machineID;
   }
   clearExpectedReqResp(tbe);
@@ -2050,12 +2051,12 @@ action(UpdateDirState_FromReqDataResp, desc="") {
         tbe.dir_ownerIsExcl := false;
       } else if (in_msg.type == CHIDataType:CBWrData_UD_PD) {
         if (is_multiChip) {
-          assert(tbe.dir_ownerExists && tbe.dir_ownerIsExcl && (tbe.mega_dir_owner.isElement(mapMachineIDToChipID(in_msg.localRequestor), in_msg.localRequestor)));
-          assert(tbe.mega_dir_sharers.isElement(mapMachineIDToChipID(in_msg.localRequestor), in_msg.localRequestor));
+          assert(tbe.dir_ownerExists && tbe.dir_ownerIsExcl && (tbe.mega_dir_owner.isElement(mapMachineIDToChipID(in_msg.originalResponder), in_msg.originalResponder)));
+          assert(tbe.mega_dir_sharers.isElement(mapMachineIDToChipID(in_msg.originalResponder), in_msg.originalResponder));
           if (tbe.reqType != CHIRequestType:WriteCleanFull) {
             tbe.dir_ownerExists := false;
             tbe.dir_ownerIsExcl := false;
-            tbe.mega_dir_sharers.remove(mapMachineIDToChipID(in_msg.localRequestor), in_msg.localRequestor);
+            tbe.mega_dir_sharers.remove(mapMachineIDToChipID(in_msg.originalResponder), in_msg.originalResponder);
           }
         } else {
           assert(tbe.dir_ownerExists && tbe.dir_ownerIsExcl && (tbe.dir_owner == in_msg.responder));
@@ -3073,6 +3074,7 @@ action(Send_CompDBIDResp, desc="") {
     out_msg.responder := machineID;
     out_msg.Destination.add(tbe.requestor);
     // C2c-specific fields
+    DPRINTF(RubyGenerated, "localRequestor: %s originalRequestor: %s\n", tbe.originalRequestor, machineID);
     out_msg.localRequestor := tbe.originalRequestor; 
     out_msg.originalRequestor := machineID;
   }
