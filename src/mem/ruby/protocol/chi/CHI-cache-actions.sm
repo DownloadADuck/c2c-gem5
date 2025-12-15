@@ -44,11 +44,9 @@ action(AllocateTBE_Request, desc="") {
   if (storTBEs.areNSlotsAvailable(1)) {
     // reserve a slot for this request
     storTBEs.incrementReserved();
-    DPRINTF(RubyGenerated, "Crashes here");
     // Move request to rdy queue
     peek(reqInPort, CHIRequestMsg) {
       enqueue(reqRdyOutPort, CHIRequestMsg, allocation_latency) {
-        DPRINTF(RubyGenerated, "addr: %s", in_msg.addr);
         assert(in_msg.addr == address);
         assert(in_msg.is_local_pf == false);
         out_msg := in_msg;
@@ -1379,6 +1377,8 @@ action(Send_WriteBackOrWriteEvict, desc="") {
     }
     out_msg.Destination.add(mapAddressToDownstreamMachine(tbe.addr));
     allowRequestRetry(tbe, out_msg);
+    // C2c-specific fields
+    out_msg.originalRequestor := machineID;
   }
   clearExpectedReqResp(tbe);
   tbe.expected_req_resp.addExpectedRespType(CHIResponseType:CompDBIDResp);
@@ -1396,6 +1396,8 @@ action(Send_WriteCleanFull, desc="") {
     prepareRequest(tbe, CHIRequestType:WriteCleanFull, out_msg);
     out_msg.Destination.add(mapAddressToDownstreamMachine(tbe.addr));
     allowRequestRetry(tbe, out_msg);
+    // C2c-specific fields
+    out_msg.originalRequestor := machineID;
   }
   clearExpectedReqResp(tbe);
   tbe.expected_req_resp.addExpectedRespType(CHIResponseType:CompDBIDResp);
@@ -1409,6 +1411,8 @@ action(Send_WriteNoSnp, desc="") {
     prepareRequest(tbe, CHIRequestType:WriteNoSnp, out_msg);
     out_msg.Destination.add(mapAddressToDownstreamMachine(tbe.addr));
     allowRequestRetry(tbe, out_msg);
+    // C2c-specific fields
+    out_msg.originalRequestor := machineID;
   }
   // allow to expect this on top of data coming from upstream;
   // so addExpectedCount
@@ -1425,6 +1429,8 @@ action(Send_WriteNoSnp_Partial, desc="") {
     out_msg.accSize := tbe.accSize;
     out_msg.Destination.add(mapAddressToDownstreamMachine(tbe.addr));
     allowRequestRetry(tbe, out_msg);
+    // C2c-specific fields
+    out_msg.originalRequestor := machineID;
   }
   // allow to expect this on top of data coming from upstream;
   // so addExpectedCount
