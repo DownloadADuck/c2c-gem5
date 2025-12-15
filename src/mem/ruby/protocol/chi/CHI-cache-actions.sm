@@ -1339,6 +1339,7 @@ action(Send_Evict, desc="") {
   enqueue(reqOutPort, CHIRequestMsg, request_latency) {
     prepareRequest(tbe, CHIRequestType:Evict, out_msg);
     out_msg.Destination.add(mapAddressToDownstreamMachine(tbe.addr));
+    out_msg.originalRequestor := machineID;
     allowRequestRetry(tbe, out_msg);
   }
   tbe.expected_req_resp.addExpectedRespType(CHIResponseType:Comp_I);
