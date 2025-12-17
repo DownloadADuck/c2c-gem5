@@ -80,8 +80,7 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         self.ruby_system.number_of_virtual_networks = 4
         self.ruby_system.network0.number_of_virtual_networks = 4
         self.ruby_system.network1.number_of_virtual_networks = 4
-
-        # Chip-0
+        self.ruby_system.network2.number_of_virtual_networks = 4
 
         # Create a single HNF per chip
         self.hnf0 = SimpleDirectory(
@@ -100,42 +99,101 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             chipID=1,
             cacheChipIDList=cacheChipIDList,
         )
+        self.hnf2 = SimpleDirectory(
+            self.ruby_system.network2,
+            cache_line_size=board.get_cache_line_size(),
+            clk_domain=board.get_clock_domain(),
+            ranges=[mem_ranges[2]],
+            chipID=2,
+            cacheChipIDList=cacheChipIDList,
+        )
         
         self.hnf0.ruby_system = self.ruby_system
         self.hnf1.ruby_system = self.ruby_system
+        self.hnf2.ruby_system = self.ruby_system
         
         # Add to the RNF destinations
         cluster0_dest.append(self.hnf0)
         cluster1_dest.append(self.hnf1)
+        cluster2_dest.append(self.hnf1)
 
-        # Create one Interface per chip
-        self.interface0 = Interface(
+        # Create one Interface per hop
+        # Chip-0
+        self.interface00 = Interface(
             self.ruby_system.network0,
             cache_line_size=board.get_cache_line_size(),
             clk_domain=board.get_clock_domain(),
-            ranges=[mem_ranges[1]],
+            ranges=[mem_ranges[1]], # to reach chip-1 
             chipID=0,
         )
-        self.interface1 = Interface(
+        self.interface01 = Interface(
+            self.ruby_system.network0,
+            cache_line_size=board.get_cache_line_size(),
+            clk_domain=board.get_clock_domain(),
+            ranges=[mem_ranges[2]], # to reach chip-2
+            chipID=0,
+        )
+        # Chip-1
+        self.interface10 = Interface(
             self.ruby_system.network1,
             cache_line_size=board.get_cache_line_size(),
             clk_domain=board.get_clock_domain(),
-            ranges=[mem_ranges[0]],
+            ranges=[mem_ranges[0]], # to reach chip-0
             chipID=1,
         )
-        self.interface0.ruby_system = self.ruby_system
-        self.interface1.ruby_system = self.ruby_system
+        self.interface11 = Interface(
+            self.ruby_system.network1,
+            cache_line_size=board.get_cache_line_size(),
+            clk_domain=board.get_clock_domain(),
+            ranges=[mem_ranges[2]], # to reach chip-2
+            chipID=1,
+        )
+        # Chip-2
+        self.interface20 = Interface(
+            self.ruby_system.network1,
+            cache_line_size=board.get_cache_line_size(),
+            clk_domain=board.get_clock_domain(),
+            ranges=[mem_ranges[0]], # to reach chip-0
+            chipID=2,
+        )
+        self.interface21 = Interface(
+            self.ruby_system.network1,
+            cache_line_size=board.get_cache_line_size(),
+            clk_domain=board.get_clock_domain(),
+            ranges=[mem_ranges[1]], # to reach chip-2
+            chipID=2,
+        )
 
-        self.interface0.c2c_out_port = self.interface1.c2c_in_port
-        self.interface1.c2c_out_port = self.interface0.c2c_in_port
+
+        self.interface00.ruby_system = self.ruby_system
+        self.interface01.ruby_system = self.ruby_system
+        self.interface10.ruby_system = self.ruby_system
+        self.interface11.ruby_system = self.ruby_system
+        self.interface20.ruby_system = self.ruby_system
+        self.interface21.ruby_system = self.ruby_system
+
+        self.interface00.c2c_out_port = self.interface10.c2c_in_port
+        self.interface01.c2c_out_port = self.interface20.c2c_in_port
+        self.interface10.c2c_out_port = self.interface01.c2c_in_port
+        self.interface11.c2c_out_port = self.interface21.c2c_in_port
+        self.interface20.c2c_out_port = self.interface01.c2c_in_port
+        self.interface21.c2c_out_port = self.interface11.c2c_in_port 
 
         # Downstream destinations
-        self.interface0.downstream_destinations = self.hnf0
-        self.interface1.downstream_destinations = self.hnf1
+        self.interface00.downstream_destinations = self.hnf0
+        self.interface01.downstream_destinations = self.hnf0
+        self.interface10.downstream_destinations = self.hnf1
+        self.interface11.downstream_destinations = self.hnf1
+        self.interface20.downstream_destinations = self.hnf2
+        self.interface21.downstream_destinations = self.hnf2
 
         # Add to the RNF destinations
-        cluster0_dest.append(self.interface0)
-        cluster1_dest.append(self.interface1)
+        cluster0_dest.append(self.interface00)
+        cluster0_dest.append(self.interface01)
+        cluster1_dest.append(self.interface10)
+        cluster1_dest.append(self.interface11)
+        cluster2_dest.append(self.interface20)
+        cluster2_dest.append(self.interface21)
         
         # Create two core cluster with split I/D cache for each core
         self.core_cluster0 = [
@@ -166,6 +224,17 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
                 self.ruby_system.network1,
                 cluster1_dest,
                 chipID=1,
+                cacheChipIDList=cacheChipIDList,
+            )
+        ]
+        self.core_cluster2 = [
+            self._create_core_cluster(
+                (board.get_processor().get_cores())[3],
+                2,
+                board,
+                self.ruby_system.network1,
+                cluster1_dest,
+                chipID=2,
                 cacheChipIDList=cacheChipIDList,
             )
         ]

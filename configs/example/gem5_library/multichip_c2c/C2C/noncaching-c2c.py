@@ -92,7 +92,7 @@ processor = SimpleSwitchableProcessor(
     #starting_core_type=CPUTypes.KVM,
     switch_core_type=CPUTypes.TIMING,
     isa=ISA.X86,
-    num_cores=3,
+    num_cores=4,
 )
 
 # Board setup
