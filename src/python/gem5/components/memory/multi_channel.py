@@ -62,7 +62,7 @@ def DualChannelDDR3_1600_3C(
     """
     A dual channel memory system using DDR3_1600_8x8 based DIMM
     """
-    return ThreeRangesMemory(DDR3_1600_8x8, 2, 64, size=size, \
+    return ThreeRangesMemory(DDR3_1600_8x8, 3, 64, size=size, \
         range_size=range_size)
 
 def DualChannelDDR3_2133(
