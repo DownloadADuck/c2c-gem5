@@ -6,7 +6,7 @@ import time
 
 from gem5.utils.requires import requires
 from gem5.components.boards.x86_3C_board import X863CBoard
-from gem5.components.memory.multi_channel import DualChannelDDR3_1600_C2C
+from gem5.components.memory.multi_channel import DualChannelDDR3_1600_C2C_3C
 from gem5.components.processors.simple_switchable_processor import (
     SimpleSwitchableProcessor,
 )
@@ -83,7 +83,8 @@ cache_hierarchy = C2cCacheHierarchy(
 )
 
 # System memory
-memory = DualChannelDDR3_1600_C2C(size="3GB", range_size="1610612736")
+# 3 DRAMS of 1GB that form the total 3GB
+memory = DualChannelDDR3_1600_C2C(size="3GB", range_size="1073741824")
 
 # Switchable KVM -> timing
 processor = SimpleSwitchableProcessor(
@@ -91,7 +92,7 @@ processor = SimpleSwitchableProcessor(
     #starting_core_type=CPUTypes.KVM,
     switch_core_type=CPUTypes.TIMING,
     isa=ISA.X86,
-    num_cores=3,
+    num_cores=4,
 )
 
 # Board setup

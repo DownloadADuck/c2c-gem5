@@ -433,18 +433,16 @@ class ThreeRangesMemory(AbstractMemorySystem):
                 "RoRaBaChCo, RoRaBaCoCh, RoCoRaBaCh"
             )
 
-        #for i, ctrl in enumerate(self.mem_ctrl):
-        #    ctrl.dram.range = AddrRange(
-        #        start=(self._mem_range.start)+((self._range_size) * i),
-        #        size=self._range_size,
-        #    )
         self.mem_ctrl[0].dram.range = AddrRange(
             start=0,
             size=self._range_size,
         )
         self.mem_ctrl[1].dram.range = AddrRange(
-            #start=self._range_size + 1,
             start=self._range_size,
+            size=self._range_size,
+        )
+        self.mem_ctrl[2].dram.range = AddrRange(
+            start=(self._range_size * 2),
             size=self._range_size,
         )
 
