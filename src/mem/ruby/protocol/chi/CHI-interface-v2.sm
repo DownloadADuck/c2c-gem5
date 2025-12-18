@@ -877,7 +877,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.to_net_req_type := in_msg.Type;
       tbe.requestor := in_msg.Requestor;
       tbe.originalRequestor := in_msg.OriginalRequestor;
-      tbe.localRequestor := in_msg.localRequestor;
+      tbe.localRequestor := in_msg.LocalRequestor;
       tbe.allowRetry := in_msg.AllowRetry;
       tbe.size := in_msg.MessageSize;
       tbe.dataToFwdRequestor := in_msg.DataToFwdRequestor;
