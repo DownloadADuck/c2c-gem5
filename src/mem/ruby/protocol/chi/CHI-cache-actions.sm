@@ -1340,6 +1340,7 @@ action(Send_Evict, desc="") {
     prepareRequest(tbe, CHIRequestType:Evict, out_msg);
     out_msg.Destination.add(mapAddressToDownstreamMachine(tbe.addr));
     out_msg.originalRequestor := machineID;
+    out_msg.localRequestor := machineID;
     allowRequestRetry(tbe, out_msg);
   }
   tbe.expected_req_resp.addExpectedRespType(CHIResponseType:Comp_I);
@@ -3011,6 +3012,7 @@ action(Send_CompI, desc="") {
     out_msg.type := CHIResponseType:Comp_I;
     out_msg.responder := machineID;
     out_msg.Destination.add(tbe.requestor);
+    out_msg.localRequestor := tbe.localRequestor;
   }
 }
 

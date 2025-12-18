@@ -434,6 +434,7 @@ TBE allocateRequestTBE(Addr addr, CHIRequestMsg in_msg), return_by_pointer="yes"
   } else {
     tbe.originalRequestor := machineID;
   }
+  tbe.localRequestor := in_msg.localRequestor;
   tbe.off_chip := in_msg.off_chip;
   tbe.c2cOrig := in_msg.c2cOrig;
 

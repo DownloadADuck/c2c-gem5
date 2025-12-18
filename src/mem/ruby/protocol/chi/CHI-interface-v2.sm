@@ -813,6 +813,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       // Doesn't make sense to keep the fwdRequestor field
       //tbe.fwdRequestor := in_msg.fwdRequestor;
       tbe.originalRequestor := in_msg.requestor;
+      tbe.localRequestor := in_msg.localRequestor;
       tbe.accAddr := in_msg.accAddr;
       tbe.accSize := in_msg.accSize;
       tbe.retToSrc := in_msg.retToSrc;
@@ -876,6 +877,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.to_net_req_type := in_msg.Type;
       tbe.requestor := in_msg.Requestor;
       tbe.originalRequestor := in_msg.OriginalRequestor;
+      tbe.localRequestor := in_msg.localRequestor;
       tbe.allowRetry := in_msg.AllowRetry;
       tbe.size := in_msg.MessageSize;
       tbe.dataToFwdRequestor := in_msg.DataToFwdRequestor;
@@ -955,6 +957,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.type := c2cMsgToCHIReq(tbe.to_net_req_type);
       out_msg.requestor := machineID;
       out_msg.originalRequestor := tbe.originalRequestor;
+      out_msg.localRequestor := tbe.localRequestor;
       out_msg.fwdRequestor := machineID;
       out_msg.dataToFwdRequestor := tbe.dataToFwdRequestor; // TODO: Add to TBE
       out_msg.retToSrc := tbe.retToSrc;
@@ -1062,6 +1065,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.Type := CHIReqToC2cMsg(tbe.to_c2c_req_type);
       out_msg.Sender := tbe.requestor;
       out_msg.OriginalRequestor := tbe.originalRequestor;
+      out_msg.LocalRequestor := tbe.localRequestor;
       out_msg.MessageSize := tbe.messageSize; 
       out_msg.AllowRetry := tbe.allowRetry;
       out_msg.AccAddr := tbe.accAddr;
