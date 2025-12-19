@@ -317,7 +317,8 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
             + self.memory_controllers0
             + [self.hnf0]
             + (self.dma_controllers0 if board.has_dma_ports() else [])
-            + [self.interface0]
+            + [self.interface00]
+            + [self.interface01]
         )
         self.ruby_system.network1.connectControllers(
             list(
@@ -331,7 +332,8 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
             + self.memory_controllers1
             + [self.hnf1]
             #+ (self.dma_controllers1 if board.has_dma_ports() else [])
-            + [self.interface1]
+            + [self.interface10]
+            + [self.interface11]
         )
         self.ruby_system.network2.connectControllers(
             list(
@@ -345,7 +347,8 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
             + self.memory_controllers2
             + [self.hnf2]
             #+ (self.dma_controllers1 if board.has_dma_ports() else [])
-            + [self.interface2]
+            + [self.interface20]
+            + [self.interface21]
         )
          
         self.ruby_system.network0.setup_buffers()
