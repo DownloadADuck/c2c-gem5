@@ -27,6 +27,7 @@
 from .memory import (
     ChanneledMemory,
     TwoRangesMemory,
+    ThreeRangesMemory,
 )
 from .abstract_memory_system import AbstractMemorySystem
 
