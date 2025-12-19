@@ -75,7 +75,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 # Here we setup a MESI Two Level Cache Hierarchy.
-cache_hierarchy = C2cCacheHierarchy(
+cache_hierarchy = ThreeCCacheHierarchy(
     l1_size="64kB",
     l1_assoc=4,
     l2_size="1MB",
@@ -84,7 +84,7 @@ cache_hierarchy = C2cCacheHierarchy(
 
 # System memory
 # 3 DRAMS of 1GB that form the total 3GB
-memory = DualChannelDDR3_1600_C2C(size="3GB", range_size="1073741824")
+memory = DualChannelDDR3_1600_3C(size="3GB", range_size="1073741824")
 
 # Switchable KVM -> timing
 processor = SimpleSwitchableProcessor(
@@ -96,7 +96,7 @@ processor = SimpleSwitchableProcessor(
 )
 
 # Board setup
-board = X86C2cBoard(
+board = X863CBoard(
     clk_freq="3GHz",
     processor=processor,
     memory=memory,
