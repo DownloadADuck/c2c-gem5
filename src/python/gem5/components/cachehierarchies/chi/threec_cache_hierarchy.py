@@ -174,7 +174,7 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
 
         self.interface00.c2c_out_port = self.interface10.c2c_in_port
         self.interface01.c2c_out_port = self.interface20.c2c_in_port
-        self.interface10.c2c_out_port = self.interface01.c2c_in_port
+        self.interface10.c2c_out_port = self.interface00.c2c_in_port
         self.interface11.c2c_out_port = self.interface21.c2c_in_port
         self.interface20.c2c_out_port = self.interface01.c2c_in_port
         self.interface21.c2c_out_port = self.interface11.c2c_in_port 
