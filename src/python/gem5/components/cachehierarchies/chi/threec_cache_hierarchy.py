@@ -296,9 +296,12 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         self.hnf0.cacheChipIDList = cacheChipIDList
         self.hnf1.cacheChipIDList = cacheChipIDList
         self.hnf2.cacheChipIDList = cacheChipIDList
-        self.interface0.cacheChipIDList = cacheChipIDList 
-        self.interface1.cacheChipIDList = cacheChipIDList 
-        self.interface2.cacheChipIDList = cacheChipIDList 
+        self.interface00.cacheChipIDList = cacheChipIDList 
+        self.interface01.cacheChipIDList = cacheChipIDList 
+        self.interface10.cacheChipIDList = cacheChipIDList 
+        self.interface11.cacheChipIDList = cacheChipIDList 
+        self.interface20.cacheChipIDList = cacheChipIDList 
+        self.interface21.cacheChipIDList = cacheChipIDList 
 
         #####################################################
         
