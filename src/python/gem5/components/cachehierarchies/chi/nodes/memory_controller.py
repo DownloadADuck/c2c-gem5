@@ -62,7 +62,6 @@ class MemoryController(Memory_Controller):
         network: RubyNetwork, 
         ranges: List[AddrRange], 
         port: Port,
-        other_net_ptr,
     ):
         super().__init__()
 
@@ -70,7 +69,6 @@ class MemoryController(Memory_Controller):
         self.addr_ranges = ranges
         self.memory_out_port = port
         self.data_channel_size = 32
-        self.other_net_ptr = other_net_ptr
 
         self.connectQueues(network)
 

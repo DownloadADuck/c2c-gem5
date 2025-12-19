@@ -243,7 +243,6 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         self.memory_controllers0 = self._create_memory_controllers(
                 board,
                 self.ruby_system.network0, 
-                self.ruby_system.network1, 
                 rng_idx=0, 
             )
         self.hnf0.downstream_destinations = self.memory_controllers0
@@ -251,10 +250,16 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         self.memory_controllers1 = self._create_memory_controllers(
                 board,
                 self.ruby_system.network1, 
-                self.ruby_system.network0,
                 rng_idx=1, 
             )
         self.hnf1.downstream_destinations = self.memory_controllers1
+        
+        self.memory_controllers2 = self._create_memory_controllers(
+                board,
+                self.ruby_system.network2, 
+                rng_idx=2, 
+            )
+        self.hnf2.downstream_destinations = self.memory_controllers2
 
         # Create the DMA Controllers, if required.
         if board.has_dma_ports():
@@ -276,10 +281,12 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
 
         ############################# C2C SETUP #############
 
-        self.hnf0.c2cHopList = [0]
-        self.hnf0.chipIDList = [1]
-        self.hnf1.c2cHopList = [1]
-        self.hnf1.chipIDList = [0]
+        self.hnf0.c2cHopList = [0,1] # --> C2CI ID
+        self.hnf0.chipIDList = [1,2] # Chip that they service 
+        self.hnf1.c2cHopList = [2,3]
+        self.hnf1.chipIDList = [0,2]
+        self.hnf2.c2cHopList = [4,5]
+        self.hnf2.chipIDList = [0,1]
 
         # Setting up the MachineID -> ChipID LUT
         # Lists are automatically set up
@@ -288,8 +295,10 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         # ex: Cache_Controller 0 -> chip 0
         self.hnf0.cacheChipIDList = cacheChipIDList
         self.hnf1.cacheChipIDList = cacheChipIDList
+        self.hnf2.cacheChipIDList = cacheChipIDList
         self.interface0.cacheChipIDList = cacheChipIDList 
         self.interface1.cacheChipIDList = cacheChipIDList 
+        self.interface2.cacheChipIDList = cacheChipIDList 
 
         #####################################################
         
@@ -321,9 +330,24 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
             #+ (self.dma_controllers1 if board.has_dma_ports() else [])
             + [self.interface1]
         )
+        self.ruby_system.network2.connectControllers(
+            list(
+                chain.from_iterable(
+                    [
+                        (cluster.dcache, cluster.icache, cluster.l2cache)
+                        for cluster in self.core_cluster2
+                    ]
+                )
+            )
+            + self.memory_controllers2
+            + [self.hnf2]
+            #+ (self.dma_controllers1 if board.has_dma_ports() else [])
+            + [self.interface2]
+        )
          
         self.ruby_system.network0.setup_buffers()
         self.ruby_system.network1.setup_buffers()
+        self.ruby_system.network2.setup_buffers()
 
         self.ruby_system.sys_port_proxy = RubyPortProxy()
         board.connect_system_port(self.ruby_system.sys_port_proxy.in_ports)
@@ -420,13 +444,12 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         self, 
         board: AbstractBoard,
         network,
-        network_ptr,
         rng_idx,
     ) -> List[MemoryController]:
         memory_controllers = []
         for idx, (rng, port) in enumerate(board.get_mem_ports()):
             if idx == rng_idx:
-                mc = MemoryController(network, rng, port, network_ptr)
+                mc = MemoryController(network, rng, port)
                 mc.ruby_system = self.ruby_system
                 memory_controllers.append(mc)
         return memory_controllers

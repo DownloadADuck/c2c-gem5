@@ -6,7 +6,7 @@ import time
 
 from gem5.utils.requires import requires
 from gem5.components.boards.x86_3C_board import X863CBoard
-from gem5.components.memory.multi_channel import DualChannelDDR3_1600_C2C_3C
+from gem5.components.memory.multi_channel import DualChannelDDR3_1600_3C
 from gem5.components.processors.simple_switchable_processor import (
     SimpleSwitchableProcessor,
 )
