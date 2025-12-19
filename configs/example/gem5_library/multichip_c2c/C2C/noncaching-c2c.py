@@ -10,7 +10,7 @@ from gem5.components.memory.multi_channel import DualChannelDDR3_1600_3C
 from gem5.components.processors.simple_switchable_processor import (
     SimpleSwitchableProcessor,
 )
-from gem5.components.cachehierarchies.chi.ThreeC_cache_hierarchy import (
+from gem5.components.cachehierarchies.chi.threec_cache_hierarchy import (
     ThreeCCacheHierarchy,
 )
 from gem5.components.processors.cpu_types import CPUTypes

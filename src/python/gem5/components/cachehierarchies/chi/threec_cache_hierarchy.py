@@ -29,7 +29,7 @@ from .nodes.interface import Interface
 
 from m5.objects import NULL, RubySystem, RubySequencer, RubyPortProxy
 
-class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
+class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
     """ Three-Chip coherent chiplet-based architecture
     
     Each chips has two L1s, one shared L2 and one RNF.
