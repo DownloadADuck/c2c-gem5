@@ -368,16 +368,22 @@ RubyPort::MemResponsePort::recvAtomic(PacketPtr pkt)
     // Find the controller for the target address
     MachineID id = ruby_port->m_controller->mapAddressToMachine(
                     pkt->getAddr(), (MachineType)mem_interface_type);
-    std::cout << "controller: " << ruby_port->m_controller << std::endl;
-    std::cout << "id.getNum: " << id.getNum() << std::endl;
-    std::cout << "id.getType: " << id.getType() << std::endl;
-    if (id.getType() == MachineType_Memory && id.getNum() == 2) {
-        if (pkt->getAddr() <= 1610612736) {
-            id.num = 0;
-        } else {
-            id.num = 1;
-        }
-    }    
+
+    if (id.getType() == MachineType_Memory) {
+        uint64_t num_ctrls = MachineType_base_count(MachineType_Memory); // number of ctrls
+        uint64_t total_size = 3ULL * 1024ULL * 1024ULL * 1024ULL; // 3GB
+        uint64_t segment = total_size / num_ctrls;
+
+        uint64_t addr = pkt->getAddr();
+
+        // Find the controller controller ID
+        uint64_t ctrl_id = addr / segment;
+
+        if (ctrl_id >= num_ctrls)
+            ctrl_id = num_ctrls - 1;
+
+        id.num = ctrl_id;
+    }
     
     AbstractController *mem_interface =
         rs->m_abstract_controls[mem_interface_type][id.getNum()];
