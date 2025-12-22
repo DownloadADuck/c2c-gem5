@@ -3141,6 +3141,8 @@ action(Send_RetryAck, desc="") {
       out_msg.type := CHIResponseType:RetryAck;
       out_msg.responder := machineID;
       out_msg.Destination.add(in_msg.retryDest);
+      // C2c-specific fields
+      out_msg.localRequestor := tbe.originalRequestor;
     }
   }
 }
