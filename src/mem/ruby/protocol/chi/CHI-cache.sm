@@ -805,6 +805,8 @@ machine(MachineType:Cache, "Cache coherency protocol") :
     Event event;
     MachineID retryDest;
     bool usesTxnId;
+    // C2C-specific fields
+    MachineID originalRequestor;
 
     bool functionalRead(Packet *pkt) { return false; }
     bool functionalRead(Packet *pkt, WriteMask &mask) { return false; }
