@@ -55,7 +55,6 @@ action(AllocateTBE_Request, desc="") {
 
   } else {
     // we don't have resources to track this request; enqueue a retry
-    DPRINTF(RubyGenerated, "Warning: AllocateTBE_Request - no TBE slots available");
     peek(reqInPort, CHIRequestMsg) {
       assert(in_msg.allowRetry);
       enqueue(retryTriggerOutPort, RetryTriggerMsg, 0) {
@@ -63,6 +62,7 @@ action(AllocateTBE_Request, desc="") {
         out_msg.usesTxnId := false;
         out_msg.event := Event:SendRetryAck;
         out_msg.retryDest := in_msg.requestor;
+        out_msg.originalRequestor := in_msg.originalRequestor;
         retryQueue.emplace(in_msg.addr,false,in_msg.requestor);
       }
     }
@@ -3142,7 +3142,7 @@ action(Send_RetryAck, desc="") {
       out_msg.responder := machineID;
       out_msg.Destination.add(in_msg.retryDest);
       // C2c-specific fields
-      out_msg.localRequestor := tbe.originalRequestor;
+      out_msg.localRequestor := in_msg.originalRequestor;
     }
   }
 }
