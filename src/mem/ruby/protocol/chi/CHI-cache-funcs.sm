@@ -721,6 +721,8 @@ void processRetryQueue() {
       out_msg.usesTxnId := e.usesTxnId;
       out_msg.retryDest := e.retryDest;
       out_msg.event := Event:SendPCrdGrant;
+      //C2c-specific fields
+      out_msg.c2c_retryDest := e.c2c_retryDest;
     }
   }
 }

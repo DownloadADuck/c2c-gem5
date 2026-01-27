@@ -567,9 +567,10 @@ machine(MachineType:Cache, "Cache coherency protocol") :
 
   // Tracks a pending retry
   structure(RetryQueueEntry) {
-    Addr addr,           desc="Line address";
-    bool usesTxnId,      desc="Uses a transaction ID instead of a memory address";
-    MachineID retryDest, desc="Retry destination";
+    Addr addr,                  desc="Line address";
+    bool usesTxnId,             desc="Uses a transaction ID instead of a memory address";
+    MachineID retryDest,        desc="Retry destination";
+    MachineID c2c_retryDest,    desc="off-chip retry restination";
   }
 
   // Queue for event triggers. Used to specify a list of actions that need
@@ -587,7 +588,7 @@ machine(MachineType:Cache, "Cache coherency protocol") :
     void pushFrontNB(Event);
     void pop();
     // For the retry queue
-    void emplace(Addr,bool,MachineID);
+    void emplace(Addr,bool,MachineID,MachineID); // Last MachineID for the C2C destination
     RetryQueueEntry next(); //SLICC won't allow to reuse front()
   }
 
@@ -806,7 +807,7 @@ machine(MachineType:Cache, "Cache coherency protocol") :
     MachineID retryDest;
     bool usesTxnId;
     // C2C-specific fields
-    MachineID originalRequestor;
+    MachineID c2c_retryDest;
 
     bool functionalRead(Packet *pkt) { return false; }
     bool functionalRead(Packet *pkt, WriteMask &mask) { return false; }
