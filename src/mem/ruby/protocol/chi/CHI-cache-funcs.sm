@@ -54,6 +54,7 @@ void unset_tbe();
 MachineID mapAddressToDownstreamMachine(Addr addr);
 MachineID mapAddressToMachine(Addr addr, MachineType mtype);
 int mapMachineIDToChipID(MachineID mach);
+MachineID mapChipIDToC2CI(int ChipID);
 
 void incomingTransactionStart(Addr, Event, State, bool);
 void incomingTransactionEnd(Addr, State);

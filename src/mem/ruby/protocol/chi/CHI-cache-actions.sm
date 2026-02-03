@@ -2802,7 +2802,16 @@ action(Send_CompData_SnpUniqueFwd, desc="") {
   }
   tbe.actions.pushFront(Event:SendSnpFwdedResp);
 
-  tbe.snd_destination := tbe.fwdRequestor;
+  int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
+  if (is_multiChip) {
+    if(mappedChipID == chipID) {
+      tbe.snd_destination := tbe.originalRequestor;
+    } else {
+      tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
+    }
+  } else {
+    tbe.snd_destination := tbe.fwdRequestor;
+  }
   setupPendingSend(tbe);
 }
 
@@ -2824,7 +2833,16 @@ action(Send_CompData_SnpSharedFwd, desc="") {
     tbe.actions.pushFront(Event:SendSnpFwdedResp);
   }
 
-  tbe.snd_destination := tbe.fwdRequestor;
+  int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
+  if (is_multiChip) {
+    if(mappedChipID == chipID) {
+      tbe.snd_destination := tbe.originalRequestor;
+    } else {
+      tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
+    }
+  } else {
+    tbe.snd_destination := tbe.fwdRequestor;
+  }
   setupPendingSend(tbe);
 }
 
@@ -2841,7 +2859,16 @@ action(Send_CompData_SnpNSDFwd, desc="") {
     tbe.actions.pushFront(Event:SendSnpFwdedResp);
   }
 
-  tbe.snd_destination := tbe.fwdRequestor;
+  int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
+  if (is_multiChip) {
+    if(mappedChipID == chipID) {
+      tbe.snd_destination := tbe.originalRequestor;
+    } else {
+      tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
+    }
+  } else {
+    tbe.snd_destination := tbe.fwdRequestor;
+  }
   setupPendingSend(tbe);
 }
 
@@ -2852,7 +2879,16 @@ action(Send_CompData_SnpOnceFwd, desc="") {
   tbe.snd_msgType := CHIDataType:CompData_I;
   tbe.actions.pushFront(Event:SendSnpFwdedResp);
 
-  tbe.snd_destination := tbe.fwdRequestor;
+  int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
+  if (is_multiChip) {
+    if(mappedChipID == chipID) {
+      tbe.snd_destination := tbe.originalRequestor;
+    } else {
+      tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
+    }
+  } else {
+    tbe.snd_destination := tbe.fwdRequestor;
+  }
   setupPendingSend(tbe);
 }
 
@@ -2971,6 +3007,7 @@ action(Send_Data, desc="") {
 
     //C2c-specific fields
     out_msg.originalRequestor := tbe.originalRequestor;
+    DPRINTF(RubyGenerated, "originalRequestor -> %s\n", tbe.originalRequestor);
     out_msg.localRequestor := tbe.localRequestor;
     out_msg.originalResponder := machineID;
   }

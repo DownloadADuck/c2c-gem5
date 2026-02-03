@@ -993,13 +993,14 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.usesTxnId := tbe.usesTxnId;
       out_msg.MessageSize := tbe.MessageSize;
       // Select where the fwded data should be send by the snoopee
-      int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
-      DPRINTF(RubyGenerated, "originalRequestor -> %s\n chipID -> %d\n mappedChipID -> %s\n", tbe.originalRequestor, chipID, mappedChipID);
-      if (mappedChipID != -1 && mappedChipID == chipID) {
-        out_msg.fwdRequestor := tbe.originalRequestor;
-      } else {
-        out_msg.fwdRequestor := machineID;
-      }
+      //int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
+      //DPRINTF(RubyGenerated, "originalRequestor -> %s\n chipID -> %d\n mappedChipID -> %s\n", tbe.originalRequestor, chipID, mappedChipID);
+      //if (mappedChipID != -1 && mappedChipID == chipID) {
+      //  out_msg.fwdRequestor := tbe.originalRequestor;
+      //} else {
+      //  out_msg.fwdRequestor := machineID;
+      //}
+      out_msg.fwdRequestor := tbe.originalRequestor;
       DPRINTF(RubyGenerated, "fwdRequestor -> %s\n", out_msg.fwdRequestor);
     }
  }
