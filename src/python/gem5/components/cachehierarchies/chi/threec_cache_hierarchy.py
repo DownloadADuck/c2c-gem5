@@ -112,11 +112,6 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         self.hnf1.ruby_system = self.ruby_system
         self.hnf2.ruby_system = self.ruby_system
         
-        # Add to the RNF destinations
-        cluster0_dest.append(self.hnf0)
-        cluster1_dest.append(self.hnf1)
-        cluster2_dest.append(self.hnf1)
-
         # Create one Interface per hop
         # Chip-0
         self.interface00 = Interface(
@@ -188,12 +183,18 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         self.interface21.downstream_destinations = self.hnf2
 
         # Add to the RNF destinations
+        ## C2CIs
         cluster0_dest.append(self.interface00)
         cluster0_dest.append(self.interface01)
         cluster1_dest.append(self.interface10)
         cluster1_dest.append(self.interface11)
         cluster2_dest.append(self.interface20)
         cluster2_dest.append(self.interface21)
+        ## HNFs
+        cluster0_dest.append(self.hnf0)
+        cluster1_dest.append(self.hnf1)
+        cluster2_dest.append(self.hnf2)
+
         
         # Create two core cluster with split I/D cache for each core
         self.core_cluster0 = [
@@ -232,8 +233,8 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
                 (board.get_processor().get_cores())[3],
                 2,
                 board,
-                self.ruby_system.network1,
-                cluster1_dest,
+                self.ruby_system.network2,
+                cluster2_dest,
                 chipID=2,
                 cacheChipIDList=cacheChipIDList,
             )
@@ -288,6 +289,17 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         self.hnf2.c2cHopList = [4,5]
         self.hnf2.chipIDList = [0,1]
 
+        self.core_cluster0[0].l2cache.c2cHopList = [0,1]
+        self.core_cluster0[0].l2cache.chipIDList = [1,2]
+        self.core_cluster0[1].l2cache.c2cHopList = [0,1]
+        self.core_cluster0[1].l2cache.chipIDList = [1,2]
+
+        self.core_cluster1[0].l2cache.c2cHopList = [2,3]
+        self.core_cluster1[0].l2cache.chipIDList = [0,2]
+
+        self.core_cluster2[0].l2cache.c2cHopList = [4,5]
+        self.core_cluster2[0].l2cache.chipIDList = [0,1]
+
         # Setting up the MachineID -> ChipID LUT
         # Lists are automatically set up
         # Position in the vector is the version number of the controller
@@ -302,6 +314,10 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         self.interface11.cacheChipIDList = cacheChipIDList 
         self.interface20.cacheChipIDList = cacheChipIDList 
         self.interface21.cacheChipIDList = cacheChipIDList 
+        self.core_cluster0[0].l2cache.cacheChipIDList = cacheChipIDList
+        self.core_cluster0[1].l2cache.cacheChipIDList = cacheChipIDList
+        self.core_cluster1[0].l2cache.cacheChipIDList = cacheChipIDList
+        self.core_cluster2[0].l2cache.cacheChipIDList = cacheChipIDList
 
         #####################################################
         

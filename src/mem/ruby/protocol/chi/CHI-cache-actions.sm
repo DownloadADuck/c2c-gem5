@@ -2834,15 +2834,17 @@ action(Send_CompData_SnpSharedFwd, desc="") {
   }
 
   int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
-  if (is_multiChip) {
-    if(mappedChipID == chipID) {
-      tbe.snd_destination := tbe.originalRequestor;
-    } else {
-      tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
-    }
+  DPRINTF(RubyGenerated, "mappedChipID -> %d\n", mappedChipID);
+  DPRINTF(RubyGenerated, "chipID -> %d\n", chipID);
+  DPRINTF(RubyGenerated, "originalRequestor -> %s\n", tbe.originalRequestor);
+  if(mappedChipID == chipID) {
+    tbe.snd_destination := tbe.originalRequestor;
   } else {
-    tbe.snd_destination := tbe.fwdRequestor;
+    tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
   }
+  //tbe.snd_destination := tbe.fwdRequestor;
+
+  DPRINTF(RubyGenerated, "SendDestination -> %s\n", tbe.snd_destination);
   setupPendingSend(tbe);
 }
 
