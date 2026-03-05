@@ -2803,15 +2803,12 @@ action(Send_CompData_SnpUniqueFwd, desc="") {
   tbe.actions.pushFront(Event:SendSnpFwdedResp);
 
   int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
-  if (is_multiChip) {
-    if(mappedChipID == chipID) {
-      tbe.snd_destination := tbe.originalRequestor;
-    } else {
-      tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
-    }
+  if(mappedChipID == chipID) {
+    tbe.snd_destination := tbe.originalRequestor;
   } else {
-    tbe.snd_destination := tbe.fwdRequestor;
+    tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
   }
+
   setupPendingSend(tbe);
 }
 
@@ -2862,14 +2859,10 @@ action(Send_CompData_SnpNSDFwd, desc="") {
   }
 
   int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
-  if (is_multiChip) {
-    if(mappedChipID == chipID) {
-      tbe.snd_destination := tbe.originalRequestor;
-    } else {
-      tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
-    }
+  if(mappedChipID == chipID) {
+    tbe.snd_destination := tbe.originalRequestor;
   } else {
-    tbe.snd_destination := tbe.fwdRequestor;
+    tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
   }
   setupPendingSend(tbe);
 }
@@ -2882,15 +2875,12 @@ action(Send_CompData_SnpOnceFwd, desc="") {
   tbe.actions.pushFront(Event:SendSnpFwdedResp);
 
   int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
-  if (is_multiChip) {
-    if(mappedChipID == chipID) {
-      tbe.snd_destination := tbe.originalRequestor;
-    } else {
-      tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
-    }
+  if(mappedChipID == chipID) {
+    tbe.snd_destination := tbe.originalRequestor;
   } else {
-    tbe.snd_destination := tbe.fwdRequestor;
+    tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
   }
+
   setupPendingSend(tbe);
 }
 
