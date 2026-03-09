@@ -40,6 +40,10 @@
 
 Import('*')
 
+#nuevos componentes 
+SimObject('c2c_interposer.py', sim_objects=['C2CInterposer'])
+Source('c2c_interposer.cc')
+#fin nuevos componentes 
 SimObject('CommMonitor.py', sim_objects=['CommMonitor'])
 Source('comm_monitor.cc')
 
