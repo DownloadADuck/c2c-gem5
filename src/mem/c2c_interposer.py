@@ -13,7 +13,8 @@ from m5.SimObject import SimObject
 
 #Defino la clase "C2CInterposer" y hacemos que herede de la clase 
 #"SimObject". Como mencioné, esto es necesario para que gem5 pueda 
-#tratar a esto como un objeto configurable
+#tratar a esto como un objeto configurable. Entonces va a ser un 
+#objeto configurable de gem5 que va a exponer sus puertos
 class C2CInterposer(SimObject):
 
     #"type" es un identificador interno que utiliza gem5 para enlazar 
@@ -38,17 +39,37 @@ class C2CInterposer(SimObject):
     #clase de c++ (aqui ponemos un ruta relativa a src/)
     cxx_header = "mem/c2c_interposer.hh"
 
-    #definimos los parámetros configurables del componente
-    #La sintaxis general es: 
-    #nombre = Param.Tipo(valor_por_defecto, "descripción")
+    #Se exponen los puertos del Interposer desde python 
 
-    #Se define el parámetro "Latency".
-    #Utilizamos la clase Param y el tipo Cycles. Cuando se compile esta línea
-    #el "build system" va a generar un fichero de cabecera .hh con un struct donde 
-    #se encuentren los valores de estos parámetros, es decir, esto sirve para generar 
-    #automáticamente código c++.
-    #En este caso, si en nuestro fichero de configuración de python no inicializamos 
-    #el objeto al instanciarlo "interposer = C2CInterposer()" se usará el valor por defecto
-    #de 1.
-    #el segundo parámetro (el de la descripción), lo podemos consultar con --help en configuraciones
-    latency = Param.Cycles(1, "Latency of the interposer")
+    #--------------------------------------------------------
+    #puertos interfaz0
+
+    # Declaro un ResponsePort que recibirá Request de la 
+    # interface0 (ya que interface0.c2c_out_port es un ResponsePort) y 
+    #que las enviará al otro lado
+    from_interface0_port = ResponsePort(
+        "ResponsePort facing interface0.c2c_out_port"
+    )
+
+    # Declaro un RequestPort que reenviará Request de la 
+    # interface1 al otro lado, ósea al de inferface0 es por queso que 
+    # se conecta al puerto interface0.c2c_in_port
+    to_interface0_port = RequestPort(
+        "RequestPort facing interface0.c2c_in_port"
+    )
+    #--------------------------------------------------------
+    #puertos interfaz 1
+
+    # Declaro un ResponsePort que recibirá Request de la 
+    # interface1 (ya que interface1.c2c_out_port es un ResponsePort) y 
+    #que las enviará al otro lado
+    from_interface1_port = ResponsePort(
+        "ResponsePort facing interface1.c2c_out_port"
+    )
+
+    # Declaro un RequestPort que reenviará Request de la 
+    # interface0 al otro lado, ósea al de inferface1 es por queso que 
+    # se conecta al puerto interface0.c2c_in_port
+    to_interface1_port = RequestPort(
+        "RequestPort facing interface1.c2c_in_port"
+    )

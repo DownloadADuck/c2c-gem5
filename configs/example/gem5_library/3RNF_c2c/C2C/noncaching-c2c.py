@@ -74,6 +74,9 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
+#imprimo checkpoints para ver el avance
+print("Checkpoint 1: args parsed", flush=True)
+
 # Here we setup a MESI Two Level Cache Hierarchy.
 cache_hierarchy = C2cCacheHierarchy(
     l1_size="64kB",
@@ -81,9 +84,12 @@ cache_hierarchy = C2cCacheHierarchy(
     l2_size="1MB",
     l2_assoc=8,
 )
+print("Checkpoint 2: cache hierarchy created", flush=True)
 
 # System memory
 memory = DualChannelDDR3_1600_C2C(size="3GB", range_size="1610612736")
+
+print("Checkpoint 3: memory created", flush=True)
 
 # Switchable KVM -> timing
 processor = SimpleSwitchableProcessor(
@@ -94,6 +100,8 @@ processor = SimpleSwitchableProcessor(
     num_cores=3,
 )
 
+print("Checkpoint 4: processor created", flush=True)
+
 # Board setup
 board = X86C2cBoard(
     clk_freq="3GHz",
@@ -101,6 +109,7 @@ board = X86C2cBoard(
     memory=memory,
     cache_hierarchy=cache_hierarchy,
 )
+print("Checkpoint 5: board created", flush=True)
 
 # Full System workload setup
 # The X86Board takes a kernel, a disk image and an optional command to run
@@ -119,15 +128,22 @@ command = (
 #workload.set_parameter("readfile_contents", command)
 #board.set_workload(workload)
 
-# Custom disk image setup 
+print("Checkpoint 5a: before kernel resource", flush=True)
+kernel_res = Resource("x86-linux-kernel-5.4.49")
+print("Checkpoint 5b: kernel resource created", flush=True)
+
+print("Checkpoint 5c: before disk resource", flush=True)
+disk_res = Resource("x86-parsec")
+print("Checkpoint 5d: disk resource created", flush=True)
+
+print("Checkpoint 5e: before set_kernel_disk_workload", flush=True)
 board.set_kernel_disk_workload(
-    kernel = Resource("x86-linux-kernel-5.4.49"),
-    #disk_image = CustomDiskImageResource(
-    #    "/home/lbertranalvarez/Work/disk-image/images/x86-ubuntu-18.04-img"
-    #),
-    disk_image = Resource("x86-parsec"),
+    kernel=kernel_res,
+    disk_image=disk_res,
     readfile_contents=command,
 )
+
+print("Checkpoint 6: workload set", flush=True)
 
 # Custom exit events
 def handle_workbegin():
@@ -156,10 +172,12 @@ simulator = Simulator(
     },
 )
 
+print("Checkpoint 7: simulator created", flush=True)
+
 # Wall clock time
 globalStart = time.time()
 
-print("Running the simulation")
+print("Running the simulation", flush=True)
 print("Using KVM cpu")
 
 m5.stats.reset()
