@@ -11,11 +11,13 @@ from m5.params import *
 # sistema de configuración y generación de parámetros 
 from m5.SimObject import SimObject
 
+from m5.objects.ClockedObject import ClockedObject
+
 #Defino la clase "C2CInterposer" y hacemos que herede de la clase 
 #"SimObject". Como mencioné, esto es necesario para que gem5 pueda 
 #tratar a esto como un objeto configurable. Entonces va a ser un 
 #objeto configurable de gem5 que va a exponer sus puertos
-class C2CInterposer(SimObject):
+class C2CInterposer(ClockedObject):
 
     #"type" es un identificador interno que utiliza gem5 para enlazar 
     # o relacionar esta clase de Python con el fichero de cabecera de c++ 
@@ -73,3 +75,6 @@ class C2CInterposer(SimObject):
     to_interface1_port = RequestPort(
         "RequestPort facing interface1.c2c_in_port"
     )
+
+    req_latency = Param.Cycles(1, "Latency applied to timing requests")
+    resp_latency = Param.Cycles(1, "Latency applied to timing responses")

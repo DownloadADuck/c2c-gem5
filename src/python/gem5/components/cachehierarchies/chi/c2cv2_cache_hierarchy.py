@@ -134,7 +134,11 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
 
         #instancia el interposer
         print(">>> antes de crear C2CInterposer", flush=True)
-        self.c2c_interposer = C2CInterposer()
+        self.c2c_interposer = C2CInterposer(
+            clk_domain = board.get_clock_domain(),
+            req_latency = 5,
+            resp_latency = 7,
+        )
         print(">>> despues de crear C2CInterposer", flush=True)
 
         print(">>> antes de conectar los puertos del interposer", flush=True)

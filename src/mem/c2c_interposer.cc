@@ -159,7 +159,9 @@ de creación del SimObject en python hubieramos definido parámetros,
 esto se recibirían en &params, en este caso no se ha hecho pero igual se
 pone */
 C2CInterposer::C2CInterposer(const C2CInterposerParams &params)
-    : SimObject(params) /*Se usa la lista de inicialización 
+    : ClockedObject(params),
+    reqLatency(params.req_latency),
+    respLatency(params.resp_latency) /*Se usa la lista de inicialización 
     para construir el objeto base SimbOject y luego dentro de las 
     llaves "{}" se ejecuta el código del constructor 
     de C2CInterposer para crear dinámicamente 4 objetos que van a ser 
@@ -229,19 +231,31 @@ Port & C2CInterposer::getPort(const std::string &if_name, PortID idx)
     base ya tiene una implementación de ese método!!! pero nosotros 
     hicimos un override de ese método en C2CInterposer, pero al hacer esto 
     llamamos al método "original" que puede tener otros puertos definidos*/
-    return SimObject::getPort(if_name, idx);
+    return ClockedObject::getPort(if_name, idx);
 }
 
 /*-----------------------------------------------------------*/
-//                 Lógica de reenvío de Request (bridge de Request)               
+//                 Lógica de reenvío de Request (bridge de Request)    
+//                  cualquier duda de esta zona, ver apuntes sobre la latencia           
 /*------------------------------------------------------------*/
 
 /*Si llega una request desde la interfaz 0 lo reenvío a la 1 inmediatamente*/
 bool C2CInterposer::recvReqFromInterface0(PacketPtr pkt)
 {
     // Interfaz0 -> Interfaz1
+
+    /*Se coge el número de ciclos del reloj del interposer y lo convierte al número equivalente de ticks absolutos del simulador, para ello usa el "clk_domain" del ClockObject, 
+    Que en nuestro caso es el interposer*/
+    Tick delay = cyclesToTicks(reqLatency);
+    /*Agrega ese delay (ya convertido de ciclos a ticks) al delay del paquete*/
+    pkt->headerDelay += delay;
+
     std::cout << "[Interposer] REQ 0->1 addr=0x"
-              << std::hex << pkt->getAddr() << std::dec << "\n";
+              << std::hex << pkt->getAddr()
+              << std::dec << " add_delay=" << delay << "\n";
+
+
+    /*Imprimo solo el delay agregado, no el delay total */
     return toInterface1Port->sendTimingReq(pkt);
 }
 
@@ -249,22 +263,42 @@ bool C2CInterposer::recvReqFromInterface0(PacketPtr pkt)
 bool C2CInterposer::recvReqFromInterface1(PacketPtr pkt)
 {
     // Interfaz1 -> Interfaz0
+
+    /*Se coge el número de ciclos del reloj del interposer y lo convierte al número equivalente de ticks absolutos del simulador, para ello usa el "clk_domain" del ClockObject, 
+    Que en nuestro caso es el interposer*/
+    Tick delay = cyclesToTicks(reqLatency);
+    /*Agrega ese delay (ya convertido de ciclos a ticks) al delay del paquete*/
+    pkt->headerDelay += delay;
+
     std::cout << "[Interposer] REQ 1->0 addr=0x"
-              << std::hex << pkt->getAddr() << std::dec << "\n";
+              << std::hex << pkt->getAddr()
+              << std::dec << " add_delay=" << delay << "\n";
+
+    /*Imprimo solo el delay agregado, no el delay total */
     return toInterface0Port->sendTimingReq(pkt);
-    //panic("Interposer hit on path 1->0");
 }
 
 /*-----------------------------------------------------------*/
-//              Lógica de reenvío de Response (bridge de Response)             
+//              Lógica de reenvío de Response (bridge de Response)   
+//              cualquier duda de esta zona, ver apuntes sobre la latencia             
 /*-----------------------------------------------------------*/
 
 /*Si llega una Response desde la interfaz 0 lo reenvío a la 1 inmediatamente*/
 bool C2CInterposer::recvRespFromInterface0(PacketPtr pkt)
 {
     // Respuesta que vuelve desde Interface0 hacia Interfaz1
+
+    /*Se coge el número de ciclos del reloj del interposer y lo convierte al número equivalente de ticks absolutos del simulador, para ello usa el "clk_domain" del ClockObject, 
+    Que en nuestro caso es el interposer*/
+    Tick delay = cyclesToTicks(respLatency);
+    /*Agrega ese delay (ya convertido de ciclos a ticks) al delay del paquete*/
+    pkt->headerDelay += delay;
+
+    /*Imprimo solo el delay agregado, no el delay total */
     std::cout << "[Interposer] RESP 0->1 addr=0x"
-              << std::hex << pkt->getAddr() << std::dec << "\n";
+              << std::hex << pkt->getAddr()
+              << std::dec << " add_delay=" << delay << "\n";
+
     return fromInterface1Port->sendTimingResp(pkt);
 }
 
@@ -272,8 +306,18 @@ bool C2CInterposer::recvRespFromInterface0(PacketPtr pkt)
 bool C2CInterposer::recvRespFromInterface1(PacketPtr pkt)
 {
     // Respuesta que vuelve desde Interface1 hacia Interfaz0
+
+    /*Se coge el número de ciclos del reloj del interposer y lo convierte al número equivalente de ticks absolutos del simulador, para ello usa el "clk_domain" del ClockObject, 
+    Que en nuestro caso es el interposer*/
+   Tick delay = cyclesToTicks(respLatency);
+   /*Agrega ese delay (ya convertido de ciclos a ticks) al delay del paquete*/
+    pkt->headerDelay += delay;
+
+    /*Imprimo solo el delay agregado, no el delay total */
     std::cout << "[Interposer] RESP 1->0 addr=0x"
-              << std::hex << pkt->getAddr() << std::dec << "\n";
+              << std::hex << pkt->getAddr()
+              << std::dec << " add_delay=" << delay << "\n";
+
     return fromInterface0Port->sendTimingResp(pkt);
 }
 

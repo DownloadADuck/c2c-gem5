@@ -14,11 +14,13 @@ using namespace std;
 //así evitamos usar std::string y solo hacemos string
 #include <string>
 
+#include "sim/clocked_object.hh"
+
 //el namespace debe ser el mismo que utilizé al definir el componente en el .py "cxx_class = "gem5::C2CInterposer""
 namespace gem5 {
 
 /*Pongo la definición de la clase y pongo que hereda de SimbObject*/
-class C2CInterposer : public SimObject
+class C2CInterposer : public ClockedObject
 {
     //atributos privados de la clase, aqui se guarda el parametro enviado desde python
   private:
@@ -123,7 +125,8 @@ class C2CInterposer : public SimObject
     Tick recvAtomicFromInterface0(PacketPtr pkt);
     Tick recvAtomicFromInterface1(PacketPtr pkt);
 
-    
+    const Cycles reqLatency;
+    const Cycles respLatency;
 
   public:
     //declaro el constructor de la clase, el cual implemento en el .cc
