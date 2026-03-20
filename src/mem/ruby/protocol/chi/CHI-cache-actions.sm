@@ -2874,6 +2874,7 @@ action(Send_CompData_SnpOnceFwd, desc="") {
   tbe.snd_msgType := CHIDataType:CompData_I;
   tbe.actions.pushFront(Event:SendSnpFwdedResp);
 
+  DPRINTF(RubyGenerated, "originalRequestor -> %s\n", tbe.originalRequestor);
   int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
   if(mappedChipID == chipID) {
     tbe.snd_destination := tbe.originalRequestor;
