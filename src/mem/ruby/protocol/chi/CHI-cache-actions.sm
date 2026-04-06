@@ -63,6 +63,7 @@ action(AllocateTBE_Request, desc="") {
         out_msg.event := Event:SendRetryAck;
         out_msg.retryDest := in_msg.requestor;
         out_msg.c2c_retryDest := in_msg.originalRequestor;
+        DPRINTF(RubyGenerated, "emplace in_msg.originalRequestor -> %s\n", in_msg.originalRequestor);
         retryQueue.emplace(in_msg.addr,false,in_msg.requestor,in_msg.originalRequestor);
       }
     }
@@ -3186,7 +3187,8 @@ action(Send_PCrdGrant, desc="") {
       out_msg.responder := machineID;
       out_msg.Destination.add(in_msg.retryDest);
       // C2c-specific fields
-      out_msg.localRequestor := in_msg.c2c_retryDest;
+      out_msg.localRequestor := in_msg.c2c_retryDest; 
+      DPRINTF(RubyGenerated, "localRequestor (c2c_retryDest) -> %s\n", out_msg.localRequestor);
     }
   }
 }
