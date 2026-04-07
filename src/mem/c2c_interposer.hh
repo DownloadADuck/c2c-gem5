@@ -16,6 +16,9 @@ using namespace std;
 
 #include "sim/clocked_object.hh"
 
+#include <deque>
+#include "sim/eventq.hh"
+
 //el namespace debe ser el mismo que utilizé al definir el componente en el .py "cxx_class = "gem5::C2CInterposer""
 namespace gem5 {
 
@@ -125,8 +128,48 @@ class C2CInterposer : public ClockedObject
     Tick recvAtomicFromInterface0(PacketPtr pkt);
     Tick recvAtomicFromInterface1(PacketPtr pkt);
 
+    //latencias 
     const Cycles reqLatency;
     const Cycles respLatency;
+
+     // Tamaños máximos de buffer abstracto
+    const unsigned reqBufferSize;
+    const unsigned respBufferSize;
+
+    // Ocupación actual por dirección/tipo
+    unsigned occReq0to1 = 0;
+    unsigned occReq1to0 = 0;
+    unsigned occResp0to1 = 0;
+    unsigned occResp1to0 = 0;
+
+    // Flags: hubo un bloqueo por "buffer lleno"
+    bool bufBlockedReq0to1 = false;
+    bool bufBlockedReq1to0 = false;
+    bool bufBlockedResp0to1 = false;
+    bool bufBlockedResp1to0 = false;
+
+    // Ticks futuros de liberación de slots
+    std::deque<Tick> relReq0to1;
+    std::deque<Tick> relReq1to0;
+    std::deque<Tick> relResp0to1;
+    std::deque<Tick> relResp1to0;
+
+    // Eventos de liberación
+    EventFunctionWrapper releaseReq0to1Event;
+    EventFunctionWrapper releaseReq1to0Event;
+    EventFunctionWrapper releaseResp0to1Event;
+    EventFunctionWrapper releaseResp1to0Event;
+
+    // Helpers para programar y ejecutar liberaciones
+    void schedReleaseReq0to1();
+    void schedReleaseReq1to0();
+    void schedReleaseResp0to1();
+    void schedReleaseResp1to0();
+
+    void releaseReq0to1();
+    void releaseReq1to0();
+    void releaseResp0to1();
+    void releaseResp1to0();
 
   public:
     //declaro el constructor de la clase, el cual implemento en el .cc

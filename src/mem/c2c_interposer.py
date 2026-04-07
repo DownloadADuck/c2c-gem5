@@ -78,3 +78,7 @@ class C2CInterposer(ClockedObject):
 
     req_latency = Param.Cycles(1, "Latency applied to timing requests")
     resp_latency = Param.Cycles(1, "Latency applied to timing responses")
+
+     # Nuevos parámetros de capacidad abstracta
+    req_buffer_size = Param.Unsigned(1, "Abstract request buffer capacity per direction")
+    resp_buffer_size = Param.Unsigned(1, "Abstract response buffer capacity per direction")

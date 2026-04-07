@@ -137,7 +137,9 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         self.c2c_interposer = C2CInterposer(
             clk_domain = board.get_clock_domain(),
             req_latency = 5,
-            resp_latency = 7,
+            resp_latency = 5,
+            req_buffer_size = 2,
+            resp_buffer_size = 2,
         )
         print(">>> despues de crear C2CInterposer", flush=True)
 

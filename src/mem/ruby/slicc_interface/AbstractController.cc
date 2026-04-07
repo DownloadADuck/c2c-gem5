@@ -65,6 +65,9 @@ AbstractController::AbstractController(const Params &p)
       m_buffer_size(p.buffer_size), m_recycle_latency(p.recycle_latency),
       m_mandatory_queue_latency(p.mandatory_queue_latency),
       m_waiting_mem_retry(false),
+      //flag de retrys de request y responses
+      m_waiting_c2c_req_retry(false),
+      m_waiting_c2c_resp_retry(false),
       memoryPort(csprintf("%s.memory", name()), this),
       c2cOutPort(csprintf("%s.C2cOut", name()), this),
       c2cInPort(csprintf("%s.C2cIn", name()), this),
@@ -348,7 +351,7 @@ AbstractController::serviceReqToC2cQueue()
 {
     auto mem_queue = getReqToC2cQueue();
     assert(mem_queue);
-    if (m_waiting_mem_retry || !mem_queue->isReady(clockEdge())) {
+    if (m_waiting_c2c_req_retry || !mem_queue->isReady(clockEdge())) {
         return false;
     }
 
@@ -384,7 +387,7 @@ AbstractController::serviceReqToC2cQueue()
         scheduleEvent(Cycles(1));
     } else {
         scheduleEvent(Cycles(1));
-        m_waiting_mem_retry = true;
+        m_waiting_c2c_req_retry = true;
         delete pkt;
         delete s;
     }
@@ -399,7 +402,7 @@ AbstractController::serviceRespToC2cQueue()
     auto resp_queue = getRespToC2cQueue();
     assert(resp_queue);
 
-    if (m_waiting_mem_retry || !resp_queue->isReady(clockEdge())) {
+    if (m_waiting_c2c_resp_retry || !resp_queue->isReady(clockEdge())) {
         return false;
     }
 
@@ -437,9 +440,10 @@ AbstractController::serviceRespToC2cQueue()
         // to make more progress. Make sure it wakes up
         scheduleEvent(Cycles(1));
     } else {
-        panic("AbstractController sendTimingResp failed.");
+        //panic("AbstractController sendTimingResp failed.");
+        // Antes había panic aquí; ahora se espera retry
         scheduleEvent(Cycles(1));
-        m_waiting_mem_retry = true;
+        m_waiting_c2c_resp_retry = true;
         delete pkt;
         delete s;
     }
@@ -733,7 +737,7 @@ AbstractController::C2cOutPort::recvTimingResp(PacketPtr pkt)
 void
 AbstractController::C2cOutPort::recvReqRetry()
 {
-    controller->m_waiting_mem_retry = false;
+    controller->m_waiting_c2c_req_retry = false;
     controller->serviceReqToC2cQueue();
 }
 
@@ -776,7 +780,8 @@ AbstractController::C2cInPort::C2cInPort(const std::string &_name,
 void
 AbstractController::C2cInPort::recvRespRetry()
 {
-    // Not implemented yet
+    controller->m_waiting_c2c_resp_retry = false;
+    controller->serviceRespToC2cQueue();
 }
 
 AbstractController::

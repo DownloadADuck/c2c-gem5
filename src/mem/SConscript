@@ -128,6 +128,8 @@ SimObject('MemChecker.py', sim_objects=['MemChecker', 'MemCheckerMonitor'])
 Source('mem_checker.cc')
 Source('mem_checker_monitor.cc')
 
+#debug flags nuevas 
+DebugFlag('C2CInterposer')
 DebugFlag('AddrRanges')
 DebugFlag('BaseXBar')
 DebugFlag('CoherentXBar')

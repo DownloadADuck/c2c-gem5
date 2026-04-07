@@ -4,6 +4,9 @@
 #include "base/logging.hh"
 #include "base/trace.hh"
 
+#include <sstream>
+#include "debug/C2CInterposer.hh"
+
 /*Vamos a realizar 2 cosas
 1. Definir un constructor
 2. Definir una lista de inicialización ( : ... , ...) que es una forma 
@@ -12,6 +15,31 @@ de realizar la asignación/incialización de variables de una clase den c++*/
 //usamos el namespace de gem5 (debe coincidir con el que usamos 
 //en python: cxx_class = "gem5::C2CInterposer")
 namespace gem5 {
+
+static std::string
+pktToString(PacketPtr pkt)
+{
+    if (!pkt) {
+        return "pkt=null";
+    }
+
+    std::ostringstream oss;
+
+    oss << "pkt=" << pkt
+        << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+        << " cmd=" << pkt->cmdString()
+        << " size=" << pkt->getSize()
+        << " isReq=" << pkt->isRequest()
+        << " isResp=" << pkt->isResponse()
+        << " needsResp=" << pkt->needsResponse()
+        << " cacheResp=" << pkt->cacheResponding()
+        << " hasData=" << pkt->hasData()
+        << " headerDelay=" << pkt->headerDelay
+        << " payloadDelay=" << pkt->payloadDelay
+        << " req=" << pkt->req;
+
+    return oss.str();
+}
 
 /*Usamos el operador de resolución de ámbito "::" en "C2CInterposer::FromInterfacePort(...)"
 para indicar que vamos a acceder a la clase privada que está dentro de C2CInterposer y luego
@@ -160,8 +188,18 @@ esto se recibirían en &params, en este caso no se ha hecho pero igual se
 pone */
 C2CInterposer::C2CInterposer(const C2CInterposerParams &params)
     : ClockedObject(params),
-    reqLatency(params.req_latency),
-    respLatency(params.resp_latency) /*Se usa la lista de inicialización 
+      toInterface0Port(nullptr),
+      fromInterface0Port(nullptr),
+      toInterface1Port(nullptr),
+      fromInterface1Port(nullptr),
+      reqLatency(params.req_latency),
+      respLatency(params.resp_latency),
+      reqBufferSize(params.req_buffer_size),
+      respBufferSize(params.resp_buffer_size),
+      releaseReq0to1Event([this] { releaseReq0to1(); }, name() + ".releaseReq0to1"),
+      releaseReq1to0Event([this] { releaseReq1to0(); }, name() + ".releaseReq1to0"),
+      releaseResp0to1Event([this] { releaseResp0to1(); }, name() + ".releaseResp0to1"),
+      releaseResp1to0Event([this] { releaseResp1to0(); }, name() + ".releaseResp1to0") /*Se usa la lista de inicialización 
     para construir el objeto base SimbOject y luego dentro de las 
     llaves "{}" se ejecuta el código del constructor 
     de C2CInterposer para crear dinámicamente 4 objetos que van a ser 
@@ -244,19 +282,43 @@ bool C2CInterposer::recvReqFromInterface0(PacketPtr pkt)
 {
     // Interfaz0 -> Interfaz1
 
-    /*Se coge el número de ciclos del reloj del interposer y lo convierte al número equivalente de ticks absolutos del simulador, para ello usa el "clk_domain" del ClockObject, 
-    Que en nuestro caso es el interposer*/
     Tick delay = cyclesToTicks(reqLatency);
-    /*Agrega ese delay (ya convertido de ciclos a ticks) al delay del paquete*/
+
+    // 1) Comprobamos capacidad abstracta
+    if (occReq0to1 >= reqBufferSize) {
+        bufBlockedReq0to1 = true;
+        std::cout << "[Interposer] REQ 0->1 BUFFER FULL addr=0x"
+                  << std::hex << pkt->getAddr()
+                  << std::dec << " occ=" << occReq0to1
+                  << "/" << reqBufferSize << "\n";
+        return false;
+    }
+
+    // 2) Añadimos delay al paquete
+    Tick old_header = pkt->headerDelay;
     pkt->headerDelay += delay;
+
+    // 3) Reenvío inmediato
+    if (!toInterface1Port->sendTimingReq(pkt)) {
+        // Si el downstream no acepta, deshacemos headerDelay
+        pkt->headerDelay = old_header;
+        std::cout << "[Interposer] REQ 0->1 DOWNSTREAM BLOCK addr=0x"
+                  << std::hex << pkt->getAddr()
+                  << std::dec << "\n";
+        return false;
+    }
+
+    // 4) Ocupamos slot hasta curTick()+delay
+    occReq0to1++;
+    relReq0to1.push_back(curTick() + delay);
+    schedReleaseReq0to1();
 
     std::cout << "[Interposer] REQ 0->1 addr=0x"
               << std::hex << pkt->getAddr()
-              << std::dec << " add_delay=" << delay << "\n";
+              << std::dec << " add_delay=" << delay
+              << " occ=" << occReq0to1 << "/" << reqBufferSize << "\n";
 
-
-    /*Imprimo solo el delay agregado, no el delay total */
-    return toInterface1Port->sendTimingReq(pkt);
+    return true;
 }
 
 /*Si llega una request desde la interfaz 1 lo reenvío a la 0 inmediatamente*/
@@ -264,18 +326,38 @@ bool C2CInterposer::recvReqFromInterface1(PacketPtr pkt)
 {
     // Interfaz1 -> Interfaz0
 
-    /*Se coge el número de ciclos del reloj del interposer y lo convierte al número equivalente de ticks absolutos del simulador, para ello usa el "clk_domain" del ClockObject, 
-    Que en nuestro caso es el interposer*/
     Tick delay = cyclesToTicks(reqLatency);
-    /*Agrega ese delay (ya convertido de ciclos a ticks) al delay del paquete*/
+
+    if (occReq1to0 >= reqBufferSize) {
+        bufBlockedReq1to0 = true;
+        std::cout << "[Interposer] REQ 1->0 BUFFER FULL addr=0x"
+                  << std::hex << pkt->getAddr()
+                  << std::dec << " occ=" << occReq1to0
+                  << "/" << reqBufferSize << "\n";
+        return false;
+    }
+
+    Tick old_header = pkt->headerDelay;
     pkt->headerDelay += delay;
+
+    if (!toInterface0Port->sendTimingReq(pkt)) {
+        pkt->headerDelay = old_header;
+        std::cout << "[Interposer] REQ 1->0 DOWNSTREAM BLOCK addr=0x"
+                  << std::hex << pkt->getAddr()
+                  << std::dec << "\n";
+        return false;
+    }
+
+    occReq1to0++;
+    relReq1to0.push_back(curTick() + delay);
+    schedReleaseReq1to0();
 
     std::cout << "[Interposer] REQ 1->0 addr=0x"
               << std::hex << pkt->getAddr()
-              << std::dec << " add_delay=" << delay << "\n";
+              << std::dec << " add_delay=" << delay
+              << " occ=" << occReq1to0 << "/" << reqBufferSize << "\n";
 
-    /*Imprimo solo el delay agregado, no el delay total */
-    return toInterface0Port->sendTimingReq(pkt);
+    return true;
 }
 
 /*-----------------------------------------------------------*/
@@ -288,18 +370,38 @@ bool C2CInterposer::recvRespFromInterface0(PacketPtr pkt)
 {
     // Respuesta que vuelve desde Interface0 hacia Interfaz1
 
-    /*Se coge el número de ciclos del reloj del interposer y lo convierte al número equivalente de ticks absolutos del simulador, para ello usa el "clk_domain" del ClockObject, 
-    Que en nuestro caso es el interposer*/
-    Tick delay = cyclesToTicks(respLatency);
-    /*Agrega ese delay (ya convertido de ciclos a ticks) al delay del paquete*/
+   Tick delay = cyclesToTicks(respLatency);
+
+    if (occResp0to1 >= respBufferSize) {
+        bufBlockedResp0to1 = true;
+        std::cout << "[Interposer] RESP 0->1 BUFFER FULL addr=0x"
+                  << std::hex << pkt->getAddr()
+                  << std::dec << " occ=" << occResp0to1
+                  << "/" << respBufferSize << "\n";
+        return false;
+    }
+
+    Tick old_header = pkt->headerDelay;
     pkt->headerDelay += delay;
 
-    /*Imprimo solo el delay agregado, no el delay total */
+    if (!fromInterface1Port->sendTimingResp(pkt)) {
+        pkt->headerDelay = old_header;
+        std::cout << "[Interposer] RESP 0->1 DOWNSTREAM BLOCK addr=0x"
+                  << std::hex << pkt->getAddr()
+                  << std::dec << "\n";
+        return false;
+    }
+
+    occResp0to1++;
+    relResp0to1.push_back(curTick() + delay);
+    schedReleaseResp0to1();
+
     std::cout << "[Interposer] RESP 0->1 addr=0x"
               << std::hex << pkt->getAddr()
-              << std::dec << " add_delay=" << delay << "\n";
+              << std::dec << " add_delay=" << delay
+              << " occ=" << occResp0to1 << "/" << respBufferSize << "\n";
 
-    return fromInterface1Port->sendTimingResp(pkt);
+    return true;
 }
 
 /*Si llega una Responset desde la interfaz 1 lo reenvío a la 0 inmediatamente*/
@@ -307,18 +409,38 @@ bool C2CInterposer::recvRespFromInterface1(PacketPtr pkt)
 {
     // Respuesta que vuelve desde Interface1 hacia Interfaz0
 
-    /*Se coge el número de ciclos del reloj del interposer y lo convierte al número equivalente de ticks absolutos del simulador, para ello usa el "clk_domain" del ClockObject, 
-    Que en nuestro caso es el interposer*/
    Tick delay = cyclesToTicks(respLatency);
-   /*Agrega ese delay (ya convertido de ciclos a ticks) al delay del paquete*/
+
+    if (occResp1to0 >= respBufferSize) {
+        bufBlockedResp1to0 = true;
+        std::cout << "[Interposer] RESP 1->0 BUFFER FULL addr=0x"
+                  << std::hex << pkt->getAddr()
+                  << std::dec << " occ=" << occResp1to0
+                  << "/" << respBufferSize << "\n";
+        return false;
+    }
+
+    Tick old_header = pkt->headerDelay;
     pkt->headerDelay += delay;
 
-    /*Imprimo solo el delay agregado, no el delay total */
+    if (!fromInterface0Port->sendTimingResp(pkt)) {
+        pkt->headerDelay = old_header;
+        std::cout << "[Interposer] RESP 1->0 DOWNSTREAM BLOCK addr=0x"
+                  << std::hex << pkt->getAddr()
+                  << std::dec << "\n";
+        return false;
+    }
+
+    occResp1to0++;
+    relResp1to0.push_back(curTick() + delay);
+    schedReleaseResp1to0();
+
     std::cout << "[Interposer] RESP 1->0 addr=0x"
               << std::hex << pkt->getAddr()
-              << std::dec << " add_delay=" << delay << "\n";
+              << std::dec << " add_delay=" << delay
+              << " occ=" << occResp1to0 << "/" << respBufferSize << "\n";
 
-    return fromInterface0Port->sendTimingResp(pkt);
+    return true;
 }
 
 /*-----------------------------------------------------------*/
@@ -360,5 +482,143 @@ C2CInterposer::recvRespRetryFromInterface1()
     std::cout << "[Interposer] RETRY RESP from interface1\n";
     toInterface0Port->sendRetryResp();
 }
+
+/*------------------------------------------------------------*/
+/* Scheduling helpers                                          */
+/*------------------------------------------------------------*/
+
+void
+C2CInterposer::schedReleaseReq0to1()
+{
+    if (!relReq0to1.empty() && !releaseReq0to1Event.scheduled()) {
+        schedule(releaseReq0to1Event, relReq0to1.front());
+    }
+}
+
+void
+C2CInterposer::schedReleaseReq1to0()
+{
+    if (!relReq1to0.empty() && !releaseReq1to0Event.scheduled()) {
+        schedule(releaseReq1to0Event, relReq1to0.front());
+    }
+}
+
+void
+C2CInterposer::schedReleaseResp0to1()
+{
+    if (!relResp0to1.empty() && !releaseResp0to1Event.scheduled()) {
+        schedule(releaseResp0to1Event, relResp0to1.front());
+    }
+}
+
+void
+C2CInterposer::schedReleaseResp1to0()
+{
+    if (!relResp1to0.empty() && !releaseResp1to0Event.scheduled()) {
+        schedule(releaseResp1to0Event, relResp1to0.front());
+    }
+}
+
+/*------------------------------------------------------------*/
+/* Release handlers                                            */
+/*------------------------------------------------------------*/
+
+void
+C2CInterposer::releaseReq0to1()
+{
+    Tick now = curTick();
+    bool freed = false;
+
+    while (!relReq0to1.empty() && relReq0to1.front() <= now) {
+        relReq0to1.pop_front();
+        assert(occReq0to1 > 0);
+        occReq0to1--;
+        freed = true;
+    }
+
+    if (!relReq0to1.empty()) {
+        schedule(releaseReq0to1Event, relReq0to1.front());
+    }
+
+    if (freed && bufBlockedReq0to1) {
+        bufBlockedReq0to1 = false;
+        std::cout << "[Interposer] RELEASE REQ 0->1 -> sendRetryReq to interface0\n";
+        fromInterface0Port->sendRetryReq();
+    }
+}
+
+void
+C2CInterposer::releaseReq1to0()
+{
+    Tick now = curTick();
+    bool freed = false;
+
+    while (!relReq1to0.empty() && relReq1to0.front() <= now) {
+        relReq1to0.pop_front();
+        assert(occReq1to0 > 0);
+        occReq1to0--;
+        freed = true;
+    }
+
+    if (!relReq1to0.empty()) {
+        schedule(releaseReq1to0Event, relReq1to0.front());
+    }
+
+    if (freed && bufBlockedReq1to0) {
+        bufBlockedReq1to0 = false;
+        std::cout << "[Interposer] RELEASE REQ 1->0 -> sendRetryReq to interface1\n";
+        fromInterface1Port->sendRetryReq();
+    }
+}
+
+void
+C2CInterposer::releaseResp0to1()
+{
+    Tick now = curTick();
+    bool freed = false;
+
+    while (!relResp0to1.empty() && relResp0to1.front() <= now) {
+        relResp0to1.pop_front();
+        assert(occResp0to1 > 0);
+        occResp0to1--;
+        freed = true;
+    }
+
+    if (!relResp0to1.empty()) {
+        schedule(releaseResp0to1Event, relResp0to1.front());
+    }
+
+    if (freed && bufBlockedResp0to1) {
+        bufBlockedResp0to1 = false;
+        std::cout << "[Interposer] RELEASE RESP 0->1 -> sendRetryResp to interface0\n";
+        toInterface0Port->sendRetryResp();
+    }
+}
+
+void
+C2CInterposer::releaseResp1to0()
+{
+    Tick now = curTick();
+    bool freed = false;
+
+    while (!relResp1to0.empty() && relResp1to0.front() <= now) {
+        relResp1to0.pop_front();
+        assert(occResp1to0 > 0);
+        occResp1to0--;
+        freed = true;
+    }
+
+    if (!relResp1to0.empty()) {
+        schedule(releaseResp1to0Event, relResp1to0.front());
+    }
+
+    if (freed && bufBlockedResp1to0) {
+        bufBlockedResp1to0 = false;
+        std::cout << "[Interposer] RELEASE RESP 1->0 -> sendRetryResp to interface1\n";
+        toInterface1Port->sendRetryResp();
+    }
+}
+
+
 
 }

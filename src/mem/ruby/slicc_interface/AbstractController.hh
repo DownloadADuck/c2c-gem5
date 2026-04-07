@@ -410,6 +410,9 @@ class AbstractController : public ClockedObject, public Consumer
     Cycles m_recycle_latency;
     const Cycles m_mandatory_queue_latency;
     bool m_waiting_mem_retry;
+    //flag para retrys de request y responses
+    bool m_waiting_c2c_req_retry;
+    bool m_waiting_c2c_resp_retry;
 
     /**
      * Port that forwards requests and receives responses from the
