@@ -64,7 +64,10 @@
 #include "sim/byteswap.hh"
 
 // for std::unique_ptr
-#include "memory"
+//#include "memory"
+
+//packet copiable 
+#include <memory>
 
 namespace gem5
 {
@@ -308,7 +311,6 @@ class Packet : public Printable
     typedef uint32_t FlagsType;
     typedef gem5::Flags<FlagsType> Flags;
 
-    const ruby::C2cMsg* c2c_msg;
 
   private:
     enum : FlagsType
@@ -388,6 +390,10 @@ class Packet : public Printable
 
     /// A pointer to the original request.
     RequestPtr req;
+
+    // C2C message ownership/support
+    std::shared_ptr<ruby::C2cMsg> c2c_msg_holder;
+    const ruby::C2cMsg* c2c_msg = nullptr;
 
   private:
    /**
@@ -890,13 +896,17 @@ class Packet : public Printable
      * not be valid. The command must be supplied.
      */
     Packet(const RequestPtr &_req, MemCmd _cmd)
-        :  cmd(_cmd), id((PacketId)_req.get()), req(_req),
-           data(nullptr), addr(0), _isSecure(false), size(0),
-           _qosValue(0),
-           htmReturnReason(HtmCacheFailure::NO_FAIL),
-           htmTransactionUid(0),
-           headerDelay(0), snoopDelay(0),
-           payloadDelay(0), senderState(NULL)
+        :  cmd(_cmd),
+            id((PacketId)_req.get()),
+            req(_req),
+            c2c_msg_holder(nullptr),
+            c2c_msg(nullptr),
+            data(nullptr), addr(0), _isSecure(false), size(0),
+            _qosValue(0),
+            htmReturnReason(HtmCacheFailure::NO_FAIL),
+            htmTransactionUid(0),
+            headerDelay(0), snoopDelay(0),
+            payloadDelay(0), senderState(NULL)
     {
         flags.clear();
         if (req->hasPaddr()) {
@@ -931,13 +941,17 @@ class Packet : public Printable
      * req.  this allows for overriding the size/addr of the req.
      */
     Packet(const RequestPtr &_req, MemCmd _cmd, int _blkSize, PacketId _id = 0)
-        :  cmd(_cmd), id(_id ? _id : (PacketId)_req.get()), req(_req),
-           data(nullptr), addr(0), _isSecure(false),
-           _qosValue(0),
-           htmReturnReason(HtmCacheFailure::NO_FAIL),
-           htmTransactionUid(0),
-           headerDelay(0),
-           snoopDelay(0), payloadDelay(0), senderState(NULL)
+    :  cmd(_cmd),
+       id(_id ? _id : (PacketId)_req.get()),
+       req(_req),
+       c2c_msg_holder(nullptr),
+       c2c_msg(nullptr),
+       data(nullptr), addr(0), _isSecure(false),
+       _qosValue(0),
+       htmReturnReason(HtmCacheFailure::NO_FAIL),
+       htmTransactionUid(0),
+       headerDelay(0),
+       snoopDelay(0), payloadDelay(0), senderState(NULL)
     {
         flags.clear();
         if (req->hasPaddr()) {
@@ -957,18 +971,24 @@ class Packet : public Printable
      * packet should allocate its own data.
      */
     Packet(const PacketPtr pkt, bool clear_flags, bool alloc_data)
-        :  cmd(pkt->cmd), id(pkt->id), req(pkt->req),
-           data(nullptr),
-           addr(pkt->addr), _isSecure(pkt->_isSecure), size(pkt->size),
-           bytesValid(pkt->bytesValid),
-           _qosValue(pkt->qosValue()),
-           htmReturnReason(HtmCacheFailure::NO_FAIL),
-           htmTransactionUid(0),
-           headerDelay(pkt->headerDelay),
-           snoopDelay(0),
-           payloadDelay(pkt->payloadDelay),
-           senderState(pkt->senderState)
+    :  cmd(pkt->cmd),
+       id(pkt->id),
+       req(pkt->req),
+       c2c_msg_holder(pkt->c2c_msg_holder),
+       c2c_msg(pkt->c2c_msg),
+       data(nullptr),
+       addr(pkt->addr), _isSecure(pkt->_isSecure), size(pkt->size),
+       bytesValid(pkt->bytesValid),
+       _qosValue(pkt->qosValue()),
+       htmReturnReason(HtmCacheFailure::NO_FAIL),
+       htmTransactionUid(0),
+       headerDelay(pkt->headerDelay),
+       snoopDelay(0),
+       payloadDelay(pkt->payloadDelay),
+       senderState(pkt->senderState)
     {
+        c2c_msg = c2c_msg_holder.get();
+
         if (!clear_flags)
             flags.set(pkt->flags & COPY_FLAGS);
 

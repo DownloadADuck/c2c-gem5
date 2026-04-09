@@ -132,44 +132,46 @@ class C2CInterposer : public ClockedObject
     const Cycles reqLatency;
     const Cycles respLatency;
 
-     // Tamaños máximos de buffer abstracto
+     // Tamaños máximos de buffer 
     const unsigned reqBufferSize;
     const unsigned respBufferSize;
 
-    // Ocupación actual por dirección/tipo
-    unsigned occReq0to1 = 0;
-    unsigned occReq1to0 = 0;
-    unsigned occResp0to1 = 0;
-    unsigned occResp1to0 = 0;
+    struct BufferedPkt
+    {
+        PacketPtr pkt;
+        Tick readyTick;
+    };
 
-    // Flags: hubo un bloqueo por "buffer lleno"
-    bool bufBlockedReq0to1 = false;
-    bool bufBlockedReq1to0 = false;
-    bool bufBlockedResp0to1 = false;
-    bool bufBlockedResp1to0 = false;
+    struct DirBuffer
+    {
+        std::deque<BufferedPkt> q;
+        bool waitingRetry = false;
+        EventFunctionWrapper processEvent;
 
-    // Ticks futuros de liberación de slots
-    std::deque<Tick> relReq0to1;
-    std::deque<Tick> relReq1to0;
-    std::deque<Tick> relResp0to1;
-    std::deque<Tick> relResp1to0;
+        DirBuffer(EventFunctionWrapper&& ev)
+            : processEvent(std::move(ev))
+        {}
+    };
 
-    // Eventos de liberación
-    EventFunctionWrapper releaseReq0to1Event;
-    EventFunctionWrapper releaseReq1to0Event;
-    EventFunctionWrapper releaseResp0to1Event;
-    EventFunctionWrapper releaseResp1to0Event;
+    // Buffers por dirección y por tipo
+    DirBuffer req0to1;
+    DirBuffer req1to0;
+    DirBuffer resp0to1;
+    DirBuffer resp1to0;
 
-    // Helpers para programar y ejecutar liberaciones
-    void schedReleaseReq0to1();
-    void schedReleaseReq1to0();
-    void schedReleaseResp0to1();
-    void schedReleaseResp1to0();
+    // ---------------- NUEVO: helpers de procesado ----------------
 
-    void releaseReq0to1();
-    void releaseReq1to0();
-    void releaseResp0to1();
-    void releaseResp1to0();
+    void processReq0to1();
+    void processReq1to0();
+    void processResp0to1();
+    void processResp1to0();
+
+    void trySendReq0to1();
+    void trySendReq1to0();
+    void trySendResp0to1();
+    void trySendResp1to0();
+
+    void scheduleBufferEvent(DirBuffer &buf, Tick when);
 
   public:
     //declaro el constructor de la clase, el cual implemento en el .cc

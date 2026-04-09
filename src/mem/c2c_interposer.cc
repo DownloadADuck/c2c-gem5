@@ -196,10 +196,14 @@ C2CInterposer::C2CInterposer(const C2CInterposerParams &params)
       respLatency(params.resp_latency),
       reqBufferSize(params.req_buffer_size),
       respBufferSize(params.resp_buffer_size),
-      releaseReq0to1Event([this] { releaseReq0to1(); }, name() + ".releaseReq0to1"),
-      releaseReq1to0Event([this] { releaseReq1to0(); }, name() + ".releaseReq1to0"),
-      releaseResp0to1Event([this] { releaseResp0to1(); }, name() + ".releaseResp0to1"),
-      releaseResp1to0Event([this] { releaseResp1to0(); }, name() + ".releaseResp1to0") /*Se usa la lista de inicialización 
+      req0to1(DirBuffer(EventFunctionWrapper(
+    [this] { processReq0to1(); }, name() + ".processReq0to1"))),
+    req1to0(DirBuffer(EventFunctionWrapper(
+    [this] { processReq1to0(); }, name() + ".processReq1to0"))),
+    resp0to1(DirBuffer(EventFunctionWrapper(
+    [this] { processResp0to1(); }, name() + ".processResp0to1"))),
+    resp1to0(DirBuffer(EventFunctionWrapper(
+    [this] { processResp1to0(); }, name() + ".processResp1to0"))) /*Se usa la lista de inicialización 
     para construir el objeto base SimbOject y luego dentro de las 
     llaves "{}" se ejecuta el código del constructor 
     de C2CInterposer para crear dinámicamente 4 objetos que van a ser 
@@ -278,84 +282,59 @@ Port & C2CInterposer::getPort(const std::string &if_name, PortID idx)
 /*------------------------------------------------------------*/
 
 /*Si llega una request desde la interfaz 0 lo reenvío a la 1 inmediatamente*/
-bool C2CInterposer::recvReqFromInterface0(PacketPtr pkt)
+bool
+C2CInterposer::recvReqFromInterface0(PacketPtr pkt)
 {
     // Interfaz0 -> Interfaz1
-
     Tick delay = cyclesToTicks(reqLatency);
 
-    // 1) Comprobamos capacidad abstracta
-    if (occReq0to1 >= reqBufferSize) {
-        bufBlockedReq0to1 = true;
+    if (req0to1.q.size() >= reqBufferSize) {
         std::cout << "[Interposer] REQ 0->1 BUFFER FULL addr=0x"
                   << std::hex << pkt->getAddr()
-                  << std::dec << " occ=" << occReq0to1
+                  << std::dec << " occ=" << req0to1.q.size()
                   << "/" << reqBufferSize << "\n";
         return false;
     }
 
-    // 2) Añadimos delay al paquete
-    Tick old_header = pkt->headerDelay;
     pkt->headerDelay += delay;
 
-    // 3) Reenvío inmediato
-    if (!toInterface1Port->sendTimingReq(pkt)) {
-        // Si el downstream no acepta, deshacemos headerDelay
-        pkt->headerDelay = old_header;
-        std::cout << "[Interposer] REQ 0->1 DOWNSTREAM BLOCK addr=0x"
-                  << std::hex << pkt->getAddr()
-                  << std::dec << "\n";
-        return false;
-    }
-
-    // 4) Ocupamos slot hasta curTick()+delay
-    occReq0to1++;
-    relReq0to1.push_back(curTick() + delay);
-    schedReleaseReq0to1();
+    req0to1.q.push_back({pkt, curTick() + delay});
 
     std::cout << "[Interposer] REQ 0->1 addr=0x"
               << std::hex << pkt->getAddr()
               << std::dec << " add_delay=" << delay
-              << " occ=" << occReq0to1 << "/" << reqBufferSize << "\n";
+              << " occ=" << req0to1.q.size() << "/" << reqBufferSize << "\n";
+
+    scheduleBufferEvent(req0to1, req0to1.q.front().readyTick);
 
     return true;
 }
 
 /*Si llega una request desde la interfaz 1 lo reenvío a la 0 inmediatamente*/
-bool C2CInterposer::recvReqFromInterface1(PacketPtr pkt)
+bool
+C2CInterposer::recvReqFromInterface1(PacketPtr pkt)
 {
     // Interfaz1 -> Interfaz0
-
     Tick delay = cyclesToTicks(reqLatency);
 
-    if (occReq1to0 >= reqBufferSize) {
-        bufBlockedReq1to0 = true;
+    if (req1to0.q.size() >= reqBufferSize) {
         std::cout << "[Interposer] REQ 1->0 BUFFER FULL addr=0x"
                   << std::hex << pkt->getAddr()
-                  << std::dec << " occ=" << occReq1to0
+                  << std::dec << " occ=" << req1to0.q.size()
                   << "/" << reqBufferSize << "\n";
         return false;
     }
 
-    Tick old_header = pkt->headerDelay;
     pkt->headerDelay += delay;
 
-    if (!toInterface0Port->sendTimingReq(pkt)) {
-        pkt->headerDelay = old_header;
-        std::cout << "[Interposer] REQ 1->0 DOWNSTREAM BLOCK addr=0x"
-                  << std::hex << pkt->getAddr()
-                  << std::dec << "\n";
-        return false;
-    }
-
-    occReq1to0++;
-    relReq1to0.push_back(curTick() + delay);
-    schedReleaseReq1to0();
+    req1to0.q.push_back({pkt, curTick() + delay});
 
     std::cout << "[Interposer] REQ 1->0 addr=0x"
               << std::hex << pkt->getAddr()
               << std::dec << " add_delay=" << delay
-              << " occ=" << occReq1to0 << "/" << reqBufferSize << "\n";
+              << " occ=" << req1to0.q.size() << "/" << reqBufferSize << "\n";
+
+    scheduleBufferEvent(req1to0, req1to0.q.front().readyTick);
 
     return true;
 }
@@ -366,79 +345,59 @@ bool C2CInterposer::recvReqFromInterface1(PacketPtr pkt)
 /*-----------------------------------------------------------*/
 
 /*Si llega una Response desde la interfaz 0 lo reenvío a la 1 inmediatamente*/
-bool C2CInterposer::recvRespFromInterface0(PacketPtr pkt)
+bool
+C2CInterposer::recvRespFromInterface0(PacketPtr pkt)
 {
     // Respuesta que vuelve desde Interface0 hacia Interfaz1
+    Tick delay = cyclesToTicks(respLatency);
 
-   Tick delay = cyclesToTicks(respLatency);
-
-    if (occResp0to1 >= respBufferSize) {
-        bufBlockedResp0to1 = true;
+    if (resp0to1.q.size() >= respBufferSize) {
         std::cout << "[Interposer] RESP 0->1 BUFFER FULL addr=0x"
                   << std::hex << pkt->getAddr()
-                  << std::dec << " occ=" << occResp0to1
+                  << std::dec << " occ=" << resp0to1.q.size()
                   << "/" << respBufferSize << "\n";
         return false;
     }
 
-    Tick old_header = pkt->headerDelay;
     pkt->headerDelay += delay;
 
-    if (!fromInterface1Port->sendTimingResp(pkt)) {
-        pkt->headerDelay = old_header;
-        std::cout << "[Interposer] RESP 0->1 DOWNSTREAM BLOCK addr=0x"
-                  << std::hex << pkt->getAddr()
-                  << std::dec << "\n";
-        return false;
-    }
-
-    occResp0to1++;
-    relResp0to1.push_back(curTick() + delay);
-    schedReleaseResp0to1();
+    resp0to1.q.push_back({pkt, curTick() + delay});
 
     std::cout << "[Interposer] RESP 0->1 addr=0x"
               << std::hex << pkt->getAddr()
               << std::dec << " add_delay=" << delay
-              << " occ=" << occResp0to1 << "/" << respBufferSize << "\n";
+              << " occ=" << resp0to1.q.size() << "/" << respBufferSize << "\n";
+
+    scheduleBufferEvent(resp0to1, resp0to1.q.front().readyTick);
 
     return true;
 }
 
 /*Si llega una Responset desde la interfaz 1 lo reenvío a la 0 inmediatamente*/
-bool C2CInterposer::recvRespFromInterface1(PacketPtr pkt)
+bool
+C2CInterposer::recvRespFromInterface1(PacketPtr pkt)
 {
     // Respuesta que vuelve desde Interface1 hacia Interfaz0
+    Tick delay = cyclesToTicks(respLatency);
 
-   Tick delay = cyclesToTicks(respLatency);
-
-    if (occResp1to0 >= respBufferSize) {
-        bufBlockedResp1to0 = true;
+    if (resp1to0.q.size() >= respBufferSize) {
         std::cout << "[Interposer] RESP 1->0 BUFFER FULL addr=0x"
                   << std::hex << pkt->getAddr()
-                  << std::dec << " occ=" << occResp1to0
+                  << std::dec << " occ=" << resp1to0.q.size()
                   << "/" << respBufferSize << "\n";
         return false;
     }
 
-    Tick old_header = pkt->headerDelay;
     pkt->headerDelay += delay;
 
-    if (!fromInterface0Port->sendTimingResp(pkt)) {
-        pkt->headerDelay = old_header;
-        std::cout << "[Interposer] RESP 1->0 DOWNSTREAM BLOCK addr=0x"
-                  << std::hex << pkt->getAddr()
-                  << std::dec << "\n";
-        return false;
-    }
-
-    occResp1to0++;
-    relResp1to0.push_back(curTick() + delay);
-    schedReleaseResp1to0();
+    resp1to0.q.push_back({pkt, curTick() + delay});
 
     std::cout << "[Interposer] RESP 1->0 addr=0x"
               << std::hex << pkt->getAddr()
               << std::dec << " add_delay=" << delay
-              << " occ=" << occResp1to0 << "/" << respBufferSize << "\n";
+              << " occ=" << resp1to0.q.size() << "/" << respBufferSize << "\n";
+
+    scheduleBufferEvent(resp1to0, resp1to0.q.front().readyTick);
 
     return true;
 }
@@ -450,37 +409,33 @@ bool C2CInterposer::recvRespFromInterface1(PacketPtr pkt)
 void
 C2CInterposer::recvReqRetryToInterface0()
 {
-    // El lado interfaz0 vuelve a aceptar requests.
-    // Hay que avisar al emisor del otro lado.
     std::cout << "[Interposer] RETRY REQ to interface0\n";
-    fromInterface1Port->sendRetryReq();
+    req1to0.waitingRetry = false;
+    trySendReq1to0();
 }
 
 void
 C2CInterposer::recvReqRetryToInterface1()
 {
-    // El lado interfaz1 vuelve a aceptar requests.
-    // Hay que avisar al emisor del otro lado.
     std::cout << "[Interposer] RETRY REQ to interface1\n";
-    fromInterface0Port->sendRetryReq();
+    req0to1.waitingRetry = false;
+    trySendReq0to1();
 }
 
 void
 C2CInterposer::recvRespRetryFromInterface0()
 {
-    // Interfaz0 vuelve a aceptar responses.
-    // Avisamos al requestor del otro lado.
     std::cout << "[Interposer] RETRY RESP from interface0\n";
-    toInterface1Port->sendRetryResp();
+    resp1to0.waitingRetry = false;
+    trySendResp1to0();
 }
 
 void
 C2CInterposer::recvRespRetryFromInterface1()
 {
-    // Interfaz1 vuelve a aceptar responses.
-    // Avisamos al requestor del otro lado.
     std::cout << "[Interposer] RETRY RESP from interface1\n";
-    toInterface0Port->sendRetryResp();
+    resp0to1.waitingRetry = false;
+    trySendResp0to1();
 }
 
 /*------------------------------------------------------------*/
@@ -488,134 +443,188 @@ C2CInterposer::recvRespRetryFromInterface1()
 /*------------------------------------------------------------*/
 
 void
-C2CInterposer::schedReleaseReq0to1()
+C2CInterposer::processReq0to1()
 {
-    if (!relReq0to1.empty() && !releaseReq0to1Event.scheduled()) {
-        schedule(releaseReq0to1Event, relReq0to1.front());
-    }
+    trySendReq0to1();
 }
 
 void
-C2CInterposer::schedReleaseReq1to0()
+C2CInterposer::processReq1to0()
 {
-    if (!relReq1to0.empty() && !releaseReq1to0Event.scheduled()) {
-        schedule(releaseReq1to0Event, relReq1to0.front());
-    }
+    trySendReq1to0();
 }
 
 void
-C2CInterposer::schedReleaseResp0to1()
+C2CInterposer::processResp0to1()
 {
-    if (!relResp0to1.empty() && !releaseResp0to1Event.scheduled()) {
-        schedule(releaseResp0to1Event, relResp0to1.front());
-    }
+    trySendResp0to1();
 }
 
 void
-C2CInterposer::schedReleaseResp1to0()
+C2CInterposer::processResp1to0()
 {
-    if (!relResp1to0.empty() && !releaseResp1to0Event.scheduled()) {
-        schedule(releaseResp1to0Event, relResp1to0.front());
-    }
+    trySendResp1to0();
 }
 
-/*------------------------------------------------------------*/
-/* Release handlers                                            */
-/*------------------------------------------------------------*/
-
 void
-C2CInterposer::releaseReq0to1()
+C2CInterposer::trySendReq0to1()
 {
-    Tick now = curTick();
-    bool freed = false;
-
-    while (!relReq0to1.empty() && relReq0to1.front() <= now) {
-        relReq0to1.pop_front();
-        assert(occReq0to1 > 0);
-        occReq0to1--;
-        freed = true;
+    if (req0to1.q.empty()) {
+        return;
     }
 
-    if (!relReq0to1.empty()) {
-        schedule(releaseReq0to1Event, relReq0to1.front());
+    auto &front = req0to1.q.front();
+
+    if (front.readyTick > curTick()) {
+    scheduleBufferEvent(req0to1, front.readyTick);
+    return;
+}
+
+    if (req0to1.waitingRetry) {
+        return;
     }
 
-    if (freed && bufBlockedReq0to1) {
-        bufBlockedReq0to1 = false;
+    if (!toInterface1Port->sendTimingReq(front.pkt)) {
+        req0to1.waitingRetry = true;
+        return;
+    }
+
+    req0to1.q.pop_front();
+
+    if (req0to1.q.size() + 1 == reqBufferSize) {
         std::cout << "[Interposer] RELEASE REQ 0->1 -> sendRetryReq to interface0\n";
         fromInterface0Port->sendRetryReq();
     }
+
+    if (!req0to1.q.empty()) {
+    scheduleBufferEvent(
+        req0to1,
+        std::max(curTick(), req0to1.q.front().readyTick)
+    );
+}
 }
 
 void
-C2CInterposer::releaseReq1to0()
+C2CInterposer::trySendReq1to0()
 {
-    Tick now = curTick();
-    bool freed = false;
-
-    while (!relReq1to0.empty() && relReq1to0.front() <= now) {
-        relReq1to0.pop_front();
-        assert(occReq1to0 > 0);
-        occReq1to0--;
-        freed = true;
+    if (req1to0.q.empty()) {
+        return;
     }
 
-    if (!relReq1to0.empty()) {
-        schedule(releaseReq1to0Event, relReq1to0.front());
+    auto &front = req1to0.q.front();
+
+    if (front.readyTick > curTick()) {
+    scheduleBufferEvent(req1to0, front.readyTick);
+    return;
     }
 
-    if (freed && bufBlockedReq1to0) {
-        bufBlockedReq1to0 = false;
+    if (req1to0.waitingRetry) {
+        return;
+    }
+
+    if (!toInterface0Port->sendTimingReq(front.pkt)) {
+        req1to0.waitingRetry = true;
+        return;
+    }
+
+    req1to0.q.pop_front();
+
+    if (req1to0.q.size() + 1 == reqBufferSize) {
         std::cout << "[Interposer] RELEASE REQ 1->0 -> sendRetryReq to interface1\n";
         fromInterface1Port->sendRetryReq();
     }
+
+    if (!req1to0.q.empty()) {
+    scheduleBufferEvent(
+        req1to0,
+        std::max(curTick(), req1to0.q.front().readyTick)
+        );
+    }
 }
 
 void
-C2CInterposer::releaseResp0to1()
+C2CInterposer::trySendResp0to1()
 {
-    Tick now = curTick();
-    bool freed = false;
-
-    while (!relResp0to1.empty() && relResp0to1.front() <= now) {
-        relResp0to1.pop_front();
-        assert(occResp0to1 > 0);
-        occResp0to1--;
-        freed = true;
+    if (resp0to1.q.empty()) {
+        return;
     }
 
-    if (!relResp0to1.empty()) {
-        schedule(releaseResp0to1Event, relResp0to1.front());
+    auto &front = resp0to1.q.front();
+
+    if (front.readyTick > curTick()) {
+    scheduleBufferEvent(resp0to1, front.readyTick);
+    return;
     }
 
-    if (freed && bufBlockedResp0to1) {
-        bufBlockedResp0to1 = false;
+    if (resp0to1.waitingRetry) {
+        return;
+    }
+
+    if (!fromInterface1Port->sendTimingResp(front.pkt)) {
+        resp0to1.waitingRetry = true;
+        return;
+    }
+
+    resp0to1.q.pop_front();
+
+    if (resp0to1.q.size() + 1 == respBufferSize) {
         std::cout << "[Interposer] RELEASE RESP 0->1 -> sendRetryResp to interface0\n";
         toInterface0Port->sendRetryResp();
     }
+
+    if (!resp0to1.q.empty()) {
+    scheduleBufferEvent(
+        resp0to1,
+        std::max(curTick(), resp0to1.q.front().readyTick)
+        );
+    }
 }
 
 void
-C2CInterposer::releaseResp1to0()
+C2CInterposer::trySendResp1to0()
 {
-    Tick now = curTick();
-    bool freed = false;
-
-    while (!relResp1to0.empty() && relResp1to0.front() <= now) {
-        relResp1to0.pop_front();
-        assert(occResp1to0 > 0);
-        occResp1to0--;
-        freed = true;
+    if (resp1to0.q.empty()) {
+        return;
     }
 
-    if (!relResp1to0.empty()) {
-        schedule(releaseResp1to0Event, relResp1to0.front());
+    auto &front = resp1to0.q.front();
+
+    if (front.readyTick > curTick()) {
+    scheduleBufferEvent(resp1to0, front.readyTick);
+    return;
     }
 
-    if (freed && bufBlockedResp1to0) {
-        bufBlockedResp1to0 = false;
+    if (resp1to0.waitingRetry) {
+        return;
+    }
+
+    if (!fromInterface0Port->sendTimingResp(front.pkt)) {
+        resp1to0.waitingRetry = true;
+        return;
+    }
+
+    resp1to0.q.pop_front();
+
+    if (resp1to0.q.size() + 1 == respBufferSize) {
         std::cout << "[Interposer] RELEASE RESP 1->0 -> sendRetryResp to interface1\n";
         toInterface1Port->sendRetryResp();
+    }
+
+    if (!resp1to0.q.empty()) {
+    scheduleBufferEvent(
+        resp1to0,
+        std::max(curTick(), resp1to0.q.front().readyTick)
+        );
+    }
+}
+
+//helper 
+
+void
+C2CInterposer::scheduleBufferEvent(DirBuffer &buf, Tick when)
+{
+    if (!buf.processEvent.scheduled()) {
+        schedule(buf.processEvent, when);
     }
 }
 

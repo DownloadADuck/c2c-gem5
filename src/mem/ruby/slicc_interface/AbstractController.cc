@@ -366,7 +366,8 @@ AbstractController::serviceReqToC2cQueue()
     PacketPtr pkt;
     
     pkt = new Packet(req, MemCmd::c2c_packet);
-    pkt->c2c_msg = mem_msg;
+    pkt->c2c_msg_holder = std::make_shared<C2cMsg>(*mem_msg);
+    pkt->c2c_msg = pkt->c2c_msg_holder.get();
 
     SenderState *s = new SenderState(mem_msg->m_Sender);
     pkt->pushSenderState(s);
@@ -417,7 +418,8 @@ AbstractController::serviceRespToC2cQueue()
     PacketPtr pkt;
 
     pkt = new Packet(req, MemCmd::c2c_packet);
-    pkt->c2c_msg = mem_msg;
+    pkt->c2c_msg_holder = std::make_shared<C2cMsg>(*mem_msg);
+    pkt->c2c_msg = pkt->c2c_msg_holder.get();
 
     SenderState *s = new SenderState(mem_msg->m_Sender);
     pkt->pushSenderState(s);
@@ -550,6 +552,9 @@ AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
 {
     assert(getRespFromC2cQueue());
     assert(pkt->isResponse());
+    if (pkt->c2c_msg == nullptr) {
+    panic("C2C packet arrived without valid c2c_msg payload");
+    }
 
     std::shared_ptr<C2cMsg> msg = std::make_shared<C2cMsg>(clockEdge());
     (*msg).m_addr = pkt->getAddr();
@@ -588,6 +593,10 @@ AbstractController::recvTimingReq(PacketPtr pkt)
 {
     assert(getReqFromC2cQueue());
     assert(pkt->isRequest());
+
+    if (pkt->c2c_msg == nullptr) {
+    panic("C2C packet arrived without valid c2c_msg payload");
+    }
 
     std::shared_ptr<C2cMsg> msg = std::make_shared<C2cMsg>(clockEdge());
     (*msg).m_addr = pkt->getAddr();
