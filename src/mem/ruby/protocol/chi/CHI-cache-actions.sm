@@ -3084,6 +3084,7 @@ action(Send_CompAck, desc="") {
     // MegaNetDest ID for sharer tracking in the HNF
     out_msg.localRequestor := tbe.localRequestor;
     out_msg.c2c_destination.add(chipID, machineID); 
+    DPRINTF(RubyGenerated, "CompAck destination -> %s\n", mapAddressToDownstreamMachine(tbe.addr));
     out_msg.Destination.add(mapAddressToDownstreamMachine(tbe.addr));
   }
 }

@@ -556,7 +556,10 @@ TBE _allocateReplacementTBE(Addr addr, int storSlot), return_by_pointer="yes" {
   tbe.reqType := CHIRequestType:null;
 
   tbe.use_DMT := false;
-  tbe.use_DCT := false;
+  tbe.use_DCT := false;  
+  
+  // C2c-specific
+  tbe.originalRequestor := machineID;
 
   return tbe;
 }
