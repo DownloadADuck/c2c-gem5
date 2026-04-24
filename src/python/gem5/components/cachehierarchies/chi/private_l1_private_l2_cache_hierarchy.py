@@ -320,7 +320,7 @@ class PrivateL1PrivateL2CacheHierarchy(AbstractRubyCacheHierarchy):
         memory_controllers = []
         for idx, (rng, port) in enumerate(board.get_mem_ports()):
             if idx == rng_idx:
-                mc = MemoryController(network, rng, port, network_ptr)
+                mc = MemoryController(network, rng, port)
                 mc.ruby_system = self.ruby_system
                 memory_controllers.append(mc)
         return memory_controllers
