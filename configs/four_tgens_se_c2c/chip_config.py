@@ -49,7 +49,8 @@ def create_chip0(
     bootmem,
     ruby_system,
     cpus,
-    network
+    network,
+    cacheChipIDList
 ):
 
     if buildEnv["PROTOCOL"] != "CHI":
@@ -124,11 +125,15 @@ def create_chip0(
     hnf_dests = []
     all_cntrls = []
 
-    #c2cHopList = []
+    # Used to populate the chipID -> C2CI routing table of the HNF
+    c2cHopList = [0]
+    chipIDList = [1]
+
 
     # Creates on RNF per cpu with priv l2 caches
     assert len(cpus) == options.num_cpus
     ruby_system.rnf = [
+        # This builds the two L1s per RNF
         CHI_RNF(
             [cpu],
             ruby_system,
@@ -136,16 +141,26 @@ def create_chip0(
             L1DCache,
             system.cache_line_size.value,
             network,
+            0, # ChipID -> 0
+            cacheChipIDList,
         )
         for cpu in cpus
     ]
 
     for rnf in ruby_system.rnf:
-        rnf.addPrivL2Cache(L2Cache, chipID = 0)
+        # This builds the L2
+        rnf.addPrivL2Cache(
+            cache_type = L2Cache, 
+            chipID = 0, 
+            cacheChipIDList = cacheChipIDList,
+            pf_type = None, 
+        )
         cpu_sequencers.extend(rnf.getSequencers())
         all_cntrls.extend(rnf.getAllControllers())
         network_nodes.append(rnf)
         network_cntrls.extend(rnf.getNetworkSideControllers())
+        rnf.setC2cHopList(c2cHopList)
+        rnf.setChipIDList(chipIDList)
     
     # Creates one Misc Node
     ruby_system.mn = [CHI_MN(ruby_system, [cpu.l1d for cpu in cpus], network)]
@@ -175,9 +190,17 @@ def create_chip0(
     for i in range(options.num_l3caches):
         CHI_HNF.createAddrRanges([sysranges[i]], system.cache_line_size.value, [hnf_list[i]])
     ruby_system.hnf = [
-        CHI_HNF(i, ruby_system, HNFCache, None, network, 0) # chipID = 0 
+        CHI_HNF(
+            i, 
+            ruby_system, 
+            HNFCache, 
+            None, 
+            network, 
+            0, # ChipID -> 0
+            cacheChipIDList,
+        )  
         for i in range(options.num_l3caches)
-    ]
+    ]    
 
     for hnf in ruby_system.hnf:
         network_nodes.append(hnf)
@@ -199,12 +222,9 @@ def create_chip0(
         all_cntrls.extend(snf.getAllControllers())
         mem_dests.extend(snf.getAllControllers())
 
-    # We use an interface in place of the SNF
-    # HACK This is supposed to use the options and num_interface
     interface_list = [i for i in range(1)]
     CHI_Interface.createAddrRanges([sysranges[1]], system.cache_line_size.value, \
         interface_list)
-    # Fixing the idx ourself. Need to try without.
     ruby_system.interface0 = [CHI_Interface(0, ruby_system, None, network, 0)]
     interface0 = ruby_system.interface0[0]
     network_nodes.append(interface0)
@@ -214,10 +234,6 @@ def create_chip0(
     all_cntrls.extend(interface0.getAllControllers())
     hnf_dests.extend(interface0.getAllControllers())
     
-    # Used to populate the chipID -> C2CI routing table of the HNF
-    #c2cHopList.extend(interface0.getAllControllers())
-    c2cHopList = [0]
-    chipIDList = [1]
 
     if len(other_memories) > 0:
         ruby_system.rom_snf = [
@@ -248,23 +264,14 @@ def create_chip0(
         for rni in ruby_system.dma_rni:
             rni.setDownstream(hnf_dests)
     
-    # Chip-0 -> 4 L1s, 2 L2s, 1 HNF
-    # Chip-1 -> 2 L1s, 1 L2,  1 HNF
-    # cntrlList vector -> [4, 2, 1, 2, 1, 1]
-    # TODO: This is not up-to-date
-    # The list should be built with each call of Cache_Controller
-    # Check src/python/gem5/components/cachehierarchies/chi/c2cv2_cache_hierarchy.py
-    cntrlList = [4, 2, 1, 2, 1, 1]
-
+    # Setting up destinations and C2c-specific lists
     for i, hnf in enumerate(ruby_system.hnf):
         hnf.setDownstream(mem_dests)
         hnf.setC2cHopList(c2cHopList)
         hnf.setChipIDList(chipIDList)
-        hnf.setCntrlList(cntrlList)
 
     hnf_dests.pop(1)
     ruby_system.interface0[0].setDownstream(hnf_dests)
-    ruby_system.interface0[0].setCntrlList(cntrlList)
 
     # Setup data message size for all controllers
     for cntrl in all_cntrls:
@@ -302,7 +309,8 @@ def create_chip1(
     bootmem,
     ruby_system,
     cpus,
-    network
+    network,
+    cacheChipIDList
 ):
     if buildEnv["PROTOCOL"] != "CHI":
         m5.panic("This script requires the CHI build")
@@ -369,7 +377,9 @@ def create_chip1(
     hnf_dests = []
     all_cntrls = []
 
-    #c2cHopList = []
+    # Used to populate the chipID -> C2CI routing table of the HNF
+    c2cHopList = [1] #C2CI1
+    chipIDList = [0] #chip-0
 
     # Creates on RNF per cpu with priv l2 caches
     assert len(cpus) == options.num_cpus
@@ -381,16 +391,25 @@ def create_chip1(
             L1DCache,
             system.cache_line_size.value,
             network,
+            1, # ChipID -> 1
+            cacheChipIDList,
         )
         for cpu in cpus
     ]
 
     for rnf in ruby_system.rnf2:
-        rnf.addPrivL2Cache(L2Cache, chipID = 1)
+        rnf.addPrivL2Cache(
+            cache_type = L2Cache, 
+            chipID = 1, 
+            cacheChipIDList = cacheChipIDList,
+            pf_type = None, 
+        )
         cpu_sequencers.extend(rnf.getSequencers())
         all_cntrls.extend(rnf.getAllControllers())
         network_nodes.append(rnf)
         network_cntrls.extend(rnf.getNetworkSideControllers())
+        rnf.setC2cHopList(c2cHopList)
+        rnf.setChipIDList(chipIDList)
 
     # Creates one Misc Node
     ruby_system.mn1 = [CHI_MN(ruby_system, [cpu.l1d for cpu in cpus], network)]
@@ -421,7 +440,15 @@ def create_chip1(
     hnf_list1 = [i for i in range(options.num_l3caches)]
     CHI_HNF.createAddrRanges(sysranges, system.cache_line_size.value, hnf_list1)
     ruby_system.hnf2 = [
-        CHI_HNF(i, ruby_system, HNFCache, None, network, 1) # chipID = 1
+        CHI_HNF(
+            i, 
+            ruby_system, 
+            HNFCache, 
+            None, 
+            network, 
+            1, # ChipID -> 1
+            cacheChipIDList, 
+        ) 
         for i in range(options.num_l3caches)
     ]
 
@@ -448,7 +475,15 @@ def create_chip1(
     interface_list = [i for i in range(options.num_interfaces)]
     CHI_Interface.createAddrRanges([sysranges[0]], system.cache_line_size.value, \
         interface_list)
-    ruby_system.interface1 = [CHI_Interface(0, ruby_system, None, network, 1)]
+
+    ruby_system.interface1 = [
+        CHI_Interface(
+            0, 
+            ruby_system, 
+            None, 
+            network, 
+            1)
+        ]
     interface1 = ruby_system.interface1[0]
     network_nodes.append(interface1)
     network_cntrls.extend(interface1.getNetworkSideControllers())
@@ -457,10 +492,6 @@ def create_chip1(
     all_cntrls.extend(interface1.getAllControllers())
     hnf_dests.extend(interface1.getAllControllers())
 
-    # Used to populate the chipID -> C2CI routing table of the HNF
-    #c2cHopList.extend(interface1.getAllControllers())
-    c2cHopList = [1] #C2CI1
-    chipIDList = [0] #chip-0
 
     if len(other_memories) > 0:
         ruby_system.rom_snf1 = [
@@ -497,18 +528,13 @@ def create_chip1(
         for rni in ruby_system.dma_rni1:
             rni.setDownstream(hnf_dests)
     
-    cntrlList = [4, 2, 1, 2, 1, 1]
-
     for hnf in ruby_system.hnf2:
-        print(f"mem_dests -> {mem_dests}")
         hnf.setDownstream(mem_dests)
         hnf.setC2cHopList(c2cHopList)
         hnf.setChipIDList(chipIDList)
-        hnf.setCntrlList(cntrlList)
 
     hnf_dests.pop(1)
     ruby_system.interface1[0].setDownstream(hnf_dests)
-    ruby_system.interface1[0].setCntrlList(cntrlList)
 
     # Setup data message size for all controllers
     for cntrl in all_cntrls:

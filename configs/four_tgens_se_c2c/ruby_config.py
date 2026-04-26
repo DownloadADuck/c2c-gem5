@@ -163,6 +163,10 @@ def create_system(
     # Generate pseudo filesystem
     FileSystemConfig.config_filesystem(system, options)
 
+    # Main controler list used to build the 
+    # MachineID -> ChipID
+    cacheChipIDList = []
+
     # Create the network0 object
     # Chip 0
     (
@@ -197,7 +201,8 @@ def create_system(
             bootmem, 
             ruby, 
             cpus0,
-            network0
+            network0,
+            cacheChipIDList
         )
     
     # Chip 1
@@ -210,8 +215,18 @@ def create_system(
             bootmem,
             ruby,
             cpus1,
-            network1
+            network1,
+            cacheChipIDList
         )
+
+    # Instantiating the cacheChipIDList in RNFs and C2CIs
+    print(f"{cacheChipIDList}")
+    ruby.interface0[0].setCacheChipIDList(cacheChipIDList) 
+    ruby.interface1[0].setCacheChipIDList(cacheChipIDList) 
+   
+    ruby.hnf[0].setCacheChipIDList(cacheChipIDList) 
+    ruby.hnf2[0].setCacheChipIDList(cacheChipIDList) 
+   
 
     # Create the network topology
     topology0.makeTopology(
