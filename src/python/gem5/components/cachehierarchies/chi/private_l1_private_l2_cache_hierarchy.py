@@ -109,6 +109,7 @@ class PrivateL1PrivateL2CacheHierarchy(AbstractRubyCacheHierarchy):
             clk_domain=board.get_clock_domain(),
             ranges=[mem_ranges[0]],
             chipID=0,
+            cacheChipIDList=cacheChipIDList,
         )
         self.hnf1 = SimpleDirectory(
             self.ruby_system.network,
@@ -116,6 +117,7 @@ class PrivateL1PrivateL2CacheHierarchy(AbstractRubyCacheHierarchy):
             clk_domain=board.get_clock_domain(),
             ranges=[mem_ranges[1]],
             chipID=0,
+            cacheChipIDList=cacheChipIDList,
         )
         self.hnf0.ruby_system = self.ruby_system
         self.hnf1.ruby_system = self.ruby_system
@@ -132,6 +134,7 @@ class PrivateL1PrivateL2CacheHierarchy(AbstractRubyCacheHierarchy):
                 self.ruby_system.network,
                 destinations,
                 chipID=0,
+                cacheChipIDList=cacheChipIDList,
             )
         ]
         self.core_cluster1 = [
@@ -142,13 +145,13 @@ class PrivateL1PrivateL2CacheHierarchy(AbstractRubyCacheHierarchy):
                 self.ruby_system.network,
                 destinations,
                 chipID=0,
+                cacheChipIDList=cacheChipIDList,
             )
         ]
 
         # Create the coherent side of the memory controllers
         self.memory_controllers0 = self._create_memory_controllers(
                 board,
-                self.ruby_system.network, 
                 self.ruby_system.network, 
                 rng_idx=0, 
             )
@@ -157,7 +160,6 @@ class PrivateL1PrivateL2CacheHierarchy(AbstractRubyCacheHierarchy):
         self.memory_controllers1 = self._create_memory_controllers(
                 board,
                 self.ruby_system.network, 
-                self.ruby_system.network,
                 rng_idx=1, 
             )
         self.hnf1.downstream_destinations = self.memory_controllers1
@@ -168,6 +170,8 @@ class PrivateL1PrivateL2CacheHierarchy(AbstractRubyCacheHierarchy):
                 board, 
                 network=self.ruby_system.network,
                 cluster_dest=destinations,
+                chipID=0,
+                cacheChipIDList=cacheChipIDList,
             )
             self.ruby_system.num_of_sequencers = (
                 len(self.core_cluster0) + 
@@ -311,7 +315,6 @@ class PrivateL1PrivateL2CacheHierarchy(AbstractRubyCacheHierarchy):
         self, 
         board: AbstractBoard,
         network,
-        network_ptr,
         rng_idx,
     ) -> List[MemoryController]:
         memory_controllers = []
@@ -327,6 +330,8 @@ class PrivateL1PrivateL2CacheHierarchy(AbstractRubyCacheHierarchy):
         board: AbstractBoard,
         network,
         cluster_dest,
+        chipID: int,
+        cacheChipIDList,
     ) -> List[DMARequestor]:
         dma_controllers = []
         for i, port in enumerate(board.get_dma_ports()):
