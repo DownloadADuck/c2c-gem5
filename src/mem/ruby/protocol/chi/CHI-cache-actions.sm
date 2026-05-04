@@ -3045,6 +3045,9 @@ action(Send_CompI, desc="") {
     out_msg.responder := machineID;
     out_msg.Destination.add(tbe.requestor);
     out_msg.localRequestor := tbe.localRequestor;
+
+    // c2c-specific fields
+    out_msg.localRequestor := tbe.originalRequestor;
   }
 }
 
@@ -3099,6 +3102,8 @@ action(Send_CompI_Stale, desc="") {
     // We don't know if this is a stale writeback or a bug, so flag the
     // reponse so the requestor can make further checks
     out_msg.stale := true;
+    // c2c-specific fields
+    out_msg.localRequestor := tbe.originalRequestor;
   }
 }
 
@@ -3110,7 +3115,6 @@ action(Send_CompDBIDResp, desc="") {
     out_msg.responder := machineID;
     out_msg.Destination.add(tbe.requestor);
     // C2c-specific fields
-    DPRINTF(RubyGenerated, "localRequestor: %s originalRequestor: %s\n", tbe.originalRequestor, machineID);
     out_msg.localRequestor := tbe.originalRequestor; 
     out_msg.originalRequestor := machineID;
   }
