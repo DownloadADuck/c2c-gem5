@@ -7,6 +7,10 @@
 #include <sstream>
 #include "debug/C2CInterposer.hh"
 
+#include <iomanip>
+#include "mem/ruby/protocol/C2cMsg.hh"
+#include "mem/ruby/protocol/C2cRequestType.hh"
+
 /*Vamos a realizar 2 cosas
 1. Definir un constructor
 2. Definir una lista de inicialización ( : ... , ...) que es una forma 
@@ -41,6 +45,30 @@ pktToString(PacketPtr pkt)
     return oss.str();
 }
 
+//ver el tipo del paquete 
+static bool
+hasC2cMsg(PacketPtr pkt)
+{
+    return pkt && pkt->c2c_msg;
+}
+
+static int
+getC2cTypeId(PacketPtr pkt)
+{
+    assert(pkt && pkt->c2c_msg);
+    return static_cast<int>(pkt->c2c_msg->m_Type);
+}
+
+static std::string
+getC2cTypeName(PacketPtr pkt)
+{
+    if (!pkt || !pkt->c2c_msg) {
+        return "NO_C2C_MSG";
+    }
+
+    return ruby::C2cRequestType_to_string(pkt->c2c_msg->m_Type);
+}
+
 /*Usamos el operador de resolución de ámbito "::" en "C2CInterposer::FromInterfacePort(...)"
 para indicar que vamos a acceder a la clase privada que está dentro de C2CInterposer y luego
 volvemos a usar el operador de ámbito "::" para definir el constructor de esa clase
@@ -48,20 +76,11 @@ así "FromInterfacePort::FromInterfacePort(...)". Resto lo hacemos porque en el 
 class C2CInterposer la cual dentro tiene como miembro privado la clase "FromInterfacePort"
 Y ahora en este .cc lo estoy definiendo, por eso uso el "::", porque
 estoy fuera del cuerpo de la clase.
+*/
 C2CInterposer::FromInterfacePort::FromInterfacePort(
     const std::string &name,
     C2CInterposer *owner,
     int side
-)
-Una vez definido el constructor de "FromInterfacePort" al poner los ":" 
-pasamos a definir la lista de inicialización de éste mismo, ósea, les damos
-valores de golpe.
-Recuerda, FromInterfacePort hereda de RespondePort
-*/
-C2CInterposer::FromInterfacePort::FromInterfacePort(
-    const std::string &name, //nombre del puerto
-    C2CInterposer *owner, //puntero al interposer dueño
-    int side //el lado del interposer (0 o 1)
 ) : ResponsePort(name, owner), //construimos el objeto con la lista de inicialización
     owner(owner),
     side(side)
@@ -146,9 +165,9 @@ Tick C2CInterposer::recvAtomicFromInterface1(PacketPtr pkt)
 /*Defino el constructor de ToInterfacePort que hereda de RequestPort.
 Es basicamente lo mismo que el FromInterfacePort*/
 C2CInterposer::ToInterfacePort::ToInterfacePort(
-    const std::string &name, //nombre del puerto
-    C2CInterposer *owner, //puntero al interposer dueño
-    int side //el lado del interposer (0 o 1)
+    const std::string &name,
+    C2CInterposer *owner,
+    int side
 ) : RequestPort(name, owner), //construimos el objeto con la lista de inicialización
     owner(owner),
     side(side)
@@ -197,17 +216,13 @@ C2CInterposer::C2CInterposer(const C2CInterposerParams &params)
       reqBufferSize(params.req_buffer_size),
       respBufferSize(params.resp_buffer_size),
       req0to1(DirBuffer(EventFunctionWrapper(
-    [this] { processReq0to1(); }, name() + ".processReq0to1"))),
-    req1to0(DirBuffer(EventFunctionWrapper(
-    [this] { processReq1to0(); }, name() + ".processReq1to0"))),
-    resp0to1(DirBuffer(EventFunctionWrapper(
-    [this] { processResp0to1(); }, name() + ".processResp0to1"))),
-    resp1to0(DirBuffer(EventFunctionWrapper(
-    [this] { processResp1to0(); }, name() + ".processResp1to0"))) /*Se usa la lista de inicialización 
-    para construir el objeto base SimbOject y luego dentro de las 
-    llaves "{}" se ejecuta el código del constructor 
-    de C2CInterposer para crear dinámicamente 4 objetos que van a ser 
-    los puertos y se guardan como atributos de la clase C2CInterface*/
+          [this] { processReq0to1(); }, name() + ".processReq0to1"))),
+      req1to0(DirBuffer(EventFunctionWrapper(
+          [this] { processReq1to0(); }, name() + ".processReq1to0"))),
+      resp0to1(DirBuffer(EventFunctionWrapper(
+          [this] { processResp0to1(); }, name() + ".processResp0to1"))),
+      resp1to0(DirBuffer(EventFunctionWrapper(
+          [this] { processResp1to0(); }, name() + ".processResp1to0")))
 {
     //debug
     std::cerr << "[Interposer] constructor called" << std::endl;
@@ -224,12 +239,9 @@ C2CInterposer::C2CInterposer(const C2CInterposerParams &params)
 
     //puerto de ResponsePort del lado 0
     fromInterface0Port = new FromInterfacePort(
-        csprintf("%s.from_interface0_port", name()), /*le damos el nombre al puerto:
-        name() devuelve el nombre del objeto Interposer y "csprint" formatea el texto, 
-        de forma que el resultado quedaría algo así: interposer0.from_interface0_port*/
-        this, //le damos la dirección del Interposer como owner, como estamos 
-        //dentro de su constructor "this" es el puntero a la C2CInterposer objeto
-        0 //el lado
+        csprintf("%s.from_interface0_port", name()),
+        this,
+        0
     );
 
     //puerto de RequestPort del lado 0
@@ -254,6 +266,12 @@ C2CInterposer::C2CInterposer(const C2CInterposerParams &params)
     );
 }
 
+//destructor 
+C2CInterposer::~C2CInterposer()
+{
+    dumpC2cTypeStats();
+}
+
 /*Método de la clase C2CInterposer para acceder a los puertos (atributos) de 
 este, para ello devuelve el puntero a ese puerto (Port &) al mandarle el nombre*/
 Port & C2CInterposer::getPort(const std::string &if_name, PortID idx)
@@ -276,6 +294,275 @@ Port & C2CInterposer::getPort(const std::string &if_name, PortID idx)
     return ClockedObject::getPort(if_name, idx);
 }
 
+//contar el tipo de mensajes que me ha llegado 
+void
+C2CInterposer::recordC2cType(PacketPtr pkt, const char* path)
+{
+    if (!hasC2cMsg(pkt)) {
+        std::cout << "[Interposer] " << path
+                  << " type=NO_C2C_MSG "
+                  << pktToString(pkt) << "\n";
+        return;
+    }
+
+    const int typeId = getC2cTypeId(pkt);
+    const std::string typeName = getC2cTypeName(pkt);
+
+    auto &stats = c2cTypeStats[typeId];
+
+    if (std::string(path) == "REQ 0->1 enqueue") {
+        stats.reqFrom0++;
+    } else if (std::string(path) == "REQ 1->0 enqueue") {
+        stats.reqFrom1++;
+    } else if (std::string(path) == "RESP 0->1 enqueue") {
+        stats.respFrom0++;
+    } else if (std::string(path) == "RESP 1->0 enqueue") {
+        stats.respFrom1++;
+    }
+
+    std::cout << "[Interposer] " << path
+              << " c2c_type=" << typeName
+              << " type_id=" << typeId
+              << " " << pktToString(pkt)
+              << "\n";
+}
+
+void
+C2CInterposer::dumpC2cTypeStats() const
+{
+    std::cout << "\n========== C2C TYPE STATS ==========\n";
+
+    if (c2cTypeStats.empty()) {
+        std::cout << "No C2C packets recorded.\n";
+        std::cout << "====================================\n";
+        return;
+    }
+
+    for (const auto &entry : c2cTypeStats) {
+        const int typeId = entry.first;
+        const TypeStats &s = entry.second;
+
+        auto type = static_cast<gem5::ruby::C2cRequestType>(typeId);
+
+        std::cout << "type_id=" << std::setw(3) << typeId
+                  << " type_name=" << gem5::ruby::C2cRequestType_to_string(type)
+                  << " reqFrom0=" << s.reqFrom0
+                  << " reqFrom1=" << s.reqFrom1
+                  << " respFrom0=" << s.respFrom0
+                  << " respFrom1=" << s.respFrom1
+                  << "\n";
+    }
+
+    std::cout << "====================================\n";
+}
+
+// ---------------- NUEVO ----------------
+// helper para obtener el tipo del paquete
+//para obtener nombre legible de la clase lógica
+const char*
+C2CInterposer::getClassName(C2cMsgClass msgClass) const
+{
+    switch (msgClass) {
+      case C2cMsgClass::Request:  return "Request";
+      case C2cMsgClass::Snoop:    return "Snoop";
+      case C2cMsgClass::Response: return "Response";
+      case C2cMsgClass::Data:     return "Data";
+    }
+
+    return "Unknown";
+}
+
+// helper para clasificar el tipo real CHI en una de las 4 clases lógicas
+C2CInterposer::C2cMsgClass
+C2CInterposer::classifyC2cType(ruby::C2cRequestType type) const
+{
+    using namespace ruby;
+
+    if (type == C2cRequestType_ReadShared ||
+        type == C2cRequestType_ReadOnce ||
+        type == C2cRequestType_ReadUnique ||
+        type == C2cRequestType_CleanUnique ||
+        type == C2cRequestType_Evict ||
+        type == C2cRequestType_WriteEvictFull ||
+        type == C2cRequestType_WriteUniqueFull ||
+        type == C2cRequestType_WriteBackFull) {
+        return C2cMsgClass::Request;
+    } else if (type == C2cRequestType_SnpCleanInvalid ||
+               type == C2cRequestType_SnpUnique ||
+               type == C2cRequestType_SnpSharedFwd ||
+               type == C2cRequestType_SnpUniqueFwd ||
+               type == C2cRequestType_SnpOnceFwd) {
+        return C2cMsgClass::Snoop;
+    } else if (type == C2cRequestType_CompData_UC ||
+               type == C2cRequestType_CompData_I ||
+               type == C2cRequestType_CompData_SC ||
+               type == C2cRequestType_CompData_SD_PD ||
+               type == C2cRequestType_CompData_UD_PD ||
+               type == C2cRequestType_NCBWrData ||
+               type == C2cRequestType_CBWrData_UC ||
+               type == C2cRequestType_CBWrData_SC ||
+               type == C2cRequestType_CBWrData_I ||
+               type == C2cRequestType_CBWrData_SD_PD ||
+               type == C2cRequestType_CBWrData_UD_PD ||
+               type == C2cRequestType_SnpRespData_I_PD ||
+               type == C2cRequestType_SnpRespData_I ||
+               type == C2cRequestType_SnpRespData_SC_PD ||
+               type == C2cRequestType_SnpRespData_SC ||
+               type == C2cRequestType_SnpRespData_SD ||
+               type == C2cRequestType_SnpRespData_UC ||
+               type == C2cRequestType_SnpRespData_UD ||
+               type == C2cRequestType_SnpRespData_SC_Fwded_SD_PD ||
+               type == C2cRequestType_SnpRespData_SC_Fwded_SC ||
+               type == C2cRequestType_SnpRespData_SC_PD_Fwded_SC ||
+               type == C2cRequestType_SnpRespData_I_Fwded_SD_PD ||
+               type == C2cRequestType_SnpRespData_I_PD_Fwded_SC ||
+               type == C2cRequestType_SnpRespData_I_Fwded_SC) {
+        return C2cMsgClass::Data;
+    } else if (type == C2cRequestType_CompAck ||
+               type == C2cRequestType_CompDBIDResp ||
+               type == C2cRequestType_RetryAck ||
+               type == C2cRequestType_PCrdGrant ||
+               type == C2cRequestType_Comp_I ||
+               type == C2cRequestType_Comp_UC ||
+               type == C2cRequestType_SnpResp_I ||
+               type == C2cRequestType_SnpResp_I_Fwded_UD_PD ||
+               type == C2cRequestType_SnpResp_I_Fwded_UC ||
+               type == C2cRequestType_SnpResp_SC_Fwded_SC ||
+               type == C2cRequestType_SnpResp_SC_Fwded_SD_PD ||
+               type == C2cRequestType_SnpResp_SD_Fwded_I ||
+               type == C2cRequestType_SnpResp_SC_Fwded_I ||
+               type == C2cRequestType_SnpResp_UD_Fwded_I ||
+               type == C2cRequestType_SnpResp_UC_Fwded_I ||
+               type == C2cRequestType_ReqAck) {
+        return C2cMsgClass::Response;
+    } else {
+        panic("Invalid C2c request type in C2CInterposer classification: %s",
+              ruby::C2cRequestType_to_string(type).c_str());
+        return C2cMsgClass::Request;
+    }
+}
+
+// helper para obtener la clase lógica del paquete
+C2CInterposer::C2cMsgClass
+C2CInterposer::getPacketClass(PacketPtr pkt) const
+{
+    if (!hasC2cMsg(pkt)) {
+        panic("Packet without c2c_msg in C2CInterposer");
+    }
+
+    return classifyC2cType(pkt->c2c_msg->m_Type);
+}
+// ---------------- FIN NUEVO ----------------
+
+// helper para obtener el menor readyTick entre todas las colas
+Tick
+C2CInterposer::nextReadyTick(const DirBuffer &buf) const
+{
+    Tick best = MaxTick;
+    bool found = false;
+
+    for (const auto &entry : buf.queues) {
+        const auto &q = entry.second;
+        if (!q.empty()) {
+            best = std::min(best, q.front().readyTick);
+            found = true;
+        }
+    }
+
+    return found ? best : MaxTick;
+}
+
+// helper para elegir el siguiente tipo según Round Robin
+// El Round Robin, cuando una cola está vacía, pasa a la siguiente.
+// Así, si sólo hay una cola ocupada, transmite continuamente desde dicha cola
+// (aunque en cada intento revisa las demás, saltándolas).
+int
+C2CInterposer::selectNextTypeRR(DirBuffer &buf, Tick now)
+{
+    std::vector<int> candidates;
+
+    for (const auto &entry : buf.queues) {
+        const int classId = static_cast<int>(entry.first);
+        const auto &q = entry.second;
+
+        if (!q.empty() && q.front().readyTick <= now) {
+            candidates.push_back(classId);
+        }
+    }
+
+    if (candidates.empty()) {
+        return -2; // no hay ninguna cola lista todavía
+    }
+
+    std::sort(candidates.begin(), candidates.end());
+
+    // si nunca se ha servido nada todavía
+    if (buf.lastServedClass == -1) {
+        return candidates.front();
+    }
+
+    // busco la siguiente cola con classId mayor que la última servida
+    for (int c : candidates) {
+        if (c > buf.lastServedClass) {
+            return c;
+        }
+    }
+
+    // si no hay ninguna mayor, hago wrap-around
+    return candidates.front();
+}
+
+// helper para encolar en la cola de la clase correspondiente
+bool
+C2CInterposer::enqueueTypedPacket(DirBuffer &buf, PacketPtr pkt, Tick delay,
+                                  unsigned maxSize, const char *path)
+{
+    const int typeId = getC2cTypeId(pkt);
+    const std::string typeName = getC2cTypeName(pkt);
+    const C2cMsgClass msgClass = getPacketClass(pkt);
+    auto &q = buf.queues[msgClass];
+
+    // Ahora el tamaño máximo se aplica a la cola de ESTA clase,
+    // no al total de colas de la dirección.
+    if (q.size() >= maxSize) {
+        std::cout << "[Interposer] " << path
+                  << " BUFFER FULL"
+                  << " class=" << getClassName(msgClass)
+                  << " type_id=" << typeId
+                  << " type_name=" << typeName
+                  << " class_occ=" << q.size()
+                  << "/" << maxSize
+                  << " total_occ=" << buf.totalSize()
+                  << " addr=0x" << std::hex << pkt->getAddr()
+                  << std::dec << "\n";
+        return false;
+    }
+
+    pkt->headerDelay += delay;
+
+    Tick ready = curTick() + delay;
+    q.push_back({pkt, ready});
+
+    std::cout << "[Interposer] " << path
+              << " class=" << getClassName(msgClass)
+              << " type_id=" << typeId
+              << " type_name=" << typeName
+              << " add_delay=" << delay
+              << " class_occ=" << q.size()
+              << "/" << maxSize
+              << " total_occ=" << buf.totalSize()
+              << " addr=0x" << std::hex << pkt->getAddr()
+              << std::dec << "\n";
+
+    Tick when = nextReadyTick(buf);
+    if (when != MaxTick) {
+        scheduleBufferEvent(buf, when);
+    }
+
+    return true;
+}
+// ---------------- FIN NUEVO ----------------
+
 /*-----------------------------------------------------------*/
 //                 Lógica de reenvío de Request (bridge de Request)    
 //                  cualquier duda de esta zona, ver apuntes sobre la latencia           
@@ -286,28 +573,14 @@ bool
 C2CInterposer::recvReqFromInterface0(PacketPtr pkt)
 {
     // Interfaz0 -> Interfaz1
+
+    recordC2cType(pkt, "REQ 0->1 enqueue");
+
     Tick delay = cyclesToTicks(reqLatency);
 
-    if (req0to1.q.size() >= reqBufferSize) {
-        std::cout << "[Interposer] REQ 0->1 BUFFER FULL addr=0x"
-                  << std::hex << pkt->getAddr()
-                  << std::dec << " occ=" << req0to1.q.size()
-                  << "/" << reqBufferSize << "\n";
-        return false;
-    }
-
-    pkt->headerDelay += delay;
-
-    req0to1.q.push_back({pkt, curTick() + delay});
-
-    std::cout << "[Interposer] REQ 0->1 addr=0x"
-              << std::hex << pkt->getAddr()
-              << std::dec << " add_delay=" << delay
-              << " occ=" << req0to1.q.size() << "/" << reqBufferSize << "\n";
-
-    scheduleBufferEvent(req0to1, req0to1.q.front().readyTick);
-
-    return true;
+    // ---------------- NUEVO ----------------
+    return enqueueTypedPacket(req0to1, pkt, delay, reqBufferSize, "REQ 0->1");
+    // ---------------- FIN NUEVO ----------------
 }
 
 /*Si llega una request desde la interfaz 1 lo reenvío a la 0 inmediatamente*/
@@ -315,28 +588,14 @@ bool
 C2CInterposer::recvReqFromInterface1(PacketPtr pkt)
 {
     // Interfaz1 -> Interfaz0
+
+    recordC2cType(pkt, "REQ 1->0 enqueue");
+
     Tick delay = cyclesToTicks(reqLatency);
 
-    if (req1to0.q.size() >= reqBufferSize) {
-        std::cout << "[Interposer] REQ 1->0 BUFFER FULL addr=0x"
-                  << std::hex << pkt->getAddr()
-                  << std::dec << " occ=" << req1to0.q.size()
-                  << "/" << reqBufferSize << "\n";
-        return false;
-    }
-
-    pkt->headerDelay += delay;
-
-    req1to0.q.push_back({pkt, curTick() + delay});
-
-    std::cout << "[Interposer] REQ 1->0 addr=0x"
-              << std::hex << pkt->getAddr()
-              << std::dec << " add_delay=" << delay
-              << " occ=" << req1to0.q.size() << "/" << reqBufferSize << "\n";
-
-    scheduleBufferEvent(req1to0, req1to0.q.front().readyTick);
-
-    return true;
+    // ---------------- NUEVO ----------------
+    return enqueueTypedPacket(req1to0, pkt, delay, reqBufferSize, "REQ 1->0");
+    // ---------------- FIN NUEVO ----------------
 }
 
 /*-----------------------------------------------------------*/
@@ -349,28 +608,14 @@ bool
 C2CInterposer::recvRespFromInterface0(PacketPtr pkt)
 {
     // Respuesta que vuelve desde Interface0 hacia Interfaz1
+
+    recordC2cType(pkt, "RESP 0->1 enqueue");
+
     Tick delay = cyclesToTicks(respLatency);
 
-    if (resp0to1.q.size() >= respBufferSize) {
-        std::cout << "[Interposer] RESP 0->1 BUFFER FULL addr=0x"
-                  << std::hex << pkt->getAddr()
-                  << std::dec << " occ=" << resp0to1.q.size()
-                  << "/" << respBufferSize << "\n";
-        return false;
-    }
-
-    pkt->headerDelay += delay;
-
-    resp0to1.q.push_back({pkt, curTick() + delay});
-
-    std::cout << "[Interposer] RESP 0->1 addr=0x"
-              << std::hex << pkt->getAddr()
-              << std::dec << " add_delay=" << delay
-              << " occ=" << resp0to1.q.size() << "/" << respBufferSize << "\n";
-
-    scheduleBufferEvent(resp0to1, resp0to1.q.front().readyTick);
-
-    return true;
+    // ---------------- NUEVO ----------------
+    return enqueueTypedPacket(resp0to1, pkt, delay, respBufferSize, "RESP 0->1");
+    // ---------------- FIN NUEVO ----------------
 }
 
 /*Si llega una Responset desde la interfaz 1 lo reenvío a la 0 inmediatamente*/
@@ -378,28 +623,14 @@ bool
 C2CInterposer::recvRespFromInterface1(PacketPtr pkt)
 {
     // Respuesta que vuelve desde Interface1 hacia Interfaz0
+
+    recordC2cType(pkt, "RESP 1->0 enqueue");
+
     Tick delay = cyclesToTicks(respLatency);
 
-    if (resp1to0.q.size() >= respBufferSize) {
-        std::cout << "[Interposer] RESP 1->0 BUFFER FULL addr=0x"
-                  << std::hex << pkt->getAddr()
-                  << std::dec << " occ=" << resp1to0.q.size()
-                  << "/" << respBufferSize << "\n";
-        return false;
-    }
-
-    pkt->headerDelay += delay;
-
-    resp1to0.q.push_back({pkt, curTick() + delay});
-
-    std::cout << "[Interposer] RESP 1->0 addr=0x"
-              << std::hex << pkt->getAddr()
-              << std::dec << " add_delay=" << delay
-              << " occ=" << resp1to0.q.size() << "/" << respBufferSize << "\n";
-
-    scheduleBufferEvent(resp1to0, resp1to0.q.front().readyTick);
-
-    return true;
+    // ---------------- NUEVO ----------------
+    return enqueueTypedPacket(resp1to0, pkt, delay, respBufferSize, "RESP 1->0");
+    // ---------------- FIN NUEVO ----------------
 }
 
 /*-----------------------------------------------------------*/
@@ -469,153 +700,229 @@ C2CInterposer::processResp1to0()
 void
 C2CInterposer::trySendReq0to1()
 {
-    if (req0to1.q.empty()) {
+    // ---------------- NUEVO ----------------
+    if (req0to1.empty()) {
         return;
     }
-
-    auto &front = req0to1.q.front();
-
-    if (front.readyTick > curTick()) {
-    scheduleBufferEvent(req0to1, front.readyTick);
-    return;
-}
 
     if (req0to1.waitingRetry) {
         return;
     }
+
+    int classId = selectNextTypeRR(req0to1, curTick());
+
+    if (classId == -2) {
+        Tick when = nextReadyTick(req0to1);
+        if (when != MaxTick) {
+            scheduleBufferEvent(req0to1, when);
+        }
+        return;
+    }
+
+    C2cMsgClass msgClass = static_cast<C2cMsgClass>(classId);
+    auto &q = req0to1.queues[msgClass];
+    auto &front = q.front();
 
     if (!toInterface1Port->sendTimingReq(front.pkt)) {
         req0to1.waitingRetry = true;
         return;
     }
 
-    req0to1.q.pop_front();
+    // Guardo el tamaño anterior para saber si esta cola estaba llena
+    size_t oldSize = q.size();
 
-    if (req0to1.q.size() + 1 == reqBufferSize) {
-        std::cout << "[Interposer] RELEASE REQ 0->1 -> sendRetryReq to interface0\n";
+    q.pop_front();
+    req0to1.lastServedClass = classId;
+
+    // Si esta cola estaba llena y ahora ya no, aviso al productor
+    // de interface0 para que reintente mandar su request.
+    if (oldSize == reqBufferSize) {
+        std::cout << "[Interposer] RELEASE REQ 0->1"
+                  << " class=" << getClassName(msgClass)
+                  << " -> sendRetryReq to interface0\n";
         fromInterface0Port->sendRetryReq();
     }
 
-    if (!req0to1.q.empty()) {
-    scheduleBufferEvent(
-        req0to1,
-        std::max(curTick(), req0to1.q.front().readyTick)
-    );
-}
+    if (q.empty()) {
+        req0to1.queues.erase(msgClass);
+    }
+
+    Tick when = nextReadyTick(req0to1);
+    if (when != MaxTick) {
+        scheduleBufferEvent(req0to1, std::max(curTick(), when));
+    }
+    // ---------------- FIN NUEVO ----------------
 }
 
 void
 C2CInterposer::trySendReq1to0()
 {
-    if (req1to0.q.empty()) {
+    // ---------------- NUEVO ----------------
+    if (req1to0.empty()) {
         return;
-    }
-
-    auto &front = req1to0.q.front();
-
-    if (front.readyTick > curTick()) {
-    scheduleBufferEvent(req1to0, front.readyTick);
-    return;
     }
 
     if (req1to0.waitingRetry) {
         return;
     }
 
+    int classId = selectNextTypeRR(req1to0, curTick());
+
+    if (classId == -2) {
+        Tick when = nextReadyTick(req1to0);
+        if (when != MaxTick) {
+            scheduleBufferEvent(req1to0, when);
+        }
+        return;
+    }
+
+    C2cMsgClass msgClass = static_cast<C2cMsgClass>(classId);
+    auto &q = req1to0.queues[msgClass];
+    auto &front = q.front();
+
     if (!toInterface0Port->sendTimingReq(front.pkt)) {
         req1to0.waitingRetry = true;
         return;
     }
 
-    req1to0.q.pop_front();
+    // Guardo el tamaño anterior para saber si esta cola estaba llena
+    size_t oldSize = q.size();
 
-    if (req1to0.q.size() + 1 == reqBufferSize) {
-        std::cout << "[Interposer] RELEASE REQ 1->0 -> sendRetryReq to interface1\n";
+    q.pop_front();
+    req1to0.lastServedClass = classId;
+
+    // Si esta cola estaba llena y ahora ya no, aviso al productor
+    // de interface1 para que reintente mandar su request.
+    if (oldSize == reqBufferSize) {
+        std::cout << "[Interposer] RELEASE REQ 1->0"
+                  << " class=" << getClassName(msgClass)
+                  << " -> sendRetryReq to interface1\n";
         fromInterface1Port->sendRetryReq();
     }
 
-    if (!req1to0.q.empty()) {
-    scheduleBufferEvent(
-        req1to0,
-        std::max(curTick(), req1to0.q.front().readyTick)
-        );
+    if (q.empty()) {
+        req1to0.queues.erase(msgClass);
     }
+
+    Tick when = nextReadyTick(req1to0);
+    if (when != MaxTick) {
+        scheduleBufferEvent(req1to0, std::max(curTick(), when));
+    }
+    // ---------------- FIN NUEVO ----------------
 }
 
 void
 C2CInterposer::trySendResp0to1()
 {
-    if (resp0to1.q.empty()) {
+    // ---------------- NUEVO ----------------
+    if (resp0to1.empty()) {
         return;
-    }
-
-    auto &front = resp0to1.q.front();
-
-    if (front.readyTick > curTick()) {
-    scheduleBufferEvent(resp0to1, front.readyTick);
-    return;
     }
 
     if (resp0to1.waitingRetry) {
         return;
     }
 
+    int classId = selectNextTypeRR(resp0to1, curTick());
+
+    if (classId == -2) {
+        Tick when = nextReadyTick(resp0to1);
+        if (when != MaxTick) {
+            scheduleBufferEvent(resp0to1, when);
+        }
+        return;
+    }
+
+    C2cMsgClass msgClass = static_cast<C2cMsgClass>(classId);
+    auto &q = resp0to1.queues[msgClass];
+    auto &front = q.front();
+
     if (!fromInterface1Port->sendTimingResp(front.pkt)) {
         resp0to1.waitingRetry = true;
         return;
     }
 
-    resp0to1.q.pop_front();
+    // Guardo el tamaño anterior para saber si esta cola estaba llena
+    size_t oldSize = q.size();
 
-    if (resp0to1.q.size() + 1 == respBufferSize) {
-        std::cout << "[Interposer] RELEASE RESP 0->1 -> sendRetryResp to interface0\n";
+    q.pop_front();
+    resp0to1.lastServedClass = classId;
+
+    // Si esta cola estaba llena y ahora ya no, aviso al productor
+    // de la response del lado 0 para que reintente.
+    if (oldSize == respBufferSize) {
+        std::cout << "[Interposer] RELEASE RESP 0->1"
+                  << " class=" << getClassName(msgClass)
+                  << " -> sendRetryResp to interface0\n";
         toInterface0Port->sendRetryResp();
     }
 
-    if (!resp0to1.q.empty()) {
-    scheduleBufferEvent(
-        resp0to1,
-        std::max(curTick(), resp0to1.q.front().readyTick)
-        );
+    if (q.empty()) {
+        resp0to1.queues.erase(msgClass);
     }
+
+    Tick when = nextReadyTick(resp0to1);
+    if (when != MaxTick) {
+        scheduleBufferEvent(resp0to1, std::max(curTick(), when));
+    }
+    // ---------------- FIN NUEVO ----------------
 }
 
 void
 C2CInterposer::trySendResp1to0()
 {
-    if (resp1to0.q.empty()) {
+    // ---------------- NUEVO ----------------
+    if (resp1to0.empty()) {
         return;
-    }
-
-    auto &front = resp1to0.q.front();
-
-    if (front.readyTick > curTick()) {
-    scheduleBufferEvent(resp1to0, front.readyTick);
-    return;
     }
 
     if (resp1to0.waitingRetry) {
         return;
     }
 
+    int classId = selectNextTypeRR(resp1to0, curTick());
+
+    if (classId == -2) {
+        Tick when = nextReadyTick(resp1to0);
+        if (when != MaxTick) {
+            scheduleBufferEvent(resp1to0, when);
+        }
+        return;
+    }
+
+    C2cMsgClass msgClass = static_cast<C2cMsgClass>(classId);
+    auto &q = resp1to0.queues[msgClass];
+    auto &front = q.front();
+
     if (!fromInterface0Port->sendTimingResp(front.pkt)) {
         resp1to0.waitingRetry = true;
         return;
     }
 
-    resp1to0.q.pop_front();
+    // Guardo el tamaño anterior para saber si esta cola estaba llena
+    size_t oldSize = q.size();
 
-    if (resp1to0.q.size() + 1 == respBufferSize) {
-        std::cout << "[Interposer] RELEASE RESP 1->0 -> sendRetryResp to interface1\n";
+    q.pop_front();
+    resp1to0.lastServedClass = classId;
+
+    // Si esta cola estaba llena y ahora ya no, aviso al productor
+    // de la response del lado 1 para que reintente.
+    if (oldSize == respBufferSize) {
+        std::cout << "[Interposer] RELEASE RESP 1->0"
+                  << " class=" << getClassName(msgClass)
+                  << " -> sendRetryResp to interface1\n";
         toInterface1Port->sendRetryResp();
     }
 
-    if (!resp1to0.q.empty()) {
-    scheduleBufferEvent(
-        resp1to0,
-        std::max(curTick(), resp1to0.q.front().readyTick)
-        );
+    if (q.empty()) {
+        resp1to0.queues.erase(msgClass);
     }
+
+    Tick when = nextReadyTick(resp1to0);
+    if (when != MaxTick) {
+        scheduleBufferEvent(resp1to0, std::max(curTick(), when));
+    }
+    // ---------------- FIN NUEVO ----------------
 }
 
 //helper 
@@ -623,11 +930,17 @@ C2CInterposer::trySendResp1to0()
 void
 C2CInterposer::scheduleBufferEvent(DirBuffer &buf, Tick when)
 {
+    // ---------------- NUEVO ----------------
+    if (when == MaxTick) {
+        return;
+    }
+
     if (!buf.processEvent.scheduled()) {
         schedule(buf.processEvent, when);
+    } else if (buf.processEvent.when() > when) {
+        reschedule(buf.processEvent, when);
     }
+    // ---------------- FIN NUEVO ----------------
 }
 
-
-
-}
+} // namespace gem5

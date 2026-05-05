@@ -246,10 +246,29 @@ def create_system(
     )
 
     # C2C forwarding interface setup
-    for interface in system.ruby.interface1:
+    #for interface in system.ruby.interface1:
+    #    for interface0 in system.ruby.interface0:
+    #        interface0.cntrl.c2c_out_port = interface.cntrl.c2c_in_port
+    #        interface0.cntrl.c2c_in_port = interface.cntrl.c2c_out_port
+
+    # C2C forwarding interface setup through C2CInterposer
+    system.c2c_interposer = C2CInterposer(
+        clk_domain=system.clk_domain,
+        req_latency=5,
+        resp_latency=5,
+        req_buffer_size=2,
+        resp_buffer_size=2,
+    )
+
+    for interface1 in system.ruby.interface1:
         for interface0 in system.ruby.interface0:
-            interface0.cntrl.c2c_out_port = interface.cntrl.c2c_in_port
-            interface0.cntrl.c2c_in_port = interface.cntrl.c2c_out_port
+            # Camino interface0 -> interposer -> interface1
+            interface0.cntrl.c2c_out_port = system.c2c_interposer.from_interface0_port
+            system.c2c_interposer.to_interface1_port = interface1.cntrl.c2c_in_port
+
+            # Camino interface1 -> interposer -> interface0
+            interface1.cntrl.c2c_out_port = system.c2c_interposer.from_interface1_port
+            system.c2c_interposer.to_interface0_port = interface0.cntrl.c2c_in_port
 
     # In SE register the ropology elements with fake filesystem
     if not full_system:

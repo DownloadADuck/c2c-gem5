@@ -127,8 +127,17 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         self.interface0.ruby_system = self.ruby_system
         self.interface1.ruby_system = self.ruby_system
 
+        #limito buferes ruby
+        for itf in [self.interface0, self.interface1]:
+            itf.requestToC2c.buffer_size = 40
+            itf.responseFromC2c.buffer_size = 40
+            itf.responseToC2c.buffer_size = 40
+            itf.requestFromC2c.buffer_size = 40
+
+
         #-------------------------------------------------
-        #conectar el interposer entre los C2CI
+        #conectar el interposer entre los C2CI. Para ello quito conexiones
+        #directas entre los C2CI
         #self.interface0.c2c_out_port = self.interface1.c2c_in_port
         #self.interface1.c2c_out_port = self.interface0.c2c_in_port
 

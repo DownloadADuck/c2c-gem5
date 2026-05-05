@@ -19,6 +19,15 @@ using namespace std;
 #include <deque>
 #include "sim/eventq.hh"
 
+#include <map>
+#include <cstdint>
+
+// ---------------- NUEVO ----------------
+#include <vector>
+#include <algorithm>
+#include "mem/ruby/protocol/C2cRequestType.hh"
+// ---------------- FIN NUEVO ----------------
+
 //el namespace debe ser el mismo que utilizé al definir el componente en el .py "cxx_class = "gem5::C2CInterposer""
 namespace gem5 {
 
@@ -142,16 +151,56 @@ class C2CInterposer : public ClockedObject
         Tick readyTick;
     };
 
+    // ---------------- NUEVO ----------------
+     // Clase lógica del mensaje C2C, igual que la agrupación usada
+    // en CHI-interface-v2.sm
+    enum class C2cMsgClass
+    {
+        Request = 0,
+        Snoop = 1,
+        Response = 2,
+        Data = 3
+    };
+
+    // Ahora cada dirección tiene una cola por clase de mensaje
+    // y un arbitraje Round Robin entre clases.
     struct DirBuffer
     {
-        std::deque<BufferedPkt> q;
+        // cola por cada clase lógica de mensaje C2C
+        std::map<C2cMsgClass, std::deque<BufferedPkt>> queues;
+
+        // indica si estamos esperando retry del siguiente componente
         bool waitingRetry = false;
+
+        // última clase servida, para implementar Round Robin
+        int lastServedClass = -1;
+
         EventFunctionWrapper processEvent;
 
         DirBuffer(EventFunctionWrapper&& ev)
             : processEvent(std::move(ev))
         {}
+
+        bool empty() const
+        {
+            for (const auto &entry : queues) {
+                if (!entry.second.empty()) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        size_t totalSize() const
+        {
+            size_t total = 0;
+            for (const auto &entry : queues) {
+                total += entry.second.size();
+            }
+            return total;
+        }
     };
+    // ---------------- FIN NUEVO ----------------
 
     // Buffers por dirección y por tipo
     DirBuffer req0to1;
@@ -173,6 +222,41 @@ class C2CInterposer : public ClockedObject
 
     void scheduleBufferEvent(DirBuffer &buf, Tick when);
 
+    // helper para clasificar el tipo real CHI en una de las 4 clases lógicas
+    C2cMsgClass classifyC2cType(ruby::C2cRequestType type) const;
+
+    // helper para obtener la clase lógica del paquete
+    C2cMsgClass getPacketClass(PacketPtr pkt) const;
+
+    // helper para obtener nombre legible de la clase lógica
+    const char* getClassName(C2cMsgClass msgClass) const;
+
+    // helper para encolar en la cola correspondiente a su clase
+    bool enqueueTypedPacket(DirBuffer &buf, PacketPtr pkt, Tick delay,
+                            unsigned maxSize, const char *path);
+
+    // helper Round Robin: elige la siguiente clase lista para enviar
+    int selectNextTypeRR(DirBuffer &buf, Tick now);
+
+    // helper: obtiene el menor readyTick entre todas las colas
+    Tick nextReadyTick(const DirBuffer &buf) const;
+
+    // ---------------- FIN NUEVO ----------------
+
+    //contador de tipos de mensaje 
+    struct TypeStats
+    {
+        uint64_t reqFrom0 = 0;
+        uint64_t reqFrom1 = 0;
+        uint64_t respFrom0 = 0;
+        uint64_t respFrom1 = 0;
+    };
+
+    std::map<int, TypeStats> c2cTypeStats;
+
+    void recordC2cType(PacketPtr pkt, const char* path);
+    void dumpC2cTypeStats() const;
+
   public:
     //declaro el constructor de la clase, el cual implemento en el .cc
     C2CInterposer(const C2CInterposerParams &params);
@@ -184,6 +268,9 @@ class C2CInterposer : public ClockedObject
         const std::string &if_name,
         PortID idx = InvalidPortID
     ) override;
+
+    //declaro un destructor 
+    ~C2CInterposer() override;
 };
 
 }

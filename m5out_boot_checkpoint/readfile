@@ -1,0 +1,1 @@
+echo '[guest] booted';m5 checkpoint /tmp/parsec-boot-checkpoint;sleep 2;m5 exit;
