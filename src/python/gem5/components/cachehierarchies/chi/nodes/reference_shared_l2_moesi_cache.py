@@ -43,7 +43,7 @@ class SharedL2MOESICache(AbstractNode):
         # Multi-chip parameters
         self.is_multiChip = False
         # hack. TODO: Use originalRequestor capabilities
-        self.is_reference = False
+        self.is_reference = True
         self.chipID = chipID
         cacheChipIDList.append(chipID)
     

@@ -2803,11 +2803,15 @@ action(Send_CompData_SnpUniqueFwd, desc="") {
   }
   tbe.actions.pushFront(Event:SendSnpFwdedResp);
 
-  int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
-  if(mappedChipID == chipID) {
-    tbe.snd_destination := tbe.originalRequestor;
+  if (is_reference) {
+    tbe.snd_destination := tbe.fwdRequestor;
   } else {
-    tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
+    int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
+    if(mappedChipID == chipID) {
+      tbe.snd_destination := tbe.originalRequestor;
+    } else {
+      tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
+    }
   }
 
   setupPendingSend(tbe);
@@ -2831,17 +2835,19 @@ action(Send_CompData_SnpSharedFwd, desc="") {
     tbe.actions.pushFront(Event:SendSnpFwdedResp);
   }
 
-  int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
-  DPRINTF(RubyGenerated, "mappedChipID -> %d\n", mappedChipID);
-  DPRINTF(RubyGenerated, "chipID -> %d\n", chipID);
-  DPRINTF(RubyGenerated, "originalRequestor -> %s\n", tbe.originalRequestor);
-  if(mappedChipID == chipID) {
-    tbe.snd_destination := tbe.originalRequestor;
+  if (is_reference) {
+    tbe.snd_destination := tbe.fwdRequestor;
   } else {
-    tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
+    int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
+    DPRINTF(RubyGenerated, "mappedChipID -> %d\n", mappedChipID);
+    DPRINTF(RubyGenerated, "chipID -> %d\n", chipID);
+    DPRINTF(RubyGenerated, "originalRequestor -> %s\n", tbe.originalRequestor);
+    if(mappedChipID == chipID) {
+      tbe.snd_destination := tbe.originalRequestor;
+    } else {
+      tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
+    }
   }
-  //tbe.snd_destination := tbe.fwdRequestor;
-
   DPRINTF(RubyGenerated, "SendDestination -> %s\n", tbe.snd_destination);
   setupPendingSend(tbe);
 }
@@ -2859,12 +2865,17 @@ action(Send_CompData_SnpNSDFwd, desc="") {
     tbe.actions.pushFront(Event:SendSnpFwdedResp);
   }
 
-  int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
-  if(mappedChipID == chipID) {
-    tbe.snd_destination := tbe.originalRequestor;
+  if (is_reference) {
+    tbe.snd_destination := tbe.fwdRequestor;
   } else {
-    tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
+    int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
+    if(mappedChipID == chipID) {
+      tbe.snd_destination := tbe.originalRequestor;
+    } else {
+      tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
+    }
   }
+
   setupPendingSend(tbe);
 }
 
@@ -2875,12 +2886,15 @@ action(Send_CompData_SnpOnceFwd, desc="") {
   tbe.snd_msgType := CHIDataType:CompData_I;
   tbe.actions.pushFront(Event:SendSnpFwdedResp);
 
-  DPRINTF(RubyGenerated, "originalRequestor -> %s\n", tbe.originalRequestor);
-  int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
-  if(mappedChipID == chipID) {
-    tbe.snd_destination := tbe.originalRequestor;
+  if (is_reference) {
+    tbe.snd_destination := tbe.fwdRequestor;
   } else {
-    tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
+    int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
+    if(mappedChipID == chipID) {
+      tbe.snd_destination := tbe.originalRequestor;
+    } else {
+      tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
+    }
   }
 
   setupPendingSend(tbe);
