@@ -3,8 +3,11 @@ machine(MachineType:Interface, "Forwarding C2CI") :
   Cycles request_latency := 1;
   Cycles response_latency := 1;
   Cycles data_latency := 1;
+
   Cycles c2c_req_latency := 1;
-  Cycles c2c_link_latency := 0; //685
+  Cycles c2c_rsp_latency := 1;
+  Cycles c2c_snp_latency := 1;
+  Cycles c2c_dat_latency := 1;
 
   int data_channel_size;
   int chipID;
@@ -1076,7 +1079,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
 
   action(sendToC2c_Snoop, "stcs", desc="Sends a snoop to the c2c link") {
     assert(is_valid(tbe));
-    enqueue(requestToC2c_out, C2cMsg, c2c_req_latency) {
+    enqueue(requestToC2c_out, C2cMsg, c2c_snp_latency) {
       out_msg.addr := address;
       out_msg.AccAddr := tbe.accAddr;
       out_msg.AccSize := tbe.accSize;
@@ -1101,7 +1104,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
 
   action(sendToC2c_Response, "stcrsp", desc="Sends response to the c2c link") {
     assert(is_valid(tbe));
-    enqueue(responseToC2c_out, C2cMsg, response_latency) {
+    enqueue(responseToC2c_out, C2cMsg, c2c_rsp_latency) {
       out_msg.addr := address;
       out_msg.Type := CHIRspToC2cMsg(tbe.to_c2c_rsp_type);
       out_msg.Responder := tbe.responder;
@@ -1118,7 +1121,7 @@ machine(MachineType:Interface, "Forwarding C2CI") :
 
   action(sendToC2c_Data, "stcdat", desc="Sends data to the c2c link") {
     assert(is_valid(tbe));
-    enqueue(responseToC2c_out, C2cMsg, response_latency) {
+    enqueue(responseToC2c_out, C2cMsg, c2c_dat_latency) {
       out_msg.addr := address;
       out_msg.Type := CHIDatToC2cMsg(tbe.to_c2c_dat_type);
       out_msg.Responder := tbe.responder;
