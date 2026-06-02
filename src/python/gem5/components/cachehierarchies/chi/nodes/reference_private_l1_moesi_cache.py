@@ -24,82 +24,65 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import List
+from gem5.components.processors.abstract_core import AbstractCore
+from gem5.isas import ISA
+
 from .abstract_node import AbstractNode
 
-from m5.objects import (
-    AddrRange,
-    ClockDomain, 
-    NULL,
-    RubyCache,
-    RubyNetwork,
-)
+from m5.objects import ClockDomain, RubyCache, RubyNetwork
 
 
-class SimpleDirectory(AbstractNode):
-    """A directory or home node (HNF)
-
-    This simple directory has no cache. It forwards all requests as directly
-    as possible.
-    """
-
+class PrivateL1MOESICache(AbstractNode):
     def __init__(
         self,
+        size: str,
+        assoc: int,
         network: RubyNetwork,
-        cache_line_size: int,
+        core: AbstractCore,
+        cache_line_size,
+        target_isa: ISA,
         clk_domain: ClockDomain,
-        ranges: List[AddrRange],
         chipID: int,
         cacheChipIDList,
     ):
         super().__init__(network, cache_line_size)
 
-        # Dummy cache
         self.cache = RubyCache(
-            dataAccessLatency=0, tagAccessLatency=1, size="128", assoc=1
+            size=size, assoc=assoc, start_index_bit=self.getBlockSizeBits()
         )
 
         self.clk_domain = clk_domain
-
-        self.addr_ranges = ranges
-
-        # Only used for L1 controllers
-        self.send_evictions = False
-        self.sequencer = NULL
-
+        self.send_evictions = core.requires_send_evicts()
         self.use_prefetcher = False
 
-        # Set up home node that allows three hop protocols
-        self.is_HN = True
-        self.enable_DMT = True
-        self.enable_DCT = True
+        # Only applies to home nodes
+        self.is_HN = False
+        self.enable_DMT = False
+        self.enable_DCT = False
 
         # Multi-chip parameters
-        self.is_multiChip = True
-        # hack. TODO: Use originalRequestor capabilities
-        self.is_reference = False
         self.chipID = chipID
+        self.is_multiChip = False
+        # hack. TODO: Use originalRequestor capabilities
+        self.is_reference = True
         cacheChipIDList.append(chipID)
 
-        # "Owned state"
+        # MOESI states for a 1 level cache
         self.allow_SD = True
-
-        # No cache
-        self.alloc_on_seq_acc = False
+        self.alloc_on_seq_acc = True
         self.alloc_on_seq_line_write = False
-        self.alloc_on_readshared = False
-        self.alloc_on_readunique = False
-        self.alloc_on_readonce = False
-        self.alloc_on_writeback = False
+        self.alloc_on_readshared = True
+        self.alloc_on_readunique = True
+        self.alloc_on_readonce = True
+        self.alloc_on_writeback = False  # Should never happen in an L1
         self.dealloc_on_unique = False
         self.dealloc_on_shared = False
-        self.dealloc_backinv_unique = False
-        self.dealloc_backinv_shared = False
-
+        self.dealloc_backinv_unique = True
+        self.dealloc_backinv_shared = True
         # Some reasonable default TBE params
-        self.number_of_TBEs = 32
-        self.number_of_repl_TBEs = 32
-        self.number_of_snoop_TBEs = 1
-        self.number_of_DVM_TBEs = 1  # should not receive any dvm
-        self.number_of_DVM_snoop_TBEs = 1  # should not receive any dvm
+        self.number_of_TBEs = 16
+        self.number_of_repl_TBEs = 16
+        self.number_of_snoop_TBEs = 4
+        self.number_of_DVM_TBEs = 16
+        self.number_of_DVM_snoop_TBEs = 4
         self.unify_repl_TBEs = False

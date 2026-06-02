@@ -45,8 +45,8 @@ from gem5.components.cachehierarchies.ruby.topologies.simple_pt2pt import (
     SimplePt2Pt,
 )
 
-from .nodes.private_l1_moesi_cache import PrivateL1MOESICache
-from .nodes.shared_l2_moesi_cache import SharedL2MOESICache
+from .nodes.reference_private_l1_moesi_cache import PrivateL1MOESICache
+from .nodes.reference_shared_l2_moesi_cache import SharedL2MOESICache
 from .nodes.dma_requestor import DMARequestor
 from .nodes.directory import SimpleDirectory
 from .nodes.memory_controller import MemoryController
@@ -320,7 +320,7 @@ class PrivateL1PrivateL2CacheHierarchy(AbstractRubyCacheHierarchy):
         memory_controllers = []
         for idx, (rng, port) in enumerate(board.get_mem_ports()):
             if idx == rng_idx:
-                mc = MemoryController(network, rng, port, network_ptr)
+                mc = MemoryController(network, rng, port)
                 mc.ruby_system = self.ruby_system
                 memory_controllers.append(mc)
         return memory_controllers
