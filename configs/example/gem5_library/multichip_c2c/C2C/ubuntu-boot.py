@@ -1,32 +1,35 @@
+# C2c architecture booting and exiting ubuntu with KVM enabled CPUs
+# Uses X86 and CHI
 import m5
 import argparse
-import time
-from m5.objects import Root
+import time 
 
 from gem5.utils.requires import requires
-from gem5.components.boards.x86_board import X86Board
-from gem5.components.memory.single_channel import SingleChannelDDR3_1600
-from gem5.components.memory.multi_channel import (
-    DualChannelDDR3_1600_C2C,
-)
+from gem5.components.boards.x86_3C_board import X863CBoard
+from gem5.components.memory.multi_channel import DualChannelDDR3_1600_3C
 from gem5.components.processors.simple_switchable_processor import (
     SimpleSwitchableProcessor,
+)
+from gem5.components.cachehierarchies.chi.threec_cache_hierarchy import (
+    ThreeCCacheHierarchy,
 )
 from gem5.components.processors.cpu_types import CPUTypes
 from gem5.isas import ISA
 from gem5.coherence_protocol import CoherenceProtocol
 from gem5.simulate.simulator import Simulator
 from gem5.simulate.exit_event import ExitEvent
-from gem5.resources.workload import Workload
-from gem5.resources.resource import Resource, CustomResource
-from gem5.components.cachehierarchies.chi.private_l1_cache_hierarchy import (
-    PrivateL1CacheHierarchy,
+from gem5.resources.workload import (
+    Workload,
+    CustomWorkload,
 )
+from gem5.resources.resource import Resource, CustomDiskImageResource
 
+# This runs a check to ensure the gem5 binary is compiled to X86 and to the
+# CHI coherence protocol.
 requires(
     isa_required=ISA.X86,
     coherence_protocol_required=CoherenceProtocol.CHI,
-    kvm_required=True,
+    kvm_required=False,
 )
 
 # Parsec benchmarks
@@ -47,7 +50,7 @@ benchmark_choices = [
 ]
 
 # Following are the input size.
-size_choices = ["simsmall", "simmedium", "simlarge"]
+size_choices = ["test", "simsmall", "simmedium", "simlarge"]
 
 parser = argparse.ArgumentParser(
     description="An example configuration script to run the npb benchmarks."
@@ -71,32 +74,36 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-cache_hierarchy = PrivateL1CacheHierarchy(
-    size="16kB",
-    assoc=8,
+# Here we setup a MESI Two Level Cache Hierarchy.
+cache_hierarchy = ThreeCCacheHierarchy(
+    l1_size="64kB",
+    l1_assoc=4,
+    l2_size="1MB",
+    l2_assoc=8,
 )
 
-# Memory
-# no-interleaving
-memory = DualChannelDDR3_1600_C2C(size="3GB", range_size="1610612736")
+# System memory
+# 3 DRAMS of 1GB that form the total 3GB
+memory = DualChannelDDR3_1600_3C(size="3GB", range_size="1073741824")
 
-# CPU
+# Switchable KVM -> timing
 processor = SimpleSwitchableProcessor(
-    starting_core_type=CPUTypes.KVM,
+    starting_core_type=CPUTypes.TIMING,
     switch_core_type=CPUTypes.TIMING,
     isa=ISA.X86,
-    num_cores=2,
+    num_cores=4,
 )
 
-# Board
-board = X86Board(
+# Board setup
+board = X863CBoard(
     clk_freq="3GHz",
     processor=processor,
     memory=memory,
     cache_hierarchy=cache_hierarchy,
 )
 
-# Workload command
+# Full System workload setup
+# The X86Board takes a kernel, a disk image and an optional command to run
 command = (
     "cd /home/gem5/parsec-benchmark;".format(args.benchmark)
     + "source env.sh;"
@@ -112,26 +119,15 @@ command = (
 #workload.set_parameter("readfile_contents", command)
 #board.set_workload(workload)
 
+# Custom disk image setup 
 board.set_kernel_disk_workload(
-    kernel = Resource("x86-linux-kernel-4.19.83"),
-    #disk_image = CustomResource(
-    #    "/home/lbertranalvarez/.cache/gem5/x86-parsec-2",
-    #    #metadata={
-    #    #    "type": "disk image",
-    #    #    "architecture": "x86",
-    #    #    "version": "2.0",
-    #    #    "description": "Second copy of the parsec disk image"
-    #    #}
+    kernel = Resource("x86-linux-kernel-5.4.49"),
+    #disk_image = CustomDiskImageResource(
+    #    "/home/lbertranalvarez/Work/disk-image/images/x86-ubuntu-18.04-img"
     #),
     disk_image = Resource("x86-parsec"),
     readfile_contents=command,
 )
-
-def exit_switch_cpu_event():
-    processor.switch()
-    yield False
-    while True:
-        yield False
 
 # Custom exit events
 def handle_workbegin():
@@ -146,8 +142,14 @@ def handle_workend():
     m5.stats.dump()
     yield True
 
+# Regular sim
 simulator = Simulator(
     board=board,
+    #on_exit_event={
+    #    # Overriding the default behavior for the first m5 exit event. instead
+    #    # of exiting the simulator we want to switch processor. 
+    #    ExitEvent.EXIT: (func() for func in [processor.switch])
+    #}
     on_exit_event={
         ExitEvent.WORKBEGIN: handle_workbegin(),
         ExitEvent.WORKEND: handle_workend(),
