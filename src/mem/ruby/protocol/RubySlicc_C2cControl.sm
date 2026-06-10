@@ -92,6 +92,9 @@ structure(C2cMsg, desc="...", interface="Message") {
   MachineID OriginalResponder,  desc="Off-chip responder";
   MachineID LocalRequestor,     desc="Secondary or local requestor";
 
+  int RouteSrcChip,  default="-1", desc="Chip that injected this C2C message";
+  int RouteDestChip, default="-1", desc="Explicit destination chip for interposer routing";
+
   bool RetToSrc,                desc="Affects whether or not a snoop resp return data";
   bool Stale,                   desc="Response stale status flag";
   bool ReqAck,                  desc="This message is a request to send a request";

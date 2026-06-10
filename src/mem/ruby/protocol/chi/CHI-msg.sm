@@ -102,6 +102,10 @@ structure(CHIRequestMsg, desc="", interface="Message") {
   bool allowRetry,          desc="This request can be retried";
   NetDest Destination,      desc="Message destination";
 
+  //campos routing 
+  int c2c_route_src_chip,  default="-1", desc="Source chip for explicit C2C routing";
+  int c2c_route_dest_chip, default="-1", desc="Destination chip for explicit C2C routing";
+
 
   // c2c-specific field
   MegaNetDest MegaDestination, desc="Message destination of type MegaNetDest";
@@ -169,6 +173,11 @@ structure(CHIResponseMsg, desc="", interface="Message") {
   bool stale,           desc="Response to a stale request";
   bool usesTxnId,       desc="True if using a Transaction ID", default="false";
   Addr txnId,           desc="Transaction ID", default="0";
+
+  //routing 
+  int c2c_route_src_chip,  default="-1", desc="Source chip for explicit C2C routing";
+  int c2c_route_dest_chip, default="-1", desc="Destination chip for explicit C2C routing";
+
   //NOTE: not in CHI and for debuging only
 
   // c2c off-chip sharer field
@@ -228,6 +237,10 @@ structure(CHIDataMsg, desc="", interface="Message") {
   WriteMask bitMask,    desc="Which bytes in the data block are valid";
   bool usesTxnId,       desc="True if using a Transaction ID", default="false";
   Addr txnId,           desc="Transaction ID", default="0";
+
+  //routing 
+  int c2c_route_src_chip,  default="-1", desc="Source chip for explicit C2C routing";
+  int c2c_route_dest_chip, default="-1", desc="Destination chip for explicit C2C routing";
 
   MessageSizeType MessageSize, default="MessageSizeType_Data";
 

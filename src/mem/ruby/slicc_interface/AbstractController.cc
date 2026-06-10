@@ -667,11 +667,36 @@ const
 }
 
 MachineID
-AbstractController::mapChipIDToC2CI(int ChipID)
-const
+AbstractController::mapChipIDToC2CI(int ChipID) const
 {
     auto it = c2cHopMap.find(ChipID);
-    assert(it != c2cHopMap.end());
+
+    if (it == c2cHopMap.end()) {
+        std::cerr << "[DBG C2C HOP MISSING]"
+                  << " ctrl=" << name()
+                  << " requestedChipID=" << ChipID
+                  << " curTick=" << curTick()
+                  << " mapSize=" << c2cHopMap.size()
+                  << " entries=";
+
+        for (const auto &entry : c2cHopMap) {
+            std::cerr << " [" << entry.first << " -> "
+                      << entry.second << "]";
+        }
+
+        std::cerr << std::endl;
+
+        panic("%s: mapChipIDToC2CI missing chipID %d",
+              name(), ChipID);
+    }
+
+    std::cerr << "[DBG C2C HOP OK]"
+              << " ctrl=" << name()
+              << " requestedChipID=" << ChipID
+              << " result=" << it->second
+              << " curTick=" << curTick()
+              << std::endl;
+
     return it->second;
 }
 

@@ -1,159 +1,135 @@
 #ifndef __MEM_C2C_INTERPOSER_HH__
 #define __MEM_C2C_INTERPOSER_HH__
 
-//incluyo el fichero de cabecera con el tipo struct para los parámetros del componente 
-//(el que se autogenera el compilar gem5)
+// Incluyo el fichero de cabecera con el tipo struct para los parámetros del componente
+// que se autogenera al compilar gem5 a partir de c2c_interposer.py.
 #include "params/C2CInterposer.hh"
-//hay que incluir este fichero de cabecera porque el componente hereda de SimObject
-#include "sim/sim_object.hh"
-//Incluye la definición de "Packet" y "PacketPtr"
-#include "mem/packet.hh"
-//incluímos las clases base de "RequestPort" y "ResponsePort"
-#include "mem/port.hh"
-using namespace std;
-//así evitamos usar std::string y solo hacemos string
-#include <string>
 
+// C2CInterposer hereda de ClockedObject para poder convertir ciclos a ticks
+// y programar eventos internos en el event queue de gem5.
 #include "sim/clocked_object.hh"
-
-#include <deque>
 #include "sim/eventq.hh"
 
-#include <map>
-#include <cstdint>
+// Incluye Packet y PacketPtr.
+#include "mem/packet.hh"
 
-// ---------------- NUEVO ----------------
-#include <vector>
+// Incluye RequestPort y ResponsePort.
+#include "mem/port.hh"
+
+// Para AddrRange y AddrRangeList.
+#include "base/addr_range.hh"
+
 #include <algorithm>
-#include "mem/ruby/protocol/C2cRequestType.hh"
-// ---------------- FIN NUEVO ----------------
+#include <cstdint>
+#include <deque>
+#include <map>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
-//el namespace debe ser el mismo que utilizé al definir el componente en el .py "cxx_class = "gem5::C2CInterposer""
+#include "mem/ruby/common/MachineID.hh"
+#include "mem/ruby/protocol/C2cRequestType.hh"
+
 namespace gem5 {
 
-/*Pongo la definición de la clase y pongo que hereda de SimbObject*/
+/*
+ * C2CInterposer
+ * -------------
+ * NUEVA IDEA:
+ * Antes este SimObject modelaba un enlace punto a punto:
+ *     Interface0 <-> Interposer <-> Interface1
+ *
+ * Ahora modela una única entidad central tipo MUX/interposer:
+ *
+ *     Chip 0 Interface ----\
+ *     Chip 1 Interface ----- C2CInterposer ---- routing interno
+ *     Chip 2 Interface ----/
+ *
+ * Cada chip se conecta al MUX mediante dos puertos:
+ *   - from_interfaces[i]: por aquí el MUX recibe timing requests desde el chip i.
+ *   - to_interfaces[i]:   por aquí el MUX envía timing requests hacia el chip i.
+ *
+ * Las respuestas siguen el protocolo normal de gem5:
+ *   - Si el MUX manda una request por to_interfaces[dest], recibirá la response
+ *     de ese destino por ToInterfacePort::recvTimingResp().
+ *   - Luego el MUX reenvía esa response al chip correspondiente usando
+ *     from_interfaces[src].sendTimingResp().
+ */
 class C2CInterposer : public ClockedObject
 {
-    //atributos privados de la clase, aqui se guarda el parametro enviado desde python
   private:
+    class ToInterfacePort;
+    class FromInterfacePort;
 
-    //declaro los puertos donde se heredarán las clases abstractas RequesPort y ResponsePort
-    //la herencia la haré después de declarar todos los atributos y algunos metodos
-    class ToInterfacePort : public RequestPort //Hereda de RequestPort (inicia peticiones)
+    /*
+     * Puerto de salida hacia un chip.
+     * Hereda de RequestPort porque el MUX inicia el envío hacia la interfaz C2C
+     * del chip destino.
+     */
+    class ToInterfacePort : public RequestPort
     {
-        private:
-            /*estoy dentro de una clase anidada (esto es diferente a clase hija ya que no hay herencia)
-            por lo que para saber quién es el componente externo, es decir, el que contiene al puerto, 
-            le indico quién es el dueño, que sería la instancia concreta del interposer, ya que
-            de otra forma no se podría saber*/
-            C2CInterposer * owner;
+      private:
+        C2CInterposer *owner;
+        int side; // chipID asociado a este puerto
 
-            //indico el lado de la interfaz al que se refiere (interfaz 0 o 1)
-            int side;
+      public:
+        ToInterfacePort(const std::string &name, C2CInterposer *owner, int side);
 
-        public:
-            //constrctor del puerto de Request
-            ToInterfacePort( 
-                const string &name, //no lo pongo como atributo porque va a ser una constante
-                C2CInterposer * owner,
-                int side
-            );
+        // Cuando el chip destino responde a una request enviada por este puerto,
+        // la respuesta entra aquí y el MUX decide a qué chip devolverla.
+        bool recvTimingResp(PacketPtr pkt) override;
 
-            //sobrescribo los métodos de RequestPort no implementados 
-            bool recvTimingResp(PacketPtr pkt) override;
-            void recvReqRetry() override;
-            
+        // Backpressure: el chip destino avisa que ya puede aceptar otra request.
+        void recvReqRetry() override;
     };
-    class FromInterfacePort : public ResponsePort //Hereda de ResponsePort (responde peticiones)
+
+    /*
+     * Puerto de entrada desde un chip.
+     * Hereda de ResponsePort porque desde el punto de vista del chip origen,
+     * el MUX es el receptor de sus requests C2C.
+     */
+    class FromInterfacePort : public ResponsePort
     {
-        private:
-            //atributos iguales al de Request
-            C2CInterposer * owner;
+      private:
+        C2CInterposer *owner;
+        int side; // chipID asociado a este puerto
 
-            int side;
-        public:
-            //constructo del puerto de Response
-            FromInterfacePort( 
-                const string &name, //no lo pongo como atributo porque va a ser una constante
-                C2CInterposer * owner,
-                int side
-            );
+      public:
+        FromInterfacePort(const std::string &name, C2CInterposer *owner, int side);
 
-        //sobrescribo los métodos de ResponsePort no implementados 
-
-            //Devuelve los rangos de direcciones que acepta este puerto
-            AddrRangeList getAddrRanges() const override;
-            void recvFunctional(PacketPtr pkt) override;
-            bool recvTimingReq(PacketPtr pkt) override;
-            void recvRespRetry() override;
-            Tick recvAtomic(PacketPtr pkt) override;
+        AddrRangeList getAddrRanges() const override;
+        void recvFunctional(PacketPtr pkt) override;
+        bool recvTimingReq(PacketPtr pkt) override;
+        void recvRespRetry() override;
+        Tick recvAtomic(PacketPtr pkt) override;
     };
-    
-    //declaro los punteros a los puertos (de las clases de arriba)
-    //que van a ser atributos de la clase C2CInterface
 
-    /*-------------------------------------*/
-    //puerto de Request de la interface0
-    ToInterfacePort * toInterface0Port;
-    //puerto de Response de la interface0
-    FromInterfacePort * fromInterface0Port;
-    /*-------------------------------------*/
-    //puerto de Request de la interface1
-    ToInterfacePort * toInterface1Port;
-    //puerto de Response de la interface1
-    FromInterfacePort * fromInterface1Port;
-    /*-------------------------------------*/
+    // NUEVO:
+    // Puertos vectoriales. El índice coincide con el chipID.
+    std::vector<ToInterfacePort *> toInterfacePorts;
+    std::vector<FromInterfacePort *> fromInterfacePorts;
 
-    //declaración métodos para procesar Request y Responses de los puertos 
-
-    /*-------------------------------------*/
-    //declaro método para procesar Request interface0
-    bool recvReqFromInterface0(PacketPtr pkt); //el argumento es un Packet (ver apuntes)
-    //declaro método para procesar Responses interface0
-    bool recvRespFromInterface0(PacketPtr pkt);
-    /*-------------------------------------*/
-    //declaro método para procesar Request interface1
-    bool recvReqFromInterface1(PacketPtr pkt); //el argumento es un Packet (ver apuntes)
-    //declaro método para procesar Responses interface1
-    bool recvRespFromInterface1(PacketPtr pkt);
-    /*-------------------------------------*/
-
-    //declaración de métodos para procesar señales de retry de Request y de Response de los puertos
-
-    /*-------------------------------------*/
-    //declaro método para procesar retry de request interface0
-    void recvReqRetryToInterface0(); 
-    //declaro método para procesar retry de response interface0
-    void recvRespRetryFromInterface0();
-    /*-------------------------------------*/
-    //declaro método para procesar retry de request interface1
-    void recvReqRetryToInterface1(); 
-    //declaro método para procesar retry de response interface1
-    void recvRespRetryFromInterface1();
-    /*-------------------------------------*/
-
-    /*-------------------------------*/
-    //metodos para manejar request atomicas 
-    Tick recvAtomicFromInterface0(PacketPtr pkt);
-    Tick recvAtomicFromInterface1(PacketPtr pkt);
-
-    //latencias 
+    const unsigned numInterfaces;
     const Cycles reqLatency;
     const Cycles respLatency;
-
-     // Tamaños máximos de buffer 
     const unsigned reqBufferSize;
     const unsigned respBufferSize;
+
+    std::vector<AddrRange> c2cMemRanges;
+    std::vector<int> cacheChipIDList;
+    std::vector<int> interfaceChipIDList;
 
     struct BufferedPkt
     {
         PacketPtr pkt;
         Tick readyTick;
+        int srcSide;
+        int dstSide;
     };
 
-    // ---------------- NUEVO ----------------
-     // Clase lógica del mensaje C2C, igual que la agrupación usada
-    // en CHI-interface-v2.sm
+    // Clase lógica del mensaje C2C. Es la agrupación que ya estabas usando
+    // para separar los 4 canales virtuales lógicos del tráfico CHI/C2C.
     enum class C2cMsgClass
     {
         Request = 0,
@@ -162,24 +138,26 @@ class C2CInterposer : public ClockedObject
         Data = 3
     };
 
-    // Ahora cada dirección tiene una cola por clase de mensaje
-    // y un arbitraje Round Robin entre clases.
+    /*
+     * Buffer de salida hacia un chip concreto.
+     *
+     * Hay dos familias de buffers:
+     *   - reqTo[chip]:  tráfico Request/Snoop que saldrá hacia chip.
+     *   - respTo[chip]: tráfico Response/Data que saldrá hacia chip.
+     *
+     * Dentro de cada DirBuffer hay una cola por clase lógica:
+     *   Request, Snoop, Response, Data.
+     *
+     * El Round Robin se aplica entre esas clases dentro del mismo destino.
+     */
     struct DirBuffer
     {
-        // cola por cada clase lógica de mensaje C2C
         std::map<C2cMsgClass, std::deque<BufferedPkt>> queues;
-
-        // indica si estamos esperando retry del siguiente componente
         bool waitingRetry = false;
-
-        // última clase servida, para implementar Round Robin
         int lastServedClass = -1;
-
         EventFunctionWrapper processEvent;
 
-        DirBuffer(EventFunctionWrapper&& ev)
-            : processEvent(std::move(ev))
-        {}
+        DirBuffer(EventFunctionWrapper&& ev) : processEvent(std::move(ev)) {}
 
         bool empty() const
         {
@@ -200,79 +178,73 @@ class C2CInterposer : public ClockedObject
             return total;
         }
     };
-    // ---------------- FIN NUEVO ----------------
 
-    // Buffers por dirección y por tipo
-    DirBuffer req0to1;
-    DirBuffer req1to0;
-    DirBuffer resp0to1;
-    DirBuffer resp1to0;
+    std::vector<std::unique_ptr<DirBuffer>> reqTo;
+    std::vector<std::unique_ptr<DirBuffer>> respTo;
 
-    // ---------------- NUEVO: helpers de procesado ----------------
+    // Entrada principal para timing requests desde un chip.
+    bool recvReqFromInterface(PacketPtr pkt, int srcSide);
 
-    void processReq0to1();
-    void processReq1to0();
-    void processResp0to1();
-    void processResp1to0();
+    // Entrada principal para timing responses recibidas desde un chip.
+    bool recvRespFromInterface(PacketPtr pkt, int responderSide);
 
-    void trySendReq0to1();
-    void trySendReq1to0();
-    void trySendResp0to1();
-    void trySendResp1to0();
+    // Retry recibido desde un chip destino para requests.
+    void recvReqRetryToInterface(int dstSide);
+
+    // Retry recibido desde un chip origen para responses.
+    void recvRespRetryFromInterface(int srcSide);
+
+    Tick recvAtomicFromInterface(PacketPtr pkt, int srcSide);
+
+    void processReqTo(int dstSide);
+    void processRespTo(int dstSide);
+    void trySendReqTo(int dstSide);
+    void trySendRespTo(int dstSide);
 
     void scheduleBufferEvent(DirBuffer &buf, Tick when);
 
-    // helper para clasificar el tipo real CHI en una de las 4 clases lógicas
     C2cMsgClass classifyC2cType(ruby::C2cRequestType type) const;
-
-    // helper para obtener la clase lógica del paquete
     C2cMsgClass getPacketClass(PacketPtr pkt) const;
-
-    // helper para obtener nombre legible de la clase lógica
     const char* getClassName(C2cMsgClass msgClass) const;
 
-    // helper para encolar en la cola correspondiente a su clase
-    bool enqueueTypedPacket(DirBuffer &buf, PacketPtr pkt, Tick delay,
-                            unsigned maxSize, const char *path);
+    bool enqueuePacket(DirBuffer &buf, PacketPtr pkt, Tick delay,
+                       unsigned maxSize, const char *path,
+                       int srcSide, int dstSide);
 
-    // helper Round Robin: elige la siguiente clase lista para enviar
     int selectNextTypeRR(DirBuffer &buf, Tick now);
-
-    // helper: obtiene el menor readyTick entre todas las colas
     Tick nextReadyTick(const DirBuffer &buf) const;
 
-    // ---------------- FIN NUEVO ----------------
+    // Routing.
+    int routeRequest(PacketPtr pkt, int srcSide) const;
+    int routeResponse(PacketPtr pkt, int responderSide) const;
+    int routeAckLikeSlicc(PacketPtr pkt, int responderSide) const;
+    int routeByDestinationField(PacketPtr pkt, int incomingSide) const;
+    int routeByAddress(PacketPtr pkt, int incomingSide) const;
+    int routeByC2cDestination(PacketPtr pkt, int srcSide) const;
+    // En Ruby, MachineID vive dentro del namespace gem5::ruby.
+    // Lo usamos para saber a qué chip pertenece un controlador Cache o Interface.
+    int routeByMachineID(const ruby::MachineID &mach, int fallback) const;
+    bool validSide(int side) const;
 
-    //contador de tipos de mensaje 
+    void printRoutingInfo(PacketPtr pkt, const char *where, int srcSide, int dstSide) const;
+
     struct TypeStats
     {
-        uint64_t reqFrom0 = 0;
-        uint64_t reqFrom1 = 0;
-        uint64_t respFrom0 = 0;
-        uint64_t respFrom1 = 0;
+        uint64_t reqFrom[16] = {0};
+        uint64_t respFrom[16] = {0};
     };
 
     std::map<int, TypeStats> c2cTypeStats;
-
-    void recordC2cType(PacketPtr pkt, const char* path);
+    void recordC2cType(PacketPtr pkt, const char* path, int srcSide);
     void dumpC2cTypeStats() const;
 
   public:
-    //declaro el constructor de la clase, el cual implemento en el .cc
     C2CInterposer(const C2CInterposerParams &params);
-
-    //a través de este método de la clase C2CInterposer 
-    //se va a permitir acceder a gem5 a los puertos mandado como 
-    //argumento su nombre (del puerto)
-    Port &getPort(
-        const std::string &if_name,
-        PortID idx = InvalidPortID
-    ) override;
-
-    //declaro un destructor 
     ~C2CInterposer() override;
+
+    Port &getPort(const std::string &if_name, PortID idx = InvalidPortID) override;
 };
 
-}
+} // namespace gem5
 
 #endif

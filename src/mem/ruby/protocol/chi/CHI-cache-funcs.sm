@@ -54,6 +54,7 @@ void unset_tbe();
 MachineID mapAddressToDownstreamMachine(Addr addr);
 MachineID mapAddressToMachine(Addr addr, MachineType mtype);
 int mapMachineIDToChipID(MachineID mach);
+MachineID mapChipIDToC2CI(int ChipID);
 
 void incomingTransactionStart(Addr, Event, State, bool);
 void incomingTransactionEnd(Addr, State);
@@ -395,6 +396,11 @@ void initializeTBE(TBE tbe, Addr addr, int storSlot) {
   tbe.delayNextAction := intToTick(0);
 
   tbe.is_stale := false;
+
+  // ---------------- NUEVO: reset explicit C2C route metadata --------------
+  tbe.routeSrcChip := -1;
+  tbe.routeDestChip := -1;
+  // ---------------- FIN NUEVO --------------------------------------------
 }
 
 TBE allocateRequestTBE(Addr addr, CHIRequestMsg in_msg), return_by_pointer="yes" {
@@ -437,6 +443,11 @@ TBE allocateRequestTBE(Addr addr, CHIRequestMsg in_msg), return_by_pointer="yes"
   tbe.localRequestor := in_msg.localRequestor;
   tbe.off_chip := in_msg.off_chip;
   tbe.c2cOrig := in_msg.c2cOrig;
+
+  // ---------------- NUEVO: preserve explicit C2C route metadata -----------
+  tbe.routeSrcChip := in_msg.c2c_route_src_chip;
+  tbe.routeDestChip := in_msg.c2c_route_dest_chip;
+  // ---------------- FIN NUEVO --------------------------------------------
 
   return tbe;
 }
@@ -507,6 +518,11 @@ TBE allocateSnoopTBE(Addr addr, CHIRequestMsg in_msg), return_by_pointer="yes" {
   tbe.originalRequestor := in_msg.originalRequestor;
   tbe.localRequestor := in_msg.localRequestor;
 
+  // ---------------- NUEVO: preserve explicit C2C route metadata -----------
+  tbe.routeSrcChip := in_msg.c2c_route_src_chip;
+  tbe.routeDestChip := in_msg.c2c_route_dest_chip;
+  // ---------------- FIN NUEVO --------------------------------------------
+
   return tbe;
 }
 
@@ -555,7 +571,10 @@ TBE _allocateReplacementTBE(Addr addr, int storSlot), return_by_pointer="yes" {
   tbe.reqType := CHIRequestType:null;
 
   tbe.use_DMT := false;
-  tbe.use_DCT := false;
+  tbe.use_DCT := false;  
+  
+  // C2c-specific
+  tbe.originalRequestor := machineID;
 
   return tbe;
 }
@@ -672,6 +691,9 @@ void prepareRequestRetry(TBE tbe, CHIRequestMsg & out_msg) {
   out_msg.seqReq := tbe.seqReq;
   out_msg.is_local_pf := false;
   out_msg.is_remote_pf := tbe.is_local_pf || tbe.is_remote_pf;
+  // C2c-specific fields
+  out_msg.originalRequestor := tbe.originalRequestor;
+  out_msg.localRequestor := machineID;
 }
 
 void prepareRequestRetryDVM(TBE tbe, CHIRequestMsg & out_msg) {

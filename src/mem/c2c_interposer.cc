@@ -1,25 +1,160 @@
-/*Incluimos el fichero de cabecera que creamos antes.*/
 #include "mem/c2c_interposer.hh"
-//incluye panic()
+
 #include "base/logging.hh"
 #include "base/trace.hh"
-
-#include <sstream>
+#include "base/types.hh"
 #include "debug/C2CInterposer.hh"
-
-#include <iomanip>
 #include "mem/ruby/protocol/C2cMsg.hh"
 #include "mem/ruby/protocol/C2cRequestType.hh"
 
-/*Vamos a realizar 2 cosas
-1. Definir un constructor
-2. Definir una lista de inicialización ( : ... , ...) que es una forma 
-de realizar la asignación/incialización de variables de una clase den c++*/
+#include <iomanip>
+#include <iostream>
+#include <sstream>
 
-//usamos el namespace de gem5 (debe coincidir con el que usamos 
-//en python: cxx_class = "gem5::C2CInterposer")
+#include <set>
+#include <deque>
+#include <tuple>
+
 namespace gem5 {
 
+/*Variables globales de bloqueo (de colas) y paquetes pendientes, de forma que se gestione el backpressure y el retry*/
+
+//chips que estan bloqueados porque intentaron enviar una Request hacia un destino (dst) pero estaba lleno (interposer lleno)
+static std::vector<std::set<int>> blockedReqSrcByDst;
+//chips que estan bloqueados porque intentaron enviar una Response hacia un destino (dst) pero estaba lleno (interposer lleno)
+static std::vector<std::set<int>> blockedRespSrcByDst;
+
+//paquete de Request pendiente porque el destino no lo aceptó 
+static std::vector<PacketPtr> pendingReqPktByDst;
+
+static std::vector<int> pendingReqSrcByDst;
+
+//paquete de Response pendiente porque el destino no lo aceptó 
+static std::vector<PacketPtr> pendingRespPktByDst;
+
+static std::vector<int> pendingRespSrcByDst;
+
+//Flags sencillas para saber si el chip está bloqueado por 
+//Request
+std::vector<bool> blockedReqFrom;
+//Response
+std::vector<bool> blockedRespFrom;
+
+
+/*Clasifica el tipo de Snoop. Un snoop puede ser una request (ejemplo SnpShared, SnpUnique, SnpSharedFwd) pero otras 
+son la respuesta generada por un chip/nodo snoopeado ej SnpResp...
+
+Hay que distinguir, porque usualmente estas respuestas vuelven al request owner, pero en el caso de SnpResp_SC_Fwded_SC no?*/
+static bool
+isSnoopResponseToHome(ruby::C2cRequestType type)
+{
+    using namespace ruby;
+
+    switch (type) {
+      case C2cRequestType_SnpResp_I:
+      case C2cRequestType_SnpResp_I_Fwded_UD_PD:
+      case C2cRequestType_SnpResp_I_Fwded_UC:
+      case C2cRequestType_SnpResp_SC_Fwded_SC: 
+      case C2cRequestType_SnpResp_SC_Fwded_SD_PD:
+      case C2cRequestType_SnpResp_SD_Fwded_I:
+      case C2cRequestType_SnpResp_SC_Fwded_I:
+      case C2cRequestType_SnpResp_UD_Fwded_I:
+      case C2cRequestType_SnpResp_UC_Fwded_I:
+        return true;
+
+      default:
+        return false;
+    }
+}
+
+static bool
+isSnoopResponseDataToHome(ruby::C2cRequestType type)
+{
+    using namespace ruby;
+
+    switch (type) {
+      case C2cRequestType_SnpRespData_I_PD:
+      case C2cRequestType_SnpRespData_I:
+      case C2cRequestType_SnpRespData_SC_PD:
+      case C2cRequestType_SnpRespData_SC:
+      case C2cRequestType_SnpRespData_SD:
+      case C2cRequestType_SnpRespData_UC:
+      case C2cRequestType_SnpRespData_UD:
+      case C2cRequestType_SnpRespData_SC_Fwded_SD_PD:
+      case C2cRequestType_SnpRespData_SC_Fwded_SC:
+      case C2cRequestType_SnpRespData_SC_PD_Fwded_SC:
+      case C2cRequestType_SnpRespData_I_Fwded_SD_PD:
+      case C2cRequestType_SnpRespData_I_PD_Fwded_SC:
+      case C2cRequestType_SnpRespData_I_Fwded_SC:
+        return true;
+
+      default:
+        return false;
+    }
+}
+
+
+/*Inicializa el tamaño de los vectores de bloqueo y paquetes pendientes al numero de interfaces y 
+en el caso de si hay paquetes pendientes, tambien pone el puntero a un paquete null*/
+static void
+ensureBlockedVectors(unsigned numInterfaces)
+{
+    if (blockedReqSrcByDst.size() != numInterfaces) {
+        blockedReqSrcByDst.clear();
+        blockedReqSrcByDst.resize(numInterfaces);
+    }
+
+    if (blockedRespSrcByDst.size() != numInterfaces) {
+        blockedRespSrcByDst.clear();
+        blockedRespSrcByDst.resize(numInterfaces);
+    }
+
+    if (pendingReqPktByDst.size() != numInterfaces) {
+        pendingReqPktByDst.clear();
+        pendingReqPktByDst.resize(numInterfaces, nullptr);
+
+        pendingReqSrcByDst.clear();
+        pendingReqSrcByDst.resize(numInterfaces, -1);
+    }
+
+    if (pendingRespPktByDst.size() != numInterfaces) {
+        pendingRespPktByDst.clear();
+        pendingRespPktByDst.resize(numInterfaces, nullptr);
+
+        pendingRespSrcByDst.clear();
+        pendingRespSrcByDst.resize(numInterfaces, -1);
+    }
+}
+
+/*Función auxiliar para saber si un paquete existe y si tiene un mensaje de ruby asociado. 
+Asi evito acceder a campos de un mensaje de ruby si no los tiene el paquete*/
+static bool
+hasC2cMsg(PacketPtr pkt)
+{
+    return pkt && pkt->c2c_msg;
+}
+
+/*Hace un casting para devolver el tipo del paquete de gem5 como un numero entero y luego 
+poderlo clasificar en otra funcion*/
+static int
+getC2cTypeId(PacketPtr pkt)
+{
+    assert(pkt && pkt->c2c_msg);
+    return static_cast<int>(pkt->c2c_msg->m_Type);
+}
+
+/*Devuelve el tipo del paquete de gem5 pero en texto*/
+static std::string
+getC2cTypeName(PacketPtr pkt)
+{
+    if (!pkt || !pkt->c2c_msg) {
+        return "NO_C2C_MSG";
+    }
+
+    return ruby::C2cRequestType_to_string(pkt->c2c_msg->m_Type);
+}
+
+/*Funcion de depuracion para devolver TODA la informacion basica del paquete*/
 static std::string
 pktToString(PacketPtr pkt)
 {
@@ -28,7 +163,6 @@ pktToString(PacketPtr pkt)
     }
 
     std::ostringstream oss;
-
     oss << "pkt=" << pkt
         << " addr=0x" << std::hex << pkt->getAddr() << std::dec
         << " cmd=" << pkt->cmdString()
@@ -45,320 +179,315 @@ pktToString(PacketPtr pkt)
     return oss.str();
 }
 
-//ver el tipo del paquete 
-static bool
-hasC2cMsg(PacketPtr pkt)
-{
-    return pkt && pkt->c2c_msg;
-}
+/*Esta funcion siver para imprimir el "MachineID" de Ruby a un texto un legible 
+Ej: Cache-14
+Interface-2
+INVALID_MACHINE_TYPE(21)-0
 
-static int
-getC2cTypeId(PacketPtr pkt)
-{
-    assert(pkt && pkt->c2c_msg);
-    return static_cast<int>(pkt->c2c_msg->m_Type);
-}
+He agregado mas comprobaciones, porque puede que algunos campos del C2cMsg no este inicializados 
+o no sean validos para todos los tipos de mensaje*/
 
 static std::string
-getC2cTypeName(PacketPtr pkt)
+machineIdToString(const ruby::MachineID &mach)
 {
-    if (!pkt || !pkt->c2c_msg) {
-        return "NO_C2C_MSG";
+    std::ostringstream oss;
+
+    const int typeInt = static_cast<int>(mach.type);
+
+    if (typeInt < 0 || typeInt >= static_cast<int>(ruby::MachineType_NUM)) {
+        oss << "INVALID_MACHINE_TYPE("
+            << typeInt
+            << ")-"
+            << mach.num;
+        return oss.str();
     }
 
-    return ruby::C2cRequestType_to_string(pkt->c2c_msg->m_Type);
+    oss << ruby::MachineType_to_string(mach.type)
+        << "-"
+        << mach.num;
+
+    return oss.str();
 }
 
-/*Usamos el operador de resolución de ámbito "::" en "C2CInterposer::FromInterfacePort(...)"
-para indicar que vamos a acceder a la clase privada que está dentro de C2CInterposer y luego
-volvemos a usar el operador de ámbito "::" para definir el constructor de esa clase
-así "FromInterfacePort::FromInterfacePort(...)". Resto lo hacemos porque en el fichero de cabecera del componente declaré la clase así:
-class C2CInterposer la cual dentro tiene como miembro privado la clase "FromInterfacePort"
-Y ahora en este .cc lo estoy definiendo, por eso uso el "::", porque
-estoy fuera del cuerpo de la clase.
-*/
+/*Es otra funcion de depuracion que imprime aun mas campos del paquete*/
+static void
+printC2cMsgDebug(PacketPtr pkt, const char *tag, int srcSide, int dstSide)
+{
+    std::cout << "[C2C DBG " << tag << "]"
+              << " tick=" << curTick()
+              << " src=" << srcSide
+              << " dst=" << dstSide;
+
+    if (!pkt) {
+        std::cout << " pkt=null\n";
+        return;
+    }
+
+    std::cout << " pkt=" << pkt
+              << " req=" << pkt->req
+              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+              << " cmd=" << pkt->cmdString()
+              << " isReq=" << pkt->isRequest()
+              << " isResp=" << pkt->isResponse()
+              << " needsResp=" << pkt->needsResponse()
+              << " headerDelay=" << pkt->headerDelay
+              << " payloadDelay=" << pkt->payloadDelay;
+
+    if (!pkt->c2c_msg) {
+        std::cout << " type=NO_C2C_MSG\n";
+        return;
+    }
+
+    const auto *msg = pkt->c2c_msg;
+
+    std::cout << " type=" << getC2cTypeName(pkt)
+              << " sender=" << machineIdToString(msg->m_Sender)
+              << " requestor=" << machineIdToString(msg->m_Requestor)
+              << " originalRequestor=" << machineIdToString(msg->m_OriginalRequestor)
+              << " responder=" << machineIdToString(msg->m_Responder)
+              << " originalResponder=" << machineIdToString(msg->m_OriginalResponder)
+              << " localRequestor=" << machineIdToString(msg->m_LocalRequestor)
+              << " routeSrcChip=" << msg->m_RouteSrcChip
+              << " routeDestChip=" << msg->m_RouteDestChip
+              << "\n";
+}
+
+/*------------------------------------------------------------*/
+/* Explicit C2C route metadata                                */
+/*------------------------------------------------------------*/
+
+/*
+ * NUEVO:
+ *
+ * En la topología original de 6 interfaces, el camino C2C lógico estaba
+ * implícito en la propia Interface C2C usada por SLICC.
+ *
+ * En la topología actual de 3 interfaces + interposer central, ese contexto
+ * se pierde si solo enrutamos el paquete y no guardamos explícitamente:
+ *
+ *   - desde qué chip lógico salió el paquete
+ *   - hacia qué chip lógico fue enviado
+ *
+ * IMPORTANTE:
+ *
+ * pkt->c2c_msg es const desde el punto de vista del Packet. Para esta prueba
+ * hacemos const_cast únicamente para escribir dos campos nuevos de metadata
+ * RouteSrcChip/RouteDestChip. No modificamos tipo, dirección, requestor,
+ * responder ni campos de protocolo CHI.
+ */
+static void
+stampExplicitC2cRoute(PacketPtr pkt, int srcSide, int dstSide,
+                      const char *path)
+{
+    if (!pkt || !pkt->c2c_msg) {
+        return;
+    }
+
+    auto *msg = const_cast<ruby::C2cMsg *>(pkt->c2c_msg);
+
+    msg->m_RouteSrcChip = srcSide;
+    msg->m_RouteDestChip = dstSide;
+
+    std::cout << "[C2C EXPLICIT ROUTE STAMP]"
+              << " tick=" << curTick()
+              << " path=" << path
+              << " srcChip=" << srcSide
+              << " destChip=" << dstSide
+              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+              << " type=" << getC2cTypeName(pkt)
+              << " pkt=" << pkt
+              << " req=" << pkt->req
+              << "\n";
+}
+
+/*------------------------------------------------------------*/
+/* FromInterfacePort                                          */
+/*------------------------------------------------------------*/
+
+/*Representa el puerto por donde se reciben Requests/Snoops en el interposer*/
 C2CInterposer::FromInterfacePort::FromInterfacePort(
     const std::string &name,
     C2CInterposer *owner,
-    int side
-) : ResponsePort(name, owner), //construimos el objeto con la lista de inicialización
-    owner(owner),
-    side(side)
+    int side //el indice logico del lado del chip
+) : ResponsePort(name, owner), owner(owner), side(side)
 {
 }
 
-//Si se te olvida alguno de estos métodos, tengo su explicaión en el oneNote 
-//en "creación interposer"
-
-/*------------------------------------------------------------*/
-//        FromInterfacePort métodos: Hereda de RespondePort               
-/*------------------------------------------------------------*/
-
-//Devuelve una lista de rangos de memoria 
-AddrRangeList C2CInterposer::FromInterfacePort::getAddrRanges() const
+AddrRangeList
+C2CInterposer::FromInterfacePort::getAddrRanges() const
 {
-    std::cerr << "[Interposer] getAddrRanges side=" << side << std::endl;
-    
-    if (side == 0) {
-        return owner->toInterface1Port->getAddrRanges();
-    } else {
-        return owner->toInterface0Port->getAddrRanges();
+    // El MUX acepta todos los rangos C2C desde cualquier chip.
+    // Devuelvo la unión de los rangos configurados.
+    AddrRangeList ranges;
+    //Al hacer esto permito que el interporse acepte trafico de todos los rangos remotos
+    for (const auto &r : owner->c2cMemRanges) {
+        ranges.push_back(r);
     }
+    return ranges;
 }
 
-//no implemento acceso funcionales, si se intentara hacer ocurre un panic
-void C2CInterposer::FromInterfacePort::recvFunctional(PacketPtr pkt)
+/*No implementado pero al heredad del puerto hay que incluirla*/
+void
+C2CInterposer::FromInterfacePort::recvFunctional(PacketPtr pkt)
 {
     panic("C2CInterposer::FromInterfacePort::recvFunctional not implemented");
 }
 
-//Sirve para determinar de qué lado recibo el packet para una Request tipo timing
-//una vez determinado el lado, el procesamiento del packet lo hace el interposer 
-//accediendo a un método miembro de él a través del "->". Esa función simplemente
-//enviará el packet al otro lado del interposer
-bool C2CInterposer::FromInterfacePort::recvTimingReq(PacketPtr pkt)
+/*Es una de las entradas de las Request/Snoop del interposer desde una interfaz C2C. 
+Osea, si un chip quiere enviar una request/snoop hacia otro lado, debe entrar aqui*/
+bool
+C2CInterposer::FromInterfacePort::recvTimingReq(PacketPtr pkt)
 {
-    if (side == 0) {
-        return owner->recvReqFromInterface0(pkt);
-    } else {
-        return owner->recvReqFromInterface1(pkt);
-    }
+    std::cout << "[PORT ENTER] FromInterfacePort::recvTimingReq"
+              << " side=" << side
+              << " " << pktToString(pkt)
+              << " type=" << getC2cTypeName(pkt)
+              << "\n";
+    //owner es el puntero al interposer y side el índice lógico de la interfaz C2C
+    //luego se llama a la funcon que decide el routing y encola la request
+    return owner->recvReqFromInterface(pkt, side);
 }
 
-/*Esta función recibe la señal mandada por el emisor/ResponsePort la cual le 
-indica al ResponsePort que puede volver a mandar la Response que fue rechazada 
-previamente. Ojo, esta función solo le da el aviso, luego tendrá que ejecutar el
- ReponsePort la función correspondiente para mandar la Response otra vez.
- Dependiendo del lado que reciba la señal, la reenviaré al otro*/
-void C2CInterposer::FromInterfacePort::recvRespRetry()
+/*Funcion auxiliar que sirve para que un chip al recibir una response avise que ya no puede aceptar otra*/
+void
+C2CInterposer::FromInterfacePort::recvRespRetry()
 {
-    if (side == 0) {
-        owner->recvRespRetryFromInterface0();
-    } else {
-        owner->recvRespRetryFromInterface1();
-    }
+    owner->recvRespRetryFromInterface(side);
 }
 
-Tick C2CInterposer::FromInterfacePort::recvAtomic(PacketPtr pkt)
+/*Hay que meter las atomic por herencia pero todas solo se trabaja con Timing*/
+Tick
+C2CInterposer::FromInterfacePort::recvAtomic(PacketPtr pkt)
 {
-    if (side == 0) {
-        return owner->recvAtomicFromInterface0(pkt);
-    } else {
-        return owner->recvAtomicFromInterface1(pkt);
-    }
-}
-
-Tick C2CInterposer::recvAtomicFromInterface0(PacketPtr pkt)
-{
-    return toInterface1Port->sendAtomic(pkt);
-}
-
-Tick C2CInterposer::recvAtomicFromInterface1(PacketPtr pkt)
-{
-    return toInterface0Port->sendAtomic(pkt);
+    return owner->recvAtomicFromInterface(pkt, side);
 }
 
 /*------------------------------------------------------------*/
-//          ToInterfacePort métodos y definición de su constructor                 
+/* ToInterfacePort                                            */
 /*------------------------------------------------------------*/
 
-/*Defino el constructor de ToInterfacePort que hereda de RequestPort.
-Es basicamente lo mismo que el FromInterfacePort*/
+/*Representa el puerto del interposer por donde salen las Request/Snoops y tambien por donde vuelven 
+las responses de estas mismas (recuerda, las request y responses van y vuelven de la C2C interface)*/
 C2CInterposer::ToInterfacePort::ToInterfacePort(
     const std::string &name,
     C2CInterposer *owner,
     int side
-) : RequestPort(name, owner), //construimos el objeto con la lista de inicialización
-    owner(owner),
-    side(side)
+) : RequestPort(name, owner), owner(owner), side(side)
 {
 }
 
-/*Sirve para recibir una Response de una Timing Request, dependiendo 
-del lado que reciba la response se tiene que reenviar al otro*/
-bool C2CInterposer::ToInterfacePort::recvTimingResp(PacketPtr pkt)
+
+/*Es la entrada principal del interposer de las Responses. Cuando el chip 
+de destino responde a una request o snoop, la respuesta viene por aquí*/
+bool
+C2CInterposer::ToInterfacePort::recvTimingResp(PacketPtr pkt)
 {
-    if (side == 0) {
-        return owner->recvRespFromInterface0(pkt);
-    } else {
-        return owner->recvRespFromInterface1(pkt);
-    }
+    std::cout << "[PORT ENTER] ToInterfacePort::recvTimingResp"
+              << " side=" << side
+              << " " << pktToString(pkt)
+              << " type=" << getC2cTypeName(pkt)
+              << "\n";
+
+    return owner->recvRespFromInterface(pkt, side);
 }
 
-/*Se usa para avisar al RequestPort del otro lado del C2CI que puede
-volver a mandar la Response que antes no se pudo recibir, para que la 
-reenvíe. Dependiendo del lado que recibamos esta señal, la reenvíamos al otro*/
-void C2CInterposer::ToInterfacePort::recvReqRetry()
+/*Funcion auxiliar para avisar que el destino de una request que estaba bloqueado ahora puede aceptar mas*/
+void
+C2CInterposer::ToInterfacePort::recvReqRetry()
 {
-    if (side == 0) {
-        owner->recvReqRetryToInterface0();
-    } else {
-        owner->recvReqRetryToInterface1();
-    }
+    owner->recvReqRetryToInterface(side);
 }
 
-/*-----------------------------------------------------------*/
-//               métodos del C2CInterposer                 
+/*------------------------------------------------------------*/
+/* Constructor / destructor / getPort  del interposer                       */
 /*------------------------------------------------------------*/
 
-/*Constructor de la clase C2CInterposer,si en el fichero 
-de creación del SimObject en python hubieramos definido parámetros, 
-esto se recibirían en &params, en este caso no se ha hecho pero igual se
-pone */
 C2CInterposer::C2CInterposer(const C2CInterposerParams &params)
     : ClockedObject(params),
-      toInterface0Port(nullptr),
-      fromInterface0Port(nullptr),
-      toInterface1Port(nullptr),
-      fromInterface1Port(nullptr),
+      numInterfaces(params.num_interfaces),
       reqLatency(params.req_latency),
       respLatency(params.resp_latency),
       reqBufferSize(params.req_buffer_size),
       respBufferSize(params.resp_buffer_size),
-      req0to1(DirBuffer(EventFunctionWrapper(
-          [this] { processReq0to1(); }, name() + ".processReq0to1"))),
-      req1to0(DirBuffer(EventFunctionWrapper(
-          [this] { processReq1to0(); }, name() + ".processReq1to0"))),
-      resp0to1(DirBuffer(EventFunctionWrapper(
-          [this] { processResp0to1(); }, name() + ".processResp0to1"))),
-      resp1to0(DirBuffer(EventFunctionWrapper(
-          [this] { processResp1to0(); }, name() + ".processResp1to0")))
+      c2cMemRanges(params.c2c_mem_ranges.begin(), params.c2c_mem_ranges.end()),
+      cacheChipIDList(params.cache_chip_id_list.begin(), params.cache_chip_id_list.end()),
+      interfaceChipIDList(params.interface_chip_id_list.begin(), params.interface_chip_id_list.end())
 {
-    //debug
-    std::cerr << "[Interposer] constructor called" << std::endl;
+    std::cout << "[Interposer] constructor called, numInterfaces="
+              << numInterfaces << "\n";
 
-    /*Recuerda que el constructor de la clase FromInterfacePort era: 
+    if (numInterfaces == 0) {
+        panic("C2CInterposer requires num_interfaces > 0");
+    }
 
-    C2CInterposer::FromInterfacePort::FromInterfacePort(
-    const std::string &name, //nombre del puerto
-    C2CInterposer *owner, //puntero al interposer dueño
-    int side //el lado del interposer (0 o 1)
-    
-    y lo que hacemos crear un nuevo objeto de esta
-    */
+    ensureBlockedVectors(numInterfaces);
 
-    //puerto de ResponsePort del lado 0
-    fromInterface0Port = new FromInterfacePort(
-        csprintf("%s.from_interface0_port", name()),
-        this,
-        0
-    );
+    toInterfacePorts.resize(numInterfaces, nullptr);
+    fromInterfacePorts.resize(numInterfaces, nullptr);
+    reqTo.resize(numInterfaces); //cola de requests/snoops cuyo destino es el chip i
+    respTo.resize(numInterfaces); //cola de responses cuyo destino es el chip i 
+    blockedReqFrom.resize(numInterfaces, false);
+    blockedRespFrom.resize(numInterfaces, false);
 
-    //puerto de RequestPort del lado 0
-    toInterface0Port = new ToInterfacePort(
-        csprintf("%s.to_interface0_port", name()),
-        this,
-        0
-    );
+    for (unsigned i = 0; i < numInterfaces; ++i) {
+        fromInterfacePorts[i] = new FromInterfacePort(
+            csprintf("%s.from_interfaces[%u]", name(), i), this, i);
 
-    //puerto de ResponsePort del lado 1
-    fromInterface1Port = new FromInterfacePort(
-        csprintf("%s.from_interface1_port", name()),
-        this,
-        1
-    );
+        toInterfacePorts[i] = new ToInterfacePort(
+            csprintf("%s.to_interfaces[%u]", name(), i), this, i);
 
-    //puerto de ResponsePort del lado 1
-    toInterface1Port = new ToInterfacePort(
-        csprintf("%s.to_interface1_port", name()),
-        this,
-        1
-    );
+        reqTo[i] = std::make_unique<DirBuffer>(EventFunctionWrapper(
+            [this, i] { processReqTo(i); },
+            csprintf("%s.processReqTo%u", name(), i)));
+
+        respTo[i] = std::make_unique<DirBuffer>(EventFunctionWrapper(
+            [this, i] { processRespTo(i); },
+            csprintf("%s.processRespTo%u", name(), i)));
+    }
 }
 
-//destructor 
+//Destructor. 
 C2CInterposer::~C2CInterposer()
 {
     dumpC2cTypeStats();
+
+    for (auto *p : fromInterfacePorts) {
+        delete p;
+    }
+    for (auto *p : toInterfacePorts) {
+        delete p;
+    }
 }
 
-/*Método de la clase C2CInterposer para acceder a los puertos (atributos) de 
-este, para ello devuelve el puntero a ese puerto (Port &) al mandarle el nombre*/
-Port & C2CInterposer::getPort(const std::string &if_name, PortID idx)
+/*Permite conectar con los puertos definidos en python*/
+Port &
+C2CInterposer::getPort(const std::string &if_name, PortID idx)
 {
-    if (if_name == "from_interface0_port") {
-        return *fromInterface0Port;
-    } else if (if_name == "to_interface0_port") {
-        return *toInterface0Port;
-    } else if (if_name == "from_interface1_port") {
-        return *fromInterface1Port;
-    } else if (if_name == "to_interface1_port") {
-        return *toInterface1Port;
+    // 
+    // Estos nombres deben coincidir exactamente con los VectorPort definidos
+    // en c2c_interposer.py: from_interfaces y to_interfaces.
+    if (if_name == "from_interfaces") {
+        if (idx == InvalidPortID || idx >= fromInterfacePorts.size()) {
+            panic("Invalid from_interfaces index %d", idx);
+        }
+        return *fromInterfacePorts[idx];
     }
 
-    /*si no se encuentra ningún puntero con ese nombre, se delega en la clase
-    base. Recuerda, C2CInterposer hereda de SimObject, entonces la clase 
-    base ya tiene una implementación de ese método!!! pero nosotros 
-    hicimos un override de ese método en C2CInterposer, pero al hacer esto 
-    llamamos al método "original" que puede tener otros puertos definidos*/
+    if (if_name == "to_interfaces") {
+        if (idx == InvalidPortID || idx >= toInterfacePorts.size()) {
+            panic("Invalid to_interfaces index %d", idx);
+        }
+        return *toInterfacePorts[idx];
+    }
+
     return ClockedObject::getPort(if_name, idx);
 }
 
-//contar el tipo de mensajes que me ha llegado 
-void
-C2CInterposer::recordC2cType(PacketPtr pkt, const char* path)
-{
-    if (!hasC2cMsg(pkt)) {
-        std::cout << "[Interposer] " << path
-                  << " type=NO_C2C_MSG "
-                  << pktToString(pkt) << "\n";
-        return;
-    }
+/*------------------------------------------------------------*/
+/* Clasificación Request/Snoop/Response/Data                  */
+/*------------------------------------------------------------*/
 
-    const int typeId = getC2cTypeId(pkt);
-    const std::string typeName = getC2cTypeName(pkt);
-
-    auto &stats = c2cTypeStats[typeId];
-
-    if (std::string(path) == "REQ 0->1 enqueue") {
-        stats.reqFrom0++;
-    } else if (std::string(path) == "REQ 1->0 enqueue") {
-        stats.reqFrom1++;
-    } else if (std::string(path) == "RESP 0->1 enqueue") {
-        stats.respFrom0++;
-    } else if (std::string(path) == "RESP 1->0 enqueue") {
-        stats.respFrom1++;
-    }
-
-    std::cout << "[Interposer] " << path
-              << " c2c_type=" << typeName
-              << " type_id=" << typeId
-              << " " << pktToString(pkt)
-              << "\n";
-}
-
-void
-C2CInterposer::dumpC2cTypeStats() const
-{
-    std::cout << "\n========== C2C TYPE STATS ==========\n";
-
-    if (c2cTypeStats.empty()) {
-        std::cout << "No C2C packets recorded.\n";
-        std::cout << "====================================\n";
-        return;
-    }
-
-    for (const auto &entry : c2cTypeStats) {
-        const int typeId = entry.first;
-        const TypeStats &s = entry.second;
-
-        auto type = static_cast<gem5::ruby::C2cRequestType>(typeId);
-
-        std::cout << "type_id=" << std::setw(3) << typeId
-                  << " type_name=" << gem5::ruby::C2cRequestType_to_string(type)
-                  << " reqFrom0=" << s.reqFrom0
-                  << " reqFrom1=" << s.reqFrom1
-                  << " respFrom0=" << s.respFrom0
-                  << " respFrom1=" << s.respFrom1
-                  << "\n";
-    }
-
-    std::cout << "====================================\n";
-}
-
-// ---------------- NUEVO ----------------
-// helper para obtener el tipo del paquete
-//para obtener nombre legible de la clase lógica
+//Devuelve en texto el tipo de mensaje del paquete
 const char*
 C2CInterposer::getClassName(C2cMsgClass msgClass) const
 {
@@ -368,11 +497,10 @@ C2CInterposer::getClassName(C2cMsgClass msgClass) const
       case C2cMsgClass::Response: return "Response";
       case C2cMsgClass::Data:     return "Data";
     }
-
     return "Unknown";
 }
 
-// helper para clasificar el tipo real CHI en una de las 4 clases lógicas
+//Clasificacion del tipo de mensaje del paquete en 4 categorias. Igual al codigo de ruby 
 C2CInterposer::C2cMsgClass
 C2CInterposer::classifyC2cType(ruby::C2cRequestType type) const
 {
@@ -387,74 +515,1182 @@ C2CInterposer::classifyC2cType(ruby::C2cRequestType type) const
         type == C2cRequestType_WriteUniqueFull ||
         type == C2cRequestType_WriteBackFull) {
         return C2cMsgClass::Request;
-    } else if (type == C2cRequestType_SnpCleanInvalid ||
-               type == C2cRequestType_SnpUnique ||
-               type == C2cRequestType_SnpSharedFwd ||
-               type == C2cRequestType_SnpUniqueFwd ||
-               type == C2cRequestType_SnpOnceFwd) {
-        return C2cMsgClass::Snoop;
-    } else if (type == C2cRequestType_CompData_UC ||
-               type == C2cRequestType_CompData_I ||
-               type == C2cRequestType_CompData_SC ||
-               type == C2cRequestType_CompData_SD_PD ||
-               type == C2cRequestType_CompData_UD_PD ||
-               type == C2cRequestType_NCBWrData ||
-               type == C2cRequestType_CBWrData_UC ||
-               type == C2cRequestType_CBWrData_SC ||
-               type == C2cRequestType_CBWrData_I ||
-               type == C2cRequestType_CBWrData_SD_PD ||
-               type == C2cRequestType_CBWrData_UD_PD ||
-               type == C2cRequestType_SnpRespData_I_PD ||
-               type == C2cRequestType_SnpRespData_I ||
-               type == C2cRequestType_SnpRespData_SC_PD ||
-               type == C2cRequestType_SnpRespData_SC ||
-               type == C2cRequestType_SnpRespData_SD ||
-               type == C2cRequestType_SnpRespData_UC ||
-               type == C2cRequestType_SnpRespData_UD ||
-               type == C2cRequestType_SnpRespData_SC_Fwded_SD_PD ||
-               type == C2cRequestType_SnpRespData_SC_Fwded_SC ||
-               type == C2cRequestType_SnpRespData_SC_PD_Fwded_SC ||
-               type == C2cRequestType_SnpRespData_I_Fwded_SD_PD ||
-               type == C2cRequestType_SnpRespData_I_PD_Fwded_SC ||
-               type == C2cRequestType_SnpRespData_I_Fwded_SC) {
-        return C2cMsgClass::Data;
-    } else if (type == C2cRequestType_CompAck ||
-               type == C2cRequestType_CompDBIDResp ||
-               type == C2cRequestType_RetryAck ||
-               type == C2cRequestType_PCrdGrant ||
-               type == C2cRequestType_Comp_I ||
-               type == C2cRequestType_Comp_UC ||
-               type == C2cRequestType_SnpResp_I ||
-               type == C2cRequestType_SnpResp_I_Fwded_UD_PD ||
-               type == C2cRequestType_SnpResp_I_Fwded_UC ||
-               type == C2cRequestType_SnpResp_SC_Fwded_SC ||
-               type == C2cRequestType_SnpResp_SC_Fwded_SD_PD ||
-               type == C2cRequestType_SnpResp_SD_Fwded_I ||
-               type == C2cRequestType_SnpResp_SC_Fwded_I ||
-               type == C2cRequestType_SnpResp_UD_Fwded_I ||
-               type == C2cRequestType_SnpResp_UC_Fwded_I ||
-               type == C2cRequestType_ReqAck) {
-        return C2cMsgClass::Response;
-    } else {
-        panic("Invalid C2c request type in C2CInterposer classification: %s",
-              ruby::C2cRequestType_to_string(type).c_str());
-        return C2cMsgClass::Request;
     }
+
+    if (type == C2cRequestType_SnpCleanInvalid ||
+        type == C2cRequestType_SnpUnique ||
+        type == C2cRequestType_SnpSharedFwd ||
+        type == C2cRequestType_SnpUniqueFwd ||
+        type == C2cRequestType_SnpOnceFwd) {
+        return C2cMsgClass::Snoop;
+    }
+
+    if (type == C2cRequestType_CompData_UC ||
+        type == C2cRequestType_CompData_I ||
+        type == C2cRequestType_CompData_SC ||
+        type == C2cRequestType_CompData_SD_PD ||
+        type == C2cRequestType_CompData_UD_PD ||
+        type == C2cRequestType_NCBWrData ||
+        type == C2cRequestType_CBWrData_UC ||
+        type == C2cRequestType_CBWrData_SC ||
+        type == C2cRequestType_CBWrData_I ||
+        type == C2cRequestType_CBWrData_SD_PD ||
+        type == C2cRequestType_CBWrData_UD_PD ||
+        type == C2cRequestType_SnpRespData_I_PD ||
+        type == C2cRequestType_SnpRespData_I ||
+        type == C2cRequestType_SnpRespData_SC_PD ||
+        type == C2cRequestType_SnpRespData_SC ||
+        type == C2cRequestType_SnpRespData_SD ||
+        type == C2cRequestType_SnpRespData_UC ||
+        type == C2cRequestType_SnpRespData_UD ||
+        type == C2cRequestType_SnpRespData_SC_Fwded_SD_PD ||
+        type == C2cRequestType_SnpRespData_SC_Fwded_SC ||
+        type == C2cRequestType_SnpRespData_SC_PD_Fwded_SC ||
+        type == C2cRequestType_SnpRespData_I_Fwded_SD_PD ||
+        type == C2cRequestType_SnpRespData_I_PD_Fwded_SC ||
+        type == C2cRequestType_SnpRespData_I_Fwded_SC) {
+        return C2cMsgClass::Data;
+    }
+
+    if (type == C2cRequestType_CompAck ||
+        type == C2cRequestType_CompDBIDResp ||
+        type == C2cRequestType_RetryAck ||
+        type == C2cRequestType_PCrdGrant ||
+        type == C2cRequestType_Comp_I ||
+        type == C2cRequestType_Comp_UC ||
+        type == C2cRequestType_SnpResp_I ||
+        type == C2cRequestType_SnpResp_I_Fwded_UD_PD ||
+        type == C2cRequestType_SnpResp_I_Fwded_UC ||
+        type == C2cRequestType_SnpResp_SC_Fwded_SC ||
+        type == C2cRequestType_SnpResp_SC_Fwded_SD_PD ||
+        type == C2cRequestType_SnpResp_SD_Fwded_I ||
+        type == C2cRequestType_SnpResp_SC_Fwded_I ||
+        type == C2cRequestType_SnpResp_UD_Fwded_I ||
+        type == C2cRequestType_SnpResp_UC_Fwded_I ||
+        type == C2cRequestType_ReqAck) {
+        return C2cMsgClass::Response;
+    }
+
+    panic("Invalid C2c request type in C2CInterposer classification: %s",
+          ruby::C2cRequestType_to_string(type).c_str());
 }
 
-// helper para obtener la clase lógica del paquete
+/*Comprueba que el paquete tenga una mensaje de ruby asociado*/
 C2CInterposer::C2cMsgClass
 C2CInterposer::getPacketClass(PacketPtr pkt) const
 {
     if (!hasC2cMsg(pkt)) {
         panic("Packet without c2c_msg in C2CInterposer");
     }
-
     return classifyC2cType(pkt->c2c_msg->m_Type);
 }
-// ---------------- FIN NUEVO ----------------
 
-// helper para obtener el menor readyTick entre todas las colas
+/*------------------------------------------------------------*/
+/* Routing                                                     */
+/*------------------------------------------------------------*/
+
+//Comrpueba que el destino sea una interfaz (que en este caso se corresponde con un chip) valido
+bool 
+C2CInterposer::validSide(int side) const
+{
+    return side >= 0 && side < static_cast<int>(numInterfaces);
+}
+
+/*Routinga para las responses: Se hace en base al machineId, para ello convierte "MachieID" en una interfaz/chip
+de destino valido*/
+int
+C2CInterposer::routeByMachineID(const ruby::MachineID &mach, int fallback) const
+{
+    /*
+     
+     Algunos campos MachineID dentro de C2cMsg pueden no ser válidos para
+      todos los tipos de mensaje.
+     
+     Por ejemplo, en algunas trazas he visto visto que al imprimir m_Requestor
+     gem5 abortaba porque mach.type estaba fuera del rango válido del enum
+      MachineType.
+     
+     Por eso compruebo primero el valor numérico del tipo antes de usarlo.
+     */
+    const int typeInt = static_cast<int>(mach.type);
+
+    if (typeInt < 0 || typeInt >= static_cast<int>(ruby::MachineType_NUM)) {
+        return fallback;
+    }
+
+    // MachineType_NUM se usa como valor nulo/no válido en muchos mensajes.
+    // Si aparece, no puedo enrutar usando este MachineID.
+    if (mach.type == ruby::MachineType_NUM) {
+        return fallback;
+    }
+
+    /* Si el MachineID es de tipo Cache, mach.num es el número/version
+     del controlador de cache Ruby.
+    
+     cacheChipIDList[mach.num]  dice en que chip esta esa cache.
+     Ej: Cache-14 -> chip0 donde vive Cache-14 osea Interface-2 -> chip0 asociado a Interface-2
+    
+     mach.num es unsigned, por eso no hago mach.num >= 0.*/
+    if (mach.type == ruby::MachineType_Cache) {
+        if (mach.num < cacheChipIDList.size()) {
+            return cacheChipIDList[mach.num];
+        }
+
+        return fallback;
+    }
+
+    // Si el MachineID es de tipo Interface, mach.num es el número/version
+    // de la interfaz C2C.
+    //
+    // interfaceChipIDList[mach.num] nos dice qué chip representa esa interfaz.
+    if (mach.type == ruby::MachineType_Interface) {
+        if (mach.num < interfaceChipIDList.size()) {
+            return interfaceChipIDList[mach.num];
+        }
+
+        return fallback;
+    }
+
+    return fallback;
+}
+
+
+/*Politica de enrutamiento para las request/snoop: en base a la direccion del paquete. 
+Para ello se busca que rango de c2cMemRanges contiene esa direccion y en base a eso enviarla ahi.
+Ej: addr 0xbc829000 pertenece al rango del chip 0 ENTONCES routeByAddress() devuelve 0*/
+int
+C2CInterposer::routeByAddress(PacketPtr pkt, int incomingSide) const
+{
+    const Addr addr = pkt->getAddr();
+
+    for (int chip = 0; chip < static_cast<int>(c2cMemRanges.size()); ++chip) {
+        if (c2cMemRanges[chip].contains(addr)) {
+            return chip;
+        }
+    }
+
+    return -1;
+}
+
+int
+C2CInterposer::routeAckLikeSlicc(PacketPtr pkt, int responderSide) const
+{
+    if (!hasC2cMsg(pkt)) {
+        return -1;
+    }
+
+    const auto *msg = pkt->c2c_msg;
+
+    const int explicitSrc = msg->m_RouteSrcChip;
+    const int explicitDst = msg->m_RouteDestChip;
+
+    std::cout << "[C2C ACK EXPLICIT ROUTE]"
+              << " tick=" << curTick()
+              << " src=" << responderSide
+              << " explicitSrc=" << explicitSrc
+              << " explicitDst=" << explicitDst
+              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+              << " type=" << getC2cTypeName(pkt)
+              << "\n";
+
+    /*
+     * Primero usamos la ruta explícita si apunta a otro chip.
+     */
+    if (validSide(explicitDst) && explicitDst != responderSide) {
+        std::cout << "[C2C ACK ROUTE PICK]"
+                  << " rule=ACK_EXPLICIT_ROUTE_DEST_CHIP"
+                  << " src=" << responderSide
+                  << " dst=" << explicitDst
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << " type=" << getC2cTypeName(pkt)
+                  << "\n";
+        return explicitDst;
+    }
+
+    /*
+     * Si la ruta explícita apunta al mismo lado, NO la usamos.
+     *
+     * Esto es lo que apareció en el último log:
+     *
+     *   CompAck src=0 explicitDst=0
+     *
+     * Eso no es un salto C2C válido. Para CompAck, en ese caso imitamos la
+     * decisión original de SLICC:
+     *
+     *   out_msg.Destination.add(mapAddressToDownstreamMachine(tbe.addr))
+     *
+     * En el interposer, lo equivalente es routeByAddress().
+     */
+    if (validSide(explicitDst) && explicitDst == responderSide) {
+        std::cout << "[C2C ACK ROUTE SELF_EXPLICIT_IGNORED]"
+                  << " src=" << responderSide
+                  << " explicitDst=" << explicitDst
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << " type=" << getC2cTypeName(pkt)
+                  << "\n";
+    }
+
+    /*
+     * Caso especial para CompAck.
+     *
+     * No devolvemos -1 inmediatamente si explicitDst es inválido o local.
+     * Probamos el mismo criterio que SLICC usaba para Destination:
+     * dirección -> downstream/home chip.
+     */
+    if (msg->m_Type == ruby::C2cRequestType_CompAck) {
+        const int byAddr = routeByAddress(pkt, responderSide);
+
+        std::cout << "[C2C COMPACK ADDR FALLBACK]"
+                  << " src=" << responderSide
+                  << " byAddr=" << byAddr
+                  << " explicitSrc=" << explicitSrc
+                  << " explicitDst=" << explicitDst
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << " type=" << getC2cTypeName(pkt)
+                  << "\n";
+
+        if (validSide(byAddr) && byAddr != responderSide) {
+            std::cout << "[C2C ACK ROUTE PICK]"
+                      << " rule=ACK_ADDR_AFTER_SELF_EXPLICIT"
+                      << " src=" << responderSide
+                      << " dst=" << byAddr
+                      << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                      << " type=" << getC2cTypeName(pkt)
+                      << "\n";
+            return byAddr;
+        }
+
+        std::cout << "[C2C ACK ROUTE ERROR]"
+                  << " rule=COMPACK_NO_REMOTE_ROUTE"
+                  << " src=" << responderSide
+                  << " explicitSrc=" << explicitSrc
+                  << " explicitDst=" << explicitDst
+                  << " byAddr=" << byAddr
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << " type=" << getC2cTypeName(pkt)
+                  << " sender=" << machineIdToString(msg->m_Sender)
+                  << " requestor=" << machineIdToString(msg->m_Requestor)
+                  << " originalRequestor="
+                  << machineIdToString(msg->m_OriginalRequestor)
+                  << " localRequestor="
+                  << machineIdToString(msg->m_LocalRequestor)
+                  << " responder=" << machineIdToString(msg->m_Responder)
+                  << " originalResponder="
+                  << machineIdToString(msg->m_OriginalResponder)
+                  << "\n";
+
+        return -1;
+    }
+
+    /*
+     * Para otros ACK-like no forzamos todavía la dirección como primera opción.
+     * Usamos los campos de contexto existentes.
+     */
+    const int byC2cDest = routeByC2cDestination(pkt, responderSide);
+    const int byLocalRequestor = routeByMachineID(msg->m_LocalRequestor, -1);
+    const int byRequestor = routeByMachineID(msg->m_Requestor, -1);
+    const int byOriginalRequestor =
+        routeByMachineID(msg->m_OriginalRequestor, -1);
+    const int byResponder = routeByMachineID(msg->m_Responder, -1);
+    const int byOriginalResponder =
+        routeByMachineID(msg->m_OriginalResponder, -1);
+
+    std::cout << "[C2C ACK CANDIDATES]"
+              << " tick=" << curTick()
+              << " src=" << responderSide
+              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+              << " type=" << getC2cTypeName(pkt)
+              << " routeSrcChip=" << explicitSrc
+              << " routeDestChip=" << explicitDst
+              << " sender=" << machineIdToString(msg->m_Sender)
+              << " requestor=" << machineIdToString(msg->m_Requestor)
+              << " originalRequestor="
+              << machineIdToString(msg->m_OriginalRequestor)
+              << " localRequestor="
+              << machineIdToString(msg->m_LocalRequestor)
+              << " responder=" << machineIdToString(msg->m_Responder)
+              << " originalResponder="
+              << machineIdToString(msg->m_OriginalResponder)
+              << " byC2cDest=" << byC2cDest
+              << " byLocalRequestor=" << byLocalRequestor
+              << " byRequestor=" << byRequestor
+              << " byOriginalRequestor=" << byOriginalRequestor
+              << " byResponder=" << byResponder
+              << " byOriginalResponder=" << byOriginalResponder
+              << "\n";
+
+    if (validSide(byC2cDest) && byC2cDest != responderSide) {
+        std::cout << "[C2C ACK ROUTE PICK]"
+                  << " rule=ACK_C2C_DEST_REMOTE"
+                  << " src=" << responderSide
+                  << " dst=" << byC2cDest
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << " type=" << getC2cTypeName(pkt)
+                  << "\n";
+        return byC2cDest;
+    }
+
+    if (validSide(byLocalRequestor) && byLocalRequestor != responderSide) {
+        std::cout << "[C2C ACK ROUTE PICK]"
+                  << " rule=ACK_LOCAL_REQUESTOR_REMOTE"
+                  << " src=" << responderSide
+                  << " dst=" << byLocalRequestor
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << " type=" << getC2cTypeName(pkt)
+                  << "\n";
+        return byLocalRequestor;
+    }
+
+    if (validSide(byRequestor) && byRequestor != responderSide) {
+        std::cout << "[C2C ACK ROUTE PICK]"
+                  << " rule=ACK_REQUESTOR_REMOTE"
+                  << " src=" << responderSide
+                  << " dst=" << byRequestor
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << " type=" << getC2cTypeName(pkt)
+                  << "\n";
+        return byRequestor;
+    }
+
+    if (validSide(byOriginalRequestor) &&
+        byOriginalRequestor != responderSide) {
+        std::cout << "[C2C ACK ROUTE PICK]"
+                  << " rule=ACK_ORIGINAL_REQUESTOR_REMOTE"
+                  << " src=" << responderSide
+                  << " dst=" << byOriginalRequestor
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << " type=" << getC2cTypeName(pkt)
+                  << "\n";
+        return byOriginalRequestor;
+    }
+
+    if (validSide(byResponder) && byResponder != responderSide) {
+        std::cout << "[C2C ACK ROUTE PICK]"
+                  << " rule=ACK_RESPONDER_REMOTE"
+                  << " src=" << responderSide
+                  << " dst=" << byResponder
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << " type=" << getC2cTypeName(pkt)
+                  << "\n";
+        return byResponder;
+    }
+
+    if (validSide(byOriginalResponder) &&
+        byOriginalResponder != responderSide) {
+        std::cout << "[C2C ACK ROUTE PICK]"
+                  << " rule=ACK_ORIGINAL_RESPONDER_REMOTE"
+                  << " src=" << responderSide
+                  << " dst=" << byOriginalResponder
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << " type=" << getC2cTypeName(pkt)
+                  << "\n";
+        return byOriginalResponder;
+    }
+
+    std::cout << "[C2C ACK ROUTE ERROR]"
+              << " rule=ACK_NO_REMOTE_CONTEXT"
+              << " src=" << responderSide
+              << " explicitSrc=" << explicitSrc
+              << " explicitDst=" << explicitDst
+              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+              << " type=" << getC2cTypeName(pkt)
+              << " byC2cDest=" << byC2cDest
+              << " byLocalRequestor=" << byLocalRequestor
+              << " byRequestor=" << byRequestor
+              << " byOriginalRequestor=" << byOriginalRequestor
+              << " byResponder=" << byResponder
+              << " byOriginalResponder=" << byOriginalResponder
+              << "\n";
+
+    return -1;
+}
+
+/*Este se utiliza como fallback para snoops donde la direccion no basta. 
+Entonces lo que se hace es que se intenta leer explicitamente el destino desde un campo del paquete 
+msg->m_C2c_destination
+Y para cada interfaz/chip lo que hace es 
+msg->m_C2c_destination.extractNetDest(chip)
+osea, si se encuentra un netdest no vacio para ese chip, pues se devuelve ese chip para enrutar*/
+int
+C2CInterposer::routeByC2cDestination(PacketPtr pkt, int srcSide) const
+{
+    if (!hasC2cMsg(pkt)) {
+        return -1;
+    }
+
+    const auto *msg = pkt->c2c_msg;
+
+    /*
+     * m_C2c_destination es un MegaNetDest.
+     *
+     * Importante:
+     * MegaNetDest indexa chips reales, no puertos del interposer.
+     *
+     * En la versión de 3 interfaces:
+     *
+     *   chip 0 -> side 0
+     *   chip 1 -> side 1
+     *   chip 2 -> side 2
+     *
+     * Por tanto, aquí podemos devolver directamente el chip destino como
+     * side destino.
+     *
+     * No usamos numInterfaces como "número de chips" por concepto.
+     * Usamos c2cMemRanges.size(), porque esa lista representa los chips reales.
+     */
+    const int numChips = static_cast<int>(c2cMemRanges.size());
+
+    int foundChip = -1;
+    int foundCount = 0;
+
+    for (int chip = 0; chip < numChips; ++chip) {
+        ruby::NetDest nd = msg->m_C2c_destination.extractNetDest(chip);
+
+        if (!nd.isEmpty()) {
+            foundChip = chip;
+            foundCount++;
+
+            std::cout << "[C2C DEST MATCH]"
+                      << " srcSide=" << srcSide
+                      << " chip=" << chip
+                      << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                      << " type=" << getC2cTypeName(pkt)
+                      << " nd=" << nd
+                      << "\n";
+        }
+    }
+
+    if (foundCount == 1) {
+        return foundChip;
+    }
+
+    if (foundCount > 1) {
+        std::cout << "[C2C DEST MULTI]"
+                  << " srcSide=" << srcSide
+                  << " foundCount=" << foundCount
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << " type=" << getC2cTypeName(pkt)
+                  << " sender=" << machineIdToString(msg->m_Sender)
+                  << " requestor=" << machineIdToString(msg->m_Requestor)
+                  << " originalRequestor=" << machineIdToString(msg->m_OriginalRequestor)
+                  << " localRequestor=" << machineIdToString(msg->m_LocalRequestor)
+                  << " responder=" << machineIdToString(msg->m_Responder)
+                  << " originalResponder=" << machineIdToString(msg->m_OriginalResponder)
+                  << "\n";
+
+        /*
+         * Si hay más de un destino C2C, no elegimos arbitrariamente.
+         * Esto indicaría que el protocolo quiere multicast/broadcast C2C,
+         * y el interposer actual, que devuelve un único dstSide, no puede
+         * representarlo correctamente.
+         */
+        return -1;
+    }
+
+    return -1;
+}
+
+int
+C2CInterposer::routeByDestinationField(PacketPtr pkt, int fallback) const
+{
+    /*
+     * IMPORTANTE:
+     *
+     * Antes aquí intentábamos usar:
+     *
+     *     msg->getDestination()
+     *
+     * para leer el NetDest del mensaje Ruby. Eso NO es seguro en este path
+     * C2C, porque no todos los C2cMsg tienen un campo Destination válido.
+     *
+     * Si llamamos a getDestination() sobre un mensaje que no soporta ese
+     * campo, gem5 aborta con:
+     *
+     *     panic: getDestination() called on wrong message!
+     *
+     * Por eso esta función queda como fallback neutro. La mantenemos para no
+     * romper la estructura del código, pero ya no consulta getDestination().
+     *
+     * El routing real queda así:
+     *
+     *   - Requests/Snoops:
+     *       se enrutan por dirección de memoria usando routeByAddress().
+     *
+     *   - Responses/Data:
+     *       se enrutan por MachineID usando routeByMachineID() sobre campos
+     *       como m_OriginalRequestor, m_Requestor y m_LocalRequestor.
+     */
+    return fallback;
+}
+
+
+/*Verdadera funcion de routing para las request que llama a las otras funciones auxiliares dependiendo
+del tipo de Request que sea*/
+int
+C2CInterposer::routeRequest(PacketPtr pkt, int srcSide) const
+{
+    if (!hasC2cMsg(pkt)) {
+        panic("C2CInterposer cannot route request without c2c_msg");
+    }
+
+    const auto *msg = pkt->c2c_msg;
+    const C2cMsgClass msgClass = getPacketClass(pkt);
+
+    int dst = -1;
+
+    /*
+     * Regla principal:
+     *
+     * Si el protocolo SLICC ya puso un destino C2C explícito,
+     * el interposer debe respetarlo.
+     *
+     * Esto es especialmente importante para SnpSharedFwd, SnpUniqueFwd,
+     * SnpOnceFwd, etc.
+     *
+     * Un snoop forwarded puede tener una dirección perteneciente al chip 0,
+     * pero su destino real puede ser un sharer remoto. Por eso para snoops
+     * NO debemos decidir por dirección como primera opción.
+     */
+    dst = routeByC2cDestination(pkt, srcSide);
+    if (validSide(dst) && dst != srcSide) {
+        std::cout << "[C2C ROUTE DECISION]"
+                  << " kind=REQ_OR_SNOOP"
+                  << " reason=c2c_destination"
+                  << " src=" << srcSide
+                  << " dst=" << dst
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << " type=" << getC2cTypeName(pkt)
+                  << "\n";
+        return dst;
+    }
+
+    /*
+     * Si es un Snoop y no tiene c2c_destination utilizable, entonces intentamos
+     * MachineID como fallback.
+     *
+     * Pero no usamos dirección para snoops como criterio principal, porque eso
+     * puede devolver el chip propietario de la línea, no el chip que debe
+     * recibir el snoop.
+     */
+    if (msgClass == C2cMsgClass::Snoop) {
+        dst = routeByMachineID(msg->m_OriginalRequestor, -1);
+        if (validSide(dst) && dst != srcSide) {
+            std::cout << "[C2C ROUTE DECISION]"
+                      << " kind=SNOOP"
+                      << " reason=originalRequestor"
+                      << " src=" << srcSide
+                      << " dst=" << dst
+                      << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                      << " type=" << getC2cTypeName(pkt)
+                      << "\n";
+            return dst;
+        }
+
+        dst = routeByMachineID(msg->m_Requestor, -1);
+        if (validSide(dst) && dst != srcSide) {
+            std::cout << "[C2C ROUTE DECISION]"
+                      << " kind=SNOOP"
+                      << " reason=requestor"
+                      << " src=" << srcSide
+                      << " dst=" << dst
+                      << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                      << " type=" << getC2cTypeName(pkt)
+                      << "\n";
+            return dst;
+        }
+
+        dst = routeByMachineID(msg->m_LocalRequestor, -1);
+        if (validSide(dst) && dst != srcSide) {
+            std::cout << "[C2C ROUTE DECISION]"
+                      << " kind=SNOOP"
+                      << " reason=localRequestor"
+                      << " src=" << srcSide
+                      << " dst=" << dst
+                      << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                      << " type=" << getC2cTypeName(pkt)
+                      << "\n";
+            return dst;
+        }
+
+        std::cout << "[C2C ROUTE ERROR] cannot route SNOOP"
+                  << " src=" << srcSide
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << " type=" << getC2cTypeName(pkt)
+                  << " sender=" << machineIdToString(msg->m_Sender)
+                  << " requestor=" << machineIdToString(msg->m_Requestor)
+                  << " originalRequestor=" << machineIdToString(msg->m_OriginalRequestor)
+                  << " localRequestor=" << machineIdToString(msg->m_LocalRequestor)
+                  << " responder=" << machineIdToString(msg->m_Responder)
+                  << " originalResponder=" << machineIdToString(msg->m_OriginalResponder)
+                  << "\n";
+
+        panic("C2CInterposer cannot route snoop from side %d: %s",
+              srcSide, pktToString(pkt).c_str());
+
+        return srcSide;
+    }
+
+    /*
+     * Requests normales:
+     *
+     * Para ReadShared, ReadUnique, CleanUnique, WriteBackFull, etc.,
+     * si no había c2c_destination explícito, usamos la dirección.
+     *
+     * Esto conserva tu política:
+     *
+     *   Requests normales -> dirección
+     *   Responses/Data    -> MachineID
+     */
+    dst = routeByAddress(pkt, srcSide);
+    if (validSide(dst) && dst != srcSide) {
+        std::cout << "[C2C ROUTE DECISION]"
+                  << " kind=REQUEST"
+                  << " reason=address"
+                  << " src=" << srcSide
+                  << " dst=" << dst
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << " type=" << getC2cTypeName(pkt)
+                  << "\n";
+        return dst;
+    }
+
+    /*
+     * Último fallback por MachineID.
+     */
+    dst = routeByMachineID(msg->m_OriginalRequestor, -1);
+    if (validSide(dst) && dst != srcSide) {
+        std::cout << "[C2C ROUTE DECISION]"
+                  << " kind=REQUEST"
+                  << " reason=originalRequestor_fallback"
+                  << " src=" << srcSide
+                  << " dst=" << dst
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << " type=" << getC2cTypeName(pkt)
+                  << "\n";
+        return dst;
+    }
+
+    dst = routeByMachineID(msg->m_Requestor, -1);
+    if (validSide(dst) && dst != srcSide) {
+        std::cout << "[C2C ROUTE DECISION]"
+                  << " kind=REQUEST"
+                  << " reason=requestor_fallback"
+                  << " src=" << srcSide
+                  << " dst=" << dst
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << " type=" << getC2cTypeName(pkt)
+                  << "\n";
+        return dst;
+    }
+
+    std::cout << "[C2C ROUTE ERROR] cannot route REQUEST"
+              << " src=" << srcSide
+              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+              << " type=" << getC2cTypeName(pkt)
+              << " sender=" << machineIdToString(msg->m_Sender)
+              << " requestor=" << machineIdToString(msg->m_Requestor)
+              << " originalRequestor=" << machineIdToString(msg->m_OriginalRequestor)
+              << " localRequestor=" << machineIdToString(msg->m_LocalRequestor)
+              << " responder=" << machineIdToString(msg->m_Responder)
+              << " originalResponder=" << machineIdToString(msg->m_OriginalResponder)
+              << "\n";
+
+    panic("C2CInterposer cannot route request from side %d: %s",
+          srcSide, pktToString(pkt).c_str());
+
+    return srcSide;
+}
+
+/*Verdadera funcion para el routing de respuestas, esta se encarga de llamar a las demas funciones auxiliares*/
+int
+C2CInterposer::routeResponse(PacketPtr pkt, int responderSide) const
+{
+    if (!hasC2cMsg(pkt)) {
+        panic("C2CInterposer cannot route response without c2c_msg");
+    }
+
+    const auto *msg = pkt->c2c_msg;
+    const auto type = msg->m_Type;
+
+    int dst = -1;
+
+    if (type == ruby::C2cRequestType_CompData_SC) {
+        const int byOriginalRequestor =
+            routeByMachineID(msg->m_OriginalRequestor, -1);
+
+        const int byRequestor =
+            routeByMachineID(msg->m_Requestor, -1);
+
+        const int byLocalRequestor =
+            routeByMachineID(msg->m_LocalRequestor, -1);
+
+        const int byResponder =
+            routeByMachineID(msg->m_Responder, -1);
+
+        const int byOriginalResponder =
+            routeByMachineID(msg->m_OriginalResponder, -1);
+
+        const int byC2cDest =
+            routeByC2cDestination(pkt, responderSide);
+
+        const int byAddr =
+            routeByAddress(pkt, responderSide);
+
+        std::cout << "[C2C RESP CANDIDATES COMPDATA_SC]"
+                << " tick=" << curTick()
+                << " src=" << responderSide
+                << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                << " pkt=" << pkt
+                << " req=" << pkt->req
+                << " sender=" << machineIdToString(msg->m_Sender)
+                << " requestor=" << machineIdToString(msg->m_Requestor)
+                << " originalRequestor="
+                << machineIdToString(msg->m_OriginalRequestor)
+                << " localRequestor="
+                << machineIdToString(msg->m_LocalRequestor)
+                << " responder=" << machineIdToString(msg->m_Responder)
+                << " originalResponder="
+                << machineIdToString(msg->m_OriginalResponder)
+                << " byOriginalRequestor=" << byOriginalRequestor
+                << " byRequestor=" << byRequestor
+                << " byLocalRequestor=" << byLocalRequestor
+                << " byResponder=" << byResponder
+                << " byOriginalResponder=" << byOriginalResponder
+                << " byC2cDest=" << byC2cDest
+                << " byAddr=" << byAddr
+                << "\n";
+    }
+
+    /*
+     * CASO 1:
+     * Respuestas de snoop:
+     *
+     *   - SnpResp_*
+     *   - SnpRespData_*
+     *
+     * Comparación con SLICC:
+     *
+     *   Send_FwdSnpResp:
+     *      out_msg.Destination.add(tbe.requestor);
+     *      out_msg.localRequestor := tbe.localRequestor;
+     *      out_msg.originalRequestor := tbe.originalRequestor;
+     *      out_msg.originalResponder := machineID;
+     *
+     *   Send_SnpRespDataFwded:
+     *      tbe.snd_destination := tbe.requestor;
+     *      setupPendingSend(tbe);
+     *
+     *   Send_Data:
+     *      out_msg.Destination.add(tbe.snd_destination);
+     *      out_msg.localRequestor := tbe.localRequestor;
+     *      out_msg.originalRequestor := tbe.originalRequestor;
+     *      out_msg.originalResponder := machineID;
+     *
+     * Por tanto, para SnpResp* no debemos empezar por:
+     *
+     *   - OriginalResponder
+     *   - Responder
+     *   - Dirección
+     *
+     * porque eso no imita Destination.add(tbe.requestor).
+     *
+     * En tus logs, m_Requestor muchas veces viene INVALID para SnpResp_*,
+     * así que el mejor proxy disponible del contexto SLICC suele ser
+     * m_LocalRequestor.
+     */
+    if (isSnoopResponseToHome(type) || isSnoopResponseDataToHome(type)) {
+        /*
+         * 1) Primer candidato: localRequestor.
+         *
+         * En los logs del fallo, para SnpResp_SC_Fwded_SC aparecía algo tipo:
+         *
+         *   localRequestor=Cache-2
+         *   requestor=INVALID_MACHINE_TYPE(21)-0
+         *
+         * Por eso localRequestor debe probarse antes que requestor.
+         */
+        dst = routeByMachineID(msg->m_LocalRequestor, -1);
+        if (validSide(dst) && dst != responderSide) {
+            std::cout << "[C2C RESP CHOSEN]"
+                      << " type=" << getC2cTypeName(pkt)
+                      << " rule=SNPRESP_LOCAL_REQUESTOR"
+                      << " src=" << responderSide
+                      << " dst=" << dst
+                      << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                      << "\n";
+            return dst;
+        }
+
+        /*
+         * 2) Segundo candidato: requestor.
+         *
+         * Este sería el más parecido a:
+         *
+         *   Destination.add(tbe.requestor)
+         *
+         * si el campo viene válido en C2cMsg.
+         */
+        dst = routeByMachineID(msg->m_Requestor, -1);
+        if (validSide(dst) && dst != responderSide) {
+            std::cout << "[C2C RESP CHOSEN]"
+                      << " type=" << getC2cTypeName(pkt)
+                      << " rule=SNPRESP_REQUESTOR"
+                      << " src=" << responderSide
+                      << " dst=" << dst
+                      << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                      << "\n";
+            return dst;
+        }
+
+        /*
+         * 3) Tercer candidato: destino C2C explícito.
+         *
+         * Si SLICC dejó información explícita de c2c_destination, respetarla
+         * antes de caer a dirección.
+         */
+        dst = routeByC2cDestination(pkt, responderSide);
+        if (validSide(dst) && dst != responderSide) {
+            std::cout << "[C2C RESP CHOSEN]"
+                      << " type=" << getC2cTypeName(pkt)
+                      << " rule=SNPRESP_C2C_DEST"
+                      << " src=" << responderSide
+                      << " dst=" << dst
+                      << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                      << "\n";
+            return dst;
+        }
+
+        /*
+         * 4) Fallback controlado: originalRequestor.
+         *
+         * OJO: Para SnpResp*_Fwded_* puede representar al requestor final de
+         * datos, no necesariamente al home/requestor del snoop response.
+         * Por eso no va primero.
+         */
+        dst = routeByMachineID(msg->m_OriginalRequestor, -1);
+        if (validSide(dst) && dst != responderSide) {
+            std::cout << "[C2C RESP CHOSEN]"
+                      << " type=" << getC2cTypeName(pkt)
+                      << " rule=SNPRESP_ORIGINAL_REQUESTOR_FALLBACK"
+                      << " src=" << responderSide
+                      << " dst=" << dst
+                      << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                      << "\n";
+            return dst;
+        }
+
+        /*
+         * 5) Último recurso: dirección.
+         *
+         * Si para la dirección que peta, por ejemplo 0xbfff7000, sigues viendo:
+         *
+         *   rule=SNPRESP_ADDR_LAST_RESORT
+         *
+         * entonces seguimos perdiendo el contexto que SLICC tenía en
+         * Destination/tbe.requestor.
+         */
+        dst = routeByAddress(pkt, responderSide);
+        if (validSide(dst) && dst != responderSide) {
+            std::cout << "[C2C RESP WARNING]"
+                      << " type=" << getC2cTypeName(pkt)
+                      << " rule=SNPRESP_ADDR_LAST_RESORT"
+                      << " src=" << responderSide
+                      << " dst=" << dst
+                      << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                      << " sender=" << machineIdToString(msg->m_Sender)
+                      << " requestor=" << machineIdToString(msg->m_Requestor)
+                      << " originalRequestor="
+                      << machineIdToString(msg->m_OriginalRequestor)
+                      << " localRequestor="
+                      << machineIdToString(msg->m_LocalRequestor)
+                      << " responder=" << machineIdToString(msg->m_Responder)
+                      << " originalResponder="
+                      << machineIdToString(msg->m_OriginalResponder)
+                      << "\n";
+            return dst;
+        }
+
+        std::cout << "[C2C ROUTE ERROR] cannot route SNPRESP"
+                  << " src=" << responderSide
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << " type=" << getC2cTypeName(pkt)
+                  << " sender=" << machineIdToString(msg->m_Sender)
+                  << " requestor=" << machineIdToString(msg->m_Requestor)
+                  << " originalRequestor="
+                  << machineIdToString(msg->m_OriginalRequestor)
+                  << " localRequestor="
+                  << machineIdToString(msg->m_LocalRequestor)
+                  << " responder=" << machineIdToString(msg->m_Responder)
+                  << " originalResponder="
+                  << machineIdToString(msg->m_OriginalResponder)
+                  << "\n";
+
+        panic("C2CInterposer cannot route SnpResp from side %d: %s",
+              responderSide, pktToString(pkt).c_str());
+
+        return responderSide;
+    }
+
+    /*
+     * CASO 2:
+     * CompAck / ReqAck.
+     *
+     * Aquí lo dejamos como lo tenías conceptualmente: por dirección primero.
+     *
+     * Esto sí encaja mejor con SLICC, porque Send_CompAck hace:
+     *
+     *   out_msg.Destination.add(mapAddressToDownstreamMachine(tbe.addr));
+     */
+    if (type == ruby::C2cRequestType_CompAck ||
+        type == ruby::C2cRequestType_ReqAck) {
+
+        dst = routeAckLikeSlicc(pkt, responderSide);
+
+        if (validSide(dst) && dst != responderSide) {
+            std::cout << "[C2C RESP CHOSEN]"
+                    << " type=" << getC2cTypeName(pkt)
+                    << " rule=ACK_REMOTE_ONLY"
+                    << " src=" << responderSide
+                    << " dst=" << dst
+                    << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                    << "\n";
+            return dst;
+        }
+
+        std::cout << "[C2C ROUTE ERROR] cannot route ACK to remote side"
+                << " src=" << responderSide
+                << " dst=" << dst
+                << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                << " type=" << getC2cTypeName(pkt)
+                << " sender=" << machineIdToString(msg->m_Sender)
+                << " requestor=" << machineIdToString(msg->m_Requestor)
+                << " originalRequestor="
+                << machineIdToString(msg->m_OriginalRequestor)
+                << " localRequestor="
+                << machineIdToString(msg->m_LocalRequestor)
+                << " responder=" << machineIdToString(msg->m_Responder)
+                << " originalResponder="
+                << machineIdToString(msg->m_OriginalResponder)
+                << "\n";
+
+        panic("C2CInterposer cannot route ACK from side %d to remote side: %s",
+            responderSide, pktToString(pkt).c_str());
+
+        return responderSide;
+    }
+
+    /*
+     * CASO 3:
+     * Responses/Data normales.
+     *
+     * Ejemplos:
+     *
+     *   CompData_UC
+     *   CompData_SC
+     *   CompData_I
+     *
+     * Estos sí deben volver normalmente al originalRequestor.
+     */
+    dst = routeByMachineID(msg->m_OriginalRequestor, -1);
+    if (validSide(dst) && dst != responderSide) {
+        std::cout << "[C2C RESP CHOSEN]"
+                  << " type=" << getC2cTypeName(pkt)
+                  << " rule=ORIGINAL_REQUESTOR"
+                  << " src=" << responderSide
+                  << " dst=" << dst
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << "\n";
+        return dst;
+    }
+
+    dst = routeByMachineID(msg->m_Requestor, -1);
+    if (validSide(dst) && dst != responderSide) {
+        std::cout << "[C2C RESP CHOSEN]"
+                  << " type=" << getC2cTypeName(pkt)
+                  << " rule=REQUESTOR"
+                  << " src=" << responderSide
+                  << " dst=" << dst
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << "\n";
+        return dst;
+    }
+
+    dst = routeByMachineID(msg->m_LocalRequestor, -1);
+    if (validSide(dst) && dst != responderSide) {
+        std::cout << "[C2C RESP CHOSEN]"
+                  << " type=" << getC2cTypeName(pkt)
+                  << " rule=LOCAL_REQUESTOR"
+                  << " src=" << responderSide
+                  << " dst=" << dst
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << "\n";
+        return dst;
+    }
+
+    dst = routeByC2cDestination(pkt, responderSide);
+    if (validSide(dst) && dst != responderSide) {
+        std::cout << "[C2C RESP CHOSEN]"
+                  << " type=" << getC2cTypeName(pkt)
+                  << " rule=C2C_DEST"
+                  << " src=" << responderSide
+                  << " dst=" << dst
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << "\n";
+        return dst;
+    }
+
+    dst = routeByAddress(pkt, responderSide);
+    if (validSide(dst) && dst != responderSide) {
+        std::cout << "[C2C RESP CHOSEN]"
+                  << " type=" << getC2cTypeName(pkt)
+                  << " rule=ADDR_FALLBACK"
+                  << " src=" << responderSide
+                  << " dst=" << dst
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << "\n";
+        return dst;
+    }
+
+    dst = routeByMachineID(msg->m_Responder, -1);
+    if (validSide(dst) && dst != responderSide) {
+        std::cout << "[C2C RESP CHOSEN]"
+                  << " type=" << getC2cTypeName(pkt)
+                  << " rule=RESPONDER_FALLBACK"
+                  << " src=" << responderSide
+                  << " dst=" << dst
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << "\n";
+        return dst;
+    }
+
+    dst = routeByMachineID(msg->m_OriginalResponder, -1);
+    if (validSide(dst) && dst != responderSide) {
+        std::cout << "[C2C RESP CHOSEN]"
+                  << " type=" << getC2cTypeName(pkt)
+                  << " rule=ORIGINAL_RESPONDER_FALLBACK"
+                  << " src=" << responderSide
+                  << " dst=" << dst
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << "\n";
+        return dst;
+    }
+
+    std::cout << "[C2C ROUTE ERROR] cannot route RESPONSE"
+              << " src=" << responderSide
+              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+              << " type=" << getC2cTypeName(pkt)
+              << " sender=" << machineIdToString(msg->m_Sender)
+              << " requestor=" << machineIdToString(msg->m_Requestor)
+              << " originalRequestor="
+              << machineIdToString(msg->m_OriginalRequestor)
+              << " localRequestor="
+              << machineIdToString(msg->m_LocalRequestor)
+              << " responder=" << machineIdToString(msg->m_Responder)
+              << " originalResponder="
+              << machineIdToString(msg->m_OriginalResponder)
+              << "\n";
+
+    panic("C2CInterposer cannot route response from side %d: %s",
+          responderSide, pktToString(pkt).c_str());
+
+    return responderSide;
+}
+
+//Funcion de debuggeo para imprimir informacino del routing
+void
+C2CInterposer::printRoutingInfo(PacketPtr pkt, const char *where,
+                                int srcSide, int dstSide) const
+{
+    if (!hasC2cMsg(pkt)) {
+        std::cout << "[C2C ROUTE] " << where
+                  << " src=" << srcSide << " dst=" << dstSide
+                  << " NO_C2C_MSG " << pktToString(pkt) << "\n";
+        return;
+    }
+
+    const auto *msg = pkt->c2c_msg;
+
+    std::cout << "[C2C ROUTE] " << where
+              << " src=" << srcSide
+              << " dst=" << dstSide
+              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+              << " type=" << getC2cTypeName(pkt)
+              << " sender=" << machineIdToString(msg->m_Sender)
+              << " requestor=" << machineIdToString(msg->m_Requestor)
+              << " originalRequestor=" << machineIdToString(msg->m_OriginalRequestor)
+              << " responder=" << machineIdToString(msg->m_Responder)
+              << " originalResponder=" << machineIdToString(msg->m_OriginalResponder)
+              << " localRequestor=" << machineIdToString(msg->m_LocalRequestor)
+              << "\n";
+}
+
+/*------------------------------------------------------------*/
+/* Stats/debug                                                 */
+/*------------------------------------------------------------*/
+
+void
+C2CInterposer::recordC2cType(PacketPtr pkt, const char* path, int srcSide)
+{
+    if (!hasC2cMsg(pkt)) {
+        std::cout << "[Interposer] " << path
+                  << " side=" << srcSide
+                  << " type=NO_C2C_MSG " << pktToString(pkt) << "\n";
+        return;
+    }
+
+    const int typeId = getC2cTypeId(pkt);
+    auto &stats = c2cTypeStats[typeId];
+
+    if (srcSide >= 0 && srcSide < 16) {
+        if (std::string(path).find("REQ") == 0) {
+            stats.reqFrom[srcSide]++;
+        } else {
+            stats.respFrom[srcSide]++;
+        }
+    }
+
+    std::cout << "[Interposer] " << path
+              << " side=" << srcSide
+              << " c2c_type=" << getC2cTypeName(pkt)
+              << " type_id=" << typeId
+              << " " << pktToString(pkt)
+              << "\n";
+}
+
+void
+C2CInterposer::dumpC2cTypeStats() const
+{
+    std::cout << "\n========== C2C TYPE STATS ==========" << "\n";
+
+    if (c2cTypeStats.empty()) {
+        std::cout << "No C2C packets recorded.\n";
+        std::cout << "====================================\n";
+        return;
+    }
+
+    for (const auto &entry : c2cTypeStats) {
+        const int typeId = entry.first;
+        const TypeStats &s = entry.second;
+        auto type = static_cast<ruby::C2cRequestType>(typeId);
+
+        std::cout << "type_id=" << std::setw(3) << typeId
+                  << " type_name=" << ruby::C2cRequestType_to_string(type);
+
+        for (unsigned i = 0; i < numInterfaces && i < 16; ++i) {
+            std::cout << " reqFrom" << i << "=" << s.reqFrom[i]
+                      << " respFrom" << i << "=" << s.respFrom[i];
+        }
+        std::cout << "\n";
+    }
+
+    std::cout << "====================================\n";
+}
+
+/*------------------------------------------------------------*/
+/* Buffers + Round Robin                                       */
+/*------------------------------------------------------------*/
+
+/*Busca el ready tick más próximo en las colas del interposer*/
 Tick
 C2CInterposer::nextReadyTick(const DirBuffer &buf) const
 {
@@ -472,10 +1708,6 @@ C2CInterposer::nextReadyTick(const DirBuffer &buf) const
     return found ? best : MaxTick;
 }
 
-// helper para elegir el siguiente tipo según Round Robin
-// El Round Robin, cuando una cola está vacía, pasa a la siguiente.
-// Así, si sólo hay una cola ocupada, transmite continuamente desde dicha cola
-// (aunque en cada intento revisa las demás, saltándolas).
 int
 C2CInterposer::selectNextTypeRR(DirBuffer &buf, Tick now)
 {
@@ -491,47 +1723,90 @@ C2CInterposer::selectNextTypeRR(DirBuffer &buf, Tick now)
     }
 
     if (candidates.empty()) {
-        return -2; // no hay ninguna cola lista todavía
+        return -2;
     }
 
     std::sort(candidates.begin(), candidates.end());
 
-    // si nunca se ha servido nada todavía
     if (buf.lastServedClass == -1) {
         return candidates.front();
     }
 
-    // busco la siguiente cola con classId mayor que la última servida
     for (int c : candidates) {
         if (c > buf.lastServedClass) {
             return c;
         }
     }
 
-    // si no hay ninguna mayor, hago wrap-around
     return candidates.front();
 }
 
-// helper para encolar en la cola de la clase correspondiente
 bool
-C2CInterposer::enqueueTypedPacket(DirBuffer &buf, PacketPtr pkt, Tick delay,
-                                  unsigned maxSize, const char *path)
+C2CInterposer::enqueuePacket(DirBuffer &buf, PacketPtr pkt, Tick delay,
+                             unsigned maxSize, const char *path,
+                             int srcSide, int dstSide)
 {
     const int typeId = getC2cTypeId(pkt);
     const std::string typeName = getC2cTypeName(pkt);
     const C2cMsgClass msgClass = getPacketClass(pkt);
     auto &q = buf.queues[msgClass];
 
-    // Ahora el tamaño máximo se aplica a la cola de ESTA clase,
-    // no al total de colas de la dirección.
+    std::cout << "[C2C DBG ENQUEUE_ENTER]"
+              << " tick=" << curTick()
+              << " path=" << path
+              << " src=" << srcSide
+              << " dst=" << dstSide
+              << " class=" << getClassName(msgClass)
+              << " type_id=" << typeId
+              << " type_name=" << typeName
+              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+              << " pkt=" << pkt
+              << " req=" << pkt->req
+              << " class_occ_before=" << q.size()
+              << " total_occ_before=" << buf.totalSize()
+              << "\n";
+
+    for (const auto &entry : buf.queues) {
+        const C2cMsgClass existingClass = entry.first;
+        const auto &existingQ = entry.second;
+
+        unsigned idx = 0;
+        for (const auto &queued : existingQ) {
+            PacketPtr qpkt = queued.pkt;
+
+            if (qpkt && qpkt->getAddr() == pkt->getAddr()) {
+                std::cout << "[C2C DBG SAME_ADDR_ALREADY_QUEUED]"
+                          << " tick=" << curTick()
+                          << " path=" << path
+                          << " dst=" << dstSide
+                          << " queued_idx=" << idx
+                          << " queued_class=" << getClassName(existingClass)
+                          << " queued_src=" << queued.srcSide
+                          << " queued_dst=" << queued.dstSide
+                          << " queued_readyTick=" << queued.readyTick
+                          << " queued_pkt=" << qpkt
+                          << " queued_req=" << qpkt->req
+                          << " queued_type=" << getC2cTypeName(qpkt)
+                          << " new_pkt=" << pkt
+                          << " new_req=" << pkt->req
+                          << " new_type=" << typeName
+                          << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                          << "\n";
+            }
+
+            idx++;
+        }
+    }
+
     if (q.size() >= maxSize) {
         std::cout << "[Interposer] " << path
                   << " BUFFER FULL"
+                  << " src=" << srcSide
+                  << " dst=" << dstSide
                   << " class=" << getClassName(msgClass)
                   << " type_id=" << typeId
                   << " type_name=" << typeName
-                  << " class_occ=" << q.size()
-                  << "/" << maxSize
+                  << " class_occ=" << q.size() << "/" << maxSize
                   << " total_occ=" << buf.totalSize()
                   << " addr=0x" << std::hex << pkt->getAddr()
                   << std::dec << "\n";
@@ -539,20 +1814,34 @@ C2CInterposer::enqueueTypedPacket(DirBuffer &buf, PacketPtr pkt, Tick delay,
     }
 
     pkt->headerDelay += delay;
-
-    Tick ready = curTick() + delay;
-    q.push_back({pkt, ready});
+    const Tick ready = curTick() + delay;
+    q.push_back({pkt, ready, srcSide, dstSide});
 
     std::cout << "[Interposer] " << path
+              << " src=" << srcSide
+              << " dst=" << dstSide
               << " class=" << getClassName(msgClass)
               << " type_id=" << typeId
               << " type_name=" << typeName
               << " add_delay=" << delay
-              << " class_occ=" << q.size()
-              << "/" << maxSize
+              << " readyTick=" << ready
+              << " class_occ=" << q.size() << "/" << maxSize
               << " total_occ=" << buf.totalSize()
               << " addr=0x" << std::hex << pkt->getAddr()
               << std::dec << "\n";
+
+    std::cout << "[C2C DBG ENQUEUE_DONE]"
+              << " tick=" << curTick()
+              << " path=" << path
+              << " src=" << srcSide
+              << " dst=" << dstSide
+              << " class=" << getClassName(msgClass)
+              << " type=" << typeName
+              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+              << " pkt=" << pkt
+              << " req=" << pkt->req
+              << " readyTick=" << ready
+              << "\n";
 
     Tick when = nextReadyTick(buf);
     if (when != MaxTick) {
@@ -561,376 +1850,10 @@ C2CInterposer::enqueueTypedPacket(DirBuffer &buf, PacketPtr pkt, Tick delay,
 
     return true;
 }
-// ---------------- FIN NUEVO ----------------
-
-/*-----------------------------------------------------------*/
-//                 Lógica de reenvío de Request (bridge de Request)    
-//                  cualquier duda de esta zona, ver apuntes sobre la latencia           
-/*------------------------------------------------------------*/
-
-/*Si llega una request desde la interfaz 0 lo reenvío a la 1 inmediatamente*/
-bool
-C2CInterposer::recvReqFromInterface0(PacketPtr pkt)
-{
-    // Interfaz0 -> Interfaz1
-
-    recordC2cType(pkt, "REQ 0->1 enqueue");
-
-    Tick delay = cyclesToTicks(reqLatency);
-
-    // ---------------- NUEVO ----------------
-    return enqueueTypedPacket(req0to1, pkt, delay, reqBufferSize, "REQ 0->1");
-    // ---------------- FIN NUEVO ----------------
-}
-
-/*Si llega una request desde la interfaz 1 lo reenvío a la 0 inmediatamente*/
-bool
-C2CInterposer::recvReqFromInterface1(PacketPtr pkt)
-{
-    // Interfaz1 -> Interfaz0
-
-    recordC2cType(pkt, "REQ 1->0 enqueue");
-
-    Tick delay = cyclesToTicks(reqLatency);
-
-    // ---------------- NUEVO ----------------
-    return enqueueTypedPacket(req1to0, pkt, delay, reqBufferSize, "REQ 1->0");
-    // ---------------- FIN NUEVO ----------------
-}
-
-/*-----------------------------------------------------------*/
-//              Lógica de reenvío de Response (bridge de Response)   
-//              cualquier duda de esta zona, ver apuntes sobre la latencia             
-/*-----------------------------------------------------------*/
-
-/*Si llega una Response desde la interfaz 0 lo reenvío a la 1 inmediatamente*/
-bool
-C2CInterposer::recvRespFromInterface0(PacketPtr pkt)
-{
-    // Respuesta que vuelve desde Interface0 hacia Interfaz1
-
-    recordC2cType(pkt, "RESP 0->1 enqueue");
-
-    Tick delay = cyclesToTicks(respLatency);
-
-    // ---------------- NUEVO ----------------
-    return enqueueTypedPacket(resp0to1, pkt, delay, respBufferSize, "RESP 0->1");
-    // ---------------- FIN NUEVO ----------------
-}
-
-/*Si llega una Responset desde la interfaz 1 lo reenvío a la 0 inmediatamente*/
-bool
-C2CInterposer::recvRespFromInterface1(PacketPtr pkt)
-{
-    // Respuesta que vuelve desde Interface1 hacia Interfaz0
-
-    recordC2cType(pkt, "RESP 1->0 enqueue");
-
-    Tick delay = cyclesToTicks(respLatency);
-
-    // ---------------- NUEVO ----------------
-    return enqueueTypedPacket(resp1to0, pkt, delay, respBufferSize, "RESP 1->0");
-    // ---------------- FIN NUEVO ----------------
-}
-
-/*-----------------------------------------------------------*/
-//                Reenvío de Request de Retry                  
-/*--------------------------------------------------------------*/
-
-void
-C2CInterposer::recvReqRetryToInterface0()
-{
-    std::cout << "[Interposer] RETRY REQ to interface0\n";
-    req1to0.waitingRetry = false;
-    trySendReq1to0();
-}
-
-void
-C2CInterposer::recvReqRetryToInterface1()
-{
-    std::cout << "[Interposer] RETRY REQ to interface1\n";
-    req0to1.waitingRetry = false;
-    trySendReq0to1();
-}
-
-void
-C2CInterposer::recvRespRetryFromInterface0()
-{
-    std::cout << "[Interposer] RETRY RESP from interface0\n";
-    resp1to0.waitingRetry = false;
-    trySendResp1to0();
-}
-
-void
-C2CInterposer::recvRespRetryFromInterface1()
-{
-    std::cout << "[Interposer] RETRY RESP from interface1\n";
-    resp0to1.waitingRetry = false;
-    trySendResp0to1();
-}
-
-/*------------------------------------------------------------*/
-/* Scheduling helpers                                          */
-/*------------------------------------------------------------*/
-
-void
-C2CInterposer::processReq0to1()
-{
-    trySendReq0to1();
-}
-
-void
-C2CInterposer::processReq1to0()
-{
-    trySendReq1to0();
-}
-
-void
-C2CInterposer::processResp0to1()
-{
-    trySendResp0to1();
-}
-
-void
-C2CInterposer::processResp1to0()
-{
-    trySendResp1to0();
-}
-
-void
-C2CInterposer::trySendReq0to1()
-{
-    // ---------------- NUEVO ----------------
-    if (req0to1.empty()) {
-        return;
-    }
-
-    if (req0to1.waitingRetry) {
-        return;
-    }
-
-    int classId = selectNextTypeRR(req0to1, curTick());
-
-    if (classId == -2) {
-        Tick when = nextReadyTick(req0to1);
-        if (when != MaxTick) {
-            scheduleBufferEvent(req0to1, when);
-        }
-        return;
-    }
-
-    C2cMsgClass msgClass = static_cast<C2cMsgClass>(classId);
-    auto &q = req0to1.queues[msgClass];
-    auto &front = q.front();
-
-    if (!toInterface1Port->sendTimingReq(front.pkt)) {
-        req0to1.waitingRetry = true;
-        return;
-    }
-
-    // Guardo el tamaño anterior para saber si esta cola estaba llena
-    size_t oldSize = q.size();
-
-    q.pop_front();
-    req0to1.lastServedClass = classId;
-
-    // Si esta cola estaba llena y ahora ya no, aviso al productor
-    // de interface0 para que reintente mandar su request.
-    if (oldSize == reqBufferSize) {
-        std::cout << "[Interposer] RELEASE REQ 0->1"
-                  << " class=" << getClassName(msgClass)
-                  << " -> sendRetryReq to interface0\n";
-        fromInterface0Port->sendRetryReq();
-    }
-
-    if (q.empty()) {
-        req0to1.queues.erase(msgClass);
-    }
-
-    Tick when = nextReadyTick(req0to1);
-    if (when != MaxTick) {
-        scheduleBufferEvent(req0to1, std::max(curTick(), when));
-    }
-    // ---------------- FIN NUEVO ----------------
-}
-
-void
-C2CInterposer::trySendReq1to0()
-{
-    // ---------------- NUEVO ----------------
-    if (req1to0.empty()) {
-        return;
-    }
-
-    if (req1to0.waitingRetry) {
-        return;
-    }
-
-    int classId = selectNextTypeRR(req1to0, curTick());
-
-    if (classId == -2) {
-        Tick when = nextReadyTick(req1to0);
-        if (when != MaxTick) {
-            scheduleBufferEvent(req1to0, when);
-        }
-        return;
-    }
-
-    C2cMsgClass msgClass = static_cast<C2cMsgClass>(classId);
-    auto &q = req1to0.queues[msgClass];
-    auto &front = q.front();
-
-    if (!toInterface0Port->sendTimingReq(front.pkt)) {
-        req1to0.waitingRetry = true;
-        return;
-    }
-
-    // Guardo el tamaño anterior para saber si esta cola estaba llena
-    size_t oldSize = q.size();
-
-    q.pop_front();
-    req1to0.lastServedClass = classId;
-
-    // Si esta cola estaba llena y ahora ya no, aviso al productor
-    // de interface1 para que reintente mandar su request.
-    if (oldSize == reqBufferSize) {
-        std::cout << "[Interposer] RELEASE REQ 1->0"
-                  << " class=" << getClassName(msgClass)
-                  << " -> sendRetryReq to interface1\n";
-        fromInterface1Port->sendRetryReq();
-    }
-
-    if (q.empty()) {
-        req1to0.queues.erase(msgClass);
-    }
-
-    Tick when = nextReadyTick(req1to0);
-    if (when != MaxTick) {
-        scheduleBufferEvent(req1to0, std::max(curTick(), when));
-    }
-    // ---------------- FIN NUEVO ----------------
-}
-
-void
-C2CInterposer::trySendResp0to1()
-{
-    // ---------------- NUEVO ----------------
-    if (resp0to1.empty()) {
-        return;
-    }
-
-    if (resp0to1.waitingRetry) {
-        return;
-    }
-
-    int classId = selectNextTypeRR(resp0to1, curTick());
-
-    if (classId == -2) {
-        Tick when = nextReadyTick(resp0to1);
-        if (when != MaxTick) {
-            scheduleBufferEvent(resp0to1, when);
-        }
-        return;
-    }
-
-    C2cMsgClass msgClass = static_cast<C2cMsgClass>(classId);
-    auto &q = resp0to1.queues[msgClass];
-    auto &front = q.front();
-
-    if (!fromInterface1Port->sendTimingResp(front.pkt)) {
-        resp0to1.waitingRetry = true;
-        return;
-    }
-
-    // Guardo el tamaño anterior para saber si esta cola estaba llena
-    size_t oldSize = q.size();
-
-    q.pop_front();
-    resp0to1.lastServedClass = classId;
-
-    // Si esta cola estaba llena y ahora ya no, aviso al productor
-    // de la response del lado 0 para que reintente.
-    if (oldSize == respBufferSize) {
-        std::cout << "[Interposer] RELEASE RESP 0->1"
-                  << " class=" << getClassName(msgClass)
-                  << " -> sendRetryResp to interface0\n";
-        toInterface0Port->sendRetryResp();
-    }
-
-    if (q.empty()) {
-        resp0to1.queues.erase(msgClass);
-    }
-
-    Tick when = nextReadyTick(resp0to1);
-    if (when != MaxTick) {
-        scheduleBufferEvent(resp0to1, std::max(curTick(), when));
-    }
-    // ---------------- FIN NUEVO ----------------
-}
-
-void
-C2CInterposer::trySendResp1to0()
-{
-    // ---------------- NUEVO ----------------
-    if (resp1to0.empty()) {
-        return;
-    }
-
-    if (resp1to0.waitingRetry) {
-        return;
-    }
-
-    int classId = selectNextTypeRR(resp1to0, curTick());
-
-    if (classId == -2) {
-        Tick when = nextReadyTick(resp1to0);
-        if (when != MaxTick) {
-            scheduleBufferEvent(resp1to0, when);
-        }
-        return;
-    }
-
-    C2cMsgClass msgClass = static_cast<C2cMsgClass>(classId);
-    auto &q = resp1to0.queues[msgClass];
-    auto &front = q.front();
-
-    if (!fromInterface0Port->sendTimingResp(front.pkt)) {
-        resp1to0.waitingRetry = true;
-        return;
-    }
-
-    // Guardo el tamaño anterior para saber si esta cola estaba llena
-    size_t oldSize = q.size();
-
-    q.pop_front();
-    resp1to0.lastServedClass = classId;
-
-    // Si esta cola estaba llena y ahora ya no, aviso al productor
-    // de la response del lado 1 para que reintente.
-    if (oldSize == respBufferSize) {
-        std::cout << "[Interposer] RELEASE RESP 1->0"
-                  << " class=" << getClassName(msgClass)
-                  << " -> sendRetryResp to interface1\n";
-        toInterface1Port->sendRetryResp();
-    }
-
-    if (q.empty()) {
-        resp1to0.queues.erase(msgClass);
-    }
-
-    Tick when = nextReadyTick(resp1to0);
-    if (when != MaxTick) {
-        scheduleBufferEvent(resp1to0, std::max(curTick(), when));
-    }
-    // ---------------- FIN NUEVO ----------------
-}
-
-//helper 
 
 void
 C2CInterposer::scheduleBufferEvent(DirBuffer &buf, Tick when)
 {
-    // ---------------- NUEVO ----------------
     if (when == MaxTick) {
         return;
     }
@@ -940,7 +1863,359 @@ C2CInterposer::scheduleBufferEvent(DirBuffer &buf, Tick when)
     } else if (buf.processEvent.when() > when) {
         reschedule(buf.processEvent, when);
     }
-    // ---------------- FIN NUEVO ----------------
+}
+
+/*------------------------------------------------------------*/
+/* Entrada de tráfico                                          */
+/*------------------------------------------------------------*/
+
+bool
+C2CInterposer::recvReqFromInterface(PacketPtr pkt, int srcSide)
+{
+    const int dstSide = routeRequest(pkt, srcSide);
+
+    // ---------------- NUEVO: conservar ruta explícita C2C ----------------
+    // Aquí el interposer ya sabe el camino real:
+    //
+    //   srcSide -> dstSide
+    //
+    // Lo estampamos en el C2cMsg antes de entregarlo a la Interface destino.
+    // Así CHI-interface-v2.sm podrá copiar RouteSrcChip/RouteDestChip hacia
+    // los campos c2c_route_src_chip/c2c_route_dest_chip del CHIRequestMsg.
+    stampExplicitC2cRoute(pkt, srcSide, dstSide, "REQ");
+    // ---------------- FIN NUEVO -----------------------------------------
+
+    printRoutingInfo(pkt, "REQ", srcSide, dstSide);
+    recordC2cType(pkt, "REQ enqueue", srcSide);
+
+    const Tick delay = cyclesToTicks(reqLatency);
+
+    const bool ok = enqueuePacket(*reqTo[dstSide],
+                                  pkt,
+                                  delay,
+                                  reqBufferSize,
+                                  "REQ",
+                                  srcSide,
+                                  dstSide);
+
+    if (!ok) {
+        blockedReqFrom[srcSide] = true;
+
+        std::cout << "[C2C REQ BACKPRESSURE]"
+                  << " src=" << srcSide
+                  << " dst=" << dstSide
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << " type=" << getC2cTypeName(pkt)
+                  << " pkt=" << pkt
+                  << "\n";
+
+        return false;
+    }
+
+    return true;
+}
+
+bool
+C2CInterposer::recvRespFromInterface(PacketPtr pkt, int responderSide)
+{
+    const int dstSide = routeResponse(pkt, responderSide);
+
+    // ---------------- NUEVO: conservar ruta explícita C2C ----------------
+    // También estampamos responses/data.
+    //
+    // Esto es importante para flujos como:
+    //
+    //   chip 1 -> chip 2 : ReadShared
+    //   chip 2 -> chip 0 : CompData / Data forwarding
+    //   chip 0 -> ?      : CompAck
+    //
+    // Si no guardamos explícitamente el camino C2C, el TBE del receptor acaba
+    // con routeSrcChip = -1 y luego Send_CompAck genera destChip=-1.
+    stampExplicitC2cRoute(pkt, responderSide, dstSide, "RESP");
+    // ---------------- FIN NUEVO -----------------------------------------
+
+    printRoutingInfo(pkt, "RESP", responderSide, dstSide);
+    recordC2cType(pkt, "RESP enqueue", responderSide);
+
+    printC2cMsgDebug(pkt, "RESP_RECV_BEFORE_ENQUEUE", responderSide, dstSide);
+
+    const Tick delay = cyclesToTicks(respLatency);
+
+    const bool ok = enqueuePacket(*respTo[dstSide],
+                                  pkt,
+                                  delay,
+                                  respBufferSize,
+                                  "RESP",
+                                  responderSide,
+                                  dstSide);
+
+    std::cout << "[C2C DBG RESP_ENQUEUE_RESULT]"
+              << " tick=" << curTick()
+              << " ok=" << ok
+              << " src=" << responderSide
+              << " dst=" << dstSide
+              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+              << " type=" << getC2cTypeName(pkt)
+              << " pkt=" << pkt
+              << " req=" << pkt->req
+              << "\n";
+
+    if (!ok) {
+        blockedRespFrom[responderSide] = true;
+
+        std::cout << "[C2C RESP BACKPRESSURE]"
+                  << " src=" << responderSide
+                  << " dst=" << dstSide
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << " type=" << getC2cTypeName(pkt)
+                  << " pkt=" << pkt
+                  << "\n";
+
+        return false;
+    }
+
+    return true;
+}
+
+Tick
+C2CInterposer::recvAtomicFromInterface(PacketPtr pkt, int srcSide)
+{
+    const int dstSide = routeRequest(pkt, srcSide);
+    return toInterfacePorts[dstSide]->sendAtomic(pkt);
+}
+
+/*------------------------------------------------------------*/
+/* Retry                                                       */
+/*------------------------------------------------------------*/
+
+void
+C2CInterposer::recvReqRetryToInterface(int dstSide)
+{
+    std::cout << "[Interposer] RETRY REQ to interface"
+              << dstSide << "\n";
+
+    reqTo[dstSide]->waitingRetry = false;
+    trySendReqTo(dstSide);
+}
+
+void
+C2CInterposer::recvRespRetryFromInterface(int srcSide)
+{
+    std::cout << "[Interposer] RETRY RESP from interface"
+              << srcSide << "\n";
+
+    respTo[srcSide]->waitingRetry = false;
+    trySendRespTo(srcSide);
+}
+
+/*------------------------------------------------------------*/
+/* Procesado de eventos                                        */
+/*------------------------------------------------------------*/
+
+void
+C2CInterposer::processReqTo(int dstSide)
+{
+    trySendReqTo(dstSide);
+}
+
+void
+C2CInterposer::processRespTo(int dstSide)
+{
+    trySendRespTo(dstSide);
+}
+
+void
+C2CInterposer::trySendReqTo(int dstSide)
+{
+    DirBuffer &buf = *reqTo[dstSide];
+
+    if (buf.empty() || buf.waitingRetry) {
+        return;
+    }
+
+    const int classId = selectNextTypeRR(buf, curTick());
+
+    if (classId == -2) {
+        Tick when = nextReadyTick(buf);
+        if (when != MaxTick) {
+            scheduleBufferEvent(buf, when);
+        }
+        return;
+    }
+
+    C2cMsgClass msgClass = static_cast<C2cMsgClass>(classId);
+    auto &q = buf.queues[msgClass];
+    auto &front = q.front();
+
+    PacketPtr pkt = front.pkt;
+    const int srcSide = front.srcSide;
+
+    std::cout << "[C2C REQ DEQUEUE_SEND]"
+              << " tick=" << curTick()
+              << " src=" << srcSide
+              << " dst=" << dstSide
+              << " class=" << getClassName(msgClass)
+              << " type=" << getC2cTypeName(pkt)
+              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+              << " pkt=" << pkt
+              << " req=" << pkt->req
+              << "\n";
+
+    printC2cMsgDebug(pkt, "REQ_DEQUEUE_BEFORE_SEND", srcSide, dstSide);
+
+    const bool accepted = toInterfacePorts[dstSide]->sendTimingReq(pkt);
+
+    std::cout << "[C2C DBG REQ_SEND_RESULT]"
+              << " tick=" << curTick()
+              << " accepted=" << accepted
+              << " src=" << srcSide
+              << " dst=" << dstSide
+              << " type=" << getC2cTypeName(pkt)
+              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+              << " pkt=" << pkt
+              << " req=" << pkt->req
+              << "\n";
+
+    if (!accepted) {
+        buf.waitingRetry = true;
+
+        std::cout << "[C2C REQ DOWNSTREAM_BLOCKED]"
+                  << " tick=" << curTick()
+                  << " dst=" << dstSide
+                  << " pkt=" << pkt
+                  << "\n";
+
+        return;
+    }
+
+    q.pop_front();
+    buf.lastServedClass = classId;
+
+    if (q.empty()) {
+        buf.queues.erase(msgClass);
+    }
+
+    if (validSide(srcSide) && blockedReqFrom[srcSide]) {
+        blockedReqFrom[srcSide] = false;
+
+        std::cout << "[Interposer] RELEASE REQ"
+                  << " tick=" << curTick()
+                  << " src=" << srcSide
+                  << " dst=" << dstSide
+                  << " class=" << getClassName(msgClass)
+                  << " -> sendRetryReq to interface" << srcSide
+                  << "\n";
+
+        fromInterfacePorts[srcSide]->sendRetryReq();
+    }
+
+    Tick when = nextReadyTick(buf);
+    if (when != MaxTick) {
+        scheduleBufferEvent(buf, std::max(curTick(), when));
+    }
+}
+
+void
+C2CInterposer::trySendRespTo(int dstSide)
+{
+    DirBuffer &buf = *respTo[dstSide];
+
+    if (buf.empty() || buf.waitingRetry) {
+        return;
+    }
+
+    const int classId = selectNextTypeRR(buf, curTick());
+
+    if (classId == -2) {
+        Tick when = nextReadyTick(buf);
+        if (when != MaxTick) {
+            scheduleBufferEvent(buf, when);
+        }
+        return;
+    }
+
+    C2cMsgClass msgClass = static_cast<C2cMsgClass>(classId);
+    auto &q = buf.queues[msgClass];
+    auto &front = q.front();
+
+    PacketPtr pkt = front.pkt;
+    const int responderSide = front.srcSide;
+
+    std::cout << "[C2C RESP DEQUEUE_SEND]"
+              << " tick=" << curTick()
+              << " src=" << responderSide
+              << " dst=" << dstSide
+              << " class=" << getClassName(msgClass)
+              << " type=" << getC2cTypeName(pkt)
+              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+              << " pkt=" << pkt
+              << " req=" << pkt->req
+              << "\n";
+
+    printC2cMsgDebug(pkt, "RESP_DEQUEUE_BEFORE_SEND", responderSide, dstSide);
+
+    if (pkt && pkt->c2c_msg &&
+        pkt->c2c_msg->m_Type == ruby::C2cRequestType_SnpResp_SC_Fwded_SC) {
+        std::cout << "[C2C DBG TARGET_SNPRESP_SC_FWDED_SC_BEFORE_SEND]"
+                  << " tick=" << curTick()
+                  << " src=" << responderSide
+                  << " dst=" << dstSide
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << " pkt=" << pkt
+                  << " req=" << pkt->req
+                  << "\n";
+    }
+
+    const bool accepted = fromInterfacePorts[dstSide]->sendTimingResp(pkt);
+
+    std::cout << "[C2C DBG RESP_SEND_RESULT]"
+              << " tick=" << curTick()
+              << " accepted=" << accepted
+              << " src=" << responderSide
+              << " dst=" << dstSide
+              << " type=" << getC2cTypeName(pkt)
+              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+              << " pkt=" << pkt
+              << " req=" << pkt->req
+              << "\n";
+
+    if (!accepted) {
+        buf.waitingRetry = true;
+
+        std::cout << "[C2C RESP DOWNSTREAM_BLOCKED]"
+                  << " tick=" << curTick()
+                  << " dst=" << dstSide
+                  << " pkt=" << pkt
+                  << "\n";
+
+        return;
+    }
+
+    q.pop_front();
+    buf.lastServedClass = classId;
+
+    if (q.empty()) {
+        buf.queues.erase(msgClass);
+    }
+
+    if (validSide(responderSide) && blockedRespFrom[responderSide]) {
+        blockedRespFrom[responderSide] = false;
+
+        std::cout << "[Interposer] RELEASE RESP"
+                  << " tick=" << curTick()
+                  << " src=" << responderSide
+                  << " dst=" << dstSide
+                  << " class=" << getClassName(msgClass)
+                  << " -> sendRetryResp to interface" << responderSide
+                  << "\n";
+
+        toInterfacePorts[responderSide]->sendRetryResp();
+    }
+
+    Tick when = nextReadyTick(buf);
+    if (when != MaxTick) {
+        scheduleBufferEvent(buf, std::max(curTick(), when));
+    }
 }
 
 } // namespace gem5
