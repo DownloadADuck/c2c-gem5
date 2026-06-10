@@ -27,7 +27,15 @@ from .nodes.directory import SimpleDirectory
 from .nodes.memory_controller import MemoryController
 from .nodes.interface import Interface
 
-from m5.objects import NULL, RubySystem, RubySequencer, RubyPortProxy
+# ---------------- NUEVO ----------------
+# Añadimos C2CInterposer al import de m5.objects para poder instanciar
+# nuestro SimObject desde esta jerarquía Ruby.
+#
+# Antes solo se conectaban las interfaces C2C directamente entre ellas.
+# Ahora vamos a colocar una única entidad central tipo mux/router.
+from m5.objects import NULL, RubySystem, RubySequencer, RubyPortProxy, C2CInterposer
+# ---------------- FIN NUEVO ----------------
+
 
 class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
     """ Three-Chip coherent chiplet-based architecture
@@ -63,6 +71,7 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         cluster1_dest = []
         cluster2_dest = []
         mem_ranges = []
+
         # C2c specific list
         # Allows to build the machineID -> ChipID LUT
         cacheChipIDList = []
@@ -70,7 +79,7 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         for rng, port in board.get_mem_ports():
             mem_ranges.append(rng)
 
-        # Two networks
+        # Three networks, one Ruby network per chip
         self.ruby_system.network0 = SimplePt2Pt(self.ruby_system)
         self.ruby_system.network1 = SimplePt2Pt(self.ruby_system)
         self.ruby_system.network2 = SimplePt2Pt(self.ruby_system)
@@ -112,89 +121,180 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         self.hnf1.ruby_system = self.ruby_system
         self.hnf2.ruby_system = self.ruby_system
         
-        # Create one Interface per hop
-        # Chip-0
-        self.interface00 = Interface(
-            self.ruby_system.network0,
-            cache_line_size=board.get_cache_line_size(),
-            clk_domain=board.get_clock_domain(),
-            ranges=[mem_ranges[1]], # to reach chip-1 
-            chipID=0,
-        )
-        self.interface01 = Interface(
-            self.ruby_system.network0,
-            cache_line_size=board.get_cache_line_size(),
-            clk_domain=board.get_clock_domain(),
-            ranges=[mem_ranges[2]], # to reach chip-2
-            chipID=0,
-        )
-        # Chip-1
-        self.interface10 = Interface(
-            self.ruby_system.network1,
-            cache_line_size=board.get_cache_line_size(),
-            clk_domain=board.get_clock_domain(),
-            ranges=[mem_ranges[0]], # to reach chip-0
-            chipID=1,
-        )
-        self.interface11 = Interface(
-            self.ruby_system.network1,
-            cache_line_size=board.get_cache_line_size(),
-            clk_domain=board.get_clock_domain(),
-            ranges=[mem_ranges[2]], # to reach chip-2
-            chipID=1,
-        )
-        # Chip-2
-        self.interface20 = Interface(
-            self.ruby_system.network1,
-            cache_line_size=board.get_cache_line_size(),
-            clk_domain=board.get_clock_domain(),
-            ranges=[mem_ranges[0]], # to reach chip-0
-            chipID=2,
-        )
-        self.interface21 = Interface(
-            self.ruby_system.network1,
-            cache_line_size=board.get_cache_line_size(),
-            clk_domain=board.get_clock_domain(),
-            ranges=[mem_ranges[1]], # to reach chip-2
-            chipID=2,
-        )
-
-
-        self.interface00.ruby_system = self.ruby_system
-        self.interface01.ruby_system = self.ruby_system
-        self.interface10.ruby_system = self.ruby_system
-        self.interface11.ruby_system = self.ruby_system
-        self.interface20.ruby_system = self.ruby_system
-        self.interface21.ruby_system = self.ruby_system
-
-        self.interface00.c2c_out_port = self.interface10.c2c_in_port
-        self.interface01.c2c_out_port = self.interface20.c2c_in_port
-        self.interface10.c2c_out_port = self.interface00.c2c_in_port
-        self.interface11.c2c_out_port = self.interface21.c2c_in_port
-        self.interface20.c2c_out_port = self.interface01.c2c_in_port
-        self.interface21.c2c_out_port = self.interface11.c2c_in_port 
-
-        # Downstream destinations
-        self.interface00.downstream_destinations = self.hnf0
-        self.interface01.downstream_destinations = self.hnf0
-        self.interface10.downstream_destinations = self.hnf1
-        self.interface11.downstream_destinations = self.hnf1
-        self.interface20.downstream_destinations = self.hnf2
-        self.interface21.downstream_destinations = self.hnf2
-
         # Add to the RNF destinations
-        ## C2CIs
-        cluster0_dest.append(self.interface00)
-        cluster0_dest.append(self.interface01)
-        cluster1_dest.append(self.interface10)
-        cluster1_dest.append(self.interface11)
-        cluster2_dest.append(self.interface20)
-        cluster2_dest.append(self.interface21)
-        ## HNFs
         cluster0_dest.append(self.hnf0)
         cluster1_dest.append(self.hnf1)
-        cluster2_dest.append(self.hnf2)
 
+        # ---------------- NUEVO ----------------
+        # En tu fichero original aquí tenías:
+        #
+        #   cluster2_dest.append(self.hnf1)
+        #
+        # Eso estaba mal porque el chip 2 debe tener como destino local su HNF
+        # local, es decir, hnf2. Si dejábamos hnf1, el chip 2 quedaba asociado
+        # incorrectamente al HNF del chip 1.
+        cluster2_dest.append(self.hnf2)
+        # ---------------- FIN NUEVO ----------------
+
+        # ---------------- NUEVO ----------------
+        # Create one C2C Interface per chip.
+        #
+        # Antes esta topología tenía una Interface por enlace punto a punto:
+        #
+        #   chip 0 -> chip 1
+        #   chip 0 -> chip 2
+        #   chip 1 -> chip 0
+        #   chip 1 -> chip 2
+        #   chip 2 -> chip 0
+        #   chip 2 -> chip 1
+        #
+        # Es decir, 6 interfaces:
+        #
+        #   interface00, interface01,
+        #   interface10, interface11,
+        #   interface20, interface21.
+        #
+        # Ahora queremos una única entidad central, C2CInterposer, que funcione
+        # como multiplexor/router. Por eso cada chip solo necesita una interface
+        # C2C local hacia el mux.
+        #
+        # Cada Interface anuncia los rangos remotos que puede alcanzar a través
+        # del mux. Por ejemplo, el chip 0 puede alcanzar los rangos de memoria
+        # del chip 1 y del chip 2.
+        # ---------------- FIN NUEVO ----------------
+
+        # Chip 0: puede alcanzar memoria remota de chip 1 y chip 2.
+        self.interface0 = Interface(
+            self.ruby_system.network0,
+            cache_line_size=board.get_cache_line_size(),
+            clk_domain=board.get_clock_domain(),
+            ranges=[mem_ranges[1], mem_ranges[2]],
+            chipID=0,
+        )
+
+        # Chip 1: puede alcanzar memoria remota de chip 0 y chip 2.
+        self.interface1 = Interface(
+            self.ruby_system.network1,
+            cache_line_size=board.get_cache_line_size(),
+            clk_domain=board.get_clock_domain(),
+            ranges=[mem_ranges[0], mem_ranges[2]],
+            chipID=1,
+        )
+
+        # Chip 2: puede alcanzar memoria remota de chip 0 y chip 1.
+        self.interface2 = Interface(
+            self.ruby_system.network2,
+            cache_line_size=board.get_cache_line_size(),
+            clk_domain=board.get_clock_domain(),
+            ranges=[mem_ranges[0], mem_ranges[1]],
+            chipID=2,
+        )
+
+        self.interface0.ruby_system = self.ruby_system
+        self.interface1.ruby_system = self.ruby_system
+        self.interface2.ruby_system = self.ruby_system
+
+                # ---------------- NUEVO ----------------
+        # Instanciamos el interposer/mux central.
+        #
+        # IMPORTANTE:
+        # Lo colgamos de ruby_system para que gem5 lo considere parte del
+        # árbol de SimObjects que debe construir.
+        #
+        # Además usamos una variable local llamada c2c_interposer para no crear
+        # un atributo nuevo en ThreeCCacheHierarchy. Crear self.c2c_interposer
+        # puede dar problemas porque ThreeCCacheHierarchy no declara ese atributo
+        # como parámetro SimObject.
+        # ---------------- FIN NUEVO ----------------
+        self.ruby_system.c2c_interposer = C2CInterposer(
+            clk_domain=board.get_clock_domain(),
+            num_interfaces=3,
+            req_latency=5,
+            resp_latency=5,
+            req_buffer_size=64,
+            resp_buffer_size=64,
+            c2c_mem_ranges=[
+                mem_ranges[0],
+                mem_ranges[1],
+                mem_ranges[2],
+            ],
+            interface_chip_id_list=[
+                0,
+                1,
+                2,
+            ],
+        )
+        
+        # Variable local para escribir el cableado de forma más limpia.
+        c2c_interposer = self.ruby_system.c2c_interposer
+
+                # ---------------- NUEVO ----------------
+        # C2C wiring through the central mux.
+        #
+        # El interposer nuevo usa puertos vectoriales:
+        #
+        #   from_interfaces:
+        #       entradas hacia el interposer.
+        #       Aquí conectamos las salidas C2C de cada chip.
+        #
+        #   to_interfaces:
+        #       salidas desde el interposer.
+        #       Aquí conectamos las entradas C2C de cada chip.
+        #
+        # El orden de estas conexiones es importante porque define el índice
+        # interno del puerto vectorial:
+        #
+        #   from_interfaces[0] / to_interfaces[0] -> chip 0
+        #   from_interfaces[1] / to_interfaces[1] -> chip 1
+        #   from_interfaces[2] / to_interfaces[2] -> chip 2
+        #
+        # Esos índices deben coincidir con chipID.
+        # ---------------- FIN NUEVO ----------------
+
+        # Chip 0 -> Interposer
+        self.interface0.c2c_out_port = c2c_interposer.from_interfaces
+
+        # Chip 1 -> Interposer
+        self.interface1.c2c_out_port = c2c_interposer.from_interfaces
+
+        # Chip 2 -> Interposer
+        self.interface2.c2c_out_port = c2c_interposer.from_interfaces
+
+        # Interposer -> Chip 0
+        c2c_interposer.to_interfaces = self.interface0.c2c_in_port
+
+        # Interposer -> Chip 1
+        c2c_interposer.to_interfaces = self.interface1.c2c_in_port
+
+        # Interposer -> Chip 2
+        c2c_interposer.to_interfaces = self.interface2.c2c_in_port
+
+        # Downstream destinations
+        # ---------------- NUEVO ----------------
+        # Cada interface C2C pertenece a un chip local.
+        #
+        # Cuando un paquete entra desde el interposer hacia un chip, la interface
+        # C2C de ese chip debe poder reenviarlo hacia el HNF local.
+        #
+        # Antes había dos interfaces por chip y ambas apuntaban al mismo HNF
+        # local. Ahora solo hay una interface por chip.
+        # ---------------- FIN NUEVO ----------------
+        self.interface0.downstream_destinations = self.hnf0
+        self.interface1.downstream_destinations = self.hnf1
+        self.interface2.downstream_destinations = self.hnf2
+
+        # Add to the RNF destinations
+        # ---------------- NUEVO ----------------
+        # Añadimos la interface C2C local de cada chip a sus destinos.
+        #
+        # Así, si una L2/RNF local quiere acceder a memoria remota, no elige
+        # directamente un enlace punto a punto. Simplemente envía hacia su
+        # interface C2C local, y el interposer central decide a qué chip mandar
+        # el paquete.
+        # ---------------- FIN NUEVO ----------------
+        cluster0_dest.append(self.interface0)
+        cluster1_dest.append(self.interface1)
+        cluster2_dest.append(self.interface2)
         
         # Create two core cluster with split I/D cache for each core
         self.core_cluster0 = [
@@ -209,7 +309,7 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
             ),
             self._create_core_cluster(
                 (board.get_processor().get_cores())[1],
-                0,
+                1,
                 board,
                 self.ruby_system.network0,
                 cluster0_dest,
@@ -220,7 +320,7 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         self.core_cluster1 = [
             self._create_core_cluster(
                 (board.get_processor().get_cores())[2],
-                1,
+                2,
                 board,
                 self.ruby_system.network1,
                 cluster1_dest,
@@ -228,10 +328,22 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
                 cacheChipIDList=cacheChipIDList,
             )
         ]
+
+        # ---------------- NUEVO ----------------
+        # En el fichero original, core_cluster2 usaba network1 y cluster1_dest.
+        # Eso hacía que el chip 2 quedara conectado lógicamente a la red y
+        # destinos del chip 1.
+        #
+        # El chip 2 debe usar:
+        #
+        #   - network2
+        #   - cluster2_dest
+        #   - chipID=2
+        # ---------------- FIN NUEVO ----------------
         self.core_cluster2 = [
             self._create_core_cluster(
                 (board.get_processor().get_cores())[3],
-                2,
+                3,
                 board,
                 self.ruby_system.network2,
                 cluster2_dest,
@@ -271,34 +383,89 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
                 chipID=0,
                 cacheChipIDList=cacheChipIDList,
             )
+
+            # ---------------- NUEVO ----------------
+            # El cálculo original no incluía core_cluster2.
+            #
+            # Cada core tiene dos sequencers en esta jerarquía:
+            #
+            #   - icache sequencer
+            #   - dcache sequencer
+            #
+            # Por eso multiplicamos por 2.
+            # ---------------- FIN NUEVO ----------------
             self.ruby_system.num_of_sequencers = (
-                len(self.core_cluster0) + 
-                len(self.core_cluster1)
+                len(self.core_cluster0) +
+                len(self.core_cluster1) +
+                len(self.core_cluster2)
             ) * 2 + len(self.dma_controllers0)
 
         else:
-            self.ruby_system.num_of_sequencers = (len(self.core_cluster0) + \
-                                                len(self.core_cluster1)) * 2
+            # ---------------- NUEVO ----------------
+            # El cálculo original solo sumaba core_cluster0 y core_cluster1.
+            # Añadimos core_cluster2 para que Ruby conozca el número correcto
+            # de sequencers del sistema completo de 3 chips.
+            # ---------------- FIN NUEVO ----------------
+            self.ruby_system.num_of_sequencers = (
+                len(self.core_cluster0) +
+                len(self.core_cluster1) +
+                len(self.core_cluster2)
+            ) * 2
 
         ############################# C2C SETUP #############
 
-        self.hnf0.c2cHopList = [0,1] # --> C2CI ID
-        self.hnf0.chipIDList = [1,2] # Chip that they service 
-        self.hnf1.c2cHopList = [2,3]
-        self.hnf1.chipIDList = [0,2]
-        self.hnf2.c2cHopList = [4,5]
-        self.hnf2.chipIDList = [0,1]
+        def set_c2c_routes(ctrl, local_chip: int):
+            """
+            Topología C2C actual: 3 chips, 1 Interface C2C por chip.
 
-        self.core_cluster0[0].l2cache.c2cHopList = [0,1]
-        self.core_cluster0[0].l2cache.chipIDList = [1,2]
-        self.core_cluster0[1].l2cache.c2cHopList = [0,1]
-        self.core_cluster0[1].l2cache.chipIDList = [1,2]
+            Cada controlador de un chip debe saber qué Interface local usar para
+            llegar a los otros chips.
 
-        self.core_cluster1[0].l2cache.c2cHopList = [2,3]
-        self.core_cluster1[0].l2cache.chipIDList = [0,2]
+            Chip 0:
+              chip remoto 1 -> Interface-0
+              chip remoto 2 -> Interface-0
 
-        self.core_cluster2[0].l2cache.c2cHopList = [4,5]
-        self.core_cluster2[0].l2cache.chipIDList = [0,1]
+            Chip 1:
+              chip remoto 0 -> Interface-1
+              chip remoto 2 -> Interface-1
+
+            Chip 2:
+              chip remoto 0 -> Interface-2
+              chip remoto 1 -> Interface-2
+            """
+            remote_chips = [chip for chip in [0, 1, 2] if chip != local_chip]
+
+            ctrl.chipIDList = remote_chips
+            ctrl.c2cHopList = [local_chip for _ in remote_chips]
+            ctrl.cacheChipIDList = cacheChipIDList
+
+        # HNF / directories
+        set_c2c_routes(self.hnf0, 0)
+        set_c2c_routes(self.hnf1, 1)
+        set_c2c_routes(self.hnf2, 2)
+
+        # C2C interfaces
+        set_c2c_routes(self.interface0, 0)
+        set_c2c_routes(self.interface1, 1)
+        set_c2c_routes(self.interface2, 2)
+
+        # Cache controllers del chip 0
+        for cluster in self.core_cluster0:
+            set_c2c_routes(cluster.icache, 0)
+            set_c2c_routes(cluster.dcache, 0)
+            set_c2c_routes(cluster.l2cache, 0)
+
+        # Cache controllers del chip 1
+        for cluster in self.core_cluster1:
+            set_c2c_routes(cluster.icache, 1)
+            set_c2c_routes(cluster.dcache, 1)
+            set_c2c_routes(cluster.l2cache, 1)
+
+        # Cache controllers del chip 2
+        for cluster in self.core_cluster2:
+            set_c2c_routes(cluster.icache, 2)
+            set_c2c_routes(cluster.dcache, 2)
+            set_c2c_routes(cluster.l2cache, 2)
 
         # Setting up the MachineID -> ChipID LUT
         # Lists are automatically set up
@@ -308,16 +475,58 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         self.hnf0.cacheChipIDList = cacheChipIDList
         self.hnf1.cacheChipIDList = cacheChipIDList
         self.hnf2.cacheChipIDList = cacheChipIDList
-        self.interface00.cacheChipIDList = cacheChipIDList 
-        self.interface01.cacheChipIDList = cacheChipIDList 
-        self.interface10.cacheChipIDList = cacheChipIDList 
-        self.interface11.cacheChipIDList = cacheChipIDList 
-        self.interface20.cacheChipIDList = cacheChipIDList 
-        self.interface21.cacheChipIDList = cacheChipIDList 
-        self.core_cluster0[0].l2cache.cacheChipIDList = cacheChipIDList
-        self.core_cluster0[1].l2cache.cacheChipIDList = cacheChipIDList
-        self.core_cluster1[0].l2cache.cacheChipIDList = cacheChipIDList
-        self.core_cluster2[0].l2cache.cacheChipIDList = cacheChipIDList
+
+        # ---------------- NUEVO ----------------
+        # Antes se asignaba cacheChipIDList a las 6 interfaces antiguas.
+        # Ahora solo hay una interface C2C por chip.
+        # ---------------- FIN NUEVO ----------------
+        self.interface0.cacheChipIDList = cacheChipIDList
+        self.interface1.cacheChipIDList = cacheChipIDList
+        self.interface2.cacheChipIDList = cacheChipIDList
+
+        # ---------------- NUEVO ----------------
+        # También pasamos la LUT al interposer.
+        #
+        # cacheChipIDList:
+        #   Permite traducir MachineID de tipo Cache a chipID.
+        #
+        # interfaceChipIDList:
+        #   Permite traducir MachineID de tipo Interface a chipID.
+        #
+        # Esto es importante para enrutar responses, porque una response no
+        # siempre se puede enrutar solo por dirección. Muchas veces conviene
+        # mirar campos como:
+        #
+        #   m_OriginalRequestor
+        #   m_Requestor
+        #   m_LocalRequestor
+        #   m_Responder
+        #   m_OriginalResponder
+        #
+        # y traducir esos MachineID al chip correspondiente.
+        # ---------------- FIN NUEVO ----------------
+        # ---------------- NUEVO ----------------
+        # Pasamos al interposer la tabla que traduce:
+        #
+        #   Cache_Controller.version -> chipID
+        #
+        # Esta lista se rellena mientras se crean los controladores de cache.
+        # El interposer la usa para enrutar respuestas mirando campos MachineID
+        # como m_OriginalRequestor, m_Requestor, m_LocalRequestor, etc.
+        # ---------------- FIN NUEVO ----------------
+        c2c_interposer.cache_chip_id_list = cacheChipIDList
+
+        # ---------------- NUEVO ----------------
+        # Con una Interface C2C por chip:
+        #
+        #   Interface-0 -> chip 0
+        #   Interface-1 -> chip 1
+        #   Interface-2 -> chip 2
+        #
+        # Esta tabla permite al interposer traducir MachineID de tipo Interface
+        # a chipID.
+        # ---------------- FIN NUEVO ----------------
+        c2c_interposer.interface_chip_id_list = [0, 1, 2]
 
         #####################################################
         
@@ -333,9 +542,14 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
             + self.memory_controllers0
             + [self.hnf0]
             + (self.dma_controllers0 if board.has_dma_ports() else [])
-            + [self.interface00]
-            + [self.interface01]
+
+            # ---------------- NUEVO ----------------
+            # Antes aquí se conectaban interface00 e interface01.
+            # Ahora el chip 0 solo tiene una interface C2C local.
+            # ---------------- FIN NUEVO ----------------
+            + [self.interface0]
         )
+
         self.ruby_system.network1.connectControllers(
             list(
                 chain.from_iterable(
@@ -348,9 +562,14 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
             + self.memory_controllers1
             + [self.hnf1]
             #+ (self.dma_controllers1 if board.has_dma_ports() else [])
-            + [self.interface10]
-            + [self.interface11]
+
+            # ---------------- NUEVO ----------------
+            # Antes aquí se conectaban interface10 e interface11.
+            # Ahora el chip 1 solo tiene una interface C2C local.
+            # ---------------- FIN NUEVO ----------------
+            + [self.interface1]
         )
+
         self.ruby_system.network2.connectControllers(
             list(
                 chain.from_iterable(
@@ -363,8 +582,12 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
             + self.memory_controllers2
             + [self.hnf2]
             #+ (self.dma_controllers1 if board.has_dma_ports() else [])
-            + [self.interface20]
-            + [self.interface21]
+
+            # ---------------- NUEVO ----------------
+            # Antes aquí se conectaban interface20 e interface21.
+            # Ahora el chip 2 solo tiene una interface C2C local.
+            # ---------------- FIN NUEVO ----------------
+            + [self.interface2]
         )
          
         self.ruby_system.network0.setup_buffers()

@@ -57,7 +57,6 @@ class DMARequestor(AbstractNode):
 
         # Multi-chip parameters
         self.is_multiChip = False
-        self.is_reference = False
         cacheChipIDList.append(chipID)
 
         # No cache

@@ -29,7 +29,7 @@ from gem5.resources.resource import Resource, CustomDiskImageResource
 requires(
     isa_required=ISA.X86,
     coherence_protocol_required=CoherenceProtocol.CHI,
-    kvm_required=False,
+    kvm_required=True,
 )
 
 # Parsec benchmarks
@@ -88,8 +88,8 @@ memory = DualChannelDDR3_1600_3C(size="3GB", range_size="1073741824")
 
 # Switchable KVM -> timing
 processor = SimpleSwitchableProcessor(
-    starting_core_type=CPUTypes.NONCACHING_SIMPLE,
-    #starting_core_type=CPUTypes.KVM,
+    #starting_core_type=CPUTypes.NONCACHING_SIMPLE,
+    starting_core_type=CPUTypes.KVM,
     switch_core_type=CPUTypes.TIMING,
     isa=ISA.X86,
     num_cores=4,

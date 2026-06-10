@@ -1729,6 +1729,14 @@ action(Send_SnpSharedFwd_ToOwner, desc="") {
   tbe.expected_snp_resp.addExpectedCount(1);
 
   if (is_multiChip) {
+
+    DPRINTF(RubySlicc, "DBG_SNPFWD_OWNER_BEGIN addr=%#x\n", address);
+    DPRINTF(RubySlicc, "DBG_SNPFWD_OWNER machineID=%s\n", machineID);
+    DPRINTF(RubySlicc, "DBG_SNPFWD_OWNER curEvent=%s\n", curTransitionEvent());
+    DPRINTF(RubySlicc, "DBG_SNPFWD_OWNER originalRequestor=%s\n", tbe.originalRequestor);
+    DPRINTF(RubySlicc, "DBG_SNPFWD_OWNER localRequestor=%s\n", tbe.localRequestor);
+    DPRINTF(RubySlicc, "DBG_SNPFWD_OWNER c2cOrig=%s\n", tbe.c2cOrig);
+
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
       if (allowFwdSD) {
         prepareRequest(tbe, CHIRequestType:SnpSharedFwd, out_msg);
@@ -1737,6 +1745,12 @@ action(Send_SnpSharedFwd_ToOwner, desc="") {
       }
       out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_owner);
       out_msg.c2c_destination := tbe.mega_dir_owner;
+
+      DPRINTF(RubySlicc, "DBG_SNPFWD_OWNER_SENT addr=%#x\n", address);
+      DPRINTF(RubySlicc, "DBG_SNPFWD_OWNER_SENT machineID=%s\n", machineID);
+      DPRINTF(RubySlicc, "DBG_SNPFWD_OWNER_SENT originalRequestor=%s\n", tbe.originalRequestor);
+      DPRINTF(RubySlicc, "DBG_SNPFWD_OWNER_SENT localRequestor=%s\n", tbe.localRequestor);
+
       out_msg.originalRequestor := tbe.originalRequestor;
       out_msg.retToSrc := retToSrc;
     }
@@ -1780,12 +1794,26 @@ action(Send_SnpSharedFwd_ToSharer, desc="") {
   tbe.expected_snp_resp.addExpectedCount(1);
 
   if (is_multiChip) {
+
+    DPRINTF(RubySlicc, "DBG_SNPFWD_SHARER_BEGIN addr=%#x\n", address);
+    DPRINTF(RubySlicc, "DBG_SNPFWD_SHARER machineID=%s\n", machineID);
+    DPRINTF(RubySlicc, "DBG_SNPFWD_SHARER curEvent=%s\n", curTransitionEvent());
+    DPRINTF(RubySlicc, "DBG_SNPFWD_SHARER originalRequestor=%s\n", tbe.originalRequestor);
+    DPRINTF(RubySlicc, "DBG_SNPFWD_SHARER localRequestor=%s\n", tbe.localRequestor);
+    DPRINTF(RubySlicc, "DBG_SNPFWD_SHARER c2cOrig=%s\n", tbe.c2cOrig);
+
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
       prepareRequest(tbe, CHIRequestType:SnpSharedFwd, out_msg);
       // TODO should be random or the closest one to the fwd dest
       out_msg.MegaDestination.addMegaNetDest(tbe.mega_dir_sharers.smallestElement());
       out_msg.retToSrc := retToSrc;
       out_msg.c2c_destination := tbe.mega_dir_sharers.smallestElement();
+
+      DPRINTF(RubySlicc, "DBG_SNPFWD_SHARER_SENT addr=%#x\n", address);
+      DPRINTF(RubySlicc, "DBG_SNPFWD_SHARER_SENT machineID=%s\n", machineID);
+      DPRINTF(RubySlicc, "DBG_SNPFWD_SHARER_SENT originalRequestor=%s\n", tbe.originalRequestor);
+      DPRINTF(RubySlicc, "DBG_SNPFWD_SHARER_SENT localRequestor=%s\n", tbe.localRequestor);
+
       out_msg.originalRequestor := tbe.originalRequestor;
       out_msg.c2cOrig := tbe.c2cOrig;
     }
@@ -2803,15 +2831,11 @@ action(Send_CompData_SnpUniqueFwd, desc="") {
   }
   tbe.actions.pushFront(Event:SendSnpFwdedResp);
 
-  if (is_reference) {
-    tbe.snd_destination := tbe.fwdRequestor;
+  int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
+  if(mappedChipID == chipID) {
+    tbe.snd_destination := tbe.originalRequestor;
   } else {
-    int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
-    if(mappedChipID == chipID) {
-      tbe.snd_destination := tbe.originalRequestor;
-    } else {
-      tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
-    }
+    tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
   }
 
   setupPendingSend(tbe);
@@ -2835,19 +2859,17 @@ action(Send_CompData_SnpSharedFwd, desc="") {
     tbe.actions.pushFront(Event:SendSnpFwdedResp);
   }
 
-  if (is_reference) {
-    tbe.snd_destination := tbe.fwdRequestor;
+  int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
+  DPRINTF(RubyGenerated, "mappedChipID -> %d\n", mappedChipID);
+  DPRINTF(RubyGenerated, "chipID -> %d\n", chipID);
+  DPRINTF(RubyGenerated, "originalRequestor -> %s\n", tbe.originalRequestor);
+  if(mappedChipID == chipID) {
+    tbe.snd_destination := tbe.originalRequestor;
   } else {
-    int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
-    DPRINTF(RubyGenerated, "mappedChipID -> %d\n", mappedChipID);
-    DPRINTF(RubyGenerated, "chipID -> %d\n", chipID);
-    DPRINTF(RubyGenerated, "originalRequestor -> %s\n", tbe.originalRequestor);
-    if(mappedChipID == chipID) {
-      tbe.snd_destination := tbe.originalRequestor;
-    } else {
-      tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
-    }
+    tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
   }
+  //tbe.snd_destination := tbe.fwdRequestor;
+
   DPRINTF(RubyGenerated, "SendDestination -> %s\n", tbe.snd_destination);
   setupPendingSend(tbe);
 }
@@ -2865,17 +2887,12 @@ action(Send_CompData_SnpNSDFwd, desc="") {
     tbe.actions.pushFront(Event:SendSnpFwdedResp);
   }
 
-  if (is_reference) {
-    tbe.snd_destination := tbe.fwdRequestor;
+  int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
+  if(mappedChipID == chipID) {
+    tbe.snd_destination := tbe.originalRequestor;
   } else {
-    int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
-    if(mappedChipID == chipID) {
-      tbe.snd_destination := tbe.originalRequestor;
-    } else {
-      tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
-    }
+    tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
   }
-
   setupPendingSend(tbe);
 }
 
@@ -2886,15 +2903,12 @@ action(Send_CompData_SnpOnceFwd, desc="") {
   tbe.snd_msgType := CHIDataType:CompData_I;
   tbe.actions.pushFront(Event:SendSnpFwdedResp);
 
-  if (is_reference) {
-    tbe.snd_destination := tbe.fwdRequestor;
+  DPRINTF(RubyGenerated, "originalRequestor -> %s\n", tbe.originalRequestor);
+  int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
+  if(mappedChipID == chipID) {
+    tbe.snd_destination := tbe.originalRequestor;
   } else {
-    int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
-    if(mappedChipID == chipID) {
-      tbe.snd_destination := tbe.originalRequestor;
-    } else {
-      tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
-    }
+    tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
   }
 
   setupPendingSend(tbe);
@@ -2932,6 +2946,15 @@ action(Send_SnpRespDataFwded, desc="") {
   }
 
   tbe.snd_destination := tbe.requestor;
+
+  DPRINTF(RubySlicc, "DBG_SNPDATA_GEN addr=%#x\n", address);
+  DPRINTF(RubySlicc, "DBG_SNPDATA_GEN snd_msgType=%s\n", tbe.snd_msgType);
+  DPRINTF(RubySlicc, "DBG_SNPDATA_GEN machineID=%s\n", machineID);
+  DPRINTF(RubySlicc, "DBG_SNPDATA_GEN tbe.requestor=%s\n", tbe.requestor);
+  DPRINTF(RubySlicc, "DBG_SNPDATA_GEN tbe.localRequestor=%s\n", tbe.localRequestor);
+  DPRINTF(RubySlicc, "DBG_SNPDATA_GEN tbe.originalRequestor=%s\n", tbe.originalRequestor);
+  DPRINTF(RubySlicc, "DBG_SNPDATA_GEN tbe.snd_destination=%s\n", tbe.snd_destination);
+
   setupPendingSend(tbe);
 }
 
@@ -2946,6 +2969,12 @@ action(Send_FwdSnpResp, desc="") {
     out_msg.localRequestor := tbe.localRequestor;
     out_msg.originalRequestor := tbe.originalRequestor;
     out_msg.originalResponder := machineID;
+
+    DPRINTF(RubySlicc, "DBG_SNPRESP_GEN_BEGIN addr=%#x\n", address);
+    DPRINTF(RubySlicc, "DBG_SNPRESP_GEN machineID=%s\n", machineID);
+    DPRINTF(RubySlicc, "DBG_SNPRESP_GEN destination_tbe_requestor=%s\n", tbe.requestor);
+    DPRINTF(RubySlicc, "DBG_SNPRESP_GEN tbe.localRequestor=%s\n", tbe.localRequestor);
+    DPRINTF(RubySlicc, "DBG_SNPRESP_GEN tbe.originalRequestor=%s\n", tbe.originalRequestor);
 
     // We have the data (locally or upstream) or are dropping it
     bool keepData := 
@@ -2987,6 +3016,7 @@ action(Send_FwdSnpResp, desc="") {
         out_msg.type := CHIResponseType:SnpResp_I_Fwded_UC;
       }
     }
+
   }
 }
 
@@ -3013,7 +3043,10 @@ action(Send_Data, desc="") {
     out_msg.responder := machineID;
     out_msg.Destination.add(tbe.snd_destination);
 
-    //C2c-specific fields
+    DPRINTF(RubySlicc, "DBG_SEND_DATA addr=%#x\n", address);
+    DPRINTF(RubySlicc, "DBG_SEND_DATA machineID=%s\n", machineID);
+
+    // C2c-specific fields
     out_msg.originalRequestor := tbe.originalRequestor;
     DPRINTF(RubyGenerated, "originalRequestor -> %s\n", tbe.originalRequestor);
     out_msg.localRequestor := tbe.localRequestor;

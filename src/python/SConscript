@@ -55,7 +55,7 @@ PySource('gem5.components.boards', 'gem5/components/boards/x86_c2cv2_board.py')
 PySource('gem5.components.boards', 'gem5/components/boards/x86_3C_board.py')
 PySource('gem5.components.boards', 'gem5/components/boards/arm_board.py')
 PySource('gem5.components.boards',
-    "gem5/components/boards/kernel_disk_workload.py");
+    "gem5/components/boards/kernel_disk_workload.py")
 PySource('gem5.components.boards',
     "gem5/components/boards/se_binary_workload.py")
 PySource('gem5.components.cachehierarchies',
@@ -90,11 +90,6 @@ PySource('gem5.components.cachehierarchies.chi.nodes',
     'gem5/components/cachehierarchies/chi/nodes/private_l1_moesi_cache.py')
 PySource('gem5.components.cachehierarchies.chi.nodes',
     'gem5/components/cachehierarchies/chi/nodes/shared_l2_moesi_cache.py')
-# hacky nodes for reference architecture
-PySource('gem5.components.cachehierarchies.chi.nodes',
-    'gem5/components/cachehierarchies/chi/nodes/reference_private_l1_moesi_cache.py')
-PySource('gem5.components.cachehierarchies.chi.nodes',
-    'gem5/components/cachehierarchies/chi/nodes/reference_shared_l2_moesi_cache.py')
 PySource('gem5.components.cachehierarchies.chi.nodes',
     'gem5/components/cachehierarchies/chi/nodes/memory_controller.py')
 PySource('gem5.components.cachehierarchies.classic',

@@ -35,7 +35,7 @@ class MegaNetDest
         void resize();
 
         // Use of MegaNetDest
-        NetDest extractNetDest(int chipID);
+        NetDest extractNetDest(int chipID) const;
         MegaNetDest addMegaNetDest(MegaNetDest mega);
 
         MegaNetDest smallestElement() const;

@@ -154,12 +154,12 @@ class CHI_Node(SubSystem):
         for c in self.getNetworkSideControllers():
             c.chipIDList = chipIDList
     
-    def setCntrlList(self, cntrlList):
+    def setCacheChipIDList(self, cacheChipIDList):
         """
         Sets the cntrl list to map MachineID to corresponding ChipID
         """
         for c in self.getNetworkSideControllers():
-            c.cntrlList = cntrlList
+            c.cacheChipIDList = cacheChipIDList 
 
     def connectController(self, cntrl):
         """
@@ -248,7 +248,7 @@ class CHI_L1Controller(CHI_Cache_Controller):
     Default parameters for a L1 Cache controller
     """
 
-    def __init__(self, ruby_system, sequencer, cache, prefetcher):
+    def __init__(self, ruby_system, sequencer, cache, prefetcher, chipID, cacheChipIDList):
         super(CHI_L1Controller, self).__init__(ruby_system)
         self.sequencer = sequencer
         self.cache = cache
@@ -256,7 +256,8 @@ class CHI_L1Controller(CHI_Cache_Controller):
         self.send_evictions = True
 
         # Setting the unused chipID to 0
-        self.chipID = 0
+        self.chipID = chipID
+        cacheChipIDList.append(chipID)
 
         self.is_HN = False
         self.is_multiChip = False # Uses the multi-chip or not 
@@ -290,7 +291,7 @@ class CHI_L2Controller(CHI_Cache_Controller):
     Default parameters for a L2 Cache controller
     """
 
-    def __init__(self, ruby_system, cache, prefetcher, chipID):
+    def __init__(self, ruby_system, cache, prefetcher, chipID, cacheChipIDList):
         super(CHI_L2Controller, self).__init__(ruby_system)
         self.sequencer = NULL
         self.cache = cache
@@ -301,6 +302,7 @@ class CHI_L2Controller(CHI_Cache_Controller):
         self.is_multiChip = False
         # ChipID is used when using MultiChip
         self.chipID = chipID
+        cacheChipIDList.append(chipID)
 
         self.enable_DMT = False
         self.enable_DCT = False
@@ -330,7 +332,7 @@ class CHI_HNFController(CHI_Cache_Controller):
     Default parameters for a coherent home node (HNF) cache controller
     """
 
-    def __init__(self, ruby_system, cache, prefetcher, addr_ranges, chipID):
+    def __init__(self, ruby_system, cache, prefetcher, addr_ranges, chipID, cacheChipIDList):
         super(CHI_HNFController, self).__init__(ruby_system)
         self.sequencer = NULL
         self.cache = cache
@@ -341,6 +343,7 @@ class CHI_HNFController(CHI_Cache_Controller):
         self.is_HN = True
         self.is_multiChip = True
         self.chipID = chipID
+        cacheChipIDList.append(chipID)
 
         self.enable_DMT = True
         self.enable_DCT = True
@@ -507,6 +510,8 @@ class CHI_RNF(CHI_Node):
         l1Dcache_type,
         cache_line_size,
         network,
+        chipID,
+        cacheChipIDList,
         l1Iprefetcher_type=None,
         l1Dprefetcher_type=None,
     ):
@@ -554,11 +559,21 @@ class CHI_RNF(CHI_Node):
 
             # cache controllers
             cpu.l1i = CHI_L1Controller(
-                ruby_system, cpu.inst_sequencer, l1i_cache, l1i_pf
+                ruby_system, 
+                cpu.inst_sequencer, 
+                l1i_cache, 
+                l1i_pf, 
+                chipID,
+                cacheChipIDList,
             )
 
             cpu.l1d = CHI_L1Controller(
-                ruby_system, cpu.data_sequencer, l1d_cache, l1d_pf
+                ruby_system, 
+                cpu.data_sequencer, 
+                l1d_cache, 
+                l1d_pf,
+                chipID,
+                cacheChipIDList,
             )
 
             cpu.inst_sequencer.dcache = NULL
@@ -589,7 +604,7 @@ class CHI_RNF(CHI_Node):
         return self._cpus
 
     # Adds a private L2 for each cpu
-    def addPrivL2Cache(self, cache_type, chipID, pf_type=None):
+    def addPrivL2Cache(self, cache_type, chipID, cacheChipIDList, pf_type=None):
         self._ll_cntrls = []
         for cpu in self._cpus:
             l2_cache = cache_type(
@@ -599,7 +614,7 @@ class CHI_RNF(CHI_Node):
                 m5.fatal("Prefetching not supported yet")
             l2_pf = NULL
 
-            cpu.l2 = CHI_L2Controller(self._ruby_system, l2_cache, l2_pf, chipID)
+            cpu.l2 = CHI_L2Controller(self._ruby_system, l2_cache, l2_pf, chipID, cacheChipIDList)
 
             self._cntrls.append(cpu.l2)
             self.connectController(cpu.l2)
@@ -652,7 +667,7 @@ class CHI_HNF(CHI_Node):
 
     # The CHI controller can be a child of this object or another if
     # 'parent' if specified
-    def __init__(self, hnf_idx, ruby_system, llcache_type, parent, network, chipID):
+    def __init__(self, hnf_idx, ruby_system, llcache_type, parent, network, chipID, cacheChipIDList):
         super(CHI_HNF, self).__init__(ruby_system, network)
 
         addr_ranges, intlvHighBit = self.getAddrRanges(hnf_idx)
@@ -661,7 +676,12 @@ class CHI_HNF(CHI_Node):
 
         ll_cache = llcache_type(start_index_bit=intlvHighBit + 1)
         self._cntrl = CHI_HNFController(
-            ruby_system, ll_cache, NULL, addr_ranges, chipID
+            ruby_system, 
+            ll_cache, 
+            NULL, 
+            addr_ranges, 
+            chipID,
+            cacheChipIDList,
         )
 
         if parent == None:
@@ -961,10 +981,6 @@ class CHI_RNF_tgen(CHI_Node):
                 m5.fatal("Prefetching not supported yet")
             #l1i_pf = NULL
             l1d_pf = NULL
-
-            #tgen.l1d = CHI_L1Controller(
-            #    ruby_system, tgen.data_sequencer, l1d_cache, l1d_pf
-            #)
 
             ruby_system.l1d = CHI_L1Controller(
                 ruby_system, ruby_system.tgen_data_sequencer, l1d_cache, l1d_pf

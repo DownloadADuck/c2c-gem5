@@ -1,0 +1,63 @@
+warn: The simulate package is still in a beta state. The gem5 project does not guarantee the APIs within this package will remain consistent across upcoming releases.
+Global frequency set at 1000000000000 ticks per second
+build/X86_CHI/mem/dram_interface.cc:690: warn: DRAM device capacity (8192 Mbytes) does not match the address range assigned (1024 Mbytes)
+build/X86_CHI/mem/dram_interface.cc:690: warn: DRAM device capacity (8192 Mbytes) does not match the address range assigned (1024 Mbytes)
+build/X86_CHI/mem/dram_interface.cc:690: warn: DRAM device capacity (8192 Mbytes) does not match the address range assigned (1024 Mbytes)
+build/X86_CHI/sim/kernel_workload.cc:46: info: kernel located at: /home/nelson/.cache/gem5/x86-linux-kernel-5.4.49
+build/X86_CHI/base/statistics.hh:280: warn: One of the stats is a legacy stat. Legacy stat is a stat that does not belong to any statistics::Group. Legacy stat is deprecated.
+[Interposer] constructor called, numInterfaces=3
+      0: board.pc.south_bridge.cmos.rtc: Real-time clock set to Sun Jan  1 00:00:00 2012
+board.pc.com_1.device: Listening for connections on port 3456
+build/X86_CHI/dev/intel_8254_timer.cc:128: warn: Reading current count from inactive timer.
+0: board.remote_gdb: listening for remote gdb on port 7000
+gem5 Simulator System.  https://www.gem5.org
+gem5 is copyrighted software; use the --copyright option for details.
+
+gem5 version 22.1.0.0
+gem5 compiled May 17 2026 15:27:26
+gem5 started May 17 2026 18:42:18
+gem5 executing on DESKTOP-264CR7I, pid 36
+command line: build/X86_CHI/gem5.opt configs/example/gem5_library/multichip_c2c/C2C/noncaching-c2c.py --benchmark blackscholes --size test
+
+Running the simulation
+Using KVM cpu
+build/X86_CHI/sim/simulate.cc:192: info: Entering event queue @ 0.  Starting simulation...
+build/X86_CHI/arch/x86/cpuid.cc:180: warn: x86 cpuid family 0x0000: unimplemented function 6
+build/X86_CHI/arch/x86/cpuid.cc:180: warn: x86 cpuid family 0x0000: unimplemented function 6
+build/X86_CHI/arch/x86/cpuid.cc:180: warn: x86 cpuid family 0x0000: unimplemented function 6
+build/X86_CHI/arch/x86/generated/exec-ns.cc.inc:27: warn: instruction 'fninit' unimplemented
+build/X86_CHI/dev/x86/pc.cc:117: warn: Don't know what interrupt to clear for console.
+build/X86_CHI/arch/x86/generated/exec-ns.cc.inc:27: warn: instruction 'sgdt_Ms' unimplemented
+build/X86_CHI/arch/x86/cpuid.cc:180: warn: x86 cpuid family 0x0000: unimplemented function 6
+build/X86_CHI/arch/x86/cpuid.cc:180: warn: x86 cpuid family 0x0000: unimplemented function 6
+build/X86_CHI/arch/x86/cpuid.cc:180: warn: x86 cpuid family 0x0000: unimplemented function 6
+build/X86_CHI/arch/x86/cpuid.cc:153: warn: x86 cpuid family 0x8000: unimplemented function 29
+build/X86_CHI/sim/power_state.cc:105: warn: PowerState: Already in the requested power state, request ignored
+build/X86_CHI/arch/x86/generated/exec-ns.cc.inc:27: warn: instruction 'wbinvd' unimplemented
+build/X86_CHI/arch/x86/cpuid.cc:180: warn: x86 cpuid family 0x0000: unimplemented function 6
+build/X86_CHI/arch/x86/cpuid.cc:180: warn: x86 cpuid family 0x0000: unimplemented function 6
+build/X86_CHI/arch/x86/cpuid.cc:180: warn: x86 cpuid family 0x0000: unimplemented function 6
+build/X86_CHI/arch/x86/cpuid.cc:153: warn: x86 cpuid family 0x8000: unimplemented function 29
+build/X86_CHI/arch/x86/interrupts.cc:530: hack: Assuming logical destinations are 1 << id.
+build/X86_CHI/arch/x86/cpuid.cc:180: warn: x86 cpuid family 0x0000: unimplemented function 6
+build/X86_CHI/arch/x86/cpuid.cc:180: warn: x86 cpuid family 0x0000: unimplemented function 6
+build/X86_CHI/arch/x86/cpuid.cc:180: warn: x86 cpuid family 0x0000: unimplemented function 6
+build/X86_CHI/arch/x86/cpuid.cc:153: warn: x86 cpuid family 0x8000: unimplemented function 29
+build/X86_CHI/arch/x86/cpuid.cc:180: warn: x86 cpuid family 0x0000: unimplemented function 6
+build/X86_CHI/arch/x86/cpuid.cc:180: warn: x86 cpuid family 0x0000: unimplemented function 6
+build/X86_CHI/arch/x86/cpuid.cc:180: warn: x86 cpuid family 0x0000: unimplemented function 6
+build/X86_CHI/arch/x86/cpuid.cc:153: warn: x86 cpuid family 0x8000: unimplemented function 29
+build/X86_CHI/arch/x86/generated/exec-ns.cc.inc:27: warn: instruction 'fwait' unimplemented
+build/X86_CHI/arch/x86/cpuid.cc:185: warn: x86 cpuid: unknown family 0x4000
+build/X86_CHI/dev/x86/i8042.cc:290: warn: Write to unknown i8042 (keyboard controller) command port.
+build/X86_CHI/arch/generic/debugfaults.hh:145: warn: MOVNTDQ: Ignoring non-temporal hint, modeling as cacheable!
+build/X86_CHI/arch/x86/cpuid.cc:180: warn: x86 cpuid family 0x0000: unimplemented function 4
+build/X86_CHI/arch/x86/generated/exec-ns.cc.inc:27: warn: instruction 'palignr_Vdq_Wdq_Ib' unimplemented
+build/X86_CHI/arch/x86/generated/exec-ns.cc.inc:27: warn: instruction 'palignr_Vdq_Wdq_Ib' unimplemented
+build/X86_CHI/arch/x86/generated/exec-ns.cc.inc:27: warn: instruction 'palignr_Vdq_Wdq_Ib' unimplemented
+build/X86_CHI/arch/x86/generated/exec-ns.cc.inc:27: warn: instruction 'palignr_Vdq_Wdq_Ib' unimplemented
+build/X86_CHI/arch/x86/generated/exec-ns.cc.inc:27: warn: instruction 'palignr_Vdq_Wdq_Ib' unimplemented
+build/X86_CHI/arch/x86/generated/exec-ns.cc.inc:27: warn: instruction 'palignr_Vdq_Wdq_Ib' unimplemented
+build/X86_CHI/arch/x86/generated/exec-ns.cc.inc:27: warn: instruction 'palignr_Vdq_Wdq_Ib' unimplemented
+build/X86_CHI/arch/x86/generated/exec-ns.cc.inc:27: warn: instruction 'palignr_Vdq_Wdq_Ib' unimplemented
+build/X86_CHI/arch/x86/cpuid.cc:180: warn: x86 cpuid family 0x0000: unimplemented function 4

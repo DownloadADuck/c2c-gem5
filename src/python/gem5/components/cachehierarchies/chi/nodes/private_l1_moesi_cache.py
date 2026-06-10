@@ -63,8 +63,6 @@ class PrivateL1MOESICache(AbstractNode):
         # Multi-chip parameters
         self.chipID = chipID
         self.is_multiChip = False
-        # hack. TODO: Use originalRequestor capabilities
-        self.is_reference = False
         cacheChipIDList.append(chipID)
 
         # MOESI states for a 1 level cache

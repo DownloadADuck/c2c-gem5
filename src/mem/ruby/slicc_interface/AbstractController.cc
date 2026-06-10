@@ -65,6 +65,9 @@ AbstractController::AbstractController(const Params &p)
       m_buffer_size(p.buffer_size), m_recycle_latency(p.recycle_latency),
       m_mandatory_queue_latency(p.mandatory_queue_latency),
       m_waiting_mem_retry(false),
+      //flag de retrys de request y responses
+      m_waiting_c2c_req_retry(false),
+      m_waiting_c2c_resp_retry(false),
       memoryPort(csprintf("%s.memory", name()), this),
       c2cOutPort(csprintf("%s.C2cOut", name()), this),
       c2cInPort(csprintf("%s.C2cIn", name()), this),
@@ -348,7 +351,7 @@ AbstractController::serviceReqToC2cQueue()
 {
     auto mem_queue = getReqToC2cQueue();
     assert(mem_queue);
-    if (m_waiting_mem_retry || !mem_queue->isReady(clockEdge())) {
+    if (m_waiting_c2c_req_retry || !mem_queue->isReady(clockEdge())) {
         return false;
     }
 
@@ -363,7 +366,8 @@ AbstractController::serviceReqToC2cQueue()
     PacketPtr pkt;
     
     pkt = new Packet(req, MemCmd::c2c_packet);
-    pkt->c2c_msg = mem_msg;
+    pkt->c2c_msg_holder = std::make_shared<C2cMsg>(*mem_msg);
+    pkt->c2c_msg = pkt->c2c_msg_holder.get();
 
     SenderState *s = new SenderState(mem_msg->m_Sender);
     pkt->pushSenderState(s);
@@ -384,7 +388,7 @@ AbstractController::serviceReqToC2cQueue()
         scheduleEvent(Cycles(1));
     } else {
         scheduleEvent(Cycles(1));
-        m_waiting_mem_retry = true;
+        m_waiting_c2c_req_retry = true;
         delete pkt;
         delete s;
     }
@@ -399,7 +403,7 @@ AbstractController::serviceRespToC2cQueue()
     auto resp_queue = getRespToC2cQueue();
     assert(resp_queue);
 
-    if (m_waiting_mem_retry || !resp_queue->isReady(clockEdge())) {
+    if (m_waiting_c2c_resp_retry || !resp_queue->isReady(clockEdge())) {
         return false;
     }
 
@@ -414,7 +418,8 @@ AbstractController::serviceRespToC2cQueue()
     PacketPtr pkt;
 
     pkt = new Packet(req, MemCmd::c2c_packet);
-    pkt->c2c_msg = mem_msg;
+    pkt->c2c_msg_holder = std::make_shared<C2cMsg>(*mem_msg);
+    pkt->c2c_msg = pkt->c2c_msg_holder.get();
 
     SenderState *s = new SenderState(mem_msg->m_Sender);
     pkt->pushSenderState(s);
@@ -437,9 +442,10 @@ AbstractController::serviceRespToC2cQueue()
         // to make more progress. Make sure it wakes up
         scheduleEvent(Cycles(1));
     } else {
-        panic("AbstractController sendTimingResp failed.");
+        //panic("AbstractController sendTimingResp failed.");
+        // Antes había panic aquí; ahora se espera retry
         scheduleEvent(Cycles(1));
-        m_waiting_mem_retry = true;
+        m_waiting_c2c_resp_retry = true;
         delete pkt;
         delete s;
     }
@@ -546,6 +552,9 @@ AbstractController::c2cOutRecvTimingResp(PacketPtr pkt)
 {
     assert(getRespFromC2cQueue());
     assert(pkt->isResponse());
+    if (pkt->c2c_msg == nullptr) {
+    panic("C2C packet arrived without valid c2c_msg payload");
+    }
 
     std::shared_ptr<C2cMsg> msg = std::make_shared<C2cMsg>(clockEdge());
     (*msg).m_addr = pkt->getAddr();
@@ -584,6 +593,10 @@ AbstractController::recvTimingReq(PacketPtr pkt)
 {
     assert(getReqFromC2cQueue());
     assert(pkt->isRequest());
+
+    if (pkt->c2c_msg == nullptr) {
+    panic("C2C packet arrived without valid c2c_msg payload");
+    }
 
     std::shared_ptr<C2cMsg> msg = std::make_shared<C2cMsg>(clockEdge());
     (*msg).m_addr = pkt->getAddr();
@@ -654,11 +667,36 @@ const
 }
 
 MachineID
-AbstractController::mapChipIDToC2CI(int ChipID)
-const
+AbstractController::mapChipIDToC2CI(int ChipID) const
 {
     auto it = c2cHopMap.find(ChipID);
-    assert(it != c2cHopMap.end());
+
+    if (it == c2cHopMap.end()) {
+        std::cerr << "[DBG C2C HOP MISSING]"
+                  << " ctrl=" << name()
+                  << " requestedChipID=" << ChipID
+                  << " curTick=" << curTick()
+                  << " mapSize=" << c2cHopMap.size()
+                  << " entries=";
+
+        for (const auto &entry : c2cHopMap) {
+            std::cerr << " [" << entry.first << " -> "
+                      << entry.second << "]";
+        }
+
+        std::cerr << std::endl;
+
+        panic("%s: mapChipIDToC2CI missing chipID %d",
+              name(), ChipID);
+    }
+
+    std::cerr << "[DBG C2C HOP OK]"
+              << " ctrl=" << name()
+              << " requestedChipID=" << ChipID
+              << " result=" << it->second
+              << " curTick=" << curTick()
+              << std::endl;
+
     return it->second;
 }
 
@@ -733,7 +771,7 @@ AbstractController::C2cOutPort::recvTimingResp(PacketPtr pkt)
 void
 AbstractController::C2cOutPort::recvReqRetry()
 {
-    controller->m_waiting_mem_retry = false;
+    controller->m_waiting_c2c_req_retry = false;
     controller->serviceReqToC2cQueue();
 }
 
@@ -776,7 +814,8 @@ AbstractController::C2cInPort::C2cInPort(const std::string &_name,
 void
 AbstractController::C2cInPort::recvRespRetry()
 {
-    // Not implemented yet
+    controller->m_waiting_c2c_resp_retry = false;
+    controller->serviceRespToC2cQueue();
 }
 
 AbstractController::

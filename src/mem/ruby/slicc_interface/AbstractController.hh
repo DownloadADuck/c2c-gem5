@@ -43,6 +43,7 @@
 
 #include <exception>
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <unordered_map>
 
@@ -342,10 +343,15 @@ class AbstractController : public ClockedObject, public Consumer
     void outgoingTransactionStart(Addr addr, EventType type,
         bool isAddressed=true)
     {
-        auto& m_outTrans =
-          isAddressed ? m_outTransAddressed : m_outTransUnaddressed;
-        assert(m_outTrans.find(addr) == m_outTrans.end());
-        m_outTrans[addr] = {type, 0, curTick()};
+        std::cerr << "[DBG OUT PROFILE HARD DISABLED START]"
+                  << " ctrl=" << name()
+                  << " addr=0x" << std::hex << addr << std::dec
+                  << " isAddressed=" << isAddressed
+                  << " event=" << static_cast<int>(type)
+                  << " tick=" << curTick()
+                  << std::endl;
+
+        return;
     }
 
     /**
@@ -361,15 +367,15 @@ class AbstractController : public ClockedObject, public Consumer
     void outgoingTransactionEnd(Addr addr, bool retried,
         bool isAddressed=true)
     {
-        auto& m_outTrans =
-          isAddressed ? m_outTransAddressed : m_outTransUnaddressed;
-        auto iter = m_outTrans.find(addr);
-        assert(iter != m_outTrans.end());
-        stats.outTransLatHist[iter->second.transaction]->sample(
-            ticksToCycles(curTick() - iter->second.time));
-        if (retried)
-          ++(*stats.outTransLatHistRetries[iter->second.transaction]);
-        m_outTrans.erase(iter);
+        std::cerr << "[DBG OUT PROFILE HARD DISABLED END]"
+                  << " ctrl=" << name()
+                  << " addr=0x" << std::hex << addr << std::dec
+                  << " retried=" << retried
+                  << " isAddressed=" << isAddressed
+                  << " curTick=" << curTick()
+                  << std::endl;
+
+        return;
     }
 
     void stallBuffer(MessageBuffer* buf, Addr addr);
@@ -410,6 +416,9 @@ class AbstractController : public ClockedObject, public Consumer
     Cycles m_recycle_latency;
     const Cycles m_mandatory_queue_latency;
     bool m_waiting_mem_retry;
+    //flag para retrys de request y responses
+    bool m_waiting_c2c_req_retry;
+    bool m_waiting_c2c_resp_retry;
 
     /**
      * Port that forwards requests and receives responses from the

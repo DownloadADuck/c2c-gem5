@@ -1,6 +1,8 @@
 import sys
 from itertools import chain
 from typing import List
+#importo el interposer
+from m5.objects import C2CInterposer
 
 from m5.objects.SubSystem import SubSystem
 from gem5.components.cachehierarchies.ruby.abstract_ruby_cache_hierarchy import (
@@ -55,7 +57,7 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
 
     @overrides(AbstractCacheHierarchy)
     def incorporate_cache(self, board: AbstractBoard) -> None:
-        
+        print(">>> ENTER incorporate_cache", flush=True)
         requires(coherence_protocol_required=CoherenceProtocol.CHI)
 
         self.ruby_system = RubySystem()
@@ -125,8 +127,41 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         self.interface0.ruby_system = self.ruby_system
         self.interface1.ruby_system = self.ruby_system
 
-        self.interface0.c2c_out_port = self.interface1.c2c_in_port
-        self.interface1.c2c_out_port = self.interface0.c2c_in_port
+        #limito buferes ruby
+        for itf in [self.interface0, self.interface1]:
+            itf.requestToC2c.buffer_size = 40
+            itf.responseFromC2c.buffer_size = 40
+            itf.responseToC2c.buffer_size = 40
+            itf.requestFromC2c.buffer_size = 40
+
+
+        #-------------------------------------------------
+        #conectar el interposer entre los C2CI. Para ello quito conexiones
+        #directas entre los C2CI
+        #self.interface0.c2c_out_port = self.interface1.c2c_in_port
+        #self.interface1.c2c_out_port = self.interface0.c2c_in_port
+
+        #instancia el interposer
+        print(">>> antes de crear C2CInterposer", flush=True)
+        self.c2c_interposer = C2CInterposer(
+            clk_domain = board.get_clock_domain(),
+            req_latency = 5,
+            resp_latency = 5,
+            req_buffer_size = 2,
+            resp_buffer_size = 2,
+        )
+        print(">>> despues de crear C2CInterposer", flush=True)
+
+        print(">>> antes de conectar los puertos del interposer", flush=True)
+        # Camino interface0 -> interposer -> interface1
+        self.interface0.c2c_out_port = self.c2c_interposer.from_interface0_port
+        self.c2c_interposer.to_interface1_port = self.interface1.c2c_in_port
+
+        # Camino interface1 -> interposer -> interface0
+        self.interface1.c2c_out_port = self.c2c_interposer.from_interface1_port
+        self.c2c_interposer.to_interface0_port = self.interface0.c2c_in_port
+        print(">>> despues de conectar los puertos del interposer", flush=True)
+        #--------------------------------------------------
 
         # Downstream destinations
         self.interface0.downstream_destinations = self.hnf0
@@ -255,6 +290,7 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
 
         self.ruby_system.sys_port_proxy = RubyPortProxy()
         board.connect_system_port(self.ruby_system.sys_port_proxy.in_ports)
+        print(">>> ENTER incorporate_cache", flush=True)
 
     def _create_core_cluster(
         self, 

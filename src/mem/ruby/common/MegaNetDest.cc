@@ -21,13 +21,37 @@ MegaNetDest::MegaNetDest()
     resize();
 }
 
-// We use a quadratic formula to find the number of chips
-// from the number of chip-to-chip interfaces
-// This works only for point-to-point topologies 
+// NUEVO:
+// En la topología antigua punto a punto, se intentaba deducir el número
+// de chips usando una fórmula cuadrática a partir del número total de
+// interfaces C2C.
+//
+// Eso solo funcionaba cuando cada chip tenía una interface C2C por cada
+// chip remoto. Por ejemplo:
+//
+//   2 chips -> 2 interfaces
+//   3 chips -> 6 interfaces
+//   4 chips -> 12 interfaces
+//
+// Pero ahora la topología cambió: usamos un C2CInterposer central tipo
+// mux/router y una única Interface C2C por chip.
+//
+// En esta nueva topología:
+//
+//   Interface-0 -> chip 0
+//   Interface-1 -> chip 1
+//   Interface-2 -> chip 2
+//
+// Por tanto:
+//
+//   número de chips == número de interfaces C2C
+//
+// Si MachineType_base_count(MachineType_Interface) devuelve 3, entonces
+// MegaNetDest debe reservar espacio para chip 0, chip 1 y chip 2.
 static int 
 numChipsFromInterfaces(int numInterfaces)
 {
-    return (1 + std::sqrt(1 + 4 * numInterfaces)) / 2;
+    return numInterfaces;
 }
 
 // adding a single machine to a NetDest 
@@ -69,7 +93,7 @@ MegaNetDest::mergeMegaNetDest(int chipID, const MegaNetDest& mega)
 }
 
 NetDest
-MegaNetDest::extractNetDest(int chipID)
+MegaNetDest::extractNetDest(int chipID) const
 {
     int numInterfaces = MachineType_base_count(MachineType_Interface);
     int numChips = numChipsFromInterfaces(numInterfaces);

@@ -212,19 +212,19 @@ system = System(
     tgens0=[
         TrafficGen(
             #config_file="./m5out/lat_mem_rd_1.cfg",
-            config_file="./m5out/threads_1.cfg",
+            config_file="./m5out/lat_mem_rd_1.cfg",
             progress_check="10s",
         ),
         TrafficGen(
             #config_file="./m5out/lat_mem_rd_2.cfg",
-            config_file="./m5out/threads_2.cfg",
+            config_file="./m5out/lat_mem_rd_2.cfg",
             progress_check="10s",
         ),
     ],
     tgens1=[
         TrafficGen(
             #config_file="./m5out/lat_mem_rd_3.cfg",
-            config_file="./m5out/threads_3.cfg",
+            config_file="./m5out/lat_mem_rd_3.cfg",
             progress_check="10s",
         ),
     ],

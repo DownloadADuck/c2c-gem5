@@ -1,0 +1,191 @@
+#3  0x0000555556355599 in gem5::ruby::Cache_Controller::doTransition (this=0x55555d1ca000, event=gem5::ruby::Cache_Event_CompData_SC, m_cache_entry_ptr=0x0, m_tbe_ptr=0x55597e044410, addr=3144215680) at build/X86_CHI/mem/ruby/protocol/Cache_Transitions.cc:46
+#4  0x000055555635fe82 in gem5::ruby::Cache_Controller::wakeup (this=0x55555d1ca000) at build/X86_CHI/mem/ruby/protocol/Cache_Wakeup.cc:199
+#5  0x00005555563dad47 in gem5::ruby::Consumer::processCurrentEvent (this=0x55555d1ca100) at build/X86_CHI/mem/ruby/common/Consumer.cc:94
+#6  0x00005555563da7ff in operator() (__closure=0x55555d1ca170) at build/X86_CHI/mem/ruby/common/Consumer.cc:50
+#7  0x00005555563db0d4 in std::__invoke_impl<void, gem5::ruby::Consumer::Consumer(gem5::ClockedObject*, gem5::EventBase::Priority)::<lambda()>&>(std::__invoke_other, struct {...} &) (__f=...) at /usr/include/c++/11/bits/invoke.h:61
+#8  0x00005555563dafba in std::__invoke_r<void, gem5::ruby::Consumer::Consumer(gem5::ClockedObject*, gem5::EventBase::Priority)::<lambda()>&>(struct {...} &) (__fn=...) at /usr/include/c++/11/bits/invoke.h:111
+#9  0x00005555563daea8 in std::_Function_handler<void(), gem5::ruby::Consumer::Consumer(gem5::ClockedObject*, gem5::EventBase::Priority)::<lambda()> >::_M_invoke(const std::_Any_data &) (__functor=...) at /usr/include/c++/11/bits/std_function.h:290
+#10 0x00005555557d18ea in std::function<void ()>::operator()() const (this=0x55555d1ca170) at /usr/include/c++/11/bits/std_function.h:590
+#11 0x00005555558efdfa in gem5::EventFunctionWrapper::process (this=0x55555d1ca138) at build/X86_CHI/sim/eventq.hh:1141
+#12 0x00005555569ccd31 in gem5::EventQueue::serviceOne (this=0x555558cf2a20) at build/X86_CHI/sim/eventq.cc:228
+#13 0x00005555569f55c4 in gem5::doSimLoop (eventq=0x555558cf2a20) at build/X86_CHI/sim/simulate.cc:340
+#14 0x00005555569f503d in gem5::simulate (num_cycles=18446744073709551615) at build/X86_CHI/sim/simulate.cc:227
+#15 0x0000555555f0202e in pybind11::detail::argument_loader<unsigned long>::call_impl<gem5::GlobalSimLoopExitEvent*, gem5::GlobalSimLoopExitEvent* (*&)(unsigned long), 0ul, pybind11::detail::void_type>(gem5::GlobalSimLoopExitEvent* (*&)(unsigned long), std::integer_sequence<unsigned long, 0ul>, pybind11::detail::void_type&&) && (this=0x7fffffffd158, f=@0x555559399358: 0x5555569f4de8 <gem5::simulate(unsigned long)>) at ext/pybind11/include/pybind11/cast.h:1217
+#16 0x0000555555f0049e in pybind11::detail::argument_loader<unsigned long>::call<gem5::GlobalSimLoopExitEvent*, pybind11::detail::void_type, gem5::GlobalSimLoopExitEvent* (*&)(unsigned long)>(gem5::GlobalSimLoopExitEvent* (*&)(unsigned long)) && (this=0x7fffffffd158, f=@0x555559399358: 0x5555569f4de8 <gem5::simulate(unsigned long)>) at ext/pybind11/include/pybind11/cast.h:1189
+#17 0x0000555555efc427 in pybind11::cpp_function::initialize<gem5::GlobalSimLoopExitEvent* (*&)(unsigned long), gem5::GlobalSimLoopExitEvent*, unsigned long, pybind11::name, pybind11::scope, pybind11::sibling, pybind11::arg_v>(gem5::GlobalSimLoopExitEvent* (*&)(unsigned long), gem5::GlobalSimLoopExitEvent* (*)(unsigned long), pybind11::name const&, pybind11::scope const&, pybind11::sibling const&, pybind11::arg_v const&)::{lambda(pybind11::detail::function_call&)#3}::operator()(pybind11::detail::function_call&) const (__closure=0x0, call=...) at ext/pybind11/include/pybind11/pybind11.h:233
+#18 0x0000555555efc492 in pybind11::cpp_function::initialize<gem5::GlobalSimLoopExitEvent* (*&)(unsigned long), gem5::GlobalSimLoopExitEvent*, unsigned long, pybind11::name, pybind11::scope, pybind11::sibling, pybind11::arg_v>(gem5::GlobalSimLoopExitEvent* (*&)(unsigned long), gem5::GlobalSimLoopExitEvent* (*)(unsigned long), pybind11::name const&, pybind11::scope const&, pybind11::sibling const&, pybind11::arg_v const&)::{lambda(pybind11::detail::function_call&)#3}::_FUN(pybind11::detail::function_call&) () at ext/pybind11/include/pybind11/pybind11.h:210
+#19 0x0000555555753fa7 in pybind11::cpp_function::dispatcher (self=0x7ffff4ca5bc0, args_in=0x7ffff434f9d0, kwargs_in=0x7ffff3d2ab40) at ext/pybind11/include/pybind11/pybind11.h:814
+
+
+========== BREAK outgoingTransactionEnd ==========
+addr = 0xbc829000
+retried = 0
+isAddressed = 1
+curTick = 3671071960626
+controller this = 0x55555f64c000
+controller name = board.cache_hierarchy.core_cluster2.l2cache
+m_outTransAddressed.size = 1
+m_outTransUnaddressed.size = 0
+#0  gem5::ruby::AbstractController::outgoingTransactionEnd (this=0x55555f64c000, addr=3162673152, retried=false, isAddressed=true) at build/X86_CHI/mem/ruby/slicc_interface/AbstractController.hh:388
+#1  0x000055555630669f in gem5::ruby::Cache_Controller::Profile_OutgoingEnd_DataResp (this=0x55555f64c000, m_tbe_ptr=@0x7fffffffca90: 0x55597e044410, m_cache_entry_ptr=@0x7fffffffca98: 0x0, addr=3162673152) at build/X86_CHI/mem/ruby/protocol/Cache_Controller.cc:9498
+#2  0x000055555635bbf4 in gem5::ruby::Cache_Controller::doTransitionWorker (this=0x55555f64c000, event=gem5::ruby::Cache_Event_CompData_SC, state=gem5::ruby::Cache_State_BUSY_BLKD, next_state=@0x7fffffffcac0: gem5::ruby::Cache_State_BUSY_BLKD, m_tbe_ptr=@0x7fffffffca90: 0x55597e044410, m_cache_entry_ptr=@0x7fffffffca98: 0x0, addr=3162673152) at build/X86_CHI/mem/ruby/protocol/Cache_Transitions.cc:1983
+#3  0x0000555556355599 in gem5::ruby::Cache_Controller::doTransition (this=0x55555f64c000, event=gem5::ruby::Cache_Event_CompData_SC, m_cache_entry_ptr=0x0, m_tbe_ptr=0x55597e044410, addr=3162673152) at build/X86_CHI/mem/ruby/protocol/Cache_Transitions.cc:46
+#4  0x000055555635fe82 in gem5::ruby::Cache_Controller::wakeup (this=0x55555f64c000) at build/X86_CHI/mem/ruby/protocol/Cache_Wakeup.cc:199
+#5  0x00005555563dad47 in gem5::ruby::Consumer::processCurrentEvent (this=0x55555f64c100) at build/X86_CHI/mem/ruby/common/Consumer.cc:94
+#6  0x00005555563da7ff in operator() (__closure=0x55555f64c170) at build/X86_CHI/mem/ruby/common/Consumer.cc:50
+#7  0x00005555563db0d4 in std::__invoke_impl<void, gem5::ruby::Consumer::Consumer(gem5::ClockedObject*, gem5::EventBase::Priority)::<lambda()>&>(std::__invoke_other, struct {...} &) (__f=...) at /usr/include/c++/11/bits/invoke.h:61
+#8  0x00005555563dafba in std::__invoke_r<void, gem5::ruby::Consumer::Consumer(gem5::ClockedObject*, gem5::EventBase::Priority)::<lambda()>&>(struct {...} &) (__fn=...) at /usr/include/c++/11/bits/invoke.h:111
+#9  0x00005555563daea8 in std::_Function_handler<void(), gem5::ruby::Consumer::Consumer(gem5::ClockedObject*, gem5::EventBase::Priority)::<lambda()> >::_M_invoke(const std::_Any_data &) (__functor=...) at /usr/include/c++/11/bits/std_function.h:290
+#10 0x00005555557d18ea in std::function<void ()>::operator()() const (this=0x55555f64c170) at /usr/include/c++/11/bits/std_function.h:590
+#11 0x00005555558efdfa in gem5::EventFunctionWrapper::process (this=0x55555f64c138) at build/X86_CHI/sim/eventq.hh:1141
+#12 0x00005555569ccd31 in gem5::EventQueue::serviceOne (this=0x555558cf2a20) at build/X86_CHI/sim/eventq.cc:228
+#13 0x00005555569f55c4 in gem5::doSimLoop (eventq=0x555558cf2a20) at build/X86_CHI/sim/simulate.cc:340
+#14 0x00005555569f503d in gem5::simulate (num_cycles=18446744073709551615) at build/X86_CHI/sim/simulate.cc:227
+#15 0x0000555555f0202e in pybind11::detail::argument_loader<unsigned long>::call_impl<gem5::GlobalSimLoopExitEvent*, gem5::GlobalSimLoopExitEvent* (*&)(unsigned long), 0ul, pybind11::detail::void_type>(gem5::GlobalSimLoopExitEvent* (*&)(unsigned long), std::integer_sequence<unsigned long, 0ul>, pybind11::detail::void_type&&) && (this=0x7fffffffd158, f=@0x555559399358: 0x5555569f4de8 <gem5::simulate(unsigned long)>) at ext/pybind11/include/pybind11/cast.h:1217
+#16 0x0000555555f0049e in pybind11::detail::argument_loader<unsigned long>::call<gem5::GlobalSimLoopExitEvent*, pybind11::detail::void_type, gem5::GlobalSimLoopExitEvent* (*&)(unsigned long)>(gem5::GlobalSimLoopExitEvent* (*&)(unsigned long)) && (this=0x7fffffffd158, f=@0x555559399358: 0x5555569f4de8 <gem5::simulate(unsigned long)>) at ext/pybind11/include/pybind11/cast.h:1189
+#17 0x0000555555efc427 in pybind11::cpp_function::initialize<gem5::GlobalSimLoopExitEvent* (*&)(unsigned long), gem5::GlobalSimLoopExitEvent*, unsigned long, pybind11::name, pybind11::scope, pybind11::sibling, pybind11::arg_v>(gem5::GlobalSimLoopExitEvent* (*&)(unsigned long), gem5::GlobalSimLoopExitEvent* (*)(unsigned long), pybind11::name const&, pybind11::scope const&, pybind11::sibling const&, pybind11::arg_v const&)::{lambda(pybind11::detail::function_call&)#3}::operator()(pybind11::detail::function_call&) const (__closure=0x0, call=...) at ext/pybind11/include/pybind11/pybind11.h:233
+#18 0x0000555555efc492 in pybind11::cpp_function::initialize<gem5::GlobalSimLoopExitEvent* (*&)(unsigned long), gem5::GlobalSimLoopExitEvent*, unsigned long, pybind11::name, pybind11::scope, pybind11::sibling, pybind11::arg_v>(gem5::GlobalSimLoopExitEvent* (*&)(unsigned long), gem5::GlobalSimLoopExitEvent* (*)(unsigned long), pybind11::name const&, pybind11::scope const&, pybind11::sibling const&, pybind11::arg_v const&)::{lambda(pybind11::detail::function_call&)#3}::_FUN(pybind11::detail::function_call&) () at ext/pybind11/include/pybind11/pybind11.h:210
+#19 0x0000555555753fa7 in pybind11::cpp_function::dispatcher (self=0x7ffff4ca5bc0, args_in=0x7ffff434f9d0, kwargs_in=0x7ffff3d2ab40) at ext/pybind11/include/pybind11/pybind11.h:814
+
+
+========== BREAK outgoingTransactionEnd ==========
+addr = 0xbc829000
+retried = 0
+isAddressed = 1
+curTick = 3671071962291
+controller this = 0x55555f64c000
+controller name = board.cache_hierarchy.core_cluster2.l2cache
+m_outTransAddressed.size = 0
+m_outTransUnaddressed.size = 0
+#0  gem5::ruby::AbstractController::outgoingTransactionEnd (this=0x55555f64c000, addr=3162673152, retried=false, isAddressed=true) at build/X86_CHI/mem/ruby/slicc_interface/AbstractController.hh:388
+#1  0x000055555630669f in gem5::ruby::Cache_Controller::Profile_OutgoingEnd_DataResp (this=0x55555f64c000, m_tbe_ptr=@0x7fffffffca90: 0x55597e044410, m_cache_entry_ptr=@0x7fffffffca98: 0x0, addr=3162673152) at build/X86_CHI/mem/ruby/protocol/Cache_Controller.cc:9498
+#2  0x000055555635bbf4 in gem5::ruby::Cache_Controller::doTransitionWorker (this=0x55555f64c000, event=gem5::ruby::Cache_Event_CompData_SC, state=gem5::ruby::Cache_State_BUSY_BLKD, next_state=@0x7fffffffcac0: gem5::ruby::Cache_State_BUSY_BLKD, m_tbe_ptr=@0x7fffffffca90: 0x55597e044410, m_cache_entry_ptr=@0x7fffffffca98: 0x0, addr=3162673152) at build/X86_CHI/mem/ruby/protocol/Cache_Transitions.cc:1983
+#3  0x0000555556355599 in gem5::ruby::Cache_Controller::doTransition (this=0x55555f64c000, event=gem5::ruby::Cache_Event_CompData_SC, m_cache_entry_ptr=0x0, m_tbe_ptr=0x55597e044410, addr=3162673152) at build/X86_CHI/mem/ruby/protocol/Cache_Transitions.cc:46
+#4  0x000055555635fe82 in gem5::ruby::Cache_Controller::wakeup (this=0x55555f64c000) at build/X86_CHI/mem/ruby/protocol/Cache_Wakeup.cc:199
+#5  0x00005555563dad47 in gem5::ruby::Consumer::processCurrentEvent (this=0x55555f64c100) at build/X86_CHI/mem/ruby/common/Consumer.cc:94
+#6  0x00005555563da7ff in operator() (__closure=0x55555f64c170) at build/X86_CHI/mem/ruby/common/Consumer.cc:50
+#7  0x00005555563db0d4 in std::__invoke_impl<void, gem5::ruby::Consumer::Consumer(gem5::ClockedObject*, gem5::EventBase::Priority)::<lambda()>&>(std::__invoke_other, struct {...} &) (__f=...) at /usr/include/c++/11/bits/invoke.h:61
+#8  0x00005555563dafba in std::__invoke_r<void, gem5::ruby::Consumer::Consumer(gem5::ClockedObject*, gem5::EventBase::Priority)::<lambda()>&>(struct {...} &) (__fn=...) at /usr/include/c++/11/bits/invoke.h:111
+#9  0x00005555563daea8 in std::_Function_handler<void(), gem5::ruby::Consumer::Consumer(gem5::ClockedObject*, gem5::EventBase::Priority)::<lambda()> >::_M_invoke(const std::_Any_data &) (__functor=...) at /usr/include/c++/11/bits/std_function.h:290
+#10 0x00005555557d18ea in std::function<void ()>::operator()() const (this=0x55555f64c170) at /usr/include/c++/11/bits/std_function.h:590
+#11 0x00005555558efdfa in gem5::EventFunctionWrapper::process (this=0x55555f64c138) at build/X86_CHI/sim/eventq.hh:1141
+#12 0x00005555569ccd31 in gem5::EventQueue::serviceOne (this=0x555558cf2a20) at build/X86_CHI/sim/eventq.cc:228
+#13 0x00005555569f55c4 in gem5::doSimLoop (eventq=0x555558cf2a20) at build/X86_CHI/sim/simulate.cc:340
+#14 0x00005555569f503d in gem5::simulate (num_cycles=18446744073709551615) at build/X86_CHI/sim/simulate.cc:227
+#15 0x0000555555f0202e in pybind11::detail::argument_loader<unsigned long>::call_impl<gem5::GlobalSimLoopExitEvent*, gem5::GlobalSimLoopExitEvent* (*&)(unsigned long), 0ul, pybind11::detail::void_type>(gem5::GlobalSimLoopExitEvent* (*&)(unsigned long), std::integer_sequence<unsigned long, 0ul>, pybind11::detail::void_type&&) && (this=0x7fffffffd158, f=@0x555559399358: 0x5555569f4de8 <gem5::simulate(unsigned long)>) at ext/pybind11/include/pybind11/cast.h:1217
+#16 0x0000555555f0049e in pybind11::detail::argument_loader<unsigned long>::call<gem5::GlobalSimLoopExitEvent*, pybind11::detail::void_type, gem5::GlobalSimLoopExitEvent* (*&)(unsigned long)>(gem5::GlobalSimLoopExitEvent* (*&)(unsigned long)) && (this=0x7fffffffd158, f=@0x555559399358: 0x5555569f4de8 <gem5::simulate(unsigned long)>) at ext/pybind11/include/pybind11/cast.h:1189
+#17 0x0000555555efc427 in pybind11::cpp_function::initialize<gem5::GlobalSimLoopExitEvent* (*&)(unsigned long), gem5::GlobalSimLoopExitEvent*, unsigned long, pybind11::name, pybind11::scope, pybind11::sibling, pybind11::arg_v>(gem5::GlobalSimLoopExitEvent* (*&)(unsigned long), gem5::GlobalSimLoopExitEvent* (*)(unsigned long), pybind11::name const&, pybind11::scope const&, pybind11::sibling const&, pybind11::arg_v const&)::{lambda(pybind11::detail::function_call&)#3}::operator()(pybind11::detail::function_call&) const (__closure=0x0, call=...) at ext/pybind11/include/pybind11/pybind11.h:233
+#18 0x0000555555efc492 in pybind11::cpp_function::initialize<gem5::GlobalSimLoopExitEvent* (*&)(unsigned long), gem5::GlobalSimLoopExitEvent*, unsigned long, pybind11::name, pybind11::scope, pybind11::sibling, pybind11::arg_v>(gem5::GlobalSimLoopExitEvent* (*&)(unsigned long), gem5::GlobalSimLoopExitEvent* (*)(unsigned long), pybind11::name const&, pybind11::scope const&, pybind11::sibling const&, pybind11::arg_v const&)::{lambda(pybind11::detail::function_call&)#3}::_FUN(pybind11::detail::function_call&) () at ext/pybind11/include/pybind11/pybind11.h:210
+#19 0x0000555555753fa7 in pybind11::cpp_function::dispatcher (self=0x7ffff4ca5bc0, args_in=0x7ffff434f9d0, kwargs_in=0x7ffff3d2ab40) at ext/pybind11/include/pybind11/pybind11.h:814
+
+Program received signal SIGABRT, Aborted.
+__pthread_kill_implementation (no_tid=0, signo=6, threadid=140737331260032) at ./nptl/pthread_kill.c:44
+44	./nptl/pthread_kill.c: No such file or directory.
+
+
+========== PROGRAM STOPPED ==========
+#0  __pthread_kill_implementation (no_tid=0, signo=6, threadid=140737331260032) at ./nptl/pthread_kill.c:44
+        tid = <optimized out>
+        ret = 0
+        pd = 0x7ffff6a2ea80
+        old_mask = {
+          __val = {0, 0, 0, 0, 0, 0, 140733193388040, 140737488340448, 140737331244448, 0, 140737488290080, 140737488340280, 140737331242944, 140737331242832, 140737331242848, 3432}
+        }
+        ret = <optimized out>
+        pd = <optimized out>
+        old_mask = <optimized out>
+        ret = <optimized out>
+        tid = <optimized out>
+        ret = <optimized out>
+        resultvar = <optimized out>
+        resultvar = <optimized out>
+        __arg3 = <optimized out>
+        __arg2 = <optimized out>
+        __arg1 = <optimized out>
+        _a3 = <optimized out>
+        _a2 = <optimized out>
+        _a1 = <optimized out>
+        __futex = <optimized out>
+        resultvar = <optimized out>
+        __arg3 = <optimized out>
+        __arg2 = <optimized out>
+        __arg1 = <optimized out>
+        _a3 = <optimized out>
+        _a2 = <optimized out>
+        _a1 = <optimized out>
+        __futex = <optimized out>
+        __private = <optimized out>
+        __oldval = <optimized out>
+        result = <optimized out>
+#1  __pthread_kill_internal (signo=6, threadid=140737331260032) at ./nptl/pthread_kill.c:78
+No locals.
+#2  __GI___pthread_kill (threadid=140737331260032, signo=signo@entry=6) at ./nptl/pthread_kill.c:89
+No locals.
+#3  0x00007ffff6442476 in __GI_raise (sig=sig@entry=6) at ../sysdeps/posix/raise.c:26
+        ret = <optimized out>
+#4  0x00007ffff64287f3 in __GI_abort () at ./stdlib/abort.c:79
+        save_stage = 1
+        act = {
+          __sigaction_handler = {
+            sa_handler = 0x0,
+            sa_sigaction = 0x0
+          },
+          sa_mask = {
+            __val = {0 <repeats 13 times>, 8, 140737488340848, 140737331244448}
+          },
+          sa_flags = 0,
+          sa_restorer = 0x7fffffff0000
+        }
+        sigs = {
+          __val = {32, 24, 93825068530432, 16, 512, 29113321720870005, 140737331197008, 6, 0, 4098, 0, 0, 0, 0, 0, 0}
+        }
+#5  0x000055555578baa2 in gem5::Logger::exit_helper (this=0x55597e733180) at build/X86_CHI/base/logging.hh:125
+No locals.
+#6  0x0000555556317837 in gem5::ruby::AbstractController::outgoingTransactionEnd (this=0x55555f64c000, addr=3162673152, retried=false, isAddressed=true) at build/X86_CHI/mem/ruby/slicc_interface/AbstractController.hh:422
+        printed = 0
+        m_outTrans = std::unordered_map with 0 elements
+        iter = {
+          <std::__detail::_Node_iterator_base<std::pair<unsigned long const, gem5::ruby::AbstractController::TransMapPair>, false>> = {
+            _M_cur = 0x0
+          }, <No data fields>}
+#7  0x000055555630669f in gem5::ruby::Cache_Controller::Profile_OutgoingEnd_DataResp (this=0x55555f64c000, m_tbe_ptr=@0x7fffffffca90: 0x55597e044410, m_cache_entry_ptr=@0x7fffffffca98: 0x0, addr=3162673152) at build/X86_CHI/mem/ruby/protocol/Cache_Controller.cc:9498
+No locals.
+#8  0x000055555635bbf4 in gem5::ruby::Cache_Controller::doTransitionWorker (this=0x55555f64c000, event=gem5::ruby::Cache_Event_CompData_SC, state=gem5::ruby::Cache_State_BUSY_BLKD, next_state=@0x7fffffffcac0: gem5::ruby::Cache_State_BUSY_BLKD, m_tbe_ptr=@0x7fffffffca90: 0x55597e044410, m_cache_entry_ptr=@0x7fffffffca98: 0x0, addr=3162673152) at build/X86_CHI/mem/ruby/protocol/Cache_Transitions.cc:1983
+No locals.
+#9  0x0000555556355599 in gem5::ruby::Cache_Controller::doTransition (this=0x55555f64c000, event=gem5::ruby::Cache_Event_CompData_SC, m_cache_entry_ptr=0x0, m_tbe_ptr=0x55597e044410, addr=3162673152) at build/X86_CHI/mem/ruby/protocol/Cache_Transitions.cc:46
+        state = gem5::ruby::Cache_State_BUSY_BLKD
+        next_state = gem5::ruby::Cache_State_BUSY_BLKD
+        result = gem5::ruby::TransitionResult_FIRST
+#10 0x000055555635fe82 in gem5::ruby::Cache_Controller::wakeup (this=0x55555f64c000) at build/X86_CHI/mem/ruby/protocol/Cache_Wakeup.cc:199
+        result = gem5::ruby::TransitionResult_FIRST
+        in_msg_ptr = 0x55597ddcbe10
+        rejected = '\000' <repeats 11 times>
+        counter = 0
+        __PRETTY_FUNCTION__ = "virtual void gem5::ruby::Cache_Controller::wakeup()"
+#11 0x00005555563dad47 in gem5::ruby::Consumer::processCurrentEvent (this=0x55555f64c100) at build/X86_CHI/mem/ruby/common/Consumer.cc:94
+        curr = 7017508084586279525
+        __PRETTY_FUNCTION__ = "void gem5::ruby::Consumer::processCurrentEvent()"
+#12 0x00005555563da7ff in operator() (__closure=0x55555f64c170) at build/X86_CHI/mem/ruby/common/Consumer.cc:50
+        this = 0x55555f64c100
+#13 0x00005555563db0d4 in std::__invoke_impl<void, gem5::ruby::Consumer::Consumer(gem5::ClockedObject*, gem5::EventBase::Priority)::<lambda()>&>(std::__invoke_other, struct {...} &) (__f=...) at /usr/include/c++/11/bits/invoke.h:61
+No locals.
+#14 0x00005555563dafba in std::__invoke_r<void, gem5::ruby::Consumer::Consumer(gem5::ClockedObject*, gem5::EventBase::Priority)::<lambda()>&>(struct {...} &) (__fn=...) at /usr/include/c++/11/bits/invoke.h:111
+No locals.
+#15 0x00005555563daea8 in std::_Function_handler<void(), gem5::ruby::Consumer::Consumer(gem5::ClockedObject*, gem5::EventBase::Priority)::<lambda()> >::_M_invoke(const std::_Any_data &) (__functor=...) at /usr/include/c++/11/bits/std_function.h:290
+No locals.
+#16 0x00005555557d18ea in std::function<void ()>::operator()() const (this=0x55555f64c170) at /usr/include/c++/11/bits/std_function.h:590
+No locals.
+#17 0x00005555558efdfa in gem5::EventFunctionWrapper::process (this=0x55555f64c138) at build/X86_CHI/sim/eventq.hh:1141
+No locals.
+#18 0x00005555569ccd31 in gem5::EventQueue::serviceOne (this=0x555558cf2a20) at build/X86_CHI/sim/eventq.cc:228
+        lock = {
+          _M_device = @0x555558cf2a20
+        }
+        event = 0x55555f64c138
+        next = 0x555559aac938
+        __PRETTY_FUNCTION__ = "gem5::Event* gem5::EventQueue::serviceOne()"
+#19 0x00005555569f55c4 in gem5::doSimLoop (eventq=0x555558cf2a20) at build/X86_CHI/sim/simulate.cc:340
+        exit_event = 0x0
+        __PRETTY_FUNCTION__ = "gem5::Event* gem5::doSimLoop(gem5::EventQueue*)"
+#20 0x00005555569f503d in gem5::simulate (num_cycles=18446744073709551615) at build/X86_CHI/sim/simulate.cc:227
+        quantum_event = std::unique_ptr<gem5::GlobalSyncEvent> = {
