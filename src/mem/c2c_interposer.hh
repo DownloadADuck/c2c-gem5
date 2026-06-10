@@ -217,7 +217,6 @@ class C2CInterposer : public ClockedObject
     // Routing.
     int routeRequest(PacketPtr pkt, int srcSide) const;
     int routeResponse(PacketPtr pkt, int responderSide) const;
-    int routeAckLikeSlicc(PacketPtr pkt, int responderSide) const;
     int routeByDestinationField(PacketPtr pkt, int incomingSide) const;
     int routeByAddress(PacketPtr pkt, int incomingSide) const;
     int routeByC2cDestination(PacketPtr pkt, int srcSide) const;

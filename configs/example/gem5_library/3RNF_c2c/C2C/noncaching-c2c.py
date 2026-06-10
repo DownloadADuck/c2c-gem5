@@ -94,6 +94,7 @@ print("Checkpoint 3: memory created", flush=True)
 # Switchable KVM -> timing
 processor = SimpleSwitchableProcessor(
     starting_core_type=CPUTypes.NONCACHING_SIMPLE,
+    #starting_core_type=CPUTypes.KVM,
     switch_core_type=CPUTypes.TIMING,
     isa=ISA.X86,
     num_cores=3,

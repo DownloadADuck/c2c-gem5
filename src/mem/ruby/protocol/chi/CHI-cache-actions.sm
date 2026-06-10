@@ -253,13 +253,6 @@ action(Initiate_Request, desc="") {
   bool was_retried := false;
   peek(reqRdyPort, CHIRequestMsg) {
     set_tbe(allocateRequestTBE(address, in_msg));
-    // ---------------- NUEVO: preserve explicit C2C route metadata --------
-    tbe.routeSrcChip := in_msg.c2c_route_src_chip;
-    tbe.routeDestChip := in_msg.c2c_route_dest_chip;
-    DPRINTF(RubySlicc, "DBG_CACHE_TBE_ROUTE_REQ addr=%#x\n", address);
-    DPRINTF(RubySlicc, "DBG_CACHE_TBE_ROUTE_REQ srcChip=%d\n", tbe.routeSrcChip);
-    DPRINTF(RubySlicc, "DBG_CACHE_TBE_ROUTE_REQ destChip=%d\n", tbe.routeDestChip);
-    // ---------------- FIN NUEVO -----------------------------------------
     // only a msg that was already retried doesn't allow a retry
     was_retried := in_msg.allowRetry == false;
   }
@@ -300,13 +293,6 @@ action(Initiate_Request_Stale, desc="") {
   bool was_retried := false;
   peek(reqRdyPort, CHIRequestMsg) {
     set_tbe(allocateRequestTBE(address, in_msg));
-    // ---------------- NUEVO: preserve explicit C2C route metadata --------
-    tbe.routeSrcChip := in_msg.c2c_route_src_chip;
-    tbe.routeDestChip := in_msg.c2c_route_dest_chip;
-    DPRINTF(RubySlicc, "DBG_CACHE_TBE_ROUTE_REQ_STALE addr=%#x\n", address);
-    DPRINTF(RubySlicc, "DBG_CACHE_TBE_ROUTE_REQ_STALE srcChip=%d\n", tbe.routeSrcChip);
-    DPRINTF(RubySlicc, "DBG_CACHE_TBE_ROUTE_REQ_STALE destChip=%d\n", tbe.routeDestChip);
-    // ---------------- FIN NUEVO -----------------------------------------
     was_retried := in_msg.allowRetry == false;
   }
   copyCacheAndDir(cache_entry, getDirEntry(address), tbe, initial);
@@ -328,13 +314,6 @@ action(Initiate_Snoop, desc="") {
   State initial := getState(tbe, cache_entry, address);
   peek(snpRdyPort, CHIRequestMsg) {
     set_tbe(allocateSnoopTBE(address, in_msg));
-    // ---------------- NUEVO: preserve explicit C2C route metadata --------
-    tbe.routeSrcChip := in_msg.c2c_route_src_chip;
-    tbe.routeDestChip := in_msg.c2c_route_dest_chip;
-    DPRINTF(RubySlicc, "DBG_CACHE_TBE_ROUTE_SNP addr=%#x\n", address);
-    DPRINTF(RubySlicc, "DBG_CACHE_TBE_ROUTE_SNP srcChip=%d\n", tbe.routeSrcChip);
-    DPRINTF(RubySlicc, "DBG_CACHE_TBE_ROUTE_SNP destChip=%d\n", tbe.routeDestChip);
-    // ---------------- FIN NUEVO -----------------------------------------
   }
   copyCacheAndDir(cache_entry, getDirEntry(address), tbe, initial);
 
@@ -355,13 +334,6 @@ action(Initiate_Snoop_Hazard, desc="") {
   TBE prev_tbe := tbe;
   peek(snpRdyPort, CHIRequestMsg) {
     set_tbe(allocateSnoopTBE(address, in_msg));
-    // ---------------- NUEVO: preserve explicit C2C route metadata --------
-    tbe.routeSrcChip := in_msg.c2c_route_src_chip;
-    tbe.routeDestChip := in_msg.c2c_route_dest_chip;
-    DPRINTF(RubySlicc, "DBG_CACHE_TBE_ROUTE_SNP_HAZARD addr=%#x\n", address);
-    DPRINTF(RubySlicc, "DBG_CACHE_TBE_ROUTE_SNP_HAZARD srcChip=%d\n", tbe.routeSrcChip);
-    DPRINTF(RubySlicc, "DBG_CACHE_TBE_ROUTE_SNP_HAZARD destChip=%d\n", tbe.routeDestChip);
-    // ---------------- FIN NUEVO -----------------------------------------
   }
   assert(tbe.is_snp_tbe);
   if (prev_tbe.is_req_tbe) {
@@ -2004,43 +1976,6 @@ action(Receive_ReqDataResp, desc="") {
   assert(is_valid(tbe));
   assert(tbe.expected_req_resp.hasExpected());
   peek(datInPort, CHIDataMsg) {
-        // ---------------- NUEVO: actualizar ruta C2C desde CHIDataMsg entrante ---
-    // Este TBE puede haber sido creado antes por una request local. Cuando
-    // llega data/CompData desde C2C, guardamos el chip que originó ese mensaje
-    // para que Send_CompAck pueda devolver el ACK al chip correcto.
-    //
-    // Caso ideal:
-    //   in_msg.c2c_route_src_chip ya viene rellenado por la Interface C2C.
-    //
-    // Caso observado en los logs:
-    //   in_msg.c2c_route_src_chip == -1
-    //   pero el CHIDataMsg sí tiene responder, por ejemplo Cache-14.
-    //   En ese caso inferimos el chip remoto desde in_msg.responder usando
-    //   mapMachineIDToChipID(), que ya existe en CHI-cache-funcs.sm.
-    int dataSrcChip := in_msg.c2c_route_src_chip;
-
-    if (dataSrcChip < 0) {
-      dataSrcChip := mapMachineIDToChipID(in_msg.responder);
-      DPRINTF(RubySlicc, "DBG_CACHE_UPDATE_ROUTE_FROM_DATA_FALLBACK addr=%#x\n", address);
-      DPRINTF(RubySlicc, "DBG_CACHE_UPDATE_ROUTE_FROM_DATA_FALLBACK responder=%s\n", in_msg.responder);
-      DPRINTF(RubySlicc, "DBG_CACHE_UPDATE_ROUTE_FROM_DATA_FALLBACK inferredSrcChip=%d\n", dataSrcChip);
-    }
-
-    if (dataSrcChip >= 0) {
-      tbe.routeSrcChip := dataSrcChip;
-    }
-
-    if (in_msg.c2c_route_dest_chip >= 0) {
-      tbe.routeDestChip := in_msg.c2c_route_dest_chip;
-    }
-
-    DPRINTF(RubySlicc, "DBG_CACHE_UPDATE_ROUTE_FROM_DATA addr=%#x\n", address);
-    DPRINTF(RubySlicc, "DBG_CACHE_UPDATE_ROUTE_FROM_DATA msgSrcChip=%d\n", in_msg.c2c_route_src_chip);
-    DPRINTF(RubySlicc, "DBG_CACHE_UPDATE_ROUTE_FROM_DATA msgDestChip=%d\n", in_msg.c2c_route_dest_chip);
-    DPRINTF(RubySlicc, "DBG_CACHE_UPDATE_ROUTE_FROM_DATA finalSrcChip=%d\n", tbe.routeSrcChip);
-    DPRINTF(RubySlicc, "DBG_CACHE_UPDATE_ROUTE_FROM_DATA finalDestChip=%d\n", tbe.routeDestChip);
-    // ---------------- FIN NUEVO ------------------------------------------------
-
     // Decrement pending
     if (tbe.expected_req_resp.receiveData(in_msg.type) == false) {
       error("Received unexpected message");
@@ -2103,21 +2038,6 @@ action(Receive_SnpDataResp, desc="") {
   assert(is_valid(tbe));
   assert(tbe.expected_snp_resp.hasExpected());
   peek(datInPort, CHIDataMsg) {
-    // ---------------- NUEVO: actualizar ruta C2C desde CHIDataMsg entrante ---
-    // Este TBE puede haber sido creado antes por una request local. Cuando
-    // llega data/CompData desde C2C, guardamos el chip que originó ese mensaje
-    // para que Send_CompAck pueda devolver el ACK al chip correcto.
-    if (in_msg.c2c_route_src_chip >= 0) {
-      tbe.routeSrcChip := in_msg.c2c_route_src_chip;
-    }
-    if (in_msg.c2c_route_dest_chip >= 0) {
-      tbe.routeDestChip := in_msg.c2c_route_dest_chip;
-    }
-    DPRINTF(RubySlicc, "DBG_CACHE_UPDATE_ROUTE_FROM_SNPDATA addr=%#x\n", address);
-    DPRINTF(RubySlicc, "DBG_CACHE_UPDATE_ROUTE_FROM_SNPDATA srcChip=%d\n", tbe.routeSrcChip);
-    DPRINTF(RubySlicc, "DBG_CACHE_UPDATE_ROUTE_FROM_SNPDATA destChip=%d\n", tbe.routeDestChip);
-    // ---------------- FIN NUEVO ------------------------------------------------
-
     // Decrement pending
     if (tbe.expected_snp_resp.receiveData(in_msg.type) == false) {
       error("Received unexpected message");
@@ -2148,20 +2068,6 @@ action(UpdateDirState_FromReqDataResp, desc="") {
   if (tbe.expected_req_resp.hasReceivedData()) {
     assert(tbe.dataBlkValid.isFull());
     peek(datInPort, CHIDataMsg) {
-    // ---------------- NUEVO: actualizar ruta C2C desde CHIDataMsg entrante ---
-    // También actualizamos aquí por si la acción de actualización de directorio
-    // consume el CHIDataMsg que transporta la metadata explícita C2C.
-    if (in_msg.c2c_route_src_chip >= 0) {
-      tbe.routeSrcChip := in_msg.c2c_route_src_chip;
-    }
-    if (in_msg.c2c_route_dest_chip >= 0) {
-      tbe.routeDestChip := in_msg.c2c_route_dest_chip;
-    }
-    DPRINTF(RubySlicc, "DBG_CACHE_UPDATE_ROUTE_FROM_DIRDATA addr=%#x\n", address);
-    DPRINTF(RubySlicc, "DBG_CACHE_UPDATE_ROUTE_FROM_DIRDATA srcChip=%d\n", tbe.routeSrcChip);
-    DPRINTF(RubySlicc, "DBG_CACHE_UPDATE_ROUTE_FROM_DIRDATA destChip=%d\n", tbe.routeDestChip);
-    // ---------------- FIN NUEVO ------------------------------------------------
-
 
       if (in_msg.type == CHIDataType:CBWrData_UC) {
         if (is_multiChip) {
@@ -2522,21 +2428,6 @@ action(UpdateDataState_FromSnpDataResp, desc="") {
 
 action(UpdateDirState_FromReqResp, desc="") {
   peek(rspInPort, CHIResponseMsg) {
-    // ---------------- NUEVO: actualizar ruta C2C desde CHIResponseMsg entrante ---
-    // Este TBE puede haber sido creado antes por una request local. Cuando
-    // llega una response desde C2C, preservamos el chip origen para posibles
-    // ACKs posteriores asociados a la misma transacción.
-    if (in_msg.c2c_route_src_chip >= 0) {
-      tbe.routeSrcChip := in_msg.c2c_route_src_chip;
-    }
-    if (in_msg.c2c_route_dest_chip >= 0) {
-      tbe.routeDestChip := in_msg.c2c_route_dest_chip;
-    }
-    DPRINTF(RubySlicc, "DBG_CACHE_UPDATE_ROUTE_FROM_DIRRESP addr=%#x\n", address);
-    DPRINTF(RubySlicc, "DBG_CACHE_UPDATE_ROUTE_FROM_DIRRESP srcChip=%d\n", tbe.routeSrcChip);
-    DPRINTF(RubySlicc, "DBG_CACHE_UPDATE_ROUTE_FROM_DIRRESP destChip=%d\n", tbe.routeDestChip);
-    // ---------------- FIN NUEVO -------------------------------------------------
-
     if ((in_msg.type == CHIResponseType:CompAck) && tbe.updateDirOnCompAck) {
       assert(tbe.requestor == in_msg.responder);
       if (is_multiChip) {
@@ -2578,21 +2469,6 @@ action(UpdateDirState_FromReqResp, desc="") {
 
 action(UpdateDirState_FromSnpResp, desc="") {
   peek(rspInPort, CHIResponseMsg) {
-    // ---------------- NUEVO: actualizar ruta C2C desde CHIResponseMsg entrante ---
-    // Este TBE puede haber sido creado antes por una request local. Cuando
-    // llega una response desde C2C, preservamos el chip origen para posibles
-    // ACKs posteriores asociados a la misma transacción.
-    if (in_msg.c2c_route_src_chip >= 0) {
-      tbe.routeSrcChip := in_msg.c2c_route_src_chip;
-    }
-    if (in_msg.c2c_route_dest_chip >= 0) {
-      tbe.routeDestChip := in_msg.c2c_route_dest_chip;
-    }
-    DPRINTF(RubySlicc, "DBG_CACHE_UPDATE_ROUTE_FROM_SNPRESP addr=%#x\n", address);
-    DPRINTF(RubySlicc, "DBG_CACHE_UPDATE_ROUTE_FROM_SNPRESP srcChip=%d\n", tbe.routeSrcChip);
-    DPRINTF(RubySlicc, "DBG_CACHE_UPDATE_ROUTE_FROM_SNPRESP destChip=%d\n", tbe.routeDestChip);
-    // ---------------- FIN NUEVO -------------------------------------------------
-
     if (in_msg.type == CHIResponseType:SnpResp_I) {
       // must have been a known sharer otherwise we would receive data
       if (is_multiChip) {
@@ -2699,21 +2575,6 @@ action(UpdateDirState_FromSnpResp, desc="") {
 action(Receive_ReqResp, desc="") {
   assert(tbe.expected_req_resp.hasExpected());
   peek(rspInPort, CHIResponseMsg) {
-    // ---------------- NUEVO: actualizar ruta C2C desde CHIResponseMsg entrante ---
-    // Este TBE puede haber sido creado antes por una request local. Cuando
-    // llega una response desde C2C, preservamos el chip origen para posibles
-    // ACKs posteriores asociados a la misma transacción.
-    if (in_msg.c2c_route_src_chip >= 0) {
-      tbe.routeSrcChip := in_msg.c2c_route_src_chip;
-    }
-    if (in_msg.c2c_route_dest_chip >= 0) {
-      tbe.routeDestChip := in_msg.c2c_route_dest_chip;
-    }
-    DPRINTF(RubySlicc, "DBG_CACHE_UPDATE_ROUTE_FROM_RESP addr=%#x\n", address);
-    DPRINTF(RubySlicc, "DBG_CACHE_UPDATE_ROUTE_FROM_RESP srcChip=%d\n", tbe.routeSrcChip);
-    DPRINTF(RubySlicc, "DBG_CACHE_UPDATE_ROUTE_FROM_RESP destChip=%d\n", tbe.routeDestChip);
-    // ---------------- FIN NUEVO -------------------------------------------------
-
     // Decrement pending
     if (tbe.expected_req_resp.receiveResp(in_msg.type) == false) {
       error("Received unexpected message");
@@ -2739,21 +2600,6 @@ action(Receive_ReqResp_WUComp, desc="") {
 action(Receive_SnpResp, desc="") {
   assert(tbe.expected_snp_resp.hasExpected());
   peek(rspInPort, CHIResponseMsg) {
-    // ---------------- NUEVO: actualizar ruta C2C desde CHIResponseMsg entrante ---
-    // Este TBE puede haber sido creado antes por una request local. Cuando
-    // llega una response desde C2C, preservamos el chip origen para posibles
-    // ACKs posteriores asociados a la misma transacción.
-    if (in_msg.c2c_route_src_chip >= 0) {
-      tbe.routeSrcChip := in_msg.c2c_route_src_chip;
-    }
-    if (in_msg.c2c_route_dest_chip >= 0) {
-      tbe.routeDestChip := in_msg.c2c_route_dest_chip;
-    }
-    DPRINTF(RubySlicc, "DBG_CACHE_UPDATE_ROUTE_FROM_RECVSNPRESP addr=%#x\n", address);
-    DPRINTF(RubySlicc, "DBG_CACHE_UPDATE_ROUTE_FROM_RECVSNPRESP srcChip=%d\n", tbe.routeSrcChip);
-    DPRINTF(RubySlicc, "DBG_CACHE_UPDATE_ROUTE_FROM_RECVSNPRESP destChip=%d\n", tbe.routeDestChip);
-    // ---------------- FIN NUEVO -------------------------------------------------
-
     // Decrement pending
     if (tbe.expected_snp_resp.receiveResp(in_msg.type) == false) {
       error("Received unexpected message");
@@ -3197,34 +3043,14 @@ action(Send_Data, desc="") {
     out_msg.responder := machineID;
     out_msg.Destination.add(tbe.snd_destination);
 
+    DPRINTF(RubySlicc, "DBG_SEND_DATA addr=%#x\n", address);
+    DPRINTF(RubySlicc, "DBG_SEND_DATA machineID=%s\n", machineID);
+
     // C2c-specific fields
     out_msg.originalRequestor := tbe.originalRequestor;
     DPRINTF(RubyGenerated, "originalRequestor -> %s\n", tbe.originalRequestor);
     out_msg.localRequestor := tbe.localRequestor;
     out_msg.originalResponder := machineID;
-
-    // ---------------- NUEVO: explicit C2C routing for Data ---------------
-    // Este CHIDataMsg puede ser el mensaje que permite al requester aprender
-    // de qué chip remoto vino el flujo. Si este dato llega con -1, después
-    // Send_CompAck no sabe a qué chip devolver el CompAck y acaba usando
-    // destChip=-1.
-    //
-    // Para una respuesta de datos:
-    //   - srcChip  = chip local que está enviando el dato ahora.
-    //   - destChip = chip que originó el flujo C2C original.
-    //
-    // En el TBE, routeSrcChip se guardó al recibir el request/snoop remoto.
-    out_msg.c2c_route_src_chip := chipID;
-    out_msg.c2c_route_dest_chip := tbe.routeSrcChip;
-
-    DPRINTF(RubySlicc, "DBG_SEND_DATA_ROUTE addr=%#x\n", tbe.addr);
-    DPRINTF(RubySlicc, "DBG_SEND_DATA_ROUTE srcChip=%d\n", chipID);
-    DPRINTF(RubySlicc, "DBG_SEND_DATA_ROUTE destChip=%d\n", tbe.routeSrcChip);
-    DPRINTF(RubySlicc, "DBG_SEND_DATA_ROUTE machineID=%s\n", machineID);
-    DPRINTF(RubySlicc, "DBG_SEND_DATA_ROUTE snd_destination=%s\n", tbe.snd_destination);
-    DPRINTF(RubySlicc, "DBG_SEND_DATA_ROUTE localRequestor=%s\n", tbe.localRequestor);
-    DPRINTF(RubySlicc, "DBG_SEND_DATA_ROUTE originalRequestor=%s\n", tbe.originalRequestor);
-    // ---------------- FIN NUEVO -----------------------------------------
   }
 
   // send next chunk (if any) next cycle
@@ -3305,92 +3131,11 @@ action(Send_CompAck, desc="") {
     out_msg.addr := address;
     out_msg.type := CHIResponseType:CompAck;
     out_msg.responder := machineID;
-
-        /*
-     * ---------------- NUEVO: inicialización completa de metadata -----------
-     *
-     * El error nuevo ya no es que el interposer no pueda enrutar el CompAck.
-     * Ahora el CompAck llega al otro lado, pero algunos MachineID viajan como:
-     *
-     *   INVALID_MACHINE_TYPE(21)-0
-     *
-     * y gem5 aborta en MachineType.cc con:
-     *
-     *   panic: Invalid range for type MachineType
-     *
-     * Por eso rellenamos explícitamente los campos MachineID usados por la
-     * Interface y por el C2cMsg resultante.
-     *
-     * Para CompAck, localRequestor suele ser el requester local del flujo.
-     * Usamos ese valor también como originalRequestor para evitar dejar el
-     * campo sin inicializar.
-     */
-    out_msg.localRequestor := tbe.localRequestor;
-    out_msg.originalRequestor := tbe.localRequestor;
-    out_msg.originalResponder := machineID;
-    out_msg.stale := false;
-    out_msg.MessageSize := MessageSizeType:Control;
-    // ---------------- FIN NUEVO -------------------------------------------
-
     // MegaNetDest ID for sharer tracking in the HNF
-    out_msg.c2c_destination.add(chipID, machineID);
-
-    /*
-     * ---------------- NUEVO: explicit C2C routing for CompAck --------------
-     *
-     * Si este CompAck pertenece a un flujo C2C, NO debe volver a decidirse
-     * siempre por dirección. La dirección puede pertenecer al chip local, pero
-     * el dato puede haber llegado desde un chip remoto como respuesta/snoop
-     * forwarded.
-     *
-     * En ese caso, el destino lógico del CompAck debe ser el chip remoto que
-     * originó/envió el dato:
-     *
-     *   tbe.routeSrcChip
-     *
-     * Para que el mensaje salga del chip local hacia el interposer, su
-     * Destination SLICC debe ser la C2C interface local que corresponde al chip
-     * remoto:
-     *
-     *   mapChipIDToC2CI(tbe.routeSrcChip)
-     *
-     * Si no hay ruta C2C válida, se conserva el comportamiento original:
-     *
-     *   mapAddressToDownstreamMachine(tbe.addr)
-     */
-
-    MachineID compAckDestMachine := mapAddressToDownstreamMachine(tbe.addr);
-    int compAckDestChip := mapMachineIDToChipID(compAckDestMachine);
-
-    if ((tbe.routeSrcChip != -1) && (tbe.routeSrcChip != chipID)) {
-      compAckDestMachine := mapChipIDToC2CI(tbe.routeSrcChip);
-      compAckDestChip := tbe.routeSrcChip;
-    }
-
-    out_msg.c2c_route_src_chip := chipID;
-    out_msg.c2c_route_dest_chip := compAckDestChip;
-
-    DPRINTF(RubyGenerated, "CompAck destination -> %s\n", compAckDestMachine);
-
-    DPRINTF(RubySlicc, "DBG_COMPACK_ROUTE_FIXED addr=%#x\n", address);
-    DPRINTF(RubySlicc, "DBG_COMPACK_ROUTE_FIXED srcChip=%d\n", chipID);
-    DPRINTF(RubySlicc, "DBG_COMPACK_ROUTE_FIXED destChip=%d\n", compAckDestChip);
-    DPRINTF(RubySlicc, "DBG_COMPACK_ROUTE_FIXED destMachine=%s\n", compAckDestMachine);
-    DPRINTF(RubySlicc, "DBG_COMPACK_ROUTE_FIXED tbe_routeSrcChip=%d\n", tbe.routeSrcChip);
-    DPRINTF(RubySlicc, "DBG_COMPACK_ROUTE_FIXED tbe_routeDestChip=%d\n", tbe.routeDestChip);
-    DPRINTF(RubySlicc, "DBG_COMPACK_ROUTE_FIXED localRequestor=%s\n", tbe.localRequestor);
-    DPRINTF(RubySlicc, "DBG_COMPACK_ROUTE_FIXED originalRequestor=%s\n", out_msg.originalRequestor);
-    DPRINTF(RubySlicc, "DBG_COMPACK_ROUTE_FIXED originalResponder=%s\n", out_msg.originalResponder);
-    DPRINTF(RubySlicc, "DBG_COMPACK_ROUTE_FIXED responder=%s\n", machineID);
-
-    DPRINTF(RubySlicc, "DBG_COMPACK_GEN addr=%#x\n", address);
-    DPRINTF(RubySlicc, "DBG_COMPACK_GEN machineID=%s\n", machineID);
-    DPRINTF(RubySlicc, "DBG_COMPACK_GEN localRequestor=%s\n", tbe.localRequestor);
-    DPRINTF(RubySlicc, "DBG_COMPACK_GEN downstreamDest=%s\n", compAckDestMachine);
-
-    out_msg.Destination.add(compAckDestMachine);
-
-    // ---------------- FIN NUEVO -------------------------------------------
+    out_msg.localRequestor := tbe.localRequestor;
+    out_msg.c2c_destination.add(chipID, machineID); 
+    DPRINTF(RubyGenerated, "CompAck destination -> %s\n", mapAddressToDownstreamMachine(tbe.addr));
+    out_msg.Destination.add(mapAddressToDownstreamMachine(tbe.addr));
   }
 }
 

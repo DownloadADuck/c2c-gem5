@@ -113,13 +113,6 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     // TODO: Not sure yet that this should be MegaNetDest
     MegaNetDest localDest,    desc="Local final destination for the message";
 
-    // ---------------- NUEVO: explicit C2C routing metadata ----------------
-    // RouteSrcChip indica desde qué chip fue inyectado el C2cMsg original.
-    // RouteDestChip permite que mensajes ambiguos, como CompAck, vuelvan al
-    // chip correcto sin adivinar por dirección o por campos MachineID locales.
-    int routeSrcChip,  default="-1", desc="Source chip of incoming C2C route";
-    int routeDestChip, default="-1", desc="Destination chip for explicit C2C route";
-    // ---------------- FIN NUEVO -------------------------------------------
 
     bool retToSrc, desc="Stores the retToSrc for snoop handling";
     bool stale, desc="Stores the stale status for responses";
@@ -792,10 +785,6 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     tbe.addr := address;
     tbe.rxtxBytes := 0;
     tbe.useDataSepResp := false;
-    // ---------------- NUEVO: reset explicit C2C route metadata ------------
-    tbe.routeSrcChip := -1;
-    tbe.routeDestChip := -1;
-    // ---------------- FIN NUEVO ------------------------------------------
   }
 
   action(c2cReqAllocateTBE, "c2catbe", desc="Allocates a new TBE slot for c2c-side") {
@@ -810,10 +799,6 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     tbe.addr := address;
     tbe.rxtxBytes := 0;
     tbe.useDataSepResp := false;
-    // ---------------- NUEVO: reset explicit C2C route metadata ------------
-    tbe.routeSrcChip := -1;
-    tbe.routeDestChip := -1;
-    // ---------------- FIN NUEVO ------------------------------------------
   }
 
   action(initializeTBEFromNetRequest, "itbefr", desc="Initialize TBE fields from net-side req") {
@@ -832,14 +817,10 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.accAddr := in_msg.accAddr;
       tbe.accSize := in_msg.accSize;
       tbe.retToSrc := in_msg.retToSrc;
-      // ---------------- NUEVO: preserve explicit C2C route metadata -------
-      tbe.routeSrcChip := in_msg.c2c_route_src_chip;
-      tbe.routeDestChip := in_msg.c2c_route_dest_chip;
-      // ---------------- FIN NUEVO ----------------------------------------
     }
   }
   
-    action(initializeTBEFromNetSnoop, "itbefns", desc="Initialize TBE fields from net-side req") {
+  action(initializeTBEFromNetSnoop, "itbefns", desc="Initialize TBE fields from net-side req") {
     assert(is_valid(tbe));
     peek(snpInPort, CHIRequestMsg) {
       tbe.to_c2c_snp_type := in_msg.type; 
@@ -853,24 +834,6 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.accAddr := in_msg.accAddr;
       tbe.accSize := in_msg.accSize;
       tbe.retToSrc := in_msg.retToSrc;
-
-      // ---------------- NUEVO: preserve explicit C2C route metadata -------
-      //
-      // Este camino es Network/CHI -> Interface -> C2C.
-      //
-      // Si el CHIRequestMsg ya trae contexto C2C explícito, lo conservamos
-      // para poder copiarlo al C2cMsg en sendToC2c_Snoop.
-      //
-      tbe.routeSrcChip := in_msg.c2c_route_src_chip;
-      tbe.routeDestChip := in_msg.c2c_route_dest_chip;
-
-      DPRINTF(RubySlicc, "DBG_IFACE_NET_SNP_ROUTE_IN addr=%#x\n", address);
-      DPRINTF(RubySlicc, "DBG_IFACE_NET_SNP_ROUTE_IN srcChip=%d\n", tbe.routeSrcChip);
-      DPRINTF(RubySlicc, "DBG_IFACE_NET_SNP_ROUTE_IN destChip=%d\n", tbe.routeDestChip);
-      DPRINTF(RubySlicc, "DBG_IFACE_NET_SNP_ROUTE_IN requestor=%s\n", tbe.requestor);
-      DPRINTF(RubySlicc, "DBG_IFACE_NET_SNP_ROUTE_IN originalRequestor=%s\n", tbe.originalRequestor);
-      DPRINTF(RubySlicc, "DBG_IFACE_NET_SNP_ROUTE_IN localRequestor=%s\n", tbe.localRequestor);
-      // ---------------- FIN NUEVO ----------------------------------------
     }
   }
 
@@ -887,10 +850,6 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.originalResponder := in_msg.responder; // used to update dir state
       tbe.localRequestor := in_msg.localRequestor;
       tbe.MessageSize := in_msg.MessageSize;
-      // ---------------- NUEVO: preserve explicit C2C route metadata -------
-      tbe.routeSrcChip := in_msg.c2c_route_src_chip;
-      tbe.routeDestChip := in_msg.c2c_route_dest_chip;
-      // ---------------- FIN NUEVO ----------------------------------------
     }
   }
 
@@ -909,10 +868,6 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.messageSize := in_msg.MessageSize;
       //tbe.c2c_sharers := in_msg.c2c_sharers;
       tbe.c2c_destination := in_msg.c2c_destination;
-      // ---------------- NUEVO: preserve explicit C2C route metadata -------
-      tbe.routeSrcChip := in_msg.c2c_route_src_chip;
-      tbe.routeDestChip := in_msg.c2c_route_dest_chip;
-      // ---------------- FIN NUEVO ----------------------------------------
     }
   }
 
@@ -930,14 +885,10 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.accAddr := in_msg.AccAddr;
       tbe.accSize := in_msg.AccSize;
       tbe.retToSrc := in_msg.RetToSrc;
-      // ---------------- NUEVO: C2cMsg incoming route metadata -------------
-      tbe.routeSrcChip := in_msg.RouteSrcChip;
-      tbe.routeDestChip := in_msg.RouteDestChip;
-      // ---------------- FIN NUEVO ----------------------------------------
     }
   }
 
-    action(initializeTBEFromC2cSnoop, "itbefc2cs", desc="Initialize TBE fields from c2c-size req") {
+  action(initializeTBEFromC2cSnoop, "itbefc2cs", desc="Initialize TBE fields from c2c-size req") {
     assert(is_valid(tbe));
     peek(requestFromC2c_in, C2cMsg) {
       tbe.to_net_snp_type := in_msg.Type;
@@ -952,33 +903,6 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.accAddr := in_msg.AccAddr;
       tbe.accSize := in_msg.AccSize;
       tbe.retToSrc := in_msg.RetToSrc;
-
-      // ---------------- NUEVO: C2cMsg incoming route metadata -------------
-      //
-      // Este es el camino crítico para el fallo actual:
-      //
-      //   Interposer -> Interface -> Cache
-      //
-      // El interposer ya estampó:
-      //
-      //   C2cMsg.RouteSrcChip
-      //   C2cMsg.RouteDestChip
-      //
-      // Si no copiamos esos campos aquí, sendToNet_Snoop genera un
-      // CHIRequestMsg local sin contexto C2C, y la cache acaba viendo:
-      //
-      //   DBG_CACHE_TBE_ROUTE_SNP srcChip=-1 destChip=-1
-      //
-      tbe.routeSrcChip := in_msg.RouteSrcChip;
-      tbe.routeDestChip := in_msg.RouteDestChip;
-
-      DPRINTF(RubySlicc, "DBG_IFACE_C2C_SNP_ROUTE_IN addr=%#x\n", address);
-      DPRINTF(RubySlicc, "DBG_IFACE_C2C_SNP_ROUTE_IN srcChip=%d\n", tbe.routeSrcChip);
-      DPRINTF(RubySlicc, "DBG_IFACE_C2C_SNP_ROUTE_IN destChip=%d\n", tbe.routeDestChip);
-      DPRINTF(RubySlicc, "DBG_IFACE_C2C_SNP_ROUTE_IN requestor=%s\n", tbe.requestor);
-      DPRINTF(RubySlicc, "DBG_IFACE_C2C_SNP_ROUTE_IN originalRequestor=%s\n", tbe.originalRequestor);
-      DPRINTF(RubySlicc, "DBG_IFACE_C2C_SNP_ROUTE_IN localRequestor=%s\n", tbe.localRequestor);
-      // ---------------- FIN NUEVO ----------------------------------------
     }
   }
 
@@ -995,10 +919,6 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.originalResponder := in_msg.OriginalResponder;
       tbe.localRequestor := in_msg.LocalRequestor;
       tbe.messageSize := in_msg.MessageSize;
-      // ---------------- NUEVO: C2cMsg incoming route metadata -------------
-      tbe.routeSrcChip := in_msg.RouteSrcChip;
-      tbe.routeDestChip := in_msg.RouteDestChip;
-      // ---------------- FIN NUEVO ----------------------------------------
     }
   }
 
@@ -1017,10 +937,6 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.originalResponder := in_msg.OriginalResponder;
       tbe.localRequestor := in_msg.LocalRequestor;
       tbe.messageSize := in_msg.MessageSize;
-      // ---------------- NUEVO: C2cMsg incoming route metadata -------------
-      tbe.routeSrcChip := in_msg.RouteSrcChip;
-      tbe.routeDestChip := in_msg.RouteDestChip;
-      // ---------------- FIN NUEVO ----------------------------------------
     }
   }
 
@@ -1053,14 +969,10 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.is_remote_pf := tbe.is_remote_pf;
       out_msg.usesTxnId := tbe.usesTxnId;
       out_msg.MessageSize := tbe.MessageSize;
-      // ---------------- NUEVO: propagate explicit C2C route metadata ------
-      out_msg.c2c_route_src_chip := tbe.routeSrcChip;
-      out_msg.c2c_route_dest_chip := tbe.routeDestChip;
-      // ---------------- FIN NUEVO ----------------------------------------
     }
   }
 
-    action(sendToNet_Snoop, "stns", desc="Sends snoop to the network") {
+  action(sendToNet_Snoop, "stns", desc="Sends snoop to the network") {
     assert(is_valid(tbe));
     enqueue(snpOutPort, CHIRequestMsg, request_latency) {
       out_msg.addr := address;
@@ -1080,7 +992,6 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.is_remote_pf := tbe.is_remote_pf;
       out_msg.usesTxnId := tbe.usesTxnId;
       out_msg.MessageSize := tbe.MessageSize;
-
       // Select where the fwded data should be send by the snoopee
       //int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
       //DPRINTF(RubyGenerated, "originalRequestor -> %s\n chipID -> %d\n mappedChipID -> %s\n", tbe.originalRequestor, chipID, mappedChipID);
@@ -1091,32 +1002,8 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       //}
       out_msg.fwdRequestor := tbe.originalRequestor;
       DPRINTF(RubyGenerated, "fwdRequestor -> %s\n", out_msg.fwdRequestor);
-
-      // ---------------- NUEVO: C2cMsg -> CHIRequestMsg route propagation --
-      //
-      // Este es el punto que debe corregir el log actual.
-      //
-      // Antes veíamos:
-      //
-      //   interposer: routeSrcChip=2 routeDestChip=0
-      //   cache:      srcChip=-1 destChip=-1
-      //
-      // Aquí copiamos la ruta guardada en el TBE de la Interface hacia el
-      // CHIRequestMsg que recibirá la cache local.
-      //
-      out_msg.c2c_route_src_chip := tbe.routeSrcChip;
-      out_msg.c2c_route_dest_chip := tbe.routeDestChip;
-
-      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_SNP_ROUTE addr=%#x\n", address);
-      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_SNP_ROUTE srcChip=%d\n", tbe.routeSrcChip);
-      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_SNP_ROUTE destChip=%d\n", tbe.routeDestChip);
-      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_SNP_ROUTE machineID=%s\n", machineID);
-      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_SNP_ROUTE requestor=%s\n", tbe.requestor);
-      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_SNP_ROUTE originalRequestor=%s\n", tbe.originalRequestor);
-      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_SNP_ROUTE localRequestor=%s\n", tbe.localRequestor);
-      // ---------------- FIN NUEVO ----------------------------------------
     }
-  }
+ }
 
   action(sendToNet_Response, "stnrsp", desc="Sends response to the network") {
     assert(is_valid(tbe));
@@ -1137,10 +1024,6 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.usesTxnId := tbe.usesTxnId;
       out_msg.txnId := tbe.txnId;
       out_msg.MessageSize := tbe.MessageSize;
-      // ---------------- NUEVO: propagate explicit C2C route metadata ------
-      out_msg.c2c_route_src_chip := tbe.routeSrcChip;
-      out_msg.c2c_route_dest_chip := tbe.routeDestChip;
-      // ---------------- FIN NUEVO ----------------------------------------
     }
   }
 
@@ -1148,88 +1031,31 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     assert(is_valid(tbe));
     enqueue(datOutPort, CHIDataMsg, data_latency) {
       out_msg.addr := address;
-      out_msg.type := c2cMsgToCHIDat(tbe.to_net_dat_type);
+      out_msg.type := c2cMsgToCHIDat(tbe.to_net_dat_type); 
       out_msg.dataBlk := tbe.dataBlk;
       out_msg.bitMask := tbe.bitMask;
       out_msg.responder := machineID;
-      out_msg.usesTxnId := tbe.usesTxnId;
+      out_msg.usesTxnId := tbe.usesTxnId; 
       out_msg.txnId := tbe.txnId;
-
       if ((out_msg.type == CHIDataType:SnpRespData_I) ||
-          (out_msg.type == CHIDataType:SnpRespData_I_PD) ||
+          (out_msg.type == CHIDataType:SnpRespData_I_PD) || 
           (out_msg.type == CHIDataType:SnpRespData_SC) ||
-          (out_msg.type == CHIDataType:SnpRespData_SC_PD) ||
-          (out_msg.type == CHIDataType:SnpRespData_SD) ||
-          (out_msg.type == CHIDataType:SnpRespData_UC) ||
+          (out_msg.type == CHIDataType:SnpRespData_SC_PD) || 
+          (out_msg.type == CHIDataType:SnpRespData_SD) || 
+          (out_msg.type == CHIDataType:SnpRespData_UC) || 
           (out_msg.type == CHIDataType:SnpRespData_UD) ||
-          (out_msg.type == CHIDataType:SnpRespData_SC_Fwded_SC) ||
+          (out_msg.type == CHIDataType:SnpRespData_SC_Fwded_SC) || 
           (out_msg.type == CHIDataType:SnpRespData_SC_Fwded_SD_PD) ||
-          (out_msg.type == CHIDataType:SnpRespData_SC_PD_Fwded_SC) ||
+          (out_msg.type == CHIDataType:SnpRespData_SC_PD_Fwded_SC) || 
           (out_msg.type == CHIDataType:SnpRespData_I_Fwded_SD_PD) ||
-          (out_msg.type == CHIDataType:SnpRespData_I_PD_Fwded_SC) ||
+          (out_msg.type == CHIDataType:SnpRespData_I_PD_Fwded_SC) || 
           (out_msg.type == CHIDataType:SnpRespData_I_Fwded_SC)) {
         out_msg.Destination.add(tbe.localRequestor);
       } else {
         out_msg.Destination.add(tbe.originalRequestor);
       }
-
       out_msg.localRequestor := tbe.localRequestor;
       out_msg.originalResponder := tbe.originalResponder;
-
-      // ---------------- NUEVO: reconstrucción robusta de ruta C2C -------------
-      //
-      // Este camino convierte un C2cMsg recibido desde el interposer en un
-      // CHIDataMsg local.
-      //
-      // El fallo actual muestra que usar localRequestor como primer fallback es
-      // incorrecto:
-      //
-      //   localRequestor = Cache-0  -> chip 0
-      //
-      // aunque el dato realmente venga de:
-      //
-      //   originalResponder = Cache-14 -> chip 2
-      //
-      // Por tanto, el orden correcto para reconstruir el chip remoto es:
-      //
-      //   1) tbe.routeSrcChip, si ya venía explícito
-      //   2) originalResponder
-      //   3) responder
-      //   4) localRequestor como último recurso
-      //
-      // localRequestor NO debe ir primero porque normalmente representa el
-      // requestor local que recibirá el dato, no el chip remoto que originó el
-      // flujo.
-      // ------------------------------------------------------------------------
-
-      int inferredSrcChip := tbe.routeSrcChip;
-
-      if (inferredSrcChip == -1) {
-        inferredSrcChip := mapMachineIDToChipID(tbe.originalResponder);
-      }
-
-      if (inferredSrcChip == -1) {
-        inferredSrcChip := mapMachineIDToChipID(tbe.responder);
-      }
-
-      if (inferredSrcChip == -1) {
-        inferredSrcChip := mapMachineIDToChipID(tbe.localRequestor);
-      }
-
-      out_msg.c2c_route_src_chip := inferredSrcChip;
-      out_msg.c2c_route_dest_chip := chipID;
-
-      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_DATA_ROUTE_FIXED addr=%#x\n", address);
-      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_DATA_ROUTE_FIXED machineID=%s\n", machineID);
-      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_DATA_ROUTE_FIXED responder=%s\n", tbe.responder);
-      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_DATA_ROUTE_FIXED localRequestor=%s\n", tbe.localRequestor);
-      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_DATA_ROUTE_FIXED originalResponder=%s\n", tbe.originalResponder);
-      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_DATA_ROUTE_FIXED routeSrcChip=%d\n", tbe.routeSrcChip);
-      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_DATA_ROUTE_FIXED routeDestChip=%d\n", tbe.routeDestChip);
-      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_DATA_ROUTE_FIXED finalSrcChip=%d\n", inferredSrcChip);
-      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_DATA_ROUTE_FIXED finalDestChip=%d\n", chipID);
-
-      // ---------------- FIN NUEVO --------------------------------------------
     }
   }
 
@@ -1245,17 +1071,10 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.AllowRetry := tbe.allowRetry;
       out_msg.AccAddr := tbe.accAddr;
       out_msg.AccSize := tbe.accSize;
-      // ---------------- NUEVO: explicit C2C route metadata ----------------
-      out_msg.RouteSrcChip := chipID;
-      out_msg.RouteDestChip := tbe.routeDestChip;
-      DPRINTF(RubySlicc, "DBG_IFACE_C2C_REQ_ROUTE addr=%#x\n", address);
-      DPRINTF(RubySlicc, "DBG_IFACE_C2C_REQ_ROUTE srcChip=%d\n", chipID);
-      DPRINTF(RubySlicc, "DBG_IFACE_C2C_REQ_ROUTE destChip=%d\n", tbe.routeDestChip);
-      // ---------------- FIN NUEVO ----------------------------------------
     }
   }
 
-    action(sendToC2c_Snoop, "stcs", desc="Sends a snoop to the c2c link") {
+  action(sendToC2c_Snoop, "stcs", desc="Sends a snoop to the c2c link") {
     assert(is_valid(tbe));
     enqueue(requestToC2c_out, C2cMsg, c2c_req_latency) {
       out_msg.addr := address;
@@ -1277,28 +1096,6 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.Is_remote_pf := tbe.is_remote_pf;
       out_msg.UsesTxnId := tbe.usesTxnId;
       out_msg.MessageSize := tbe.MessageSize;
-
-      // ---------------- NUEVO: CHIRequestMsg -> C2cMsg route propagation --
-      //
-      // Este camino es Network/CHI -> Interface -> Interposer.
-      //
-      // El chip origen real de un mensaje que sale por esta Interface es
-      // chipID. El destino puede venir ya calculado en tbe.routeDestChip.
-      //
-      // Si routeDestChip todavía es -1, no lo inventamos aquí: el interposer
-      // seguirá estampando RouteSrcChip/RouteDestChip cuando calcule el salto
-      // real srcSide -> dstSide.
-      //
-      out_msg.RouteSrcChip := chipID;
-      out_msg.RouteDestChip := tbe.routeDestChip;
-
-      DPRINTF(RubySlicc, "DBG_IFACE_TO_C2C_SNP_ROUTE addr=%#x\n", address);
-      DPRINTF(RubySlicc, "DBG_IFACE_TO_C2C_SNP_ROUTE srcChip=%d\n", chipID);
-      DPRINTF(RubySlicc, "DBG_IFACE_TO_C2C_SNP_ROUTE destChip=%d\n", tbe.routeDestChip);
-      DPRINTF(RubySlicc, "DBG_IFACE_TO_C2C_SNP_ROUTE requestor=%s\n", tbe.requestor);
-      DPRINTF(RubySlicc, "DBG_IFACE_TO_C2C_SNP_ROUTE originalRequestor=%s\n", tbe.originalRequestor);
-      DPRINTF(RubySlicc, "DBG_IFACE_TO_C2C_SNP_ROUTE localRequestor=%s\n", tbe.localRequestor);
-      // ---------------- FIN NUEVO ----------------------------------------
     }
   }
 
@@ -1316,13 +1113,6 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.OriginalRequestor := tbe.originalRequestor;
       out_msg.LocalRequestor := tbe.localRequestor;
       out_msg.MessageSize := tbe.messageSize;
-      // ---------------- NUEVO: explicit C2C route metadata ----------------
-      out_msg.RouteSrcChip := chipID;
-      out_msg.RouteDestChip := tbe.routeDestChip;
-      DPRINTF(RubySlicc, "DBG_IFACE_C2C_RSP_ROUTE addr=%#x\n", address);
-      DPRINTF(RubySlicc, "DBG_IFACE_C2C_RSP_ROUTE srcChip=%d\n", chipID);
-      DPRINTF(RubySlicc, "DBG_IFACE_C2C_RSP_ROUTE destChip=%d\n", tbe.routeDestChip);
-      // ---------------- FIN NUEVO ----------------------------------------
     }
   }
 
@@ -1341,13 +1131,6 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.OriginalRequestor := tbe.originalRequestor;
       out_msg.LocalRequestor := tbe.localRequestor;
       out_msg.OriginalResponder := tbe.originalResponder;
-      // ---------------- NUEVO: explicit C2C route metadata ----------------
-      out_msg.RouteSrcChip := chipID;
-      out_msg.RouteDestChip := tbe.routeDestChip;
-      DPRINTF(RubySlicc, "DBG_IFACE_C2C_DAT_ROUTE addr=%#x\n", address);
-      DPRINTF(RubySlicc, "DBG_IFACE_C2C_DAT_ROUTE srcChip=%d\n", chipID);
-      DPRINTF(RubySlicc, "DBG_IFACE_C2C_DAT_ROUTE destChip=%d\n", tbe.routeDestChip);
-      // ---------------- FIN NUEVO ----------------------------------------
     }
   }
 

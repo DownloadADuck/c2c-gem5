@@ -87,10 +87,6 @@ class PrivateL1PrivateL2CacheHierarchy(AbstractRubyCacheHierarchy):
 
         destinations = []
         mem_ranges = []
-
-        # C2c specific. Initialised for specific routing. This script
-        # has no C2C capabilities. 
-        cacheChipIDList = []
         
         for rng, port in board.get_mem_ports():
             mem_ranges.append(rng)
@@ -108,16 +104,12 @@ class PrivateL1PrivateL2CacheHierarchy(AbstractRubyCacheHierarchy):
             cache_line_size=board.get_cache_line_size(),
             clk_domain=board.get_clock_domain(),
             ranges=[mem_ranges[0]],
-            chipID=0,
-            cacheChipIDList=cacheChipIDList,
         )
         self.hnf1 = SimpleDirectory(
             self.ruby_system.network,
             cache_line_size=board.get_cache_line_size(),
             clk_domain=board.get_clock_domain(),
             ranges=[mem_ranges[1]],
-            chipID=0,
-            cacheChipIDList=cacheChipIDList,
         )
         self.hnf0.ruby_system = self.ruby_system
         self.hnf1.ruby_system = self.ruby_system
@@ -133,8 +125,6 @@ class PrivateL1PrivateL2CacheHierarchy(AbstractRubyCacheHierarchy):
                 board,
                 self.ruby_system.network,
                 destinations,
-                chipID=0,
-                cacheChipIDList=cacheChipIDList,
             )
         ]
         self.core_cluster1 = [
@@ -144,14 +134,13 @@ class PrivateL1PrivateL2CacheHierarchy(AbstractRubyCacheHierarchy):
                 board,
                 self.ruby_system.network,
                 destinations,
-                chipID=0,
-                cacheChipIDList=cacheChipIDList,
             )
         ]
 
         # Create the coherent side of the memory controllers
         self.memory_controllers0 = self._create_memory_controllers(
                 board,
+                self.ruby_system.network, 
                 self.ruby_system.network, 
                 rng_idx=0, 
             )
@@ -160,6 +149,7 @@ class PrivateL1PrivateL2CacheHierarchy(AbstractRubyCacheHierarchy):
         self.memory_controllers1 = self._create_memory_controllers(
                 board,
                 self.ruby_system.network, 
+                self.ruby_system.network,
                 rng_idx=1, 
             )
         self.hnf1.downstream_destinations = self.memory_controllers1
@@ -170,8 +160,6 @@ class PrivateL1PrivateL2CacheHierarchy(AbstractRubyCacheHierarchy):
                 board, 
                 network=self.ruby_system.network,
                 cluster_dest=destinations,
-                chipID=0,
-                cacheChipIDList=cacheChipIDList,
             )
             self.ruby_system.num_of_sequencers = (
                 len(self.core_cluster0) + 
@@ -181,16 +169,6 @@ class PrivateL1PrivateL2CacheHierarchy(AbstractRubyCacheHierarchy):
         else:
             self.ruby_system.num_of_sequencers = (len(self.core_cluster0) + \
                                                 len(self.core_cluster1)) * 2
-
-        #### C2C LUT setup ####
-        # c2cHopList should not be used
-        self.hnf0.c2cHopList = [0]
-        self.hnf0.chipIDList = [0]
-        self.hnf1.c2cHopList = [0]
-        self.hnf1.chipIDList = [0]
-
-        self.hnf0.cacheChipIDList = cacheChipIDList
-        self.hnf1.cacheChipIDList = cacheChipIDList
 
         self.ruby_system.network.connectControllers(
             list(
@@ -229,9 +207,7 @@ class PrivateL1PrivateL2CacheHierarchy(AbstractRubyCacheHierarchy):
         core_num: int,
         board: AbstractBoard,
         network,
-        cluster_dests,
-        chipID: int,
-        cacheChipIDList,
+        cluster_dests
     ) -> SubSystem:
         """Given the core and the core number this function creates a cluster
         for the core with a split I/D cache
@@ -246,8 +222,6 @@ class PrivateL1PrivateL2CacheHierarchy(AbstractRubyCacheHierarchy):
             
             target_isa=board.get_processor().get_isa(),
             clk_domain=board.get_clock_domain(),
-            chipID=chipID,
-            cacheChipIDList=cacheChipIDList,
         )
         cluster.icache = PrivateL1MOESICache(
             size=self._l1_size,
@@ -257,8 +231,6 @@ class PrivateL1PrivateL2CacheHierarchy(AbstractRubyCacheHierarchy):
             cache_line_size=board.get_cache_line_size(),
             target_isa=board.get_processor().get_isa(),
             clk_domain=board.get_clock_domain(),
-            chipID=chipID,
-            cacheChipIDList=cacheChipIDList,
         )
 
         cluster.l2cache = SharedL2MOESICache(
@@ -269,8 +241,6 @@ class PrivateL1PrivateL2CacheHierarchy(AbstractRubyCacheHierarchy):
             cache_line_size=board.get_cache_line_size(),
             target_isa=board.get_processor().get_isa(),
             clk_domain=board.get_clock_domain(),
-            chipID=chipID,
-            cacheChipIDList=cacheChipIDList,
         )
 
         cluster.icache.sequencer = RubySequencer(
@@ -315,6 +285,7 @@ class PrivateL1PrivateL2CacheHierarchy(AbstractRubyCacheHierarchy):
         self, 
         board: AbstractBoard,
         network,
+        network_ptr,
         rng_idx,
     ) -> List[MemoryController]:
         memory_controllers = []
@@ -330,8 +301,6 @@ class PrivateL1PrivateL2CacheHierarchy(AbstractRubyCacheHierarchy):
         board: AbstractBoard,
         network,
         cluster_dest,
-        chipID: int,
-        cacheChipIDList,
     ) -> List[DMARequestor]:
         dma_controllers = []
         for i, port in enumerate(board.get_dma_ports()):
@@ -339,8 +308,6 @@ class PrivateL1PrivateL2CacheHierarchy(AbstractRubyCacheHierarchy):
                 network,
                 board.get_cache_line_size(),
                 board.get_clock_domain(),
-                chipID=chipID,
-                cacheChipIDList=cacheChipIDList,
             )
             version = len(board.get_processor().get_cores()) + i
             ctrl.sequencer = RubySequencer(version=version, in_ports=port)
@@ -350,7 +317,6 @@ class PrivateL1PrivateL2CacheHierarchy(AbstractRubyCacheHierarchy):
             ctrl.sequencer.ruby_system = self.ruby_system
 
             ctrl.downstream_destinations = cluster_dest
-            ctrl.chipID = 0
             dma_controllers.append(ctrl)
 
         return dma_controllers

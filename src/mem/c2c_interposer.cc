@@ -247,56 +247,6 @@ printC2cMsgDebug(PacketPtr pkt, const char *tag, int srcSide, int dstSide)
               << " responder=" << machineIdToString(msg->m_Responder)
               << " originalResponder=" << machineIdToString(msg->m_OriginalResponder)
               << " localRequestor=" << machineIdToString(msg->m_LocalRequestor)
-              << " routeSrcChip=" << msg->m_RouteSrcChip
-              << " routeDestChip=" << msg->m_RouteDestChip
-              << "\n";
-}
-
-/*------------------------------------------------------------*/
-/* Explicit C2C route metadata                                */
-/*------------------------------------------------------------*/
-
-/*
- * NUEVO:
- *
- * En la topología original de 6 interfaces, el camino C2C lógico estaba
- * implícito en la propia Interface C2C usada por SLICC.
- *
- * En la topología actual de 3 interfaces + interposer central, ese contexto
- * se pierde si solo enrutamos el paquete y no guardamos explícitamente:
- *
- *   - desde qué chip lógico salió el paquete
- *   - hacia qué chip lógico fue enviado
- *
- * IMPORTANTE:
- *
- * pkt->c2c_msg es const desde el punto de vista del Packet. Para esta prueba
- * hacemos const_cast únicamente para escribir dos campos nuevos de metadata
- * RouteSrcChip/RouteDestChip. No modificamos tipo, dirección, requestor,
- * responder ni campos de protocolo CHI.
- */
-static void
-stampExplicitC2cRoute(PacketPtr pkt, int srcSide, int dstSide,
-                      const char *path)
-{
-    if (!pkt || !pkt->c2c_msg) {
-        return;
-    }
-
-    auto *msg = const_cast<ruby::C2cMsg *>(pkt->c2c_msg);
-
-    msg->m_RouteSrcChip = srcSide;
-    msg->m_RouteDestChip = dstSide;
-
-    std::cout << "[C2C EXPLICIT ROUTE STAMP]"
-              << " tick=" << curTick()
-              << " path=" << path
-              << " srcChip=" << srcSide
-              << " destChip=" << dstSide
-              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-              << " type=" << getC2cTypeName(pkt)
-              << " pkt=" << pkt
-              << " req=" << pkt->req
               << "\n";
 }
 
@@ -668,239 +618,6 @@ C2CInterposer::routeByAddress(PacketPtr pkt, int incomingSide) const
             return chip;
         }
     }
-
-    return -1;
-}
-
-int
-C2CInterposer::routeAckLikeSlicc(PacketPtr pkt, int responderSide) const
-{
-    if (!hasC2cMsg(pkt)) {
-        return -1;
-    }
-
-    const auto *msg = pkt->c2c_msg;
-
-    const int explicitSrc = msg->m_RouteSrcChip;
-    const int explicitDst = msg->m_RouteDestChip;
-
-    std::cout << "[C2C ACK EXPLICIT ROUTE]"
-              << " tick=" << curTick()
-              << " src=" << responderSide
-              << " explicitSrc=" << explicitSrc
-              << " explicitDst=" << explicitDst
-              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-              << " type=" << getC2cTypeName(pkt)
-              << "\n";
-
-    /*
-     * Primero usamos la ruta explícita si apunta a otro chip.
-     */
-    if (validSide(explicitDst) && explicitDst != responderSide) {
-        std::cout << "[C2C ACK ROUTE PICK]"
-                  << " rule=ACK_EXPLICIT_ROUTE_DEST_CHIP"
-                  << " src=" << responderSide
-                  << " dst=" << explicitDst
-                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                  << " type=" << getC2cTypeName(pkt)
-                  << "\n";
-        return explicitDst;
-    }
-
-    /*
-     * Si la ruta explícita apunta al mismo lado, NO la usamos.
-     *
-     * Esto es lo que apareció en el último log:
-     *
-     *   CompAck src=0 explicitDst=0
-     *
-     * Eso no es un salto C2C válido. Para CompAck, en ese caso imitamos la
-     * decisión original de SLICC:
-     *
-     *   out_msg.Destination.add(mapAddressToDownstreamMachine(tbe.addr))
-     *
-     * En el interposer, lo equivalente es routeByAddress().
-     */
-    if (validSide(explicitDst) && explicitDst == responderSide) {
-        std::cout << "[C2C ACK ROUTE SELF_EXPLICIT_IGNORED]"
-                  << " src=" << responderSide
-                  << " explicitDst=" << explicitDst
-                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                  << " type=" << getC2cTypeName(pkt)
-                  << "\n";
-    }
-
-    /*
-     * Caso especial para CompAck.
-     *
-     * No devolvemos -1 inmediatamente si explicitDst es inválido o local.
-     * Probamos el mismo criterio que SLICC usaba para Destination:
-     * dirección -> downstream/home chip.
-     */
-    if (msg->m_Type == ruby::C2cRequestType_CompAck) {
-        const int byAddr = routeByAddress(pkt, responderSide);
-
-        std::cout << "[C2C COMPACK ADDR FALLBACK]"
-                  << " src=" << responderSide
-                  << " byAddr=" << byAddr
-                  << " explicitSrc=" << explicitSrc
-                  << " explicitDst=" << explicitDst
-                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                  << " type=" << getC2cTypeName(pkt)
-                  << "\n";
-
-        if (validSide(byAddr) && byAddr != responderSide) {
-            std::cout << "[C2C ACK ROUTE PICK]"
-                      << " rule=ACK_ADDR_AFTER_SELF_EXPLICIT"
-                      << " src=" << responderSide
-                      << " dst=" << byAddr
-                      << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                      << " type=" << getC2cTypeName(pkt)
-                      << "\n";
-            return byAddr;
-        }
-
-        std::cout << "[C2C ACK ROUTE ERROR]"
-                  << " rule=COMPACK_NO_REMOTE_ROUTE"
-                  << " src=" << responderSide
-                  << " explicitSrc=" << explicitSrc
-                  << " explicitDst=" << explicitDst
-                  << " byAddr=" << byAddr
-                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                  << " type=" << getC2cTypeName(pkt)
-                  << " sender=" << machineIdToString(msg->m_Sender)
-                  << " requestor=" << machineIdToString(msg->m_Requestor)
-                  << " originalRequestor="
-                  << machineIdToString(msg->m_OriginalRequestor)
-                  << " localRequestor="
-                  << machineIdToString(msg->m_LocalRequestor)
-                  << " responder=" << machineIdToString(msg->m_Responder)
-                  << " originalResponder="
-                  << machineIdToString(msg->m_OriginalResponder)
-                  << "\n";
-
-        return -1;
-    }
-
-    /*
-     * Para otros ACK-like no forzamos todavía la dirección como primera opción.
-     * Usamos los campos de contexto existentes.
-     */
-    const int byC2cDest = routeByC2cDestination(pkt, responderSide);
-    const int byLocalRequestor = routeByMachineID(msg->m_LocalRequestor, -1);
-    const int byRequestor = routeByMachineID(msg->m_Requestor, -1);
-    const int byOriginalRequestor =
-        routeByMachineID(msg->m_OriginalRequestor, -1);
-    const int byResponder = routeByMachineID(msg->m_Responder, -1);
-    const int byOriginalResponder =
-        routeByMachineID(msg->m_OriginalResponder, -1);
-
-    std::cout << "[C2C ACK CANDIDATES]"
-              << " tick=" << curTick()
-              << " src=" << responderSide
-              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-              << " type=" << getC2cTypeName(pkt)
-              << " routeSrcChip=" << explicitSrc
-              << " routeDestChip=" << explicitDst
-              << " sender=" << machineIdToString(msg->m_Sender)
-              << " requestor=" << machineIdToString(msg->m_Requestor)
-              << " originalRequestor="
-              << machineIdToString(msg->m_OriginalRequestor)
-              << " localRequestor="
-              << machineIdToString(msg->m_LocalRequestor)
-              << " responder=" << machineIdToString(msg->m_Responder)
-              << " originalResponder="
-              << machineIdToString(msg->m_OriginalResponder)
-              << " byC2cDest=" << byC2cDest
-              << " byLocalRequestor=" << byLocalRequestor
-              << " byRequestor=" << byRequestor
-              << " byOriginalRequestor=" << byOriginalRequestor
-              << " byResponder=" << byResponder
-              << " byOriginalResponder=" << byOriginalResponder
-              << "\n";
-
-    if (validSide(byC2cDest) && byC2cDest != responderSide) {
-        std::cout << "[C2C ACK ROUTE PICK]"
-                  << " rule=ACK_C2C_DEST_REMOTE"
-                  << " src=" << responderSide
-                  << " dst=" << byC2cDest
-                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                  << " type=" << getC2cTypeName(pkt)
-                  << "\n";
-        return byC2cDest;
-    }
-
-    if (validSide(byLocalRequestor) && byLocalRequestor != responderSide) {
-        std::cout << "[C2C ACK ROUTE PICK]"
-                  << " rule=ACK_LOCAL_REQUESTOR_REMOTE"
-                  << " src=" << responderSide
-                  << " dst=" << byLocalRequestor
-                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                  << " type=" << getC2cTypeName(pkt)
-                  << "\n";
-        return byLocalRequestor;
-    }
-
-    if (validSide(byRequestor) && byRequestor != responderSide) {
-        std::cout << "[C2C ACK ROUTE PICK]"
-                  << " rule=ACK_REQUESTOR_REMOTE"
-                  << " src=" << responderSide
-                  << " dst=" << byRequestor
-                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                  << " type=" << getC2cTypeName(pkt)
-                  << "\n";
-        return byRequestor;
-    }
-
-    if (validSide(byOriginalRequestor) &&
-        byOriginalRequestor != responderSide) {
-        std::cout << "[C2C ACK ROUTE PICK]"
-                  << " rule=ACK_ORIGINAL_REQUESTOR_REMOTE"
-                  << " src=" << responderSide
-                  << " dst=" << byOriginalRequestor
-                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                  << " type=" << getC2cTypeName(pkt)
-                  << "\n";
-        return byOriginalRequestor;
-    }
-
-    if (validSide(byResponder) && byResponder != responderSide) {
-        std::cout << "[C2C ACK ROUTE PICK]"
-                  << " rule=ACK_RESPONDER_REMOTE"
-                  << " src=" << responderSide
-                  << " dst=" << byResponder
-                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                  << " type=" << getC2cTypeName(pkt)
-                  << "\n";
-        return byResponder;
-    }
-
-    if (validSide(byOriginalResponder) &&
-        byOriginalResponder != responderSide) {
-        std::cout << "[C2C ACK ROUTE PICK]"
-                  << " rule=ACK_ORIGINAL_RESPONDER_REMOTE"
-                  << " src=" << responderSide
-                  << " dst=" << byOriginalResponder
-                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                  << " type=" << getC2cTypeName(pkt)
-                  << "\n";
-        return byOriginalResponder;
-    }
-
-    std::cout << "[C2C ACK ROUTE ERROR]"
-              << " rule=ACK_NO_REMOTE_CONTEXT"
-              << " src=" << responderSide
-              << " explicitSrc=" << explicitSrc
-              << " explicitDst=" << explicitDst
-              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-              << " type=" << getC2cTypeName(pkt)
-              << " byC2cDest=" << byC2cDest
-              << " byLocalRequestor=" << byLocalRequestor
-              << " byRequestor=" << byRequestor
-              << " byOriginalRequestor=" << byOriginalRequestor
-              << " byResponder=" << byResponder
-              << " byOriginalResponder=" << byOriginalResponder
-              << "\n";
 
     return -1;
 }
@@ -1444,37 +1161,71 @@ C2CInterposer::routeResponse(PacketPtr pkt, int responderSide) const
     if (type == ruby::C2cRequestType_CompAck ||
         type == ruby::C2cRequestType_ReqAck) {
 
-        dst = routeAckLikeSlicc(pkt, responderSide);
-
+        dst = routeByAddress(pkt, responderSide);
         if (validSide(dst) && dst != responderSide) {
             std::cout << "[C2C RESP CHOSEN]"
-                    << " type=" << getC2cTypeName(pkt)
-                    << " rule=ACK_REMOTE_ONLY"
-                    << " src=" << responderSide
-                    << " dst=" << dst
-                    << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                    << "\n";
+                      << " type=" << getC2cTypeName(pkt)
+                      << " rule=ACK_ADDR"
+                      << " src=" << responderSide
+                      << " dst=" << dst
+                      << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                      << "\n";
             return dst;
         }
 
-        std::cout << "[C2C ROUTE ERROR] cannot route ACK to remote side"
-                << " src=" << responderSide
-                << " dst=" << dst
-                << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                << " type=" << getC2cTypeName(pkt)
-                << " sender=" << machineIdToString(msg->m_Sender)
-                << " requestor=" << machineIdToString(msg->m_Requestor)
-                << " originalRequestor="
-                << machineIdToString(msg->m_OriginalRequestor)
-                << " localRequestor="
-                << machineIdToString(msg->m_LocalRequestor)
-                << " responder=" << machineIdToString(msg->m_Responder)
-                << " originalResponder="
-                << machineIdToString(msg->m_OriginalResponder)
-                << "\n";
+        dst = routeByC2cDestination(pkt, responderSide);
+        if (validSide(dst) && dst != responderSide) {
+            std::cout << "[C2C RESP CHOSEN]"
+                      << " type=" << getC2cTypeName(pkt)
+                      << " rule=ACK_C2CDEST"
+                      << " src=" << responderSide
+                      << " dst=" << dst
+                      << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                      << "\n";
+            return dst;
+        }
 
-        panic("C2CInterposer cannot route ACK from side %d to remote side: %s",
-            responderSide, pktToString(pkt).c_str());
+        dst = routeByMachineID(msg->m_OriginalResponder, -1);
+        if (validSide(dst) && dst != responderSide) {
+            std::cout << "[C2C RESP CHOSEN]"
+                      << " type=" << getC2cTypeName(pkt)
+                      << " rule=ACK_ORIGINAL_RESPONDER"
+                      << " src=" << responderSide
+                      << " dst=" << dst
+                      << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                      << "\n";
+            return dst;
+        }
+
+        dst = routeByMachineID(msg->m_Responder, -1);
+        if (validSide(dst) && dst != responderSide) {
+            std::cout << "[C2C RESP CHOSEN]"
+                      << " type=" << getC2cTypeName(pkt)
+                      << " rule=ACK_RESPONDER"
+                      << " src=" << responderSide
+                      << " dst=" << dst
+                      << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                      << "\n";
+            return dst;
+        }
+
+        std::cout << "[C2C ROUTE ERROR] cannot route ACK"
+                  << " src=" << responderSide
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << " type=" << getC2cTypeName(pkt)
+                  << " sender=" << machineIdToString(msg->m_Sender)
+                  << " requestor=" << machineIdToString(msg->m_Requestor)
+                  << " originalRequestor="
+                  << machineIdToString(msg->m_OriginalRequestor)
+                  << " localRequestor="
+                  << machineIdToString(msg->m_LocalRequestor)
+                  << " responder=" << machineIdToString(msg->m_Responder)
+                  << " originalResponder="
+                  << machineIdToString(msg->m_OriginalResponder)
+                  << "\n";
+
+        panic("C2CInterposer cannot route ACK from side %d: %s",
+              responderSide, pktToString(pkt).c_str());
 
         return responderSide;
     }
@@ -1874,17 +1625,6 @@ C2CInterposer::recvReqFromInterface(PacketPtr pkt, int srcSide)
 {
     const int dstSide = routeRequest(pkt, srcSide);
 
-    // ---------------- NUEVO: conservar ruta explícita C2C ----------------
-    // Aquí el interposer ya sabe el camino real:
-    //
-    //   srcSide -> dstSide
-    //
-    // Lo estampamos en el C2cMsg antes de entregarlo a la Interface destino.
-    // Así CHI-interface-v2.sm podrá copiar RouteSrcChip/RouteDestChip hacia
-    // los campos c2c_route_src_chip/c2c_route_dest_chip del CHIRequestMsg.
-    stampExplicitC2cRoute(pkt, srcSide, dstSide, "REQ");
-    // ---------------- FIN NUEVO -----------------------------------------
-
     printRoutingInfo(pkt, "REQ", srcSide, dstSide);
     recordC2cType(pkt, "REQ enqueue", srcSide);
 
@@ -1919,20 +1659,6 @@ bool
 C2CInterposer::recvRespFromInterface(PacketPtr pkt, int responderSide)
 {
     const int dstSide = routeResponse(pkt, responderSide);
-
-    // ---------------- NUEVO: conservar ruta explícita C2C ----------------
-    // También estampamos responses/data.
-    //
-    // Esto es importante para flujos como:
-    //
-    //   chip 1 -> chip 2 : ReadShared
-    //   chip 2 -> chip 0 : CompData / Data forwarding
-    //   chip 0 -> ?      : CompAck
-    //
-    // Si no guardamos explícitamente el camino C2C, el TBE del receptor acaba
-    // con routeSrcChip = -1 y luego Send_CompAck genera destChip=-1.
-    stampExplicitC2cRoute(pkt, responderSide, dstSide, "RESP");
-    // ---------------- FIN NUEVO -----------------------------------------
 
     printRoutingInfo(pkt, "RESP", responderSide, dstSide);
     recordC2cType(pkt, "RESP enqueue", responderSide);

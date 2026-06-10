@@ -656,13 +656,6 @@ machine(MachineType:Cache, "Cache coherency protocol") :
     bool off_chip,                desc="off_chip flag for CHI requests";
     bool c2cOrig,                 desc="Request originating from a C2C interface";
 
-    // ---------------- NUEVO: explicit C2C routing metadata ----------------
-    // routeSrcChip conserva el chip remoto desde el que llegó el flujo C2C.
-    // routeDestChip permite forzar el destino al devolver ACKs ambiguos.
-    int routeSrcChip,  default="-1", desc="Source chip of original C2C route";
-    int routeDestChip, default="-1", desc="Destination chip for explicit C2C route";
-    // ---------------- FIN NUEVO -------------------------------------------
-
     bool dir_ownerExists,         desc="Owner ID is valid";
     bool dir_ownerIsExcl,         desc="Owner is UD or UC; SD otherwise";
     bool doCacheFill,             desc="Write valid data to the cache when completing transaction";

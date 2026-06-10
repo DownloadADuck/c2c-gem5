@@ -467,26 +467,6 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
             set_c2c_routes(cluster.dcache, 2)
             set_c2c_routes(cluster.l2cache, 2)
 
-                # ---------------- NUEVO: DMA controllers ----------------
-        #
-        # Los DMA controllers también pueden generar tráfico C2C.
-        # En el log actual falla:
-        #
-        #   board.cache_hierarchy.dma_controllers00:
-        #   mapChipIDToC2CI missing chipID 2
-        #
-        # Eso significa que el DMA controller llamó a mapChipIDToC2CI(2),
-        # pero no tenía inicializada su tabla chipIDList/c2cHopList.
-        #
-        # En esta topología, los DMA controllers creados por board.has_dma_ports()
-        # están conectados en network0, así que pertenecen al chip 0 y deben usar
-        # Interface-0 para llegar a chips remotos 1 y 2.
-        # --------------------------------------------------------
-        if board.has_dma_ports():
-            for dma in self.dma_controllers0:
-                set_c2c_routes(dma, 0)
-        # ---------------- FIN NUEVO -----------------------------
-
         # Setting up the MachineID -> ChipID LUT
         # Lists are automatically set up
         # Position in the vector is the version number of the controller
