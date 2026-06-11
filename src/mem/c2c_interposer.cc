@@ -711,21 +711,20 @@ int
 C2CInterposer::routeByDestinationField(PacketPtr pkt, int fallback) const
 {
     /*
-     * IMPORTANTE:
      *
-     * Antes aquí intentábamos usar:
+     * Antes aquí usaba:
      *
      *     msg->getDestination()
      *
      * para leer el NetDest del mensaje Ruby. Eso NO es seguro en este path
      * C2C, porque no todos los C2cMsg tienen un campo Destination válido.
      *
-     * Si llamamos a getDestination() sobre un mensaje que no soporta ese
+     * Si llamo a getDestination() sobre un mensaje que no soporta ese
      * campo, gem5 aborta con:
      *
      *     panic: getDestination() called on wrong message!
      *
-     * Por eso esta función queda como fallback neutro. La mantenemos para no
+     * Por eso esta función queda como fallback neutro. La mantengo para no
      * romper la estructura del código, pero ya no consulta getDestination().
      *
      * El routing real queda así:
@@ -853,7 +852,7 @@ C2CInterposer::routeRequest(PacketPtr pkt, int srcSide) const
      * Para ReadShared, ReadUnique, CleanUnique, WriteBackFull, etc.,
      * si no había c2c_destination explícito, usamos la dirección.
      *
-     * Esto conserva tu política:
+     * Esto conserva la política:
      *
      *   Requests normales -> dirección
      *   Responses/Data    -> MachineID
@@ -1003,7 +1002,7 @@ C2CInterposer::routeResponse(PacketPtr pkt, int responderSide) const
      *      out_msg.originalRequestor := tbe.originalRequestor;
      *      out_msg.originalResponder := machineID;
      *
-     * Por tanto, para SnpResp* no debemos empezar por:
+     * Por tanto, para SnpResp* no debo empezar por:
      *
      *   - OriginalResponder
      *   - Responder
@@ -1011,7 +1010,7 @@ C2CInterposer::routeResponse(PacketPtr pkt, int responderSide) const
      *
      * porque eso no imita Destination.add(tbe.requestor).
      *
-     * En tus logs, m_Requestor muchas veces viene INVALID para SnpResp_*,
+     * En los logs, m_Requestor muchas veces viene INVALID para SnpResp_*,
      * así que el mejor proxy disponible del contexto SLICC suele ser
      * m_LocalRequestor.
      */
