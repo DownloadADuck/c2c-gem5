@@ -29,7 +29,7 @@ from gem5.components.cachehierarchies.chi.private_l1_private_l2_cache_hierarchy 
 requires(
     isa_required=ISA.X86,
     coherence_protocol_required=CoherenceProtocol.CHI,
-    kvm_required=True,
+    kvm_required=False,
 )
 
 # Parsec benchmarks
@@ -90,7 +90,7 @@ processor = SimpleSwitchableProcessor(
     starting_core_type=CPUTypes.NONCACHING_SIMPLE,
     switch_core_type=CPUTypes.TIMING,
     isa=ISA.X86,
-    num_cores=2,
+    num_cores=4,
 )
 
 # Board
@@ -118,7 +118,7 @@ command = (
 #board.set_workload(workload)
 
 board.set_kernel_disk_workload(
-    kernel = Resource("x86-linux-kernel-4.19.83"),
+    kernel = Resource("x86-linux-kernel-5.4.49"),
     #disk_image = CustomResource(
     #    "/home/lbertranalvarez/.cache/gem5/x86-parsec-2",
     #    #metadata={
