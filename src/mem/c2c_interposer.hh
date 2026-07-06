@@ -27,6 +27,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <cstdint>
 
 #include "mem/ruby/common/MachineID.hh"
 #include "mem/ruby/protocol/C2cRequestType.hh"
@@ -181,6 +182,22 @@ class C2CInterposer : public ClockedObject
 
     std::vector<std::unique_ptr<DirBuffer>> reqTo;
     std::vector<std::unique_ptr<DirBuffer>> respTo;
+
+    //componentes 
+    std::vector<std::string> cacheComponentNameList;
+
+    std::string machineIdToDebugString(const ruby::MachineID &mach) const;
+
+    void printC2cMsgDebug(PacketPtr pkt,
+                      const char *tag,
+                      int srcSide,
+                      int dstSide) const;
+                      
+    /*
+    * Identificador único de cada intento físico de envío de una response.
+    * Sirve solo para depuración.
+    */
+    uint64_t responseSendSequence = 0;
 
     // Entrada principal para timing requests desde un chip.
     bool recvReqFromInterface(PacketPtr pkt, int srcSide);

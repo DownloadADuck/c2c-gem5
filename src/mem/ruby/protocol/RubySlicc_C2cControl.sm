@@ -92,6 +92,16 @@ structure(C2cMsg, desc="...", interface="Message") {
   MachineID OriginalResponder,  desc="Off-chip responder";
   MachineID LocalRequestor,     desc="Secondary or local requestor";
 
+  // ---------------- NUEVO: explicit C2C route metadata ----------------
+  //
+  // Estos campos conservan la ruta lógica srcChip -> destChip para la
+  // topología C2C switched/mux. El generador SLICC marca RouteDestChip
+  // cuando expande un MegaNetDest por chip, CHI-interface-v2.sm lo copia
+  // al C2cMsg, y c2c_interposer.cc lo usa antes de mirar C2c_destination.
+  int RouteSrcChip,  default="-1", desc="Source chip for explicit C2C route";
+  int RouteDestChip, default="-1", desc="Destination chip for explicit C2C route";
+  // ---------------- FIN NUEVO -----------------------------------------
+
   bool RetToSrc,                desc="Affects whether or not a snoop resp return data";
   bool Stale,                   desc="Response stale status flag";
   bool ReqAck,                  desc="This message is a request to send a request";

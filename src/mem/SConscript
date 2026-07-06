@@ -40,9 +40,10 @@
 
 Import('*')
 
-#nuevos componentes 
+#nuevos componentes y flag debug 
 SimObject('c2c_interposer.py', sim_objects=['C2CInterposer'])
 Source('c2c_interposer.cc')
+DebugFlag('C2CInterposer')
 #fin nuevos componentes 
 SimObject('CommMonitor.py', sim_objects=['CommMonitor'])
 Source('comm_monitor.cc')
@@ -129,7 +130,6 @@ Source('mem_checker.cc')
 Source('mem_checker_monitor.cc')
 
 #debug flags nuevas 
-DebugFlag('C2CInterposer')
 DebugFlag('AddrRanges')
 DebugFlag('BaseXBar')
 DebugFlag('CoherentXBar')

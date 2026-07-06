@@ -48,3 +48,8 @@ class C2CInterposer(ClockedObject):
     # Mapa Interface_Controller.version -> chipID.
     # Normalmente, para 3 chips será [0, 1, 2].
     interface_chip_id_list = VectorParam.Int([], "Interface controller version to chipID mapping")
+
+    #Indica a que componente pertenece cada elemento
+    cache_component_name_list = VectorParam.String(
+    [],
+    "Human-readable component name for each Ruby Cache MachineID version")

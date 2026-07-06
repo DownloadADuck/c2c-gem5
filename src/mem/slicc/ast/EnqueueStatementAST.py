@@ -148,6 +148,8 @@ class EnqueueStatementAST(StatementAST):
             code("} else {")
             code.indent()
             code("((*out_msg).m_Destination).add(mapChipIDToC2CI(i));")
+            code("(*out_msg).m_c2c_route_src_chip = m_chipID;")
+            code("(*out_msg).m_c2c_route_dest_chip = i;")
             code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
             code.dedent()
             code("}")
@@ -181,6 +183,8 @@ class EnqueueStatementAST(StatementAST):
             code("} else {")
             code.indent()
             code("((*out_msg).m_Destination).add(mapChipIDToC2CI(i));")
+            code("(*out_msg).m_c2c_route_src_chip = m_chipID;")
+            code("(*out_msg).m_c2c_route_dest_chip = i;")
             code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
             # We break out of the for loop since we only want one snoop sent
             code("break;")
@@ -219,6 +223,8 @@ class EnqueueStatementAST(StatementAST):
                 code("} else {")
                 code.indent()
                 code("((*out_msg).m_Destination).add(mapChipIDToC2CI(i));")
+                code("(*out_msg).m_c2c_route_src_chip = m_chipID;")
+                code("(*out_msg).m_c2c_route_dest_chip = i;")
                 code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
                 # We break out of the for loop since we only want one snoop sent
                 code("break;")
@@ -273,6 +279,8 @@ class EnqueueStatementAST(StatementAST):
                 code("} else {")
                 code.indent()
                 code("((*out_msg).m_Destination).add(mapChipIDToC2CI(i));")
+                code("(*out_msg).m_c2c_route_src_chip = m_chipID;")
+                code("(*out_msg).m_c2c_route_dest_chip = i;")
                 code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
                 code.dedent()
                 code("}")
@@ -280,28 +288,38 @@ class EnqueueStatementAST(StatementAST):
                 code("}") # end if
                 code.dedent()
                 code("}") # end for
-            elif 'mega_dir_owner' in statements_str:
+            elif 'mega_dir_owner' in statements_str: #modified: now it filters chips with a empty NetDest
                 code(f"for (int i = 0; i < (*m_tbe_ptr).m_{MegaDest}.chipCount(); ++i) {{")
                 code.indent()
+
+                code(f"if ((*m_tbe_ptr).m_{MegaDest}.extractNetDest(i).isEmpty() == false) {{")
+                code.indent()
+
                 code(
                     "std::shared_ptr<${{msg_type.c_ident}}> out_msg = "
                     "std::make_shared<${{msg_type.c_ident}}>(clockEdge());"
                 )
                 t = self.statements.generate(code, None)
                 self.queue_name.assertType("OutPort")
-                # If the sharer is local, extract the NetDest from MegaNetDest
+
                 code("if (i == m_chipID) {")
                 code.indent()
                 code(f"((*out_msg).m_Destination).addNetDest((*m_tbe_ptr).m_{MegaDest}.extractNetDest(i));")
                 code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
                 code.dedent()
-                # If the sharer is remote, send to local C2CI
+
                 code("} else {")
                 code.indent()
                 code("((*out_msg).m_Destination).add(mapChipIDToC2CI(i));")
+                code("(*out_msg).m_c2c_route_src_chip = m_chipID;")
+                code("(*out_msg).m_c2c_route_dest_chip = i;")
                 code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
                 code.dedent()
-                code("}") # end if
+                code("}")
+
+                code.dedent()
+                code("}") # end if non-empty NetDest
+
                 code.dedent()
                 code("}") # end for
             else:

@@ -112,6 +112,12 @@ structure(CHIRequestMsg, desc="", interface="Message") {
   MachineID localRequestor,     desc="original or secondary requestor";
   bool off_chip, desc="off-chip flag";
   bool c2cOrig, default="false", desc="Originates from the interface";
+
+  // ---------------- NUEVO: explicit C2C route metadata ----------------
+  int c2c_route_src_chip,  default="-1", desc="Source chip for explicit C2C route";
+  int c2c_route_dest_chip, default="-1", desc="Destination chip for explicit C2C route";
+  // ---------------- FIN NUEVO -----------------------------------------
+
   /////////
 
   RequestPtr seqReq,        default="nullptr", desc="Pointer to original request from CPU/sequencer (nullptr if not valid)";
@@ -180,6 +186,11 @@ structure(CHIResponseMsg, desc="", interface="Message") {
   // TODO remove off_chip
   bool off_chip,                desc="Response triggering a new off_chip response";
 
+  // ---------------- NUEVO: explicit C2C route metadata ----------------
+  int c2c_route_src_chip,  default="-1", desc="Source chip for explicit C2C route";
+  int c2c_route_dest_chip, default="-1", desc="Destination chip for explicit C2C route";
+  // ---------------- FIN NUEVO -----------------------------------------
+
   MessageSizeType MessageSize, default="MessageSizeType_Control";
 
   // No data for functional access
@@ -236,6 +247,11 @@ structure(CHIDataMsg, desc="", interface="Message") {
   MachineID originalRequestor,  desc="Original requestor";
   MachineID localRequestor,     desc="Local or secondary requestor";
   MachineID originalResponder,  desc="Responder for snp data messages";
+
+  // ---------------- NUEVO: explicit C2C route metadata ----------------
+  int c2c_route_src_chip,  default="-1", desc="Source chip for explicit C2C route";
+  int c2c_route_dest_chip, default="-1", desc="Destination chip for explicit C2C route";
+  // ---------------- FIN NUEVO -----------------------------------------
 
   bool functionalRead(Packet *pkt) {
     if(bitMask.isFull()) {

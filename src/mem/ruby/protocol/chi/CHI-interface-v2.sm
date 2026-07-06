@@ -113,6 +113,19 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     // TODO: Not sure yet that this should be MegaNetDest
     MegaNetDest localDest,    desc="Local final destination for the message";
 
+    // ---------------- NUEVO: explicit C2C route metadata ----------------
+    //
+    // routeSrcChip:
+    //   chip lógico desde el que salió el mensaje C2C.
+    //
+    // routeDestChip:
+    //   chip lógico destino para este mensaje C2C concreto.
+    //
+    // En la topología switched/mux, esto evita depender de MegaNetDest
+    // completo cuando el mensaje fue generado dentro de un bucle por chip.
+    int routeSrcChip,  default="-1", desc="Source chip of explicit C2C route";
+    int routeDestChip, default="-1", desc="Destination chip of explicit C2C route";
+    // ---------------- FIN NUEVO -----------------------------------------
 
     bool retToSrc, desc="Stores the retToSrc for snoop handling";
     bool stale, desc="Stores the stale status for responses";
@@ -785,6 +798,8 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     tbe.addr := address;
     tbe.rxtxBytes := 0;
     tbe.useDataSepResp := false;
+    tbe.routeSrcChip := -1;
+    tbe.routeDestChip := -1;
   }
 
   action(c2cReqAllocateTBE, "c2catbe", desc="Allocates a new TBE slot for c2c-side") {
@@ -799,6 +814,8 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     tbe.addr := address;
     tbe.rxtxBytes := 0;
     tbe.useDataSepResp := false;
+    tbe.routeSrcChip := -1;
+    tbe.routeDestChip := -1;
   }
 
   action(initializeTBEFromNetRequest, "itbefr", desc="Initialize TBE fields from net-side req") {
@@ -817,6 +834,12 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.accAddr := in_msg.accAddr;
       tbe.accSize := in_msg.accSize;
       tbe.retToSrc := in_msg.retToSrc;
+      tbe.routeSrcChip := in_msg.c2c_route_src_chip;
+      tbe.routeDestChip := in_msg.c2c_route_dest_chip;
+
+      DPRINTF(RubySlicc, "DBG_IFACE_NET_REQ_ROUTE_IN addr=%#x\n", address);
+      DPRINTF(RubySlicc, "DBG_IFACE_NET_REQ_ROUTE_IN srcChip=%d\n", tbe.routeSrcChip);
+      DPRINTF(RubySlicc, "DBG_IFACE_NET_REQ_ROUTE_IN destChip=%d\n", tbe.routeDestChip);
     }
   }
   
@@ -834,6 +857,12 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.accAddr := in_msg.accAddr;
       tbe.accSize := in_msg.accSize;
       tbe.retToSrc := in_msg.retToSrc;
+      tbe.routeSrcChip := in_msg.c2c_route_src_chip;
+      tbe.routeDestChip := in_msg.c2c_route_dest_chip;
+
+      DPRINTF(RubySlicc, "DBG_IFACE_NET_SNP_ROUTE_IN addr=%#x\n", address);
+      DPRINTF(RubySlicc, "DBG_IFACE_NET_SNP_ROUTE_IN srcChip=%d\n", tbe.routeSrcChip);
+      DPRINTF(RubySlicc, "DBG_IFACE_NET_SNP_ROUTE_IN destChip=%d\n", tbe.routeDestChip);
     }
   }
 
@@ -850,6 +879,12 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.originalResponder := in_msg.responder; // used to update dir state
       tbe.localRequestor := in_msg.localRequestor;
       tbe.MessageSize := in_msg.MessageSize;
+      tbe.routeSrcChip := in_msg.c2c_route_src_chip;
+      tbe.routeDestChip := in_msg.c2c_route_dest_chip;
+
+      DPRINTF(RubySlicc, "DBG_IFACE_NET_RSP_ROUTE_IN addr=%#x\n", address);
+      DPRINTF(RubySlicc, "DBG_IFACE_NET_RSP_ROUTE_IN srcChip=%d\n", tbe.routeSrcChip);
+      DPRINTF(RubySlicc, "DBG_IFACE_NET_RSP_ROUTE_IN destChip=%d\n", tbe.routeDestChip);
     }
   }
 
@@ -868,6 +903,12 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.messageSize := in_msg.MessageSize;
       //tbe.c2c_sharers := in_msg.c2c_sharers;
       tbe.c2c_destination := in_msg.c2c_destination;
+      tbe.routeSrcChip := in_msg.c2c_route_src_chip;
+      tbe.routeDestChip := in_msg.c2c_route_dest_chip;
+
+      DPRINTF(RubySlicc, "DBG_IFACE_NET_DAT_ROUTE_IN addr=%#x\n", address);
+      DPRINTF(RubySlicc, "DBG_IFACE_NET_DAT_ROUTE_IN srcChip=%d\n", tbe.routeSrcChip);
+      DPRINTF(RubySlicc, "DBG_IFACE_NET_DAT_ROUTE_IN destChip=%d\n", tbe.routeDestChip);
     }
   }
 
@@ -885,6 +926,12 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.accAddr := in_msg.AccAddr;
       tbe.accSize := in_msg.AccSize;
       tbe.retToSrc := in_msg.RetToSrc;
+      tbe.routeSrcChip := in_msg.RouteSrcChip;
+      tbe.routeDestChip := in_msg.RouteDestChip;
+
+      DPRINTF(RubySlicc, "DBG_IFACE_C2C_REQ_ROUTE_IN addr=%#x\n", address);
+      DPRINTF(RubySlicc, "DBG_IFACE_C2C_REQ_ROUTE_IN srcChip=%d\n", tbe.routeSrcChip);
+      DPRINTF(RubySlicc, "DBG_IFACE_C2C_REQ_ROUTE_IN destChip=%d\n", tbe.routeDestChip);
     }
   }
 
@@ -903,6 +950,12 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.accAddr := in_msg.AccAddr;
       tbe.accSize := in_msg.AccSize;
       tbe.retToSrc := in_msg.RetToSrc;
+      tbe.routeSrcChip := in_msg.RouteSrcChip;
+      tbe.routeDestChip := in_msg.RouteDestChip;
+
+      DPRINTF(RubySlicc, "DBG_IFACE_C2C_SNP_ROUTE_IN addr=%#x\n", address);
+      DPRINTF(RubySlicc, "DBG_IFACE_C2C_SNP_ROUTE_IN srcChip=%d\n", tbe.routeSrcChip);
+      DPRINTF(RubySlicc, "DBG_IFACE_C2C_SNP_ROUTE_IN destChip=%d\n", tbe.routeDestChip);
     }
   }
 
@@ -919,6 +972,12 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.originalResponder := in_msg.OriginalResponder;
       tbe.localRequestor := in_msg.LocalRequestor;
       tbe.messageSize := in_msg.MessageSize;
+      tbe.routeSrcChip := in_msg.RouteSrcChip;
+      tbe.routeDestChip := in_msg.RouteDestChip;
+
+      DPRINTF(RubySlicc, "DBG_IFACE_C2C_RSP_ROUTE_IN addr=%#x\n", address);
+      DPRINTF(RubySlicc, "DBG_IFACE_C2C_RSP_ROUTE_IN srcChip=%d\n", tbe.routeSrcChip);
+      DPRINTF(RubySlicc, "DBG_IFACE_C2C_RSP_ROUTE_IN destChip=%d\n", tbe.routeDestChip);
     }
   }
 
@@ -937,6 +996,12 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       tbe.originalResponder := in_msg.OriginalResponder;
       tbe.localRequestor := in_msg.LocalRequestor;
       tbe.messageSize := in_msg.MessageSize;
+      tbe.routeSrcChip := in_msg.RouteSrcChip;
+      tbe.routeDestChip := in_msg.RouteDestChip;
+
+      DPRINTF(RubySlicc, "DBG_IFACE_C2C_DAT_ROUTE_IN addr=%#x\n", address);
+      DPRINTF(RubySlicc, "DBG_IFACE_C2C_DAT_ROUTE_IN srcChip=%d\n", tbe.routeSrcChip);
+      DPRINTF(RubySlicc, "DBG_IFACE_C2C_DAT_ROUTE_IN destChip=%d\n", tbe.routeDestChip);
     }
   }
 
@@ -969,6 +1034,12 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.is_remote_pf := tbe.is_remote_pf;
       out_msg.usesTxnId := tbe.usesTxnId;
       out_msg.MessageSize := tbe.MessageSize;
+      out_msg.c2c_route_src_chip := tbe.routeSrcChip;
+      out_msg.c2c_route_dest_chip := tbe.routeDestChip;
+
+      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_REQ_ROUTE addr=%#x\n", address);
+      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_REQ_ROUTE srcChip=%d\n", tbe.routeSrcChip);
+      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_REQ_ROUTE destChip=%d\n", tbe.routeDestChip);
     }
   }
 
@@ -1001,6 +1072,12 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       //  out_msg.fwdRequestor := machineID;
       //}
       out_msg.fwdRequestor := tbe.originalRequestor;
+      out_msg.c2c_route_src_chip := tbe.routeSrcChip;
+      out_msg.c2c_route_dest_chip := tbe.routeDestChip;
+
+      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_SNP_ROUTE addr=%#x\n", address);
+      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_SNP_ROUTE srcChip=%d\n", tbe.routeSrcChip);
+      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_SNP_ROUTE destChip=%d\n", tbe.routeDestChip);
       DPRINTF(RubyGenerated, "fwdRequestor -> %s\n", out_msg.fwdRequestor);
     }
  }
@@ -1024,6 +1101,12 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.usesTxnId := tbe.usesTxnId;
       out_msg.txnId := tbe.txnId;
       out_msg.MessageSize := tbe.MessageSize;
+      out_msg.c2c_route_src_chip := tbe.routeSrcChip;
+      out_msg.c2c_route_dest_chip := tbe.routeDestChip;
+
+      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_RSP_ROUTE addr=%#x\n", address);
+      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_RSP_ROUTE srcChip=%d\n", tbe.routeSrcChip);
+      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_RSP_ROUTE destChip=%d\n", tbe.routeDestChip);
     }
   }
 
@@ -1056,6 +1139,12 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       }
       out_msg.localRequestor := tbe.localRequestor;
       out_msg.originalResponder := tbe.originalResponder;
+      out_msg.c2c_route_src_chip := tbe.routeSrcChip;
+      out_msg.c2c_route_dest_chip := tbe.routeDestChip;
+
+      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_DAT_ROUTE addr=%#x\n", address);
+      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_DAT_ROUTE srcChip=%d\n", tbe.routeSrcChip);
+      DPRINTF(RubySlicc, "DBG_IFACE_TO_NET_DAT_ROUTE destChip=%d\n", tbe.routeDestChip);
     }
   }
 
@@ -1065,12 +1154,24 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.addr := address;
       out_msg.Type := CHIReqToC2cMsg(tbe.to_c2c_req_type);
       out_msg.Sender := tbe.requestor;
+      out_msg.Requestor := tbe.requestor;
       out_msg.OriginalRequestor := tbe.originalRequestor;
       out_msg.LocalRequestor := tbe.localRequestor;
       out_msg.MessageSize := tbe.messageSize; 
       out_msg.AllowRetry := tbe.allowRetry;
       out_msg.AccAddr := tbe.accAddr;
       out_msg.AccSize := tbe.accSize;
+
+      if (tbe.routeSrcChip == -1) {
+        out_msg.RouteSrcChip := chipID;
+      } else {
+        out_msg.RouteSrcChip := tbe.routeSrcChip;
+      }
+      out_msg.RouteDestChip := tbe.routeDestChip;
+
+      DPRINTF(RubySlicc, "DBG_IFACE_TO_C2C_REQ_ROUTE addr=%#x\n", address);
+      DPRINTF(RubySlicc, "DBG_IFACE_TO_C2C_REQ_ROUTE srcChip=%d\n", out_msg.RouteSrcChip);
+      DPRINTF(RubySlicc, "DBG_IFACE_TO_C2C_REQ_ROUTE destChip=%d\n", out_msg.RouteDestChip);
     }
   }
 
@@ -1096,6 +1197,17 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.Is_remote_pf := tbe.is_remote_pf;
       out_msg.UsesTxnId := tbe.usesTxnId;
       out_msg.MessageSize := tbe.MessageSize;
+
+      if (tbe.routeSrcChip == -1) {
+        out_msg.RouteSrcChip := chipID;
+      } else {
+        out_msg.RouteSrcChip := tbe.routeSrcChip;
+      }
+      out_msg.RouteDestChip := tbe.routeDestChip;
+
+      DPRINTF(RubySlicc, "DBG_IFACE_TO_C2C_SNP_ROUTE addr=%#x\n", address);
+      DPRINTF(RubySlicc, "DBG_IFACE_TO_C2C_SNP_ROUTE srcChip=%d\n", out_msg.RouteSrcChip);
+      DPRINTF(RubySlicc, "DBG_IFACE_TO_C2C_SNP_ROUTE destChip=%d\n", out_msg.RouteDestChip);
     }
   }
 
@@ -1104,6 +1216,8 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     enqueue(responseToC2c_out, C2cMsg, response_latency) {
       out_msg.addr := address;
       out_msg.Type := CHIRspToC2cMsg(tbe.to_c2c_rsp_type);
+      out_msg.Sender := tbe.responder;
+      out_msg.Requestor := tbe.originalRequestor;
       out_msg.Responder := tbe.responder;
       out_msg.Stale := tbe.stale;
       out_msg.UsesTxnId := tbe.usesTxnId;
@@ -1113,6 +1227,17 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.OriginalRequestor := tbe.originalRequestor;
       out_msg.LocalRequestor := tbe.localRequestor;
       out_msg.MessageSize := tbe.messageSize;
+
+      if (tbe.routeSrcChip == -1) {
+        out_msg.RouteSrcChip := chipID;
+      } else {
+        out_msg.RouteSrcChip := tbe.routeSrcChip;
+      }
+      out_msg.RouteDestChip := tbe.routeDestChip;
+
+      DPRINTF(RubySlicc, "DBG_IFACE_TO_C2C_RSP_ROUTE addr=%#x\n", address);
+      DPRINTF(RubySlicc, "DBG_IFACE_TO_C2C_RSP_ROUTE srcChip=%d\n", out_msg.RouteSrcChip);
+      DPRINTF(RubySlicc, "DBG_IFACE_TO_C2C_RSP_ROUTE destChip=%d\n", out_msg.RouteDestChip);
     }
   }
 
@@ -1121,6 +1246,8 @@ machine(MachineType:Interface, "Forwarding C2CI") :
     enqueue(responseToC2c_out, C2cMsg, response_latency) {
       out_msg.addr := address;
       out_msg.Type := CHIDatToC2cMsg(tbe.to_c2c_dat_type);
+      out_msg.Sender := tbe.responder;
+      out_msg.Requestor := tbe.originalRequestor;
       out_msg.Responder := tbe.responder;
       out_msg.DataBlk := tbe.dataBlk;
       out_msg.BitMask := tbe.bitMask;
@@ -1131,6 +1258,17 @@ machine(MachineType:Interface, "Forwarding C2CI") :
       out_msg.OriginalRequestor := tbe.originalRequestor;
       out_msg.LocalRequestor := tbe.localRequestor;
       out_msg.OriginalResponder := tbe.originalResponder;
+
+      if (tbe.routeSrcChip == -1) {
+        out_msg.RouteSrcChip := chipID;
+      } else {
+        out_msg.RouteSrcChip := tbe.routeSrcChip;
+      }
+      out_msg.RouteDestChip := tbe.routeDestChip;
+
+      DPRINTF(RubySlicc, "DBG_IFACE_TO_C2C_DAT_ROUTE addr=%#x\n", address);
+      DPRINTF(RubySlicc, "DBG_IFACE_TO_C2C_DAT_ROUTE srcChip=%d\n", out_msg.RouteSrcChip);
+      DPRINTF(RubySlicc, "DBG_IFACE_TO_C2C_DAT_ROUTE destChip=%d\n", out_msg.RouteDestChip);
     }
   }
 

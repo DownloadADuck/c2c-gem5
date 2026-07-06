@@ -75,6 +75,50 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         # C2c specific list
         # Allows to build the machineID -> ChipID LUT
         cacheChipIDList = []
+
+        # ---------------- NUEVO ----------------
+        # Lista paralela a cacheChipIDList para depuración.
+        #
+        # cacheChipIDList[version] dice a qué chip pertenece Cache-version.
+        # cacheComponentNameList[version] dice qué componente humano es:
+        #
+        #   Cache-0 -> chip0.hnf0.directory
+        #   Cache-4 -> chip0.core0.l2cache
+        #   Cache-8 -> chip1.hnf1.directory
+        #
+        # Esta lista NO se usa para routing. Solo sirve para que el interposer
+        # pueda imprimir trazas más claras, por ejemplo:
+        #
+        #   responder=Cache-8(chip=1, component=chip1.hnf1.directory)
+        #
+        # Importante: aquí solo metemos controladores MachineType_Cache.
+        # Las Interface C2C usan MachineType_Interface y se traducen con
+        # interface_chip_id_list.
+        # ---------------- FIN NUEVO ----------------
+        cacheComponentNameList = []
+
+        # ---------------- NUEVO ----------------
+        # Registra el nombre humano asociado a un controlador Ruby cuyo
+        # MachineID se imprime como Cache-version.
+        #
+        # La posición debe coincidir con ctrl.version, porque en Ruby/CHI:
+        #
+        #   MachineID Cache-N  <=>  Cache_Controller.version == N
+        #
+        # Por eso esta tabla tiene que ser paralela a cacheChipIDList.
+        # ---------------- FIN NUEVO ----------------
+        def register_cache_component(ctrl, component_name: str):
+            version = int(ctrl.version)
+
+            while len(cacheComponentNameList) <= version:
+                cacheComponentNameList.append("unknown")
+
+            cacheComponentNameList[version] = component_name
+
+            print(
+                "[C2C DEBUG COMPONENT MAP]"
+                f" Cache-{version} -> {component_name}"
+            )
     
         for rng, port in board.get_mem_ports():
             mem_ranges.append(rng)
@@ -120,6 +164,15 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         self.hnf0.ruby_system = self.ruby_system
         self.hnf1.ruby_system = self.ruby_system
         self.hnf2.ruby_system = self.ruby_system
+
+        # ---------------- NUEVO ----------------
+        # Nombres humanos para los HNF/directorios.
+        # Estos nombres son los que luego verás en las trazas del interposer
+        # cuando aparezcan MachineID como Cache-0, Cache-1, etc.
+        # ---------------- FIN NUEVO ----------------
+        register_cache_component(self.hnf0, "chip0.hnf0.directory")
+        register_cache_component(self.hnf1, "chip1.hnf1.directory")
+        register_cache_component(self.hnf2, "chip2.hnf2.directory")
         
         # Add to the RNF destinations
         cluster0_dest.append(self.hnf0)
@@ -317,6 +370,24 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
                 cacheChipIDList=cacheChipIDList,
             )
         ]
+
+        # ---------------- NUEVO ----------------
+        # Nombres humanos para las caches del chip 0.
+        # Mantengo el mismo orden conceptual que en _create_core_cluster:
+        # dcache, icache y l2cache.
+        # ---------------- FIN NUEVO ----------------
+        for idx, cluster in enumerate(self.core_cluster0):
+            core_id = idx
+            register_cache_component(
+                cluster.dcache, f"chip0.core{core_id}.dcache"
+            )
+            register_cache_component(
+                cluster.icache, f"chip0.core{core_id}.icache"
+            )
+            register_cache_component(
+                cluster.l2cache, f"chip0.core{core_id}.l2cache"
+            )
+
         self.core_cluster1 = [
             self._create_core_cluster(
                 (board.get_processor().get_cores())[2],
@@ -328,6 +399,21 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
                 cacheChipIDList=cacheChipIDList,
             )
         ]
+
+        # ---------------- NUEVO ----------------
+        # Nombres humanos para las caches del chip 1.
+        # ---------------- FIN NUEVO ----------------
+        for idx, cluster in enumerate(self.core_cluster1):
+            core_id = 2 + idx
+            register_cache_component(
+                cluster.dcache, f"chip1.core{core_id}.dcache"
+            )
+            register_cache_component(
+                cluster.icache, f"chip1.core{core_id}.icache"
+            )
+            register_cache_component(
+                cluster.l2cache, f"chip1.core{core_id}.l2cache"
+            )
 
         # ---------------- NUEVO ----------------
         # En el fichero original, core_cluster2 usaba network1 y cluster1_dest.
@@ -351,6 +437,21 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
                 cacheChipIDList=cacheChipIDList,
             )
         ]
+
+        # ---------------- NUEVO ----------------
+        # Nombres humanos para las caches del chip 2.
+        # ---------------- FIN NUEVO ----------------
+        for idx, cluster in enumerate(self.core_cluster2):
+            core_id = 3 + idx
+            register_cache_component(
+                cluster.dcache, f"chip2.core{core_id}.dcache"
+            )
+            register_cache_component(
+                cluster.icache, f"chip2.core{core_id}.icache"
+            )
+            register_cache_component(
+                cluster.l2cache, f"chip2.core{core_id}.l2cache"
+            )
 
         # Create the coherent side of the memory controllers
         self.memory_controllers0 = self._create_memory_controllers(
@@ -385,6 +486,13 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
             )
 
             # ---------------- NUEVO ----------------
+            # Si hay DMARequestor y aparece como MachineID Cache-N en las
+            # trazas, también dejamos registrado su nombre humano.
+            # ---------------- FIN NUEVO ----------------
+            for idx, ctrl in enumerate(self.dma_controllers0):
+                register_cache_component(ctrl, f"chip0.dma{idx}")
+
+            # ---------------- NUEVO ----------------
             # El cálculo original no incluía core_cluster2.
             #
             # Cada core tiene dos sequencers en esta jerarquía:
@@ -412,7 +520,7 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
                 len(self.core_cluster2)
             ) * 2
 
-        ############################# C2C SETUP #############
+        ############################# C2C SETUP: Inicializacion de la lista de interfaces alcanzables por un chip, explicacion adentro con un ejemplo #############
 
         def set_c2c_routes(ctrl, local_chip: int):
             """
@@ -440,6 +548,15 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
             ctrl.cacheChipIDList = cacheChipIDList
 
         # HNF / directories
+        #Defino  la tabla de envio que utiliza cada controlador para saber a que interfaz enviar un 
+        #paquete. Para ello la tabla que ese rellena es esta:
+        #chipIDList = [chip remoto A, chip remoto B] ---> lista de los chips que son alcanzables por el chip actual, por ejemplo:
+        #self.hnf0.chipIDList = [1, 2] ---> desde el hnf0 se puede alcanzasr los chips 1 y 2
+        #c2cHopList = [interface local para A, interface local para B] ----> lista de que interfaz se usa para alcanzar al chip A y el chip B, por ejemplo:
+        #self.hnf0.c2cHopList = [0, 0] ----> oara el chip 1 se usa la interza 0 y para el chip 2 se usa la interfaz 0
+        #Todo esto hay que hacerlo tanto para los directorios como para las interfaces, las caches de instrucciones, datos y la l2 y es lo que se hace en todo
+        #lo que viene. Cada una de estas usa la funcion auxiliar "set_c2c_routes" que esta definida al final del fichero para saber rellenarla
+        #se usa esta funciona auxliar porque si no habaria que rellenar a manos las coasas
         set_c2c_routes(self.hnf0, 0)
         set_c2c_routes(self.hnf1, 1)
         set_c2c_routes(self.hnf2, 2)
@@ -466,6 +583,7 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
             set_c2c_routes(cluster.icache, 2)
             set_c2c_routes(cluster.dcache, 2)
             set_c2c_routes(cluster.l2cache, 2)
+        ############################# FINALIZACION C2C SETUP ####################################################################
 
         # Setting up the MachineID -> ChipID LUT
         # Lists are automatically set up
@@ -515,6 +633,35 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         # como m_OriginalRequestor, m_Requestor, m_LocalRequestor, etc.
         # ---------------- FIN NUEVO ----------------
         c2c_interposer.cache_chip_id_list = cacheChipIDList
+
+        # ---------------- NUEVO ----------------
+        # Pasamos también la tabla de nombres humanos:
+        #
+        #   Cache_Controller.version -> "chipX.componente"
+        #
+        # Esta tabla NO afecta al routing. Solo se usa para imprimir logs
+        # legibles en el interposer, por ejemplo:
+        #
+        #   Cache-8(chip=0, component=chip0.hnf0.directory)
+        #
+        # Rellenamos con "unknown" si alguna versión se creó pero no se
+        # registró manualmente. Así evitamos desalinear la tabla.
+        # ---------------- FIN NUEVO ----------------
+        while len(cacheComponentNameList) < len(cacheChipIDList):
+            cacheComponentNameList.append("unknown")
+
+        c2c_interposer.cache_component_name_list = cacheComponentNameList
+
+        print("========== C2C CACHE COMPONENT MAP ==========")
+        for version, chip in enumerate(cacheChipIDList):
+            component = "unknown"
+            if version < len(cacheComponentNameList):
+                component = cacheComponentNameList[version]
+
+            print(
+                f"Cache-{version} -> chip={chip}, component={component}"
+            )
+        print("=============================================")
 
         # ---------------- NUEVO ----------------
         # Con una Interface C2C por chip:

@@ -17,6 +17,29 @@
 
 namespace gem5 {
 
+/*
+  Debug flag helper.
+ 
+  Uso:
+    ./build/X86_CHI/gem5.opt --debug-flags=C2CInterposer ...
+ 
+  En vez de escribir todos los mensajes como std::cout, se construye el
+  texto con sintaxis de streams y se manda a DPRINTF. DTRACE evita
+  construir strings cuando la flag no esta activa.
+ */
+#define C2C_INTERPOSER_DPRINTF(expr)                                      \
+    do {                                                                  \
+        if (debug::C2CInterposer) {                                        \
+            std::ostringstream _c2c_interposer_dbg_oss;                    \
+            _c2c_interposer_dbg_oss << expr;                               \
+            const std::string _c2c_interposer_dbg_msg =                    \
+                _c2c_interposer_dbg_oss.str();                             \
+            DPRINTF(C2CInterposer, "%s",                                  \
+                    _c2c_interposer_dbg_msg.c_str());                      \
+        }                                                                 \
+    } while (0)
+
+
 /*Variables globales de bloqueo (de colas) y paquetes pendientes, de forma que se gestione el backpressure y el retry*/
 
 //chips que estan bloqueados porque intentaron enviar una Request hacia un destino (dst) pero estaba lleno (interposer lleno)
@@ -154,6 +177,56 @@ getC2cTypeName(PacketPtr pkt)
     return ruby::C2cRequestType_to_string(pkt->c2c_msg->m_Type);
 }
 
+//para imprimir el componente
+std::string
+C2CInterposer::machineIdToDebugString(const ruby::MachineID &mach) const
+{
+    std::ostringstream oss;
+
+    const int typeInt = static_cast<int>(mach.type);
+
+    if (typeInt < 0 || typeInt >= static_cast<int>(ruby::MachineType_NUM)) {
+        oss << "INVALID_MACHINE_TYPE(" << typeInt << ")-" << mach.num;
+        return oss.str();
+    }
+
+    oss << ruby::MachineType_to_string(mach.type) << "-" << mach.num;
+
+    int chip = -1;
+    std::string component = "unknown";
+
+    if (mach.type == ruby::MachineType_Cache) {
+        if (mach.num < cacheChipIDList.size()) {
+            chip = cacheChipIDList[mach.num];
+        }
+
+        if (mach.num < cacheComponentNameList.size()) {
+            component = cacheComponentNameList[mach.num];
+        }
+
+        oss << "(chip=" << chip
+            << ", component=" << component
+            << ")";
+
+        return oss.str();
+    }
+
+    if (mach.type == ruby::MachineType_Interface) {
+        if (mach.num < interfaceChipIDList.size()) {
+            chip = interfaceChipIDList[mach.num];
+        }
+
+        oss << "(chip=" << chip
+            << ", component=C2CInterface"
+            << ")";
+
+        return oss.str();
+    }
+
+    oss << "(chip=unknown, component=unknown)";
+    return oss.str();
+}
+
 /*Funcion de depuracion para devolver TODA la informacion basica del paquete*/
 static std::string
 pktToString(PacketPtr pkt)
@@ -210,45 +283,57 @@ machineIdToString(const ruby::MachineID &mach)
 }
 
 /*Es otra funcion de depuracion que imprime aun mas campos del paquete*/
-static void
-printC2cMsgDebug(PacketPtr pkt, const char *tag, int srcSide, int dstSide)
+void
+C2CInterposer::printC2cMsgDebug(PacketPtr pkt,
+                                const char *tag,
+                                int srcSide,
+                                int dstSide) const
 {
-    std::cout << "[C2C DBG " << tag << "]"
+    C2C_INTERPOSER_DPRINTF("[C2C DBG " << tag << "]"
               << " tick=" << curTick()
               << " src=" << srcSide
-              << " dst=" << dstSide;
+              << " dst=" << dstSide
+              << [&]() -> std::string {
+                    if (!pkt) {
+                        return " pkt=null\n";
+                    }
 
-    if (!pkt) {
-        std::cout << " pkt=null\n";
-        return;
-    }
+                    std::ostringstream oss;
+                    oss << " pkt=" << pkt
+                        << " req=" << pkt->req
+                        << " addr=0x" << std::hex << pkt->getAddr()
+                        << std::dec
+                        << " cmd=" << pkt->cmdString()
+                        << " isReq=" << pkt->isRequest()
+                        << " isResp=" << pkt->isResponse()
+                        << " needsResp=" << pkt->needsResponse()
+                        << " headerDelay=" << pkt->headerDelay
+                        << " payloadDelay=" << pkt->payloadDelay;
 
-    std::cout << " pkt=" << pkt
-              << " req=" << pkt->req
-              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-              << " cmd=" << pkt->cmdString()
-              << " isReq=" << pkt->isRequest()
-              << " isResp=" << pkt->isResponse()
-              << " needsResp=" << pkt->needsResponse()
-              << " headerDelay=" << pkt->headerDelay
-              << " payloadDelay=" << pkt->payloadDelay;
+                    if (!pkt->c2c_msg) {
+                        oss << " type=NO_C2C_MSG\n";
+                        return oss.str();
+                    }
 
-    if (!pkt->c2c_msg) {
-        std::cout << " type=NO_C2C_MSG\n";
-        return;
-    }
-
-    const auto *msg = pkt->c2c_msg;
-
-    std::cout << " type=" << getC2cTypeName(pkt)
-              << " sender=" << machineIdToString(msg->m_Sender)
-              << " requestor=" << machineIdToString(msg->m_Requestor)
-              << " originalRequestor=" << machineIdToString(msg->m_OriginalRequestor)
-              << " responder=" << machineIdToString(msg->m_Responder)
-              << " originalResponder=" << machineIdToString(msg->m_OriginalResponder)
-              << " localRequestor=" << machineIdToString(msg->m_LocalRequestor)
-              << "\n";
+                    const auto *msg = pkt->c2c_msg;
+                    oss << " type=" << getC2cTypeName(pkt)
+                        << " sender="
+                        << machineIdToDebugString(msg->m_Sender)
+                        << " requestor="
+                        << machineIdToDebugString(msg->m_Requestor)
+                        << " originalRequestor="
+                        << machineIdToDebugString(msg->m_OriginalRequestor)
+                        << " responder="
+                        << machineIdToDebugString(msg->m_Responder)
+                        << " originalResponder="
+                        << machineIdToDebugString(msg->m_OriginalResponder)
+                        << " localRequestor="
+                        << machineIdToDebugString(msg->m_LocalRequestor)
+                        << "\n";
+                    return oss.str();
+                }());
 }
+
 
 /*------------------------------------------------------------*/
 /* FromInterfacePort                                          */
@@ -288,11 +373,11 @@ Osea, si un chip quiere enviar una request/snoop hacia otro lado, debe entrar aq
 bool
 C2CInterposer::FromInterfacePort::recvTimingReq(PacketPtr pkt)
 {
-    std::cout << "[PORT ENTER] FromInterfacePort::recvTimingReq"
+    C2C_INTERPOSER_DPRINTF("[PORT ENTER] FromInterfacePort::recvTimingReq"
               << " side=" << side
               << " " << pktToString(pkt)
               << " type=" << getC2cTypeName(pkt)
-              << "\n";
+              << "\n");
     //owner es el puntero al interposer y side el índice lógico de la interfaz C2C
     //luego se llama a la funcon que decide el routing y encola la request
     return owner->recvReqFromInterface(pkt, side);
@@ -332,11 +417,11 @@ de destino responde a una request o snoop, la respuesta viene por aquí*/
 bool
 C2CInterposer::ToInterfacePort::recvTimingResp(PacketPtr pkt)
 {
-    std::cout << "[PORT ENTER] ToInterfacePort::recvTimingResp"
+    C2C_INTERPOSER_DPRINTF("[PORT ENTER] ToInterfacePort::recvTimingResp"
               << " side=" << side
               << " " << pktToString(pkt)
               << " type=" << getC2cTypeName(pkt)
-              << "\n";
+              << "\n");
 
     return owner->recvRespFromInterface(pkt, side);
 }
@@ -360,11 +445,15 @@ C2CInterposer::C2CInterposer(const C2CInterposerParams &params)
       reqBufferSize(params.req_buffer_size),
       respBufferSize(params.resp_buffer_size),
       c2cMemRanges(params.c2c_mem_ranges.begin(), params.c2c_mem_ranges.end()),
-      cacheChipIDList(params.cache_chip_id_list.begin(), params.cache_chip_id_list.end()),
-      interfaceChipIDList(params.interface_chip_id_list.begin(), params.interface_chip_id_list.end())
+      cacheChipIDList(params.cache_chip_id_list.begin(),
+                      params.cache_chip_id_list.end()),
+      cacheComponentNameList(params.cache_component_name_list.begin(),
+                             params.cache_component_name_list.end()),
+      interfaceChipIDList(params.interface_chip_id_list.begin(),
+                          params.interface_chip_id_list.end())
 {
-    std::cout << "[Interposer] constructor called, numInterfaces="
-              << numInterfaces << "\n";
+    C2C_INTERPOSER_DPRINTF("[Interposer] constructor called, numInterfaces="
+              << numInterfaces << "\n");
 
     if (numInterfaces == 0) {
         panic("C2CInterposer requires num_interfaces > 0");
@@ -636,71 +725,124 @@ C2CInterposer::routeByC2cDestination(PacketPtr pkt, int srcSide) const
     }
 
     const auto *msg = pkt->c2c_msg;
-
-    /*
-     * m_C2c_destination es un MegaNetDest.
-     *
-     * Importante:
-     * MegaNetDest indexa chips reales, no puertos del interposer.
-     *
-     * En la versión de 3 interfaces:
-     *
-     *   chip 0 -> side 0
-     *   chip 1 -> side 1
-     *   chip 2 -> side 2
-     *
-     * Por tanto, aquí podemos devolver directamente el chip destino como
-     * side destino.
-     *
-     * No usamos numInterfaces como "número de chips" por concepto.
-     * Usamos c2cMemRanges.size(), porque esa lista representa los chips reales.
-     */
     const int numChips = static_cast<int>(c2cMemRanges.size());
 
     int foundChip = -1;
-    int foundCount = 0;
+    int nonEmptyChipCount = 0;
+    int totalMachineDestinations = 0;
+
+    C2C_INTERPOSER_DPRINTF("[C2C DEST BEGIN]"
+              << " tick=" << curTick()
+              << " srcSide=" << srcSide
+              << " pkt=" << pkt
+              << " req=" << pkt->req
+              << " c2c_msg=" << msg
+              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+              << " type=" << getC2cTypeName(pkt)
+              << " megaTotalCount="
+              << msg->m_C2c_destination.totalCount()
+              << "\n");
 
     for (int chip = 0; chip < numChips; ++chip) {
-        ruby::NetDest nd = msg->m_C2c_destination.extractNetDest(chip);
+        ruby::NetDest nd =
+            msg->m_C2c_destination.extractNetDest(chip);
+
+        const int machineCount = nd.count();
+
+        C2C_INTERPOSER_DPRINTF("[C2C DEST CHIP]"
+                  << " tick=" << curTick()
+                  << " pkt=" << pkt
+                  << " c2c_msg=" << msg
+                  << " srcSide=" << srcSide
+                  << " chip=" << chip
+                  << " machineCount=" << machineCount
+                  << " empty=" << nd.isEmpty()
+                  << " nd=" << nd
+                  << "\n");
 
         if (!nd.isEmpty()) {
             foundChip = chip;
-            foundCount++;
-
-            std::cout << "[C2C DEST MATCH]"
-                      << " srcSide=" << srcSide
-                      << " chip=" << chip
-                      << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                      << " type=" << getC2cTypeName(pkt)
-                      << " nd=" << nd
-                      << "\n";
+            nonEmptyChipCount++;
+            totalMachineDestinations += machineCount;
         }
     }
 
-    if (foundCount == 1) {
+    C2C_INTERPOSER_DPRINTF("[C2C DEST SUMMARY]"
+              << " tick=" << curTick()
+              << " pkt=" << pkt
+              << " c2c_msg=" << msg
+              << " type=" << getC2cTypeName(pkt)
+              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+              << " nonEmptyChipCount=" << nonEmptyChipCount
+              << " totalMachineDestinations="
+              << totalMachineDestinations
+              << " foundChip=" << foundChip
+              << "\n");
+
+    /*
+     * Un solo chip y un solo MachineID:
+     * routing unicast normal.
+     */
+    if (nonEmptyChipCount == 1 &&
+        totalMachineDestinations == 1) {
         return foundChip;
     }
 
-    if (foundCount > 1) {
-        std::cout << "[C2C DEST MULTI]"
+    /*
+     * Un solo chip, pero múltiples MachineID.
+     *
+     * Este es el caso especialmente importante:
+     * el interposer envía una vez al chip, pero Ruby puede distribuir
+     * el mensaje a varios controladores dentro de ese chip.
+     */
+    if (nonEmptyChipCount == 1 &&
+        totalMachineDestinations > 1) {
+
+        C2C_INTERPOSER_DPRINTF("[C2C DEST MULTI SAME CHIP]"
+                  << " tick=" << curTick()
                   << " srcSide=" << srcSide
-                  << " foundCount=" << foundCount
+                  << " chip=" << foundChip
+                  << " machineDestinations="
+                  << totalMachineDestinations
+                  << " pkt=" << pkt
+                  << " req=" << pkt->req
+                  << " c2c_msg=" << msg
                   << " addr=0x" << std::hex << pkt->getAddr() << std::dec
                   << " type=" << getC2cTypeName(pkt)
-                  << " sender=" << machineIdToString(msg->m_Sender)
-                  << " requestor=" << machineIdToString(msg->m_Requestor)
-                  << " originalRequestor=" << machineIdToString(msg->m_OriginalRequestor)
-                  << " localRequestor=" << machineIdToString(msg->m_LocalRequestor)
-                  << " responder=" << machineIdToString(msg->m_Responder)
-                  << " originalResponder=" << machineIdToString(msg->m_OriginalResponder)
-                  << "\n";
+                  << "\n"
+                  << msg->m_C2c_destination
+                  << "\n");
 
         /*
-         * Si hay más de un destino C2C, no elegimos arbitrariamente.
-         * Esto indicaría que el protocolo quiere multicast/broadcast C2C,
-         * y el interposer actual, que devuelve un único dstSide, no puede
-         * representarlo correctamente.
+         * Lo enviamos al chip, porque ese es el destino explícito,
+         * pero dejamos claramente registrado que el mensaje es multicast
+         * dentro del chip.
          */
+        return foundChip;
+    }
+
+    /*
+     * Múltiples chips:
+     * el diseño actual del interposer, que devuelve un solo side,
+     * no puede representar correctamente el multicast inter-chip.
+     */
+    if (nonEmptyChipCount > 1) {
+        C2C_INTERPOSER_DPRINTF("[C2C DEST MULTI CHIP]"
+                  << " tick=" << curTick()
+                  << " srcSide=" << srcSide
+                  << " nonEmptyChipCount="
+                  << nonEmptyChipCount
+                  << " totalMachineDestinations="
+                  << totalMachineDestinations
+                  << " pkt=" << pkt
+                  << " req=" << pkt->req
+                  << " c2c_msg=" << msg
+                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << " type=" << getC2cTypeName(pkt)
+                  << "\n"
+                  << msg->m_C2c_destination
+                  << "\n");
+
         return -1;
     }
 
@@ -754,6 +896,39 @@ C2CInterposer::routeRequest(PacketPtr pkt, int srcSide) const
 
     int dst = -1;
 
+        /*
+     * NUEVO:
+     *
+     * Si SLICC/gem5 generated code ya marcó explícitamente el chip destino
+     * del mensaje C2C, se respeta ese destino antes de mirar MegaNetDest.
+     *
+     * Esto es necesario para la topología switched/mux:
+     *
+     *   - SLICC genera un mensaje por chip i.
+     *   - Ese mensaje remoto sale por la única C2CI local.
+     *   - El interposer necesita saber para qué chip i fue generado.
+     *
+     * No basta con mirar m_C2c_destination, porque ese campo puede seguir
+     * conteniendo destinos en varios chips.
+     */
+    if (msg->m_RouteDestChip >= 0) {
+        dst = msg->m_RouteDestChip;
+
+        if (validSide(dst) && dst != srcSide) {
+            C2C_INTERPOSER_DPRINTF("[C2C ROUTE DECISION]"
+                      << " kind=REQ_OR_SNOOP"
+                      << " reason=explicit_route_dest_chip"
+                      << " src=" << srcSide
+                      << " dst=" << dst
+                      << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                      << " type=" << getC2cTypeName(pkt)
+                      << " routeSrcChip=" << msg->m_RouteSrcChip
+                      << " routeDestChip=" << msg->m_RouteDestChip
+                      << "\n");
+            return dst;
+        }
+    }
+
     /*
      * Regla principal:
      *
@@ -769,14 +944,14 @@ C2CInterposer::routeRequest(PacketPtr pkt, int srcSide) const
      */
     dst = routeByC2cDestination(pkt, srcSide);
     if (validSide(dst) && dst != srcSide) {
-        std::cout << "[C2C ROUTE DECISION]"
+        C2C_INTERPOSER_DPRINTF("[C2C ROUTE DECISION]"
                   << " kind=REQ_OR_SNOOP"
                   << " reason=c2c_destination"
                   << " src=" << srcSide
                   << " dst=" << dst
                   << " addr=0x" << std::hex << pkt->getAddr() << std::dec
                   << " type=" << getC2cTypeName(pkt)
-                  << "\n";
+                  << "\n");
         return dst;
     }
 
@@ -791,44 +966,44 @@ C2CInterposer::routeRequest(PacketPtr pkt, int srcSide) const
     if (msgClass == C2cMsgClass::Snoop) {
         dst = routeByMachineID(msg->m_OriginalRequestor, -1);
         if (validSide(dst) && dst != srcSide) {
-            std::cout << "[C2C ROUTE DECISION]"
+            C2C_INTERPOSER_DPRINTF("[C2C ROUTE DECISION]"
                       << " kind=SNOOP"
                       << " reason=originalRequestor"
                       << " src=" << srcSide
                       << " dst=" << dst
                       << " addr=0x" << std::hex << pkt->getAddr() << std::dec
                       << " type=" << getC2cTypeName(pkt)
-                      << "\n";
+                      << "\n");
             return dst;
         }
 
         dst = routeByMachineID(msg->m_Requestor, -1);
         if (validSide(dst) && dst != srcSide) {
-            std::cout << "[C2C ROUTE DECISION]"
+            C2C_INTERPOSER_DPRINTF("[C2C ROUTE DECISION]"
                       << " kind=SNOOP"
                       << " reason=requestor"
                       << " src=" << srcSide
                       << " dst=" << dst
                       << " addr=0x" << std::hex << pkt->getAddr() << std::dec
                       << " type=" << getC2cTypeName(pkt)
-                      << "\n";
+                      << "\n");
             return dst;
         }
 
         dst = routeByMachineID(msg->m_LocalRequestor, -1);
         if (validSide(dst) && dst != srcSide) {
-            std::cout << "[C2C ROUTE DECISION]"
+            C2C_INTERPOSER_DPRINTF("[C2C ROUTE DECISION]"
                       << " kind=SNOOP"
                       << " reason=localRequestor"
                       << " src=" << srcSide
                       << " dst=" << dst
                       << " addr=0x" << std::hex << pkt->getAddr() << std::dec
                       << " type=" << getC2cTypeName(pkt)
-                      << "\n";
+                      << "\n");
             return dst;
         }
 
-        std::cout << "[C2C ROUTE ERROR] cannot route SNOOP"
+        C2C_INTERPOSER_DPRINTF("[C2C ROUTE ERROR] cannot route SNOOP"
                   << " src=" << srcSide
                   << " addr=0x" << std::hex << pkt->getAddr() << std::dec
                   << " type=" << getC2cTypeName(pkt)
@@ -838,7 +1013,7 @@ C2CInterposer::routeRequest(PacketPtr pkt, int srcSide) const
                   << " localRequestor=" << machineIdToString(msg->m_LocalRequestor)
                   << " responder=" << machineIdToString(msg->m_Responder)
                   << " originalResponder=" << machineIdToString(msg->m_OriginalResponder)
-                  << "\n";
+                  << "\n");
 
         panic("C2CInterposer cannot route snoop from side %d: %s",
               srcSide, pktToString(pkt).c_str());
@@ -859,14 +1034,14 @@ C2CInterposer::routeRequest(PacketPtr pkt, int srcSide) const
      */
     dst = routeByAddress(pkt, srcSide);
     if (validSide(dst) && dst != srcSide) {
-        std::cout << "[C2C ROUTE DECISION]"
+        C2C_INTERPOSER_DPRINTF("[C2C ROUTE DECISION]"
                   << " kind=REQUEST"
                   << " reason=address"
                   << " src=" << srcSide
                   << " dst=" << dst
                   << " addr=0x" << std::hex << pkt->getAddr() << std::dec
                   << " type=" << getC2cTypeName(pkt)
-                  << "\n";
+                  << "\n");
         return dst;
     }
 
@@ -875,31 +1050,31 @@ C2CInterposer::routeRequest(PacketPtr pkt, int srcSide) const
      */
     dst = routeByMachineID(msg->m_OriginalRequestor, -1);
     if (validSide(dst) && dst != srcSide) {
-        std::cout << "[C2C ROUTE DECISION]"
+        C2C_INTERPOSER_DPRINTF("[C2C ROUTE DECISION]"
                   << " kind=REQUEST"
                   << " reason=originalRequestor_fallback"
                   << " src=" << srcSide
                   << " dst=" << dst
                   << " addr=0x" << std::hex << pkt->getAddr() << std::dec
                   << " type=" << getC2cTypeName(pkt)
-                  << "\n";
+                  << "\n");
         return dst;
     }
 
     dst = routeByMachineID(msg->m_Requestor, -1);
     if (validSide(dst) && dst != srcSide) {
-        std::cout << "[C2C ROUTE DECISION]"
+        C2C_INTERPOSER_DPRINTF("[C2C ROUTE DECISION]"
                   << " kind=REQUEST"
                   << " reason=requestor_fallback"
                   << " src=" << srcSide
                   << " dst=" << dst
                   << " addr=0x" << std::hex << pkt->getAddr() << std::dec
                   << " type=" << getC2cTypeName(pkt)
-                  << "\n";
+                  << "\n");
         return dst;
     }
 
-    std::cout << "[C2C ROUTE ERROR] cannot route REQUEST"
+    C2C_INTERPOSER_DPRINTF("[C2C ROUTE ERROR] cannot route REQUEST"
               << " src=" << srcSide
               << " addr=0x" << std::hex << pkt->getAddr() << std::dec
               << " type=" << getC2cTypeName(pkt)
@@ -909,7 +1084,7 @@ C2CInterposer::routeRequest(PacketPtr pkt, int srcSide) const
               << " localRequestor=" << machineIdToString(msg->m_LocalRequestor)
               << " responder=" << machineIdToString(msg->m_Responder)
               << " originalResponder=" << machineIdToString(msg->m_OriginalResponder)
-              << "\n";
+              << "\n");
 
     panic("C2CInterposer cannot route request from side %d: %s",
           srcSide, pktToString(pkt).c_str());
@@ -952,7 +1127,7 @@ C2CInterposer::routeResponse(PacketPtr pkt, int responderSide) const
         const int byAddr =
             routeByAddress(pkt, responderSide);
 
-        std::cout << "[C2C RESP CANDIDATES COMPDATA_SC]"
+        C2C_INTERPOSER_DPRINTF("[C2C RESP CANDIDATES COMPDATA_SC]"
                 << " tick=" << curTick()
                 << " src=" << responderSide
                 << " addr=0x" << std::hex << pkt->getAddr() << std::dec
@@ -974,7 +1149,7 @@ C2CInterposer::routeResponse(PacketPtr pkt, int responderSide) const
                 << " byOriginalResponder=" << byOriginalResponder
                 << " byC2cDest=" << byC2cDest
                 << " byAddr=" << byAddr
-                << "\n";
+                << "\n");
     }
 
     /*
@@ -1027,20 +1202,20 @@ C2CInterposer::routeResponse(PacketPtr pkt, int responderSide) const
          */
         dst = routeByMachineID(msg->m_LocalRequestor, -1);
         if (validSide(dst) && dst != responderSide) {
-            std::cout << "[C2C RESP CHOSEN]"
+            C2C_INTERPOSER_DPRINTF("[C2C RESP CHOSEN]"
                       << " type=" << getC2cTypeName(pkt)
                       << " rule=SNPRESP_LOCAL_REQUESTOR"
                       << " src=" << responderSide
                       << " dst=" << dst
                       << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                      << "\n";
+                      << "\n");
             return dst;
         }
 
         /*
          * 2) Segundo candidato: requestor.
          *
-         * Este sería el más parecido a:
+         * Este seria el mas parecido a:
          *
          *   Destination.add(tbe.requestor)
          *
@@ -1048,31 +1223,31 @@ C2CInterposer::routeResponse(PacketPtr pkt, int responderSide) const
          */
         dst = routeByMachineID(msg->m_Requestor, -1);
         if (validSide(dst) && dst != responderSide) {
-            std::cout << "[C2C RESP CHOSEN]"
+            C2C_INTERPOSER_DPRINTF("[C2C RESP CHOSEN]"
                       << " type=" << getC2cTypeName(pkt)
                       << " rule=SNPRESP_REQUESTOR"
                       << " src=" << responderSide
                       << " dst=" << dst
                       << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                      << "\n";
+                      << "\n");
             return dst;
         }
 
         /*
          * 3) Tercer candidato: destino C2C explícito.
          *
-         * Si SLICC dejó información explícita de c2c_destination, respetarla
+         * Si SLICC dejó información explicita de c2c_destination, respetarla
          * antes de caer a dirección.
          */
         dst = routeByC2cDestination(pkt, responderSide);
         if (validSide(dst) && dst != responderSide) {
-            std::cout << "[C2C RESP CHOSEN]"
+            C2C_INTERPOSER_DPRINTF("[C2C RESP CHOSEN]"
                       << " type=" << getC2cTypeName(pkt)
                       << " rule=SNPRESP_C2C_DEST"
                       << " src=" << responderSide
                       << " dst=" << dst
                       << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                      << "\n";
+                      << "\n");
             return dst;
         }
 
@@ -1085,29 +1260,29 @@ C2CInterposer::routeResponse(PacketPtr pkt, int responderSide) const
          */
         dst = routeByMachineID(msg->m_OriginalRequestor, -1);
         if (validSide(dst) && dst != responderSide) {
-            std::cout << "[C2C RESP CHOSEN]"
+            C2C_INTERPOSER_DPRINTF("[C2C RESP CHOSEN]"
                       << " type=" << getC2cTypeName(pkt)
                       << " rule=SNPRESP_ORIGINAL_REQUESTOR_FALLBACK"
                       << " src=" << responderSide
                       << " dst=" << dst
                       << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                      << "\n";
+                      << "\n");
             return dst;
         }
 
         /*
          * 5) Último recurso: dirección.
          *
-         * Si para la dirección que peta, por ejemplo 0xbfff7000, sigues viendo:
+         * Si para la dirección que peta, por ejemplo 0xbfff7000, se vera:
          *
          *   rule=SNPRESP_ADDR_LAST_RESORT
          *
-         * entonces seguimos perdiendo el contexto que SLICC tenía en
+         * entonces se seguiria perdiendo el contexto que SLICC tenía en
          * Destination/tbe.requestor.
          */
         dst = routeByAddress(pkt, responderSide);
         if (validSide(dst) && dst != responderSide) {
-            std::cout << "[C2C RESP WARNING]"
+            C2C_INTERPOSER_DPRINTF("[C2C RESP WARNING]"
                       << " type=" << getC2cTypeName(pkt)
                       << " rule=SNPRESP_ADDR_LAST_RESORT"
                       << " src=" << responderSide
@@ -1122,11 +1297,11 @@ C2CInterposer::routeResponse(PacketPtr pkt, int responderSide) const
                       << " responder=" << machineIdToString(msg->m_Responder)
                       << " originalResponder="
                       << machineIdToString(msg->m_OriginalResponder)
-                      << "\n";
+                      << "\n");
             return dst;
         }
 
-        std::cout << "[C2C ROUTE ERROR] cannot route SNPRESP"
+        C2C_INTERPOSER_DPRINTF("[C2C ROUTE ERROR] cannot route SNPRESP"
                   << " src=" << responderSide
                   << " addr=0x" << std::hex << pkt->getAddr() << std::dec
                   << " type=" << getC2cTypeName(pkt)
@@ -1139,7 +1314,7 @@ C2CInterposer::routeResponse(PacketPtr pkt, int responderSide) const
                   << " responder=" << machineIdToString(msg->m_Responder)
                   << " originalResponder="
                   << machineIdToString(msg->m_OriginalResponder)
-                  << "\n";
+                  << "\n");
 
         panic("C2CInterposer cannot route SnpResp from side %d: %s",
               responderSide, pktToString(pkt).c_str());
@@ -1162,53 +1337,53 @@ C2CInterposer::routeResponse(PacketPtr pkt, int responderSide) const
 
         dst = routeByAddress(pkt, responderSide);
         if (validSide(dst) && dst != responderSide) {
-            std::cout << "[C2C RESP CHOSEN]"
+            C2C_INTERPOSER_DPRINTF("[C2C RESP CHOSEN]"
                       << " type=" << getC2cTypeName(pkt)
                       << " rule=ACK_ADDR"
                       << " src=" << responderSide
                       << " dst=" << dst
                       << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                      << "\n";
+                      << "\n");
             return dst;
         }
 
         dst = routeByC2cDestination(pkt, responderSide);
         if (validSide(dst) && dst != responderSide) {
-            std::cout << "[C2C RESP CHOSEN]"
+            C2C_INTERPOSER_DPRINTF("[C2C RESP CHOSEN]"
                       << " type=" << getC2cTypeName(pkt)
                       << " rule=ACK_C2CDEST"
                       << " src=" << responderSide
                       << " dst=" << dst
                       << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                      << "\n";
+                      << "\n");
             return dst;
         }
 
         dst = routeByMachineID(msg->m_OriginalResponder, -1);
         if (validSide(dst) && dst != responderSide) {
-            std::cout << "[C2C RESP CHOSEN]"
+            C2C_INTERPOSER_DPRINTF("[C2C RESP CHOSEN]"
                       << " type=" << getC2cTypeName(pkt)
                       << " rule=ACK_ORIGINAL_RESPONDER"
                       << " src=" << responderSide
                       << " dst=" << dst
                       << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                      << "\n";
+                      << "\n");
             return dst;
         }
 
         dst = routeByMachineID(msg->m_Responder, -1);
         if (validSide(dst) && dst != responderSide) {
-            std::cout << "[C2C RESP CHOSEN]"
+            C2C_INTERPOSER_DPRINTF("[C2C RESP CHOSEN]"
                       << " type=" << getC2cTypeName(pkt)
                       << " rule=ACK_RESPONDER"
                       << " src=" << responderSide
                       << " dst=" << dst
                       << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                      << "\n";
+                      << "\n");
             return dst;
         }
 
-        std::cout << "[C2C ROUTE ERROR] cannot route ACK"
+        C2C_INTERPOSER_DPRINTF("[C2C ROUTE ERROR] cannot route ACK"
                   << " src=" << responderSide
                   << " addr=0x" << std::hex << pkt->getAddr() << std::dec
                   << " type=" << getC2cTypeName(pkt)
@@ -1221,7 +1396,7 @@ C2CInterposer::routeResponse(PacketPtr pkt, int responderSide) const
                   << " responder=" << machineIdToString(msg->m_Responder)
                   << " originalResponder="
                   << machineIdToString(msg->m_OriginalResponder)
-                  << "\n";
+                  << "\n");
 
         panic("C2CInterposer cannot route ACK from side %d: %s",
               responderSide, pktToString(pkt).c_str());
@@ -1243,89 +1418,89 @@ C2CInterposer::routeResponse(PacketPtr pkt, int responderSide) const
      */
     dst = routeByMachineID(msg->m_OriginalRequestor, -1);
     if (validSide(dst) && dst != responderSide) {
-        std::cout << "[C2C RESP CHOSEN]"
+        C2C_INTERPOSER_DPRINTF("[C2C RESP CHOSEN]"
                   << " type=" << getC2cTypeName(pkt)
                   << " rule=ORIGINAL_REQUESTOR"
                   << " src=" << responderSide
                   << " dst=" << dst
                   << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                  << "\n";
+                  << "\n");
         return dst;
     }
 
     dst = routeByMachineID(msg->m_Requestor, -1);
     if (validSide(dst) && dst != responderSide) {
-        std::cout << "[C2C RESP CHOSEN]"
+        C2C_INTERPOSER_DPRINTF("[C2C RESP CHOSEN]"
                   << " type=" << getC2cTypeName(pkt)
                   << " rule=REQUESTOR"
                   << " src=" << responderSide
                   << " dst=" << dst
                   << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                  << "\n";
+                  << "\n");
         return dst;
     }
 
     dst = routeByMachineID(msg->m_LocalRequestor, -1);
     if (validSide(dst) && dst != responderSide) {
-        std::cout << "[C2C RESP CHOSEN]"
+        C2C_INTERPOSER_DPRINTF("[C2C RESP CHOSEN]"
                   << " type=" << getC2cTypeName(pkt)
                   << " rule=LOCAL_REQUESTOR"
                   << " src=" << responderSide
                   << " dst=" << dst
                   << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                  << "\n";
+                  << "\n");
         return dst;
     }
 
     dst = routeByC2cDestination(pkt, responderSide);
     if (validSide(dst) && dst != responderSide) {
-        std::cout << "[C2C RESP CHOSEN]"
+        C2C_INTERPOSER_DPRINTF("[C2C RESP CHOSEN]"
                   << " type=" << getC2cTypeName(pkt)
                   << " rule=C2C_DEST"
                   << " src=" << responderSide
                   << " dst=" << dst
                   << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                  << "\n";
+                  << "\n");
         return dst;
     }
 
     dst = routeByAddress(pkt, responderSide);
     if (validSide(dst) && dst != responderSide) {
-        std::cout << "[C2C RESP CHOSEN]"
+        C2C_INTERPOSER_DPRINTF("[C2C RESP CHOSEN]"
                   << " type=" << getC2cTypeName(pkt)
                   << " rule=ADDR_FALLBACK"
                   << " src=" << responderSide
                   << " dst=" << dst
                   << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                  << "\n";
+                  << "\n");
         return dst;
     }
 
     dst = routeByMachineID(msg->m_Responder, -1);
     if (validSide(dst) && dst != responderSide) {
-        std::cout << "[C2C RESP CHOSEN]"
+        C2C_INTERPOSER_DPRINTF("[C2C RESP CHOSEN]"
                   << " type=" << getC2cTypeName(pkt)
                   << " rule=RESPONDER_FALLBACK"
                   << " src=" << responderSide
                   << " dst=" << dst
                   << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                  << "\n";
+                  << "\n");
         return dst;
     }
 
     dst = routeByMachineID(msg->m_OriginalResponder, -1);
     if (validSide(dst) && dst != responderSide) {
-        std::cout << "[C2C RESP CHOSEN]"
+        C2C_INTERPOSER_DPRINTF("[C2C RESP CHOSEN]"
                   << " type=" << getC2cTypeName(pkt)
                   << " rule=ORIGINAL_RESPONDER_FALLBACK"
                   << " src=" << responderSide
                   << " dst=" << dst
                   << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                  << "\n";
+                  << "\n");
         return dst;
     }
 
-    std::cout << "[C2C ROUTE ERROR] cannot route RESPONSE"
+    C2C_INTERPOSER_DPRINTF("[C2C ROUTE ERROR] cannot route RESPONSE"
               << " src=" << responderSide
               << " addr=0x" << std::hex << pkt->getAddr() << std::dec
               << " type=" << getC2cTypeName(pkt)
@@ -1338,7 +1513,7 @@ C2CInterposer::routeResponse(PacketPtr pkt, int responderSide) const
               << " responder=" << machineIdToString(msg->m_Responder)
               << " originalResponder="
               << machineIdToString(msg->m_OriginalResponder)
-              << "\n";
+              << "\n");
 
     panic("C2CInterposer cannot route response from side %d: %s",
           responderSide, pktToString(pkt).c_str());
@@ -1352,26 +1527,80 @@ C2CInterposer::printRoutingInfo(PacketPtr pkt, const char *where,
                                 int srcSide, int dstSide) const
 {
     if (!hasC2cMsg(pkt)) {
-        std::cout << "[C2C ROUTE] " << where
-                  << " src=" << srcSide << " dst=" << dstSide
-                  << " NO_C2C_MSG " << pktToString(pkt) << "\n";
+        C2C_INTERPOSER_DPRINTF("[C2C ROUTE] " << where
+                  << " src=" << srcSide
+                  << " dst=" << dstSide
+                  << " NO_C2C_MSG "
+                  << pktToString(pkt)
+                  << "\n");
         return;
     }
 
     const auto *msg = pkt->c2c_msg;
 
-    std::cout << "[C2C ROUTE] " << where
+    C2C_INTERPOSER_DPRINTF("[C2C ROUTE] " << where
+              << " tick=" << curTick()
               << " src=" << srcSide
               << " dst=" << dstSide
+              << " pkt=" << pkt
+              << " req=" << pkt->req
+              << " c2c_msg=" << msg
               << " addr=0x" << std::hex << pkt->getAddr() << std::dec
               << " type=" << getC2cTypeName(pkt)
-              << " sender=" << machineIdToString(msg->m_Sender)
-              << " requestor=" << machineIdToString(msg->m_Requestor)
-              << " originalRequestor=" << machineIdToString(msg->m_OriginalRequestor)
-              << " responder=" << machineIdToString(msg->m_Responder)
-              << " originalResponder=" << machineIdToString(msg->m_OriginalResponder)
-              << " localRequestor=" << machineIdToString(msg->m_LocalRequestor)
-              << "\n";
+
+              << " sender="
+              << machineIdToDebugString(msg->m_Sender)
+
+              << " originalRequestorMachId="
+              << machineIdToDebugString(msg->m_OriginalRequestorMachId)
+
+              << " requestor="
+              << machineIdToDebugString(msg->m_Requestor)
+
+              << " fwdRequestor="
+              << machineIdToDebugString(msg->m_FwdRequestor)
+
+              << " originalRequestor="
+              << machineIdToDebugString(msg->m_OriginalRequestor)
+
+              << " responder="
+              << machineIdToDebugString(msg->m_Responder)
+
+              << " originalResponder="
+              << machineIdToDebugString(msg->m_OriginalResponder)
+
+              << " localRequestor="
+              << machineIdToDebugString(msg->m_LocalRequestor)
+
+              << " retToSrc="
+              << msg->m_RetToSrc
+
+              << " dataToFwdRequestor="
+              << msg->m_DataToFwdRequestor
+
+              << " txnValid="
+              << msg->m_UsesTxnId
+
+              << " txnId=0x"
+              << std::hex << msg->m_TxnId << std::dec
+
+              << " c2cDestinationTotalCount="
+              << msg->m_C2c_destination.totalCount()
+
+              << " c2cDestinationChipCount="
+              << msg->m_C2c_destination.chipCount()
+
+              << "\n");
+
+    C2C_INTERPOSER_DPRINTF("[C2C ROUTE MEGADEST]"
+              << " tick=" << curTick()
+              << " pkt=" << pkt
+              << " c2c_msg=" << msg
+              << " type=" << getC2cTypeName(pkt)
+              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+              << "\n"
+              << msg->m_C2c_destination
+              << "\n");
 }
 
 /*------------------------------------------------------------*/
@@ -1382,9 +1611,9 @@ void
 C2CInterposer::recordC2cType(PacketPtr pkt, const char* path, int srcSide)
 {
     if (!hasC2cMsg(pkt)) {
-        std::cout << "[Interposer] " << path
+        C2C_INTERPOSER_DPRINTF("[Interposer] " << path
                   << " side=" << srcSide
-                  << " type=NO_C2C_MSG " << pktToString(pkt) << "\n";
+                  << " type=NO_C2C_MSG " << pktToString(pkt) << "\n");
         return;
     }
 
@@ -1399,22 +1628,22 @@ C2CInterposer::recordC2cType(PacketPtr pkt, const char* path, int srcSide)
         }
     }
 
-    std::cout << "[Interposer] " << path
+    C2C_INTERPOSER_DPRINTF("[Interposer] " << path
               << " side=" << srcSide
               << " c2c_type=" << getC2cTypeName(pkt)
               << " type_id=" << typeId
               << " " << pktToString(pkt)
-              << "\n";
+              << "\n");
 }
 
 void
 C2CInterposer::dumpC2cTypeStats() const
 {
-    std::cout << "\n========== C2C TYPE STATS ==========" << "\n";
+    C2C_INTERPOSER_DPRINTF("\n========== C2C TYPE STATS ==========" << "\n");
 
     if (c2cTypeStats.empty()) {
-        std::cout << "No C2C packets recorded.\n";
-        std::cout << "====================================\n";
+        C2C_INTERPOSER_DPRINTF("No C2C packets recorded.\n"
+                               << "====================================\n");
         return;
     }
 
@@ -1423,17 +1652,21 @@ C2CInterposer::dumpC2cTypeStats() const
         const TypeStats &s = entry.second;
         auto type = static_cast<ruby::C2cRequestType>(typeId);
 
-        std::cout << "type_id=" << std::setw(3) << typeId
-                  << " type_name=" << ruby::C2cRequestType_to_string(type);
-
-        for (unsigned i = 0; i < numInterfaces && i < 16; ++i) {
-            std::cout << " reqFrom" << i << "=" << s.reqFrom[i]
-                      << " respFrom" << i << "=" << s.respFrom[i];
-        }
-        std::cout << "\n";
+        C2C_INTERPOSER_DPRINTF(
+            "type_id=" << std::setw(3) << typeId
+            << " type_name=" << ruby::C2cRequestType_to_string(type)
+            << [&]() -> std::string {
+                   std::ostringstream oss;
+                   for (unsigned i = 0; i < numInterfaces && i < 16; ++i) {
+                       oss << " reqFrom" << i << "=" << s.reqFrom[i]
+                           << " respFrom" << i << "=" << s.respFrom[i];
+                   }
+                   oss << "\n";
+                   return oss.str();
+               }());
     }
 
-    std::cout << "====================================\n";
+    C2C_INTERPOSER_DPRINTF("====================================\n");
 }
 
 /*------------------------------------------------------------*/
@@ -1501,7 +1734,7 @@ C2CInterposer::enqueuePacket(DirBuffer &buf, PacketPtr pkt, Tick delay,
     const C2cMsgClass msgClass = getPacketClass(pkt);
     auto &q = buf.queues[msgClass];
 
-    std::cout << "[C2C DBG ENQUEUE_ENTER]"
+    C2C_INTERPOSER_DPRINTF("[C2C DBG ENQUEUE_ENTER]"
               << " tick=" << curTick()
               << " path=" << path
               << " src=" << srcSide
@@ -1514,7 +1747,7 @@ C2CInterposer::enqueuePacket(DirBuffer &buf, PacketPtr pkt, Tick delay,
               << " req=" << pkt->req
               << " class_occ_before=" << q.size()
               << " total_occ_before=" << buf.totalSize()
-              << "\n";
+              << "\n");
 
     for (const auto &entry : buf.queues) {
         const C2cMsgClass existingClass = entry.first;
@@ -1525,7 +1758,7 @@ C2CInterposer::enqueuePacket(DirBuffer &buf, PacketPtr pkt, Tick delay,
             PacketPtr qpkt = queued.pkt;
 
             if (qpkt && qpkt->getAddr() == pkt->getAddr()) {
-                std::cout << "[C2C DBG SAME_ADDR_ALREADY_QUEUED]"
+                C2C_INTERPOSER_DPRINTF("[C2C DBG SAME_ADDR_ALREADY_QUEUED]"
                           << " tick=" << curTick()
                           << " path=" << path
                           << " dst=" << dstSide
@@ -1541,7 +1774,127 @@ C2CInterposer::enqueuePacket(DirBuffer &buf, PacketPtr pkt, Tick delay,
                           << " new_req=" << pkt->req
                           << " new_type=" << typeName
                           << " addr=0x" << std::hex << pkt->getAddr() << std::dec
-                          << "\n";
+                          << "\n");
+
+                // Datos completos del paquete ya encolado
+                if (hasC2cMsg(qpkt)) {
+                    const auto *queuedMsg = qpkt->c2c_msg;
+
+                    C2C_INTERPOSER_DPRINTF("[C2C DBG SAME_ADDR QUEUED DETAILS]"
+                            << " tick=" << curTick()
+                            << " path=" << path
+                            << " dst=" << dstSide
+                            << " queued_idx=" << idx
+                            << " queued_pkt=" << qpkt
+                            << " queued_req=" << qpkt->req
+                            << " queued_c2c_msg=" << queuedMsg
+                            << " queued_type=" << getC2cTypeName(qpkt)
+
+                            << " sender="
+                            << machineIdToDebugString(queuedMsg->m_Sender)
+
+                            << " requestor="
+                            << machineIdToDebugString(queuedMsg->m_Requestor)
+
+                            << " originalRequestor="
+                            << machineIdToDebugString(
+                                    queuedMsg->m_OriginalRequestor)
+
+                            << " localRequestor="
+                            << machineIdToDebugString(
+                                    queuedMsg->m_LocalRequestor)
+
+                            << " responder="
+                            << machineIdToDebugString(queuedMsg->m_Responder)
+
+                            << " originalResponder="
+                            << machineIdToDebugString(
+                                    queuedMsg->m_OriginalResponder)
+
+                            << " fwdRequestor="
+                            << machineIdToDebugString(
+                                    queuedMsg->m_FwdRequestor)
+
+                            << " originalRequestorMachId="
+                            << machineIdToDebugString(
+                                    queuedMsg->m_OriginalRequestorMachId)
+
+                            << " destTotalCount="
+                            << queuedMsg->m_C2c_destination.totalCount()
+
+                            << " destChipCount="
+                            << queuedMsg->m_C2c_destination.chipCount()
+
+                            << "\n");
+
+                    C2C_INTERPOSER_DPRINTF("[C2C DBG SAME_ADDR QUEUED MEGADEST]"
+                            << " tick=" << curTick()
+                            << " queued_idx=" << idx
+                            << " queued_pkt=" << qpkt
+                            << " queued_c2c_msg=" << queuedMsg
+                            << "\n"
+                            << queuedMsg->m_C2c_destination
+                            << "\n");
+                }
+
+                // Datos completos del nuevo paquete
+                if (hasC2cMsg(pkt)) {
+                    const auto *newMsg = pkt->c2c_msg;
+
+                    C2C_INTERPOSER_DPRINTF("[C2C DBG SAME_ADDR NEW DETAILS]"
+                            << " tick=" << curTick()
+                            << " path=" << path
+                            << " dst=" << dstSide
+                            << " new_pkt=" << pkt
+                            << " new_req=" << pkt->req
+                            << " new_c2c_msg=" << newMsg
+                            << " new_type=" << getC2cTypeName(pkt)
+
+                            << " sender="
+                            << machineIdToDebugString(newMsg->m_Sender)
+
+                            << " requestor="
+                            << machineIdToDebugString(newMsg->m_Requestor)
+
+                            << " originalRequestor="
+                            << machineIdToDebugString(
+                                    newMsg->m_OriginalRequestor)
+
+                            << " localRequestor="
+                            << machineIdToDebugString(
+                                    newMsg->m_LocalRequestor)
+
+                            << " responder="
+                            << machineIdToDebugString(newMsg->m_Responder)
+
+                            << " originalResponder="
+                            << machineIdToDebugString(
+                                    newMsg->m_OriginalResponder)
+
+                            << " fwdRequestor="
+                            << machineIdToDebugString(
+                                    newMsg->m_FwdRequestor)
+
+                            << " originalRequestorMachId="
+                            << machineIdToDebugString(
+                                    newMsg->m_OriginalRequestorMachId)
+
+                            << " destTotalCount="
+                            << newMsg->m_C2c_destination.totalCount()
+
+                            << " destChipCount="
+                            << newMsg->m_C2c_destination.chipCount()
+
+                            << "\n");
+
+                    C2C_INTERPOSER_DPRINTF("[C2C DBG SAME_ADDR NEW MEGADEST]"
+                            << " tick=" << curTick()
+                            << " new_pkt=" << pkt
+                            << " new_c2c_msg=" << newMsg
+                            << "\n"
+                            << newMsg->m_C2c_destination
+                            << "\n");
+                }
             }
 
             idx++;
@@ -1549,7 +1902,7 @@ C2CInterposer::enqueuePacket(DirBuffer &buf, PacketPtr pkt, Tick delay,
     }
 
     if (q.size() >= maxSize) {
-        std::cout << "[Interposer] " << path
+        C2C_INTERPOSER_DPRINTF("[Interposer] " << path
                   << " BUFFER FULL"
                   << " src=" << srcSide
                   << " dst=" << dstSide
@@ -1559,7 +1912,7 @@ C2CInterposer::enqueuePacket(DirBuffer &buf, PacketPtr pkt, Tick delay,
                   << " class_occ=" << q.size() << "/" << maxSize
                   << " total_occ=" << buf.totalSize()
                   << " addr=0x" << std::hex << pkt->getAddr()
-                  << std::dec << "\n";
+                  << std::dec << "\n");
         return false;
     }
 
@@ -1567,7 +1920,7 @@ C2CInterposer::enqueuePacket(DirBuffer &buf, PacketPtr pkt, Tick delay,
     const Tick ready = curTick() + delay;
     q.push_back({pkt, ready, srcSide, dstSide});
 
-    std::cout << "[Interposer] " << path
+    C2C_INTERPOSER_DPRINTF("[Interposer] " << path
               << " src=" << srcSide
               << " dst=" << dstSide
               << " class=" << getClassName(msgClass)
@@ -1578,9 +1931,9 @@ C2CInterposer::enqueuePacket(DirBuffer &buf, PacketPtr pkt, Tick delay,
               << " class_occ=" << q.size() << "/" << maxSize
               << " total_occ=" << buf.totalSize()
               << " addr=0x" << std::hex << pkt->getAddr()
-              << std::dec << "\n";
+              << std::dec << "\n");
 
-    std::cout << "[C2C DBG ENQUEUE_DONE]"
+    C2C_INTERPOSER_DPRINTF("[C2C DBG ENQUEUE_DONE]"
               << " tick=" << curTick()
               << " path=" << path
               << " src=" << srcSide
@@ -1591,7 +1944,7 @@ C2CInterposer::enqueuePacket(DirBuffer &buf, PacketPtr pkt, Tick delay,
               << " pkt=" << pkt
               << " req=" << pkt->req
               << " readyTick=" << ready
-              << "\n";
+              << "\n");
 
     Tick when = nextReadyTick(buf);
     if (when != MaxTick) {
@@ -1640,13 +1993,13 @@ C2CInterposer::recvReqFromInterface(PacketPtr pkt, int srcSide)
     if (!ok) {
         blockedReqFrom[srcSide] = true;
 
-        std::cout << "[C2C REQ BACKPRESSURE]"
+        C2C_INTERPOSER_DPRINTF("[C2C REQ BACKPRESSURE]"
                   << " src=" << srcSide
                   << " dst=" << dstSide
                   << " addr=0x" << std::hex << pkt->getAddr() << std::dec
                   << " type=" << getC2cTypeName(pkt)
                   << " pkt=" << pkt
-                  << "\n";
+                  << "\n");
 
         return false;
     }
@@ -1674,7 +2027,7 @@ C2CInterposer::recvRespFromInterface(PacketPtr pkt, int responderSide)
                                   responderSide,
                                   dstSide);
 
-    std::cout << "[C2C DBG RESP_ENQUEUE_RESULT]"
+    C2C_INTERPOSER_DPRINTF("[C2C DBG RESP_ENQUEUE_RESULT]"
               << " tick=" << curTick()
               << " ok=" << ok
               << " src=" << responderSide
@@ -1683,18 +2036,18 @@ C2CInterposer::recvRespFromInterface(PacketPtr pkt, int responderSide)
               << " type=" << getC2cTypeName(pkt)
               << " pkt=" << pkt
               << " req=" << pkt->req
-              << "\n";
+              << "\n");
 
     if (!ok) {
         blockedRespFrom[responderSide] = true;
 
-        std::cout << "[C2C RESP BACKPRESSURE]"
+        C2C_INTERPOSER_DPRINTF("[C2C RESP BACKPRESSURE]"
                   << " src=" << responderSide
                   << " dst=" << dstSide
                   << " addr=0x" << std::hex << pkt->getAddr() << std::dec
                   << " type=" << getC2cTypeName(pkt)
                   << " pkt=" << pkt
-                  << "\n";
+                  << "\n");
 
         return false;
     }
@@ -1716,8 +2069,8 @@ C2CInterposer::recvAtomicFromInterface(PacketPtr pkt, int srcSide)
 void
 C2CInterposer::recvReqRetryToInterface(int dstSide)
 {
-    std::cout << "[Interposer] RETRY REQ to interface"
-              << dstSide << "\n";
+    C2C_INTERPOSER_DPRINTF("[Interposer] RETRY REQ to interface"
+              << dstSide << "\n");
 
     reqTo[dstSide]->waitingRetry = false;
     trySendReqTo(dstSide);
@@ -1726,8 +2079,8 @@ C2CInterposer::recvReqRetryToInterface(int dstSide)
 void
 C2CInterposer::recvRespRetryFromInterface(int srcSide)
 {
-    std::cout << "[Interposer] RETRY RESP from interface"
-              << srcSide << "\n";
+    C2C_INTERPOSER_DPRINTF("[Interposer] RETRY RESP from interface"
+              << srcSide << "\n");
 
     respTo[srcSide]->waitingRetry = false;
     trySendRespTo(srcSide);
@@ -1762,53 +2115,73 @@ C2CInterposer::trySendReqTo(int dstSide)
 
     if (classId == -2) {
         Tick when = nextReadyTick(buf);
+
         if (when != MaxTick) {
             scheduleBufferEvent(buf, when);
         }
+
         return;
     }
 
-    C2cMsgClass msgClass = static_cast<C2cMsgClass>(classId);
+    C2cMsgClass msgClass =
+        static_cast<C2cMsgClass>(classId);
+
     auto &q = buf.queues[msgClass];
     auto &front = q.front();
 
     PacketPtr pkt = front.pkt;
     const int srcSide = front.srcSide;
 
-    std::cout << "[C2C REQ DEQUEUE_SEND]"
+    C2C_INTERPOSER_DPRINTF("[C2C REQ DEQUEUE_SEND]"
               << " tick=" << curTick()
               << " src=" << srcSide
               << " dst=" << dstSide
               << " class=" << getClassName(msgClass)
               << " type=" << getC2cTypeName(pkt)
-              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+              << " addr=0x"
+              << std::hex << pkt->getAddr() << std::dec
               << " pkt=" << pkt
               << " req=" << pkt->req
-              << "\n";
+              << " c2c_msg="
+              << (pkt ? pkt->c2c_msg : nullptr)
+              << "\n");
 
-    printC2cMsgDebug(pkt, "REQ_DEQUEUE_BEFORE_SEND", srcSide, dstSide);
+    printC2cMsgDebug(
+        pkt,
+        "REQ_DEQUEUE_BEFORE_SEND",
+        srcSide,
+        dstSide
+    );
 
-    const bool accepted = toInterfacePorts[dstSide]->sendTimingReq(pkt);
+    const bool accepted =
+        toInterfacePorts[dstSide]->sendTimingReq(pkt);
 
-    std::cout << "[C2C DBG REQ_SEND_RESULT]"
+    C2C_INTERPOSER_DPRINTF("[C2C DBG REQ_SEND_RESULT]"
               << " tick=" << curTick()
               << " accepted=" << accepted
               << " src=" << srcSide
               << " dst=" << dstSide
               << " type=" << getC2cTypeName(pkt)
-              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+              << " addr=0x"
+              << std::hex << pkt->getAddr() << std::dec
               << " pkt=" << pkt
               << " req=" << pkt->req
-              << "\n";
+              << " c2c_msg="
+              << (pkt ? pkt->c2c_msg : nullptr)
+              << "\n");
 
     if (!accepted) {
         buf.waitingRetry = true;
 
-        std::cout << "[C2C REQ DOWNSTREAM_BLOCKED]"
+        C2C_INTERPOSER_DPRINTF("[C2C REQ DOWNSTREAM_BLOCKED]"
                   << " tick=" << curTick()
+                  << " src=" << srcSide
                   << " dst=" << dstSide
+                  << " type=" << getC2cTypeName(pkt)
+                  << " addr=0x"
+                  << std::hex << pkt->getAddr() << std::dec
                   << " pkt=" << pkt
-                  << "\n";
+                  << "\n");
 
         return;
     }
@@ -1823,20 +2196,25 @@ C2CInterposer::trySendReqTo(int dstSide)
     if (validSide(srcSide) && blockedReqFrom[srcSide]) {
         blockedReqFrom[srcSide] = false;
 
-        std::cout << "[Interposer] RELEASE REQ"
+        C2C_INTERPOSER_DPRINTF("[Interposer] RELEASE REQ"
                   << " tick=" << curTick()
                   << " src=" << srcSide
                   << " dst=" << dstSide
                   << " class=" << getClassName(msgClass)
-                  << " -> sendRetryReq to interface" << srcSide
-                  << "\n";
+                  << " -> sendRetryReq to interface"
+                  << srcSide
+                  << "\n");
 
         fromInterfacePorts[srcSide]->sendRetryReq();
     }
 
     Tick when = nextReadyTick(buf);
+
     if (when != MaxTick) {
-        scheduleBufferEvent(buf, std::max(curTick(), when));
+        scheduleBufferEvent(
+            buf,
+            std::max(curTick(), when)
+        );
     }
 }
 
@@ -1853,65 +2231,156 @@ C2CInterposer::trySendRespTo(int dstSide)
 
     if (classId == -2) {
         Tick when = nextReadyTick(buf);
+
         if (when != MaxTick) {
             scheduleBufferEvent(buf, when);
         }
+
         return;
     }
 
-    C2cMsgClass msgClass = static_cast<C2cMsgClass>(classId);
+    C2cMsgClass msgClass =
+        static_cast<C2cMsgClass>(classId);
+
     auto &q = buf.queues[msgClass];
     auto &front = q.front();
 
     PacketPtr pkt = front.pkt;
     const int responderSide = front.srcSide;
 
-    std::cout << "[C2C RESP DEQUEUE_SEND]"
+    C2C_INTERPOSER_DPRINTF("[C2C RESP DEQUEUE_SEND]"
               << " tick=" << curTick()
               << " src=" << responderSide
               << " dst=" << dstSide
               << " class=" << getClassName(msgClass)
               << " type=" << getC2cTypeName(pkt)
-              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+              << " addr=0x"
+              << std::hex << pkt->getAddr() << std::dec
               << " pkt=" << pkt
               << " req=" << pkt->req
-              << "\n";
+              << " c2c_msg="
+              << (pkt ? pkt->c2c_msg : nullptr)
+              << "\n");
 
-    printC2cMsgDebug(pkt, "RESP_DEQUEUE_BEFORE_SEND", responderSide, dstSide);
+    printC2cMsgDebug(
+        pkt,
+        "RESP_DEQUEUE_BEFORE_SEND",
+        responderSide,
+        dstSide
+    );
 
-    if (pkt && pkt->c2c_msg &&
-        pkt->c2c_msg->m_Type == ruby::C2cRequestType_SnpResp_SC_Fwded_SC) {
-        std::cout << "[C2C DBG TARGET_SNPRESP_SC_FWDED_SC_BEFORE_SEND]"
+    if (pkt &&
+        pkt->c2c_msg &&
+        pkt->c2c_msg->m_Type ==
+            ruby::C2cRequestType_SnpResp_SC_Fwded_SC) {
+
+        C2C_INTERPOSER_DPRINTF("[C2C DBG TARGET_SNPRESP_SC_FWDED_SC_BEFORE_SEND]"
+            << " tick=" << curTick()
+            << " src=" << responderSide
+            << " dst=" << dstSide
+            << " addr=0x"
+            << std::hex << pkt->getAddr() << std::dec
+            << " pkt=" << pkt
+            << " req=" << pkt->req
+            << " c2c_msg=" << pkt->c2c_msg
+            << "\n");
+    }
+
+    const uint64_t sendId = responseSendSequence++;
+
+    C2C_INTERPOSER_DPRINTF("[C2C RESP PHYSICAL SEND]"
+              << " sendId=" << sendId
+              << " tick=" << curTick()
+              << " src=" << responderSide
+              << " dst=" << dstSide
+              << " class=" << getClassName(msgClass)
+              << " type=" << getC2cTypeName(pkt)
+              << " addr=0x"
+              << std::hex << pkt->getAddr() << std::dec
+              << " pkt=" << pkt
+              << " req=" << pkt->req
+              << " c2c_msg="
+              << (pkt ? pkt->c2c_msg : nullptr)
+              << [&]() -> std::string {
+                    if (!hasC2cMsg(pkt)) {
+                        return std::string("\n");
+                    }
+
+                    const auto *msg = pkt->c2c_msg;
+                    std::ostringstream oss;
+                    oss << " sender="
+                        << machineIdToDebugString(msg->m_Sender)
+                        << " originalRequestorMachId="
+                        << machineIdToDebugString(
+                               msg->m_OriginalRequestorMachId)
+                        << " requestor="
+                        << machineIdToDebugString(msg->m_Requestor)
+                        << " fwdRequestor="
+                        << machineIdToDebugString(msg->m_FwdRequestor)
+                        << " originalRequestor="
+                        << machineIdToDebugString(msg->m_OriginalRequestor)
+                        << " localRequestor="
+                        << machineIdToDebugString(msg->m_LocalRequestor)
+                        << " responder="
+                        << machineIdToDebugString(msg->m_Responder)
+                        << " originalResponder="
+                        << machineIdToDebugString(msg->m_OriginalResponder)
+                        << " destTotalCount="
+                        << msg->m_C2c_destination.totalCount()
+                        << " destChipCount="
+                        << msg->m_C2c_destination.chipCount()
+                        << "\n";
+                    return oss.str();
+                 }());
+
+    if (hasC2cMsg(pkt)) {
+        C2C_INTERPOSER_DPRINTF("[C2C RESP PHYSICAL SEND MEGADEST]"
+                  << " sendId=" << sendId
                   << " tick=" << curTick()
                   << " src=" << responderSide
                   << " dst=" << dstSide
-                  << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+                  << " type=" << getC2cTypeName(pkt)
+                  << " addr=0x"
+                  << std::hex << pkt->getAddr() << std::dec
                   << " pkt=" << pkt
                   << " req=" << pkt->req
-                  << "\n";
+                  << " c2c_msg=" << pkt->c2c_msg
+                  << "\n"
+                  << pkt->c2c_msg->m_C2c_destination
+                  << "\n");
     }
 
-    const bool accepted = fromInterfacePorts[dstSide]->sendTimingResp(pkt);
+    const bool accepted =
+        fromInterfacePorts[dstSide]->sendTimingResp(pkt);
 
-    std::cout << "[C2C DBG RESP_SEND_RESULT]"
+    C2C_INTERPOSER_DPRINTF("[C2C RESP PHYSICAL SEND RESULT]"
+              << " sendId=" << sendId
               << " tick=" << curTick()
               << " accepted=" << accepted
               << " src=" << responderSide
               << " dst=" << dstSide
               << " type=" << getC2cTypeName(pkt)
-              << " addr=0x" << std::hex << pkt->getAddr() << std::dec
+              << " addr=0x"
+              << std::hex << pkt->getAddr() << std::dec
               << " pkt=" << pkt
               << " req=" << pkt->req
-              << "\n";
+              << " c2c_msg="
+              << (pkt ? pkt->c2c_msg : nullptr)
+              << "\n");
 
     if (!accepted) {
         buf.waitingRetry = true;
 
-        std::cout << "[C2C RESP DOWNSTREAM_BLOCKED]"
+        C2C_INTERPOSER_DPRINTF("[C2C RESP DOWNSTREAM_BLOCKED]"
+                  << " sendId=" << sendId
                   << " tick=" << curTick()
+                  << " src=" << responderSide
                   << " dst=" << dstSide
+                  << " type=" << getC2cTypeName(pkt)
+                  << " addr=0x"
+                  << std::hex << pkt->getAddr() << std::dec
                   << " pkt=" << pkt
-                  << "\n";
+                  << "\n");
 
         return;
     }
@@ -1923,23 +2392,30 @@ C2CInterposer::trySendRespTo(int dstSide)
         buf.queues.erase(msgClass);
     }
 
-    if (validSide(responderSide) && blockedRespFrom[responderSide]) {
+    if (validSide(responderSide) &&
+        blockedRespFrom[responderSide]) {
+
         blockedRespFrom[responderSide] = false;
 
-        std::cout << "[Interposer] RELEASE RESP"
+        C2C_INTERPOSER_DPRINTF("[Interposer] RELEASE RESP"
                   << " tick=" << curTick()
                   << " src=" << responderSide
                   << " dst=" << dstSide
                   << " class=" << getClassName(msgClass)
-                  << " -> sendRetryResp to interface" << responderSide
-                  << "\n";
+                  << " -> sendRetryResp to interface"
+                  << responderSide
+                  << "\n");
 
         toInterfacePorts[responderSide]->sendRetryResp();
     }
 
     Tick when = nextReadyTick(buf);
+
     if (when != MaxTick) {
-        scheduleBufferEvent(buf, std::max(curTick(), when));
+        scheduleBufferEvent(
+            buf,
+            std::max(curTick(), when)
+        );
     }
 }
 
