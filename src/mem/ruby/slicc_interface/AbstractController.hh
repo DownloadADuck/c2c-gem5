@@ -343,15 +343,36 @@ class AbstractController : public ClockedObject, public Consumer
     void outgoingTransactionStart(Addr addr, EventType type,
         bool isAddressed=true)
     {
-        std::cerr << "[DBG OUT PROFILE HARD DISABLED START]"
+        auto& m_outTrans =
+          isAddressed ? m_outTransAddressed : m_outTransUnaddressed;
+
+        auto iter = m_outTrans.find(addr);
+
+        std::cerr << "[OUTTRANS START]"
                   << " ctrl=" << name()
                   << " addr=0x" << std::hex << addr << std::dec
                   << " isAddressed=" << isAddressed
                   << " event=" << static_cast<int>(type)
                   << " tick=" << curTick()
+                  << " already_exists=" << (iter != m_outTrans.end())
+                  << " addressed_size=" << m_outTransAddressed.size()
+                  << " unaddressed_size=" << m_outTransUnaddressed.size()
                   << std::endl;
 
-        return;
+        if (iter != m_outTrans.end()) {
+            std::cerr << "[OUTTRANS START ERROR]"
+                      << " ctrl=" << name()
+                      << " addr=0x" << std::hex << addr << std::dec
+                      << " isAddressed=" << isAddressed
+                      << " old_event=" << static_cast<int>(iter->second.transaction)
+                      << " old_time=" << iter->second.time
+                      << " now=" << curTick()
+                      << std::endl;
+
+            panic("outgoingTransactionStart duplicated transaction");
+        }
+
+        m_outTrans[addr] = {type, 0, curTick()};
     }
 
     /**
@@ -367,15 +388,59 @@ class AbstractController : public ClockedObject, public Consumer
     void outgoingTransactionEnd(Addr addr, bool retried,
         bool isAddressed=true)
     {
-        std::cerr << "[DBG OUT PROFILE HARD DISABLED END]"
+        auto& m_outTrans =
+          isAddressed ? m_outTransAddressed : m_outTransUnaddressed;
+
+        auto iter = m_outTrans.find(addr);
+
+        if (iter == m_outTrans.end()) {
+            std::cerr << "\n[DBG OUT END MISSING FATAL]"
+                      << " ctrl=" << name()
+                      << " addr=0x" << std::hex << addr << std::dec
+                      << " retried=" << retried
+                      << " isAddressed=" << isAddressed
+                      << " curTick=" << curTick()
+                      << " outstanding_count=" << m_outTrans.size()
+                      << "\n";
+
+            std::cerr << "[DBG OUT END MISSING FATAL] outstanding keys:";
+            int printed = 0;
+            for (const auto &entry : m_outTrans) {
+                if (printed >= 32) {
+                    std::cerr << " ...";
+                    break;
+                }
+
+                std::cerr << " {addr=0x" << std::hex << entry.first << std::dec
+                          << " trans=" << entry.second.transaction
+                          << " time=" << entry.second.time
+                          << "}";
+                printed++;
+            }
+            std::cerr << "\n";
+
+            panic("outgoingTransactionEnd without matching outgoingTransactionStart");
+        }
+
+        std::cerr << "[DBG OUT END OK]"
                   << " ctrl=" << name()
                   << " addr=0x" << std::hex << addr << std::dec
                   << " retried=" << retried
                   << " isAddressed=" << isAddressed
+                  << " trans=" << iter->second.transaction
+                  << " startTick=" << iter->second.time
                   << " curTick=" << curTick()
-                  << std::endl;
+                  << " latencyTicks=" << (curTick() - iter->second.time)
+                  << "\n";
 
-        return;
+        stats.outTransLatHist[iter->second.transaction]->sample(
+            ticksToCycles(curTick() - iter->second.time));
+
+        if (retried) {
+            ++(*stats.outTransLatHistRetries[iter->second.transaction]);
+        }
+
+        m_outTrans.erase(iter);
     }
 
     void stallBuffer(MessageBuffer* buf, Addr addr);
