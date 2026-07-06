@@ -28,11 +28,11 @@ from .nodes.memory_controller import MemoryController
 from .nodes.interface import Interface
 
 # ---------------- NUEVO ----------------
-# Añadimos C2CInterposer al import de m5.objects para poder instanciar
-# nuestro SimObject desde esta jerarquía Ruby.
+# Anadimos C2CInterposer al import de m5.objects para poder instanciar
+# nuestro SimObject desde esta jerarquia Ruby.
 #
 # Antes solo se conectaban las interfaces C2C directamente entre ellas.
-# Ahora vamos a colocar una única entidad central tipo mux/router.
+# Ahora vamos a colocar una unica entidad central tipo mux/router.
 from m5.objects import NULL, RubySystem, RubySequencer, RubyPortProxy, C2CInterposer
 # ---------------- FIN NUEVO ----------------
 
@@ -77,21 +77,21 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         cacheChipIDList = []
 
         # ---------------- NUEVO ----------------
-        # Lista paralela a cacheChipIDList para depuración.
+        # Lista paralela a cacheChipIDList para depuracion.
         #
-        # cacheChipIDList[version] dice a qué chip pertenece Cache-version.
-        # cacheComponentNameList[version] dice qué componente humano es:
+        # cacheChipIDList[version] dice a que chip pertenece Cache-version.
+        # cacheComponentNameList[version] dice que componente humano es:
         #
         #   Cache-0 -> chip0.hnf0.directory
         #   Cache-4 -> chip0.core0.l2cache
         #   Cache-8 -> chip1.hnf1.directory
         #
         # Esta lista NO se usa para routing. Solo sirve para que el interposer
-        # pueda imprimir trazas más claras, por ejemplo:
+        # pueda imprimir trazas mas claras, por ejemplo:
         #
         #   responder=Cache-8(chip=1, component=chip1.hnf1.directory)
         #
-        # Importante: aquí solo metemos controladores MachineType_Cache.
+        # Importante: aqui solo metemos controladores MachineType_Cache.
         # Las Interface C2C usan MachineType_Interface y se traducen con
         # interface_chip_id_list.
         # ---------------- FIN NUEVO ----------------
@@ -101,7 +101,7 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         # Registra el nombre humano asociado a un controlador Ruby cuyo
         # MachineID se imprime como Cache-version.
         #
-        # La posición debe coincidir con ctrl.version, porque en Ruby/CHI:
+        # La posicion debe coincidir con ctrl.version, porque en Ruby/CHI:
         #
         #   MachineID Cache-N  <=>  Cache_Controller.version == N
         #
@@ -167,7 +167,7 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
 
         # ---------------- NUEVO ----------------
         # Nombres humanos para los HNF/directorios.
-        # Estos nombres son los que luego verás en las trazas del interposer
+        # Estos nombres son los que luego veras en las trazas del interposer
         # cuando aparezcan MachineID como Cache-0, Cache-1, etc.
         # ---------------- FIN NUEVO ----------------
         register_cache_component(self.hnf0, "chip0.hnf0.directory")
@@ -179,12 +179,12 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         cluster1_dest.append(self.hnf1)
 
         # ---------------- NUEVO ----------------
-        # En tu fichero original aquí tenías:
+        # En tu fichero original aqui tenias:
         #
         #   cluster2_dest.append(self.hnf1)
         #
         # Eso estaba mal porque el chip 2 debe tener como destino local su HNF
-        # local, es decir, hnf2. Si dejábamos hnf1, el chip 2 quedaba asociado
+        # local, es decir, hnf2. Si dejabamos hnf1, el chip 2 quedaba asociado
         # incorrectamente al HNF del chip 1.
         cluster2_dest.append(self.hnf2)
         # ---------------- FIN NUEVO ----------------
@@ -192,7 +192,7 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         # ---------------- NUEVO ----------------
         # Create one C2C Interface per chip.
         #
-        # Antes esta topología tenía una Interface por enlace punto a punto:
+        # Antes esta topologia tenia una Interface por enlace punto a punto:
         #
         #   chip 0 -> chip 1
         #   chip 0 -> chip 2
@@ -207,11 +207,11 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         #   interface10, interface11,
         #   interface20, interface21.
         #
-        # Ahora queremos una única entidad central, C2CInterposer, que funcione
+        # Ahora queremos una unica entidad central, C2CInterposer, que funcione
         # como multiplexor/router. Por eso cada chip solo necesita una interface
         # C2C local hacia el mux.
         #
-        # Cada Interface anuncia los rangos remotos que puede alcanzar a través
+        # Cada Interface anuncia los rangos remotos que puede alcanzar a traves
         # del mux. Por ejemplo, el chip 0 puede alcanzar los rangos de memoria
         # del chip 1 y del chip 2.
         # ---------------- FIN NUEVO ----------------
@@ -252,12 +252,12 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         #
         # IMPORTANTE:
         # Lo colgamos de ruby_system para que gem5 lo considere parte del
-        # árbol de SimObjects que debe construir.
+        # arbol de SimObjects que debe construir.
         #
-        # Además usamos una variable local llamada c2c_interposer para no crear
+        # Ademas usamos una variable local llamada c2c_interposer para no crear
         # un atributo nuevo en ThreeCCacheHierarchy. Crear self.c2c_interposer
         # puede dar problemas porque ThreeCCacheHierarchy no declara ese atributo
-        # como parámetro SimObject.
+        # como parametro SimObject.
         # ---------------- FIN NUEVO ----------------
         self.ruby_system.c2c_interposer = C2CInterposer(
             clk_domain=board.get_clock_domain(),
@@ -278,7 +278,7 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
             ],
         )
         
-        # Variable local para escribir el cableado de forma más limpia.
+        # Variable local para escribir el cableado de forma mas limpia.
         c2c_interposer = self.ruby_system.c2c_interposer
 
                 # ---------------- NUEVO ----------------
@@ -288,20 +288,20 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         #
         #   from_interfaces:
         #       entradas hacia el interposer.
-        #       Aquí conectamos las salidas C2C de cada chip.
+        #       Aqui conectamos las salidas C2C de cada chip.
         #
         #   to_interfaces:
         #       salidas desde el interposer.
-        #       Aquí conectamos las entradas C2C de cada chip.
+        #       Aqui conectamos las entradas C2C de cada chip.
         #
-        # El orden de estas conexiones es importante porque define el índice
+        # El orden de estas conexiones es importante porque define el indice
         # interno del puerto vectorial:
         #
         #   from_interfaces[0] / to_interfaces[0] -> chip 0
         #   from_interfaces[1] / to_interfaces[1] -> chip 1
         #   from_interfaces[2] / to_interfaces[2] -> chip 2
         #
-        # Esos índices deben coincidir con chipID.
+        # Esos indices deben coincidir con chipID.
         # ---------------- FIN NUEVO ----------------
 
         # Chip 0 -> Interposer
@@ -329,7 +329,7 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         # Cuando un paquete entra desde el interposer hacia un chip, la interface
         # C2C de ese chip debe poder reenviarlo hacia el HNF local.
         #
-        # Antes había dos interfaces por chip y ambas apuntaban al mismo HNF
+        # Antes habia dos interfaces por chip y ambas apuntaban al mismo HNF
         # local. Ahora solo hay una interface por chip.
         # ---------------- FIN NUEVO ----------------
         self.interface0.downstream_destinations = self.hnf0
@@ -338,11 +338,11 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
 
         # Add to the RNF destinations
         # ---------------- NUEVO ----------------
-        # Añadimos la interface C2C local de cada chip a sus destinos.
+        # Anadimos la interface C2C local de cada chip a sus destinos.
         #
-        # Así, si una L2/RNF local quiere acceder a memoria remota, no elige
-        # directamente un enlace punto a punto. Simplemente envía hacia su
-        # interface C2C local, y el interposer central decide a qué chip mandar
+        # Asi, si una L2/RNF local quiere acceder a memoria remota, no elige
+        # directamente un enlace punto a punto. Simplemente envia hacia su
+        # interface C2C local, y el interposer central decide a que chip mandar
         # el paquete.
         # ---------------- FIN NUEVO ----------------
         cluster0_dest.append(self.interface0)
@@ -417,7 +417,7 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
 
         # ---------------- NUEVO ----------------
         # En el fichero original, core_cluster2 usaba network1 y cluster1_dest.
-        # Eso hacía que el chip 2 quedara conectado lógicamente a la red y
+        # Eso hacia que el chip 2 quedara conectado logicamente a la red y
         # destinos del chip 1.
         #
         # El chip 2 debe usar:
@@ -487,15 +487,15 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
 
             # ---------------- NUEVO ----------------
             # Si hay DMARequestor y aparece como MachineID Cache-N en las
-            # trazas, también dejamos registrado su nombre humano.
+            # trazas, tambien dejamos registrado su nombre humano.
             # ---------------- FIN NUEVO ----------------
             for idx, ctrl in enumerate(self.dma_controllers0):
                 register_cache_component(ctrl, f"chip0.dma{idx}")
 
             # ---------------- NUEVO ----------------
-            # El cálculo original no incluía core_cluster2.
+            # El calculo original no incluia core_cluster2.
             #
-            # Cada core tiene dos sequencers en esta jerarquía:
+            # Cada core tiene dos sequencers en esta jerarquia:
             #
             #   - icache sequencer
             #   - dcache sequencer
@@ -510,8 +510,8 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
 
         else:
             # ---------------- NUEVO ----------------
-            # El cálculo original solo sumaba core_cluster0 y core_cluster1.
-            # Añadimos core_cluster2 para que Ruby conozca el número correcto
+            # El calculo original solo sumaba core_cluster0 y core_cluster1.
+            # Anadimos core_cluster2 para que Ruby conozca el numero correcto
             # de sequencers del sistema completo de 3 chips.
             # ---------------- FIN NUEVO ----------------
             self.ruby_system.num_of_sequencers = (
@@ -524,9 +524,9 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
 
         def set_c2c_routes(ctrl, local_chip: int):
             """
-            Topología C2C actual: 3 chips, 1 Interface C2C por chip.
+            Topologia C2C actual: 3 chips, 1 Interface C2C por chip.
 
-            Cada controlador de un chip debe saber qué Interface local usar para
+            Cada controlador de un chip debe saber que Interface local usar para
             llegar a los otros chips.
 
             Chip 0:
@@ -603,7 +603,7 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         self.interface2.cacheChipIDList = cacheChipIDList
 
         # ---------------- NUEVO ----------------
-        # También pasamos la LUT al interposer.
+        # Tambien pasamos la LUT al interposer.
         #
         # cacheChipIDList:
         #   Permite traducir MachineID de tipo Cache a chipID.
@@ -612,7 +612,7 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         #   Permite traducir MachineID de tipo Interface a chipID.
         #
         # Esto es importante para enrutar responses, porque una response no
-        # siempre se puede enrutar solo por dirección. Muchas veces conviene
+        # siempre se puede enrutar solo por direccion. Muchas veces conviene
         # mirar campos como:
         #
         #   m_OriginalRequestor
@@ -635,7 +635,7 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         c2c_interposer.cache_chip_id_list = cacheChipIDList
 
         # ---------------- NUEVO ----------------
-        # Pasamos también la tabla de nombres humanos:
+        # Pasamos tambien la tabla de nombres humanos:
         #
         #   Cache_Controller.version -> "chipX.componente"
         #
@@ -644,8 +644,8 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         #
         #   Cache-8(chip=0, component=chip0.hnf0.directory)
         #
-        # Rellenamos con "unknown" si alguna versión se creó pero no se
-        # registró manualmente. Así evitamos desalinear la tabla.
+        # Rellenamos con "unknown" si alguna version se creo pero no se
+        # registro manualmente. Asi evitamos desalinear la tabla.
         # ---------------- FIN NUEVO ----------------
         while len(cacheComponentNameList) < len(cacheChipIDList):
             cacheComponentNameList.append("unknown")
@@ -691,7 +691,7 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
             + (self.dma_controllers0 if board.has_dma_ports() else [])
 
             # ---------------- NUEVO ----------------
-            # Antes aquí se conectaban interface00 e interface01.
+            # Antes aqui se conectaban interface00 e interface01.
             # Ahora el chip 0 solo tiene una interface C2C local.
             # ---------------- FIN NUEVO ----------------
             + [self.interface0]
@@ -711,7 +711,7 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
             #+ (self.dma_controllers1 if board.has_dma_ports() else [])
 
             # ---------------- NUEVO ----------------
-            # Antes aquí se conectaban interface10 e interface11.
+            # Antes aqui se conectaban interface10 e interface11.
             # Ahora el chip 1 solo tiene una interface C2C local.
             # ---------------- FIN NUEVO ----------------
             + [self.interface1]
@@ -731,7 +731,7 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
             #+ (self.dma_controllers1 if board.has_dma_ports() else [])
 
             # ---------------- NUEVO ----------------
-            # Antes aquí se conectaban interface20 e interface21.
+            # Antes aqui se conectaban interface20 e interface21.
             # Ahora el chip 2 solo tiene una interface C2C local.
             # ---------------- FIN NUEVO ----------------
             + [self.interface2]
