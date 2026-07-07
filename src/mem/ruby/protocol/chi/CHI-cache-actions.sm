@@ -655,6 +655,7 @@ action(Initiate_ReadUnique_HitUpstream, desc="") {
   // requester; so force it off if that's the case
   // TODO: Check if the originalRequestor is intialized correctly
   if(is_multiChip) {
+    DPRINTF(RubyGenerated, "\nmega_dir_sharers -> %s\noriginalRequestor -> %s\n", tbe.mega_dir_sharers, tbe.originalRequestor);
     tbe.use_DCT := tbe.use_DCT && (tbe.mega_dir_sharers.totalCount() == 1) &&
                   (tbe.mega_dir_sharers.isElement(mapMachineIDToChipID(tbe.originalRequestor), 
                    tbe.originalRequestor));
@@ -1308,6 +1309,11 @@ action(Send_ReadUnique, desc="") {
     prepareRequest(tbe, CHIRequestType:ReadUnique, out_msg);
     out_msg.Destination.add(mapAddressToDownstreamMachine(tbe.addr));
     out_msg.dataToFwdRequestor := false;
+
+    // Special case. We set originalRequestor when sending
+    // the request to avoid NULL originalRequestor after a
+    // CleanUnique -> Snoop Hazard -> ReadUnique
+    out_msg.originalRequestor := machineID;
     allowRequestRetry(tbe, out_msg);
   }
 }

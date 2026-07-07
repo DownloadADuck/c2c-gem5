@@ -175,7 +175,6 @@ class EnqueueStatementAST(StatementAST):
             code("((*out_msg).m_Destination).addNetDest(MegaDest.smallestNetDestElement(i));")
             code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
             # We break out of the for loop since we only want one snoop sent
-            code("break;")
             code.dedent()
             # If the sharer is remote, send to local C2CI
             code("} else {")
@@ -183,9 +182,9 @@ class EnqueueStatementAST(StatementAST):
             code("((*out_msg).m_Destination).add(mapChipIDToC2CI(i));")
             code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
             # We break out of the for loop since we only want one snoop sent
-            code("break;")
             code.dedent()
             code("}")
+            code("break;")
             code.dedent()
             code("}") # end if
             code.dedent()

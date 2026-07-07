@@ -90,7 +90,7 @@ processor = SimpleSwitchableProcessor(
     starting_core_type=CPUTypes.NONCACHING_SIMPLE,
     switch_core_type=CPUTypes.TIMING,
     isa=ISA.X86,
-    num_cores=3,
+    num_cores=4,
 )
 
 # Board setup
@@ -108,7 +108,7 @@ command = (
     + "source env.sh;"
     + "parsecmgmt -a run -p {} -c gcc-hooks -i {} \
         -n {};".format(
-            args.benchmark, args.size, "2"
+            args.benchmark, args.size, "4"
     )
     + "sleep 5;"
     + "m5 exit;"

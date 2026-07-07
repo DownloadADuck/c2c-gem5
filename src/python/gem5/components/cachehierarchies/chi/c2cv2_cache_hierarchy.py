@@ -166,6 +166,15 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
                 cluster1_dest,
                 chipID=1,
                 cacheChipIDList=cacheChipIDList,
+            ),
+            self._create_core_cluster(
+                (board.get_processor().get_cores())[3],
+                1,
+                board,
+                self.ruby_system.network1,
+                cluster1_dest,
+                chipID=1,
+                cacheChipIDList=cacheChipIDList,
             )
         ]
 
@@ -209,6 +218,16 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         self.hnf1.c2cHopList = [1]
         self.hnf1.chipIDList = [0]
 
+        self.core_cluster0[0].l2cache.c2cHopList = [0]
+        self.core_cluster0[0].l2cache.chipIDList = [1]
+        self.core_cluster0[1].l2cache.c2cHopList = [0]
+        self.core_cluster0[1].l2cache.chipIDList = [1]
+
+        self.core_cluster1[0].l2cache.c2cHopList = [1]
+        self.core_cluster1[0].l2cache.chipIDList = [0]
+        self.core_cluster1[1].l2cache.c2cHopList = [1]
+        self.core_cluster1[1].l2cache.chipIDList = [0]
+
         # Setting up the MachineID -> ChipID LUT
         # Lists are automatically set up
         # Position in the vector is the version number of the controller
@@ -218,6 +237,11 @@ class C2cCacheHierarchy(AbstractRubyCacheHierarchy):
         self.hnf1.cacheChipIDList = cacheChipIDList
         self.interface0.cacheChipIDList = cacheChipIDList 
         self.interface1.cacheChipIDList = cacheChipIDList 
+        self.core_cluster0[0].l2cache.cacheChipIDList = cacheChipIDList
+        self.core_cluster0[1].l2cache.cacheChipIDList = cacheChipIDList
+        self.core_cluster1[0].l2cache.cacheChipIDList = cacheChipIDList
+        self.core_cluster1[1].l2cache.cacheChipIDList = cacheChipIDList
+        
 
         #####################################################
         
