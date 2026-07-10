@@ -24,14 +24,6 @@ from gem5.resources.workload import (
 )
 from gem5.resources.resource import Resource, CustomDiskImageResource
 
-# This runs a check to ensure the gem5 binary is compiled to X86 and to the
-# CHI coherence protocol.
-requires(
-    isa_required=ISA.X86,
-    coherence_protocol_required=CoherenceProtocol.CHI,
-    kvm_required=True,
-)
-
 # Parsec benchmarks
 benchmark_choices = [
     "blackscholes",
@@ -81,7 +73,31 @@ parser.add_argument(
     help="Latency in cycles for both C2C Request and Response traffic",
 )
 
+# Por defecto no se usa kvm
+# Si se quiere arrancar usando KVM y luego cambiar a TIMING, se pasa:
+#
+#   --use-kvm
+#
+# Sin este argumento, el arranque se hace con NONCACHING_SIMPLE y despues
+# tambien se cambia a TIMING en WORKBEGIN.
+parser.add_argument(
+    "--use-kvm",
+    action="store_true",
+    default=False,
+    help="Use KVM CPUs for fast boot before switching to TIMING CPUs",
+)
+
 args = parser.parse_args()
+
+# This runs a check to ensure the gem5 binary is compiled to X86 and to the
+# CHI coherence protocol.
+#
+# Ahora el usar kvm o no se manda por linea de comandos con --use-kvm.
+requires(
+    isa_required=ISA.X86,
+    coherence_protocol_required=CoherenceProtocol.CHI,
+    kvm_required=args.use_kvm,
+)
 
 # Here we setup a MESI Two Level Cache Hierarchy.
 cache_hierarchy = ThreeCCacheHierarchy(
@@ -97,10 +113,17 @@ cache_hierarchy = ThreeCCacheHierarchy(
 # 3 DRAMS of 1GB that form the total 3GB
 memory = DualChannelDDR3_1600_3C(size="3GB", range_size="1073741824")
 
-# Switchable KVM -> timing
+# Si se usa kvm, en el boot la CPU es starting_core_type=CPUTypes.KVM
+# En ambos casos, al llegar al WORKBEGIN se llama a processor.switch()
+# y se pasa a CPUTypes.TIMING para el workload.
+starting_core_type = (
+    CPUTypes.KVM if args.use_kvm else CPUTypes.NONCACHING_SIMPLE
+)
+
 processor = SimpleSwitchableProcessor(
     #starting_core_type=CPUTypes.NONCACHING_SIMPLE,
-    starting_core_type=CPUTypes.KVM,
+    #starting_core_type=CPUTypes.KVM,
+    starting_core_type=starting_core_type,
     switch_core_type=CPUTypes.TIMING,
     isa=ISA.X86,
     num_cores=4,
@@ -172,7 +195,14 @@ simulator = Simulator(
 globalStart = time.time()
 
 print("Running the simulation")
-print("Using KVM cpu")
+
+# Print para indicarque tipo de CPU se esta usando durante el boot
+if args.use_kvm:
+    print("Using KVM CPUs for boot")
+else:
+    print("Using NONCACHING_SIMPLE CPUs for boot")
+
+print("C2C latency: {}".format(args.c2c_latency))
 
 m5.stats.reset()
 simulator.run()
