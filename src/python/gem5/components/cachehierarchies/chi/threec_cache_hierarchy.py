@@ -52,6 +52,9 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         l1_assoc: int,
         l2_size: str, 
         l2_assoc: int,
+
+        #parametros interposer 
+        c2c_latency: int = 5,
         ) -> None:
         super().__init__() 
 
@@ -59,6 +62,9 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         self._l1_assoc = l1_assoc
         self._l2_size = l2_size
         self._l2_assoc = l2_assoc
+
+        #parametros interposer
+        self._c2c_latency = c2c_latency
 
     @overrides(AbstractCacheHierarchy)
     def incorporate_cache(self, board: AbstractBoard) -> None:
@@ -262,8 +268,8 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
         self.ruby_system.c2c_interposer = C2CInterposer(
             clk_domain=board.get_clock_domain(),
             num_interfaces=3,
-            req_latency=5,
-            resp_latency=5,
+            req_latency=self._c2c_latency,
+            resp_latency=self._c2c_latency,
             req_buffer_size=64,
             resp_buffer_size=64,
             c2c_mem_ranges=[
@@ -276,6 +282,12 @@ class ThreeCCacheHierarchy(AbstractRubyCacheHierarchy):
                 1,
                 2,
             ],
+        )
+
+        #imprimir configuracion interposer 
+        print(
+            "[C2C CONFIG]"
+            f" c2c_latency={self._c2c_latency}"
         )
         
         # Variable local para escribir el cableado de forma mas limpia.

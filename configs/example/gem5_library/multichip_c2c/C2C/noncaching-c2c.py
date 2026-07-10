@@ -72,6 +72,15 @@ parser.add_argument(
     help="Simulation size the benchmark program.",
     choices=size_choices,
 )
+
+#argumentos del interposer 
+parser.add_argument(
+    "--c2c-latency",
+    type=int,
+    default=5,
+    help="Latency in cycles for both C2C Request and Response traffic",
+)
+
 args = parser.parse_args()
 
 # Here we setup a MESI Two Level Cache Hierarchy.
@@ -80,6 +89,8 @@ cache_hierarchy = ThreeCCacheHierarchy(
     l1_assoc=4,
     l2_size="1MB",
     l2_assoc=8,
+    #argumentos interposer
+    c2c_latency=args.c2c_latency,
 )
 
 # System memory
