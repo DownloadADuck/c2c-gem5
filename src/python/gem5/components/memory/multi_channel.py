@@ -28,6 +28,7 @@ from .memory import (
     ChanneledMemory,
     TwoRangesMemory,
     ThreeRangesMemory,
+    FourRangesMemory,
 )
 from .abstract_memory_system import AbstractMemorySystem
 
@@ -64,6 +65,16 @@ def DualChannelDDR3_1600_3C(
     A dual channel memory system using DDR3_1600_8x8 based DIMM
     """
     return ThreeRangesMemory(DDR3_1600_8x8, 3, 64, size=size, \
+        range_size=range_size)
+
+def DualChannelDDR3_1600_4C(
+    size: Optional[str] = None,
+    range_size: Optional[str] = None,
+) -> AbstractMemorySystem:
+    """
+    A dual channel memory system using DDR3_1600_8x8 based DIMM
+    """
+    return FourRangesMemory(DDR3_1600_8x8, 4, 64, size=size, \
         range_size=range_size)
 
 def DualChannelDDR3_2133(
