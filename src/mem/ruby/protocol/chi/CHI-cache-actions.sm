@@ -63,7 +63,6 @@ action(AllocateTBE_Request, desc="") {
         out_msg.event := Event:SendRetryAck;
         out_msg.retryDest := in_msg.requestor;
         out_msg.c2c_retryDest := in_msg.originalRequestor;
-        DPRINTF(RubyGenerated, "emplace in_msg.originalRequestor -> %s\n", in_msg.originalRequestor);
         retryQueue.emplace(in_msg.addr,false,in_msg.requestor,in_msg.originalRequestor);
       }
     }
@@ -272,7 +271,7 @@ action(Initiate_Request, desc="") {
   // requires deallocation
   tbe.dataToBeInvalid := dealloc_entry ||
                          (is_invalid(cache_entry) && (alloc_entry == false));
-  tbe.doCacheFill := alloc_entry || is_valid(cache_entry);
+  tbe.doCacheFill := alloc_entry || is_valid(cache_entry); 
 
   // model the initial tag array read
   tbe.actions.pushNB(Event:TagArrayRead);
@@ -655,10 +654,9 @@ action(Initiate_ReadUnique_HitUpstream, desc="") {
   // requester; so force it off if that's the case
   // TODO: Check if the originalRequestor is intialized correctly
   if(is_multiChip) {
-    DPRINTF(RubyGenerated, "\nmega_dir_sharers -> %s\noriginalRequestor -> %s\n", tbe.mega_dir_sharers, tbe.originalRequestor);
     tbe.use_DCT := tbe.use_DCT && (tbe.mega_dir_sharers.totalCount() == 1) &&
                   (tbe.mega_dir_sharers.isElement(mapMachineIDToChipID(tbe.originalRequestor), 
-                   tbe.originalRequestor));
+                   tbe.originalRequestor) == false);
   } else {
     tbe.use_DCT := tbe.use_DCT && (tbe.dir_sharers.count() == 1) &&
                   (tbe.dir_sharers.isElement(tbe.requestor) == false);
@@ -1387,7 +1385,6 @@ action(Send_WriteBackOrWriteEvict, desc="") {
     out_msg.Destination.add(mapAddressToDownstreamMachine(tbe.addr));
     allowRequestRetry(tbe, out_msg);
     // C2c-specific fields
-    DPRINTF(RubyGenerated, "originalRequestor: %s\n", machineID);
     out_msg.originalRequestor := machineID;
   }
   clearExpectedReqResp(tbe);
@@ -1516,7 +1513,6 @@ action(Send_SnpCleanInvalid_NoReq, desc="") {
     }
     // Adding back the requestor to the mega_dir_sharers after sending the snoops
     tbe.mega_dir_sharers.add(mapMachineIDToChipID(tbe.originalRequestor), tbe.originalRequestor);
-    DPRINTF(RubyGenerated, "mega_dir_sharers after adding back -> %s\n", tbe.mega_dir_sharers);
   } else {
     enqueue(snpOutPort, CHIRequestMsg, snoop_latency) {
       prepareRequest(tbe, CHIRequestType:SnpCleanInvalid, out_msg);
@@ -1587,7 +1583,7 @@ action(Send_SnpUnique_RetToSrc, desc="") {
     if (tbe.dir_ownerExists) {
       dest := tbe.dir_owner;
     } else {
-      dest := tbe.dir_sharers.smallestElement();
+      dest := tbe.dir_sharers.smallestElement(); 
     }
   }
   if (is_multiChip) {
@@ -2509,9 +2505,10 @@ action(UpdateDirState_FromSnpResp, desc="") {
         assert(tbe.mega_dir_sharers.isElement(mapMachineIDToChipID(in_msg.originalResponder), in_msg.originalResponder));
         assert(tbe.mega_dir_sharers.totalCount() == 1);
         tbe.mega_dir_sharers.remove(mapMachineIDToChipID(in_msg.originalResponder), in_msg.originalResponder);
-        tbe.mega_dir_sharers.add(mapMachineIDToChipID(tbe.originalRequestor), tbe.originalRequestor);
+	// We use in_msg.originalRequestor instead of the TBE
+        tbe.mega_dir_sharers.add(mapMachineIDToChipID(in_msg.originalRequestor), in_msg.originalRequestor);
         tbe.mega_dir_owner.clear();
-        tbe.mega_dir_owner.add(mapMachineIDToChipID(tbe.originalRequestor), tbe.originalRequestor);
+        tbe.mega_dir_owner.add(mapMachineIDToChipID(in_msg.originalRequestor), in_msg.originalRequestor);
       } else {
         assert(tbe.dir_sharers.isElement(in_msg.responder));
         assert(tbe.dir_sharers.count() == 1);
@@ -2845,16 +2842,12 @@ action(Send_CompData_SnpSharedFwd, desc="") {
     tbe.snd_destination := tbe.fwdRequestor;
   } else {
     int mappedChipID := mapMachineIDToChipID(tbe.originalRequestor);
-    DPRINTF(RubyGenerated, "mappedChipID -> %d\n", mappedChipID);
-    DPRINTF(RubyGenerated, "chipID -> %d\n", chipID);
-    DPRINTF(RubyGenerated, "originalRequestor -> %s\n", tbe.originalRequestor);
     if(mappedChipID == chipID) {
       tbe.snd_destination := tbe.originalRequestor;
     } else {
       tbe.snd_destination := mapChipIDToC2CI(mappedChipID);
     }
   }
-  DPRINTF(RubyGenerated, "SendDestination -> %s\n", tbe.snd_destination);
   setupPendingSend(tbe);
 }
 
@@ -3021,7 +3014,6 @@ action(Send_Data, desc="") {
 
     //C2c-specific fields
     out_msg.originalRequestor := tbe.originalRequestor;
-    DPRINTF(RubyGenerated, "originalRequestor -> %s\n", tbe.originalRequestor);
     out_msg.localRequestor := tbe.localRequestor;
     out_msg.originalResponder := machineID;
   }
@@ -3107,7 +3099,6 @@ action(Send_CompAck, desc="") {
     // MegaNetDest ID for sharer tracking in the HNF
     out_msg.localRequestor := tbe.localRequestor;
     out_msg.c2c_destination.add(chipID, machineID); 
-    DPRINTF(RubyGenerated, "CompAck destination -> %s\n", mapAddressToDownstreamMachine(tbe.addr));
     out_msg.Destination.add(mapAddressToDownstreamMachine(tbe.addr));
   }
 }
@@ -3219,7 +3210,6 @@ action(Send_PCrdGrant, desc="") {
       out_msg.Destination.add(in_msg.retryDest);
       // C2c-specific fields
       out_msg.localRequestor := in_msg.c2c_retryDest; 
-      DPRINTF(RubyGenerated, "localRequestor (c2c_retryDest) -> %s\n", out_msg.localRequestor);
     }
   }
 }

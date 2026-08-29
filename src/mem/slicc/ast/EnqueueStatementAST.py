@@ -140,8 +140,9 @@ class EnqueueStatementAST(StatementAST):
             # If the sharer is local, extract the NetDest from MegaNetDest
             code("if (i == m_chipID) {")
             code.indent()
-            # Uses smallestNetDestElement to extract only one sharer  
-            code("((*out_msg).m_Destination).addNetDest((*m_tbe_ptr).m_mega_dir_sharers.smallestNetDestElement(i));")
+            # We extract the full NetDest to send as many snoops as there are shared copies
+	    # These snoops are sent with retToSrc = false   
+            code("((*out_msg).m_Destination).addNetDest((*m_tbe_ptr).m_mega_dir_sharers.extractNetDest(i));")
             code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
             code.dedent()
             # If the sharer is remote, send to local C2CI
@@ -171,8 +172,9 @@ class EnqueueStatementAST(StatementAST):
             # If the sharer is local, extract the NetDest from MegaNetDest
             code("if (i == m_chipID) {")
             code.indent()
-            # Uses smallestNetDestElement to extract only one sharer  
-            code("((*out_msg).m_Destination).addNetDest(MegaDest.smallestNetDestElement(i));")
+            # We extract the full NetDest to send as many snoops as there are shared copies
+	    # These snoops are sent with retToSrc = false   
+            code("((*out_msg).m_Destination).addNetDest(MegaDest.extractNetDest(i));")
             code("(${{self.queue_name.var.code}}).enqueue(out_msg, clockEdge(), cyclesToTicks(Cycles(m_snoop_latency)));")
             # We break out of the for loop since we only want one snoop sent
             code.dedent()
